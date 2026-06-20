@@ -56,4 +56,5 @@ description: Build a "dashboard agent" — a web dashboard the user watches whil
 ## 참고 파일
 - [`references/server.js`](references/server.js) — 대시보드+브리지 서버 템플릿(의존성 0)
 - [`references/fakechat-bridge.js`](references/fakechat-bridge.js) — 인바운드 릴레이 템플릿
-- [`references/architecture.md`](references/architecture.md) — 데이터 흐름·시퀀스 상세
+- [`references/architecture.md`](references/architecture.md) — 구성요소·기술스택·MCP채널·데이터 흐름·시퀀스 상세
+- [`references/example-deployment.md`](references/example-deployment.md) — 실제 적용 사례(가족 주간 계획표): 구성도·기술스택·왕복 흐름

@@ -1,5 +1,42 @@
 # fakechat 대시보드 에이전트 — 아키텍처 상세
 
+## 구성 요소 (5요소 + 터널)
+
+| # | 구성 요소 | 예시 파일/실행 | 역할 | 포트(예) |
+|---|---|---|---|---|
+| ① | 웹 대시보드(브라우저) | `index.html`/`app.js`/`styles.css` | 데이터 화면 + 채팅 UI. 전송·피드 수신 | — |
+| ② | 브리지 서버 | `references/server.js` (Node, 의존성 0) | 정적 서빙 + 채팅 인박스/피드/제안/승인 + 데이터(JSON) | 8777 |
+| ③ | 인바운드 릴레이 | `references/fakechat-bridge.js` (Node 22) | 새 채팅 요청을 fakechat 채널로 주입 | — |
+| ④ | fakechat MCP 채널 | fakechat 플러그인 `server.ts` (Bun) | WS 메시지를 MCP 알림으로 Claude 세션에 푸시 | 8787 |
+| ⑤ | Claude Code 세션(두뇌) | (실행 중인 세션) | 채널 수신 → 데이터 조회 → 리치 응답 게시 | — |
+| ⑥ | cloudflared 터널(선택) | `cloudflared` | 외부 공개 URL | — |
+
+> 인바운드(①→⑤)만 채널(③④) 경유, 아웃바운드(⑤→①)는 서버 API(②) 경유 → 제안/승인 같은 리치 UX 유지.
+
+## 기술 스택
+
+| 계층 | 기술 |
+|---|---|
+| 프론트엔드 | 바닐라 JS/HTML/CSS(프레임워크 0), EventSource(SSE) + `fetch` 폴링, Web Speech API(음성 입력), VisualViewport(모바일 키보드), `localStorage` |
+| 브리지 서버 | Node.js 내장 모듈만(`http`/`fs`/`path`) — 의존성 0. long-poll·SSE·JSON 파일 저장 |
+| 인바운드 릴레이 | Node.js 22 전역 `fetch` + 전역 `WebSocket`(의존성 0), 롱폴·자동재접속·중복방지 Set |
+| 채널(fakechat) | Bun + `@modelcontextprotocol/sdk`, WebSocket 서버, MCP **stdio transport** |
+| 연결 프로토콜 | MCP(Model Context Protocol) — `notifications/claude/channel` 알림으로 푸시, `reply` 툴로 응답 |
+| 데이터 | JSON 파일(상태에 `version` 포함) |
+| 공개 | cloudflared 퀵터널(임시) 또는 named tunnel(고정) |
+
+## fakechat 채널 내부 (MCP / Bun)
+
+fakechat 은 로컬 테스트용 MCP 채널 서버다(Bun 실행). 두 면을 가진다:
+
+- **MCP stdio 서버**: Claude Code 세션에 stdio 로 연결. 세션으로 보낼 때
+  `mcp.notification("notifications/claude/channel", { content, meta:{ chat_id, message_id, ... } })` 호출 →
+  세션엔 `<channel source="fakechat" message_id="…">` 로 도착. `reply` / `edit_message` 툴 제공.
+- **로컬 HTTP/WS 서버**(기본 `:8787`): 브라우저 UI 와 WebSocket(`/ws`) 연결. WS 로 들어온 `{id,text}` 는
+  `deliver()` → 위 MCP 알림으로 변환되어 세션에 푸시된다.
+
+대시보드 에이전트는 이 **WS 입구(`/ws`)에 릴레이가 user 메시지를 주입**하는 방식으로 "대시보드 채팅 → Claude 세션" 인바운드를 구현한다. (릴레이 주입은 fakechat UI 로 echo 되지 않음 → 중복 없음.)
+
 ## 데이터 흐름
 
 ```
