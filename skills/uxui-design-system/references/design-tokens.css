@@ -1,0 +1,87 @@
+/* =========================================================================
+   토스 스타일 디자인 토큰 — 즉시 사용 가능 (라이트 + 다크)
+   컴포넌트는 반드시 이 변수만 참조한다(하드코딩 금지 → 다크모드 자동 대응).
+   브랜드/엔티티 색만 프로젝트에 맞게 교체해서 쓰면 된다.
+   ========================================================================= */
+:root {
+  /* surface / text */
+  --bg:        #F2F4F6;
+  --surface:   #FFFFFF;
+  --surface-2: #F9FAFB;
+  --text:      #191F28;
+  --text-sub:  #4E5968;
+  --text-weak: #8B95A1;
+  --line:      #E5E8EB;
+  --line-2:    #EDF0F2;
+
+  /* brand */
+  --blue:      #3182F6;   /* Toss Blue — 주요 액션/강조 숫자 */
+  --blue-700:  #1B64DA;
+  --blue-weak: #E8F1FE;
+  --green:     #16C47F;
+
+  /* 엔티티 컬러 (사람/카테고리/상태별 정체성 색 — 프로젝트에 맞게 교체) */
+  --c-1: #FF5A8A;  --c-2: #3182F6;  --c-3: #12B886;  --c-4: #845EF7;
+
+  /* 상태/종류 배지 (차분 vs 따뜻) */
+  --cool-bg: #EBF3FF;  --cool-fg: #1B64DA;
+  --warm-bg: #FFF2E5;  --warm-fg: #E8731C;
+
+  /* shape */
+  --r-xl: 24px;  --r-lg: 20px;  --r: 16px;  --r-sm: 12px;  --r-xs: 10px;
+
+  /* shadow / elevation */
+  --sh-card:  0 1px 3px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.04);
+  --sh-fab:   0 8px 20px rgba(49,130,246,.4);
+  --sh-sheet: 0 -10px 40px rgba(0,0,0,.16);
+
+  /* layout */
+  --header-h: 64px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+
+  font-family: "Pretendard", "Pretendard Variable", -apple-system, BlinkMacSystemFont,
+               "Apple SD Gothic Neo", system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:        #17181C;
+    --surface:   #1F2126;
+    --surface-2: #25272E;
+    --text:      #F2F4F6;
+    --text-sub:  #C2C7CE;
+    --text-weak: #8B95A1;
+    --line:      #2E3138;
+    --line-2:    #292C32;
+    --blue-weak: #16335C;
+    --cool-bg:   #16335C;  --cool-fg: #9CC2FF;
+    --warm-bg:   #4A3115;  --warm-fg: #FFC489;
+    --sh-card:   0 1px 3px rgba(0,0,0,.4);
+    --sh-sheet:  0 -10px 40px rgba(0,0,0,.5);
+  }
+}
+
+/* 베이스 리셋 */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-size: 15px; line-height: 1.45; letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased; overscroll-behavior-y: none;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input, select, textarea { font-family: inherit; }
+
+/* ---- 자주 쓰는 유틸 ---- */
+.card { background: var(--surface); border-radius: var(--r); box-shadow: var(--sh-card); }
+.big-number { font-size: 22px; font-weight: 800; color: var(--blue); letter-spacing: -0.04em; }
+.glass-header {
+  position: sticky; top: 0; z-index: 30;
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--line-2);
+}
+.pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; font-weight: 800; }
+.badge-cool { background: var(--cool-bg); color: var(--cool-fg); }
+.badge-warm { background: var(--warm-bg); color: var(--warm-fg); }
