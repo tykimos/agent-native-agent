@@ -67,3 +67,4 @@ description: Design and implement a cohesive, Toss-style (clean fintech) UX/UI d
 ## 산출물
 - `styles.css`(토큰+컴포넌트), 화면 골격(HTML), `DESIGN_SYSTEM.md`(토큰·컴포넌트 명세).
 - 참고: [`references/design-tokens.css`](references/design-tokens.css) — 즉시 사용 가능한 토큰 세트(라이트+다크).
+- 참고: [`references/bottom-bar-and-sheets.md`](references/bottom-bar-and-sheets.md) — 하단 액션 바(주/보조 알약 버튼) + 팝업(바텀시트↔모달) 컴포넌트 상세(CSS/JS, 상태, 키보드 맞춤, 접근성).
