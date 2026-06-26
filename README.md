@@ -1,82 +1,141 @@
-# Agent-Native Agent (ANA)
+<div align="center">
 
-> **Coding-Agent-Native Agent** — 당신이 만나는 서비스는, 그것을 **런타임에서 짓고·돌리고·고쳐 나가는 코딩 에이전트(빌더)에 네이티브**합니다. 대시보드를 **보면서(watch)**, 코딩 에이전트와 **대화하며(converse)** 운영하고, **말 한 번으로 앱 자체가 자랍니다.**
+# ⟁ ANA — Agent‑Native Agent
 
-**ANA(Agent-Native Agent)** 하네스는 코딩 에이전트(Claude Code)를 **운영의 런타임이자 빌더**로 삼아, 사용자가 대시보드를 보면서 대화로 운영하고 필요하면 앱 코드까지 그 자리에서 바꾸는 앱을 짓고 진화시키는 하네스입니다.
+### Apps a **coding agent builds, runs, and evolves at runtime.**
 
-### 이름에 대하여 — 왜 *Agent*-Native *Agent*인가
-이름은 **"Coding-Agent-Native Agent"** 로 읽습니다. 무게중심은 *사용자가 만나는 서비스*가 아니라 **그것을 살아 있게 만드는 코딩 에이전트(빌더)** 에 있습니다.
+You watch a live dashboard and talk. The agent ships.
 
-- **뒤의 `Agent`** = 사용자가 만나는 서비스(앱) 그 자체.
-- **앞의 `Agent-Native`** = 그 서비스가 **코딩 에이전트에 네이티브**하다는 선언 — 코딩 에이전트가 런타임에서 *짓고·돌리고·진화*시킨다.
-- 즉 ANA의 정체성은 **빌더(코딩 에이전트)** 이며, 이는 아래 3원칙 ②"에이전트가 런타임이다"·③"내 하네스를 소유한다"와 정확히 같은 곳을 가리킵니다.
+[![Stars](https://img.shields.io/github/stars/tykimos/agent-native-agent?style=for-the-badge&logo=github&color=CC785C)](https://github.com/tykimos/agent-native-agent/stargazers)
+[![License: MIT](https://img.shields.io/badge/License-MIT-1f6feb?style=for-the-badge)](LICENSE)
+[![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-CC785C?style=for-the-badge)](https://claude.com/claude-code)
+[![Protocol: MCP](https://img.shields.io/badge/protocol-MCP-111?style=for-the-badge)](https://modelcontextprotocol.io)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-22c55e?style=for-the-badge)](#contributing)
 
-이 저장소는 [revfactory/harness](https://github.com/revfactory/harness)의 메타-팩토리 패턴을 따르되, 산출물을 **하나의 구체적 앱 형태 — Agent Native App** 으로 특화합니다. 상위에 ANA 하네스 스킬(오케스트레이터)을 두고, 그 아래 재사용 빌딩블록 스킬들을 조립합니다.
+![ANA demo — watch a dashboard, converse, and the app grows](docs/assets/demo.gif)
 
-> 이 저장소는 `ai-solopreneur-skills`에서 이름을 바꾼 것입니다. 기존 스킬은 ANA를 짓는 빌딩블록으로 편입되었습니다.
+**English** · [한국어](README.ko.md) · [Concept deck](docs/ana-concept.md)
 
-## ANA란
+</div>
 
-> **Agent-Native Agent** = 코딩 에이전트를 운영의 런타임이자 빌더로 삼아, 사용자가 대시보드를 보면서 대화로 운영하고, 필요하면 앱 코드까지 그 자리에서 바꾸는 앱. 정체성은 *서비스*가 아니라 그것을 짓고 살려 나가는 *코딩 에이전트*에 있습니다.
+---
 
-전통 SaaS · 순수 챗봇 · 노코드는 모두 "내가 앱에 맞추는" 구조입니다. ANA만이 **시각 맥락(내 대시보드) + 자연어 운영 + 그 자리에서 코드 변경 + 완전한 소유(셀프호스팅)** 를 동시에 만족합니다.
+## TL;DR
 
-### 3원칙
-1. **보면서 대화한다 (Watch + Converse)** — 시각 상태와 대화를 한 화면에서.
-2. **에이전트가 런타임이다 (Agent as Runtime)** — 읽고 → 행동하고 → 앱 코드까지 고친다.
-3. **내 하네스를 소유한다 (Own Your Harness)** — 의존성 0 · 셀프호스팅 · 계속 진화.
+**ANA is a harness for building _Agent‑Native Agents_ — self‑hosted apps where a coding agent _is_ the runtime.**
+No deploy cycle. Zero dependencies. Fully owned. You operate the app by **watching** a dashboard and **conversing**; when you need a new feature, you just ask — and the agent rewrites the app, live.
 
-전체 개념/철학은 [`docs/ana-concept.md`](docs/ana-concept.md)를 참조하세요.
+> **Read the name as _Coding‑Agent‑Native Agent_.** The center of gravity is the **builder** — the coding agent — not the service you see. The agent doesn't just answer; it **authors and keeps your app alive.**
 
-## 구조
+---
+
+## Why ANA
+
+Every tool today forces a trade‑off between **using** and **building**:
+
+|  | SaaS / Apps | No‑code | Chatbots | Coding agents | **ANA** |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Use it instantly | ✅ | ✅ | ✅ | ❌ | ✅ |
+| Change *anything* | ❌ | ⚠️ in‑box | ❌ | ✅ | ✅ |
+| Sees your live data | ✅ | ✅ | ❌ | ⚠️ | ✅ |
+| **Change at runtime — no deploy** | ❌ | ❌ | ❌ | ❌ | ✅ |
+| You fully own it (self‑host) | ❌ | ❌ | ❌ | ✅ | ✅ |
+
+SaaS is *instant but frozen*. Coding agents are *infinitely malleable but build‑time only* — you ship, then use. **ANA collapses build‑time into run‑time:** because the coding agent is native to the runtime, **using the app (talking) is the same act as building it (changing behavior).**
+
+> Use = Build. That's the whole idea.
+
+---
+
+## The Three Principles
+
+1. **Watch + Converse** — visual state and a chat live in *one* view. You operate by looking and talking, not clicking through fixed UI.
+2. **Agent as Runtime** — the agent reads your data → acts → and **rewrites the app's own code** when asked. Inference is the runtime.
+3. **Own Your Harness** — zero dependencies, self‑hosted, yours forever. It keeps evolving with you.
+
+Full philosophy in [`docs/ana-concept.md`](docs/ana-concept.md).
+
+---
+
+## How it works
 
 ```
-agent-native-app-harness/
-├── .claude-plugin/
-│   └── plugin.json
-├── docs/
-│   └── ana-concept.md                     # 개념 슬라이드 (Marp)
-└── skills/
-    ├── agent-native-app-harness/          # ★ ANA 하네스 스킬 (오케스트레이터)
-    │   ├── SKILL.md
-    │   └── references/
-    │       ├── ana-architecture.md        # 구성도·데이터 흐름
-    │       └── build-workflow.md          # 단계별 구축 절차
-    ├── uxui-design-system/                # 빌딩블록 — ANA의 얼굴 (Watch)
-    └── fakechat-dashboard-agent/          # 빌딩블록 — ANA의 신경계 (Converse)
+   You (phone / laptop)
+        │  watch dashboard  ▲ rich proposals + approve
+        ▼  natural language │
+ ┌────────────────────────────────────────────┐
+ │  Dashboard  ──►  Bridge server  ──►  Channel │   inbound = push
+ │     ▲                                  │      │
+ │     │  /api/agent (rich UI)            ▼      │
+ │     └────────────  Coding Agent (runtime) ◄──┘   reads state → acts → rewrites app
+ └────────────────────────────────────────────┘
+   • Inbound (you → agent) travels a push channel (MCP / fakechat).
+   • Outbound (agent → you) returns via the app API, so changes arrive as
+     before/after previews you approve. State is versioned; every device syncs.
 ```
 
-## 하네스 스킬과 빌딩블록
+The coding agent is the backend. There is no separate server logic to write — you grow it by talking.
 
-| 스킬 | 계층 | 역할 |
-|---|---|---|
-| [`agent-native-app-harness`](skills/agent-native-app-harness/) | **하네스(오케스트레이터)** | "무엇을·어떤 순서로 엮어 ANA를 짓는가"를 정의. 빌딩블록을 조립하고 진화 루프를 운영. |
-| [`uxui-design-system`](skills/uxui-design-system/) | 빌딩블록 (얼굴) | 의존성 0 토스 스타일 디자인 시스템 — 대시보드의 시각 맥락. |
-| [`fakechat-dashboard-agent`](skills/fakechat-dashboard-agent/) | 빌딩블록 (신경계) | 대시보드 + 채널 + 코딩 에이전트 배선 — watch+converse. |
+---
 
-## 사용법
-
-Claude Code에서 ANA를 만들려면, 스킬을 스킬 경로에 두고 자연어로 요청합니다:
+## Quickstart
 
 ```bash
-# 저장소 전체를 Claude Code 스킬 경로에 복사(또는 심볼릭 링크)
-cp -r skills/* ~/.claude/skills/
+git clone https://github.com/tykimos/agent-native-agent
+cp -r agent-native-agent/skills/* ~/.claude/skills/
 ```
 
+Then, in **Claude Code**, just describe the app:
+
+```text
+"Build a weekly family planner as an agent-native agent"
+"Add voice input to this ANA"        # ← evolve: one sentence, no deploy
+"Put an at-a-glance progress bar on top"
 ```
-"우리집 주간 계획표를 agent native app으로 만들어줘"
-"이 ANA에 음성 입력 추가해줘"        # 진화: 말 한 번으로 기능 추가
-```
 
-`agent-native-app-harness` 하네스 스킬이 트리거되어 도메인 1화면 정의 → 디자인 → 배선 → 진화 루프 순으로 ANA를 구축합니다. 절차 전문은 [`skills/agent-native-app-harness/references/build-workflow.md`](skills/agent-native-app-harness/references/build-workflow.md).
+The `agent-native-app-harness` orchestrator skill triggers and builds your ANA: **define one screen → design → wire up → run the evolution loop.** Step‑by‑step in [`build-workflow.md`](skills/agent-native-app-harness/references/build-workflow.md).
 
-## 사례 — "우리집 주간 계획표"
+---
 
-- **대시보드**: 토스 스타일 격자(시간 × 요일 × 가족 4명), 한눈에 보는 진행률.
-- **대화**: 하단 `[대화하기]` → "오늘 일정은?" / "민준 7시 영어 추가".
-- **흐름**: 채팅 → 채널 → Claude 세션이 `schedule.json` 읽고 → 전/후 미리보기 + 승인 카드 → 누르면 반영, 모든 기기 동기화.
-- **진화**: "음성으로 입력되게" → 마이크 추가. 개발 사이클이 아니라 대화 한 번.
+## Building blocks
 
-## 라이선스
+| Skill | Layer | Role |
+|---|---|---|
+| [`agent-native-app-harness`](skills/agent-native-app-harness/) | **Orchestrator** | Defines *what to assemble, in what order* to build an ANA, and runs the evolution loop. |
+| [`uxui-design-system`](skills/uxui-design-system/) | Building block — *the face* | Zero‑dependency, Toss‑style design system: the dashboard's visual context. |
+| [`fakechat-dashboard-agent`](skills/fakechat-dashboard-agent/) | Building block — *the nervous system* | Wires dashboard + channel + coding agent for watch + converse. |
 
-[MIT](LICENSE) © tykimos
+---
+
+## Example — a real ANA in 60 seconds
+
+**"Work Secretary"** — six channels (mail · Slack · KakaoTalk · approvals · calendar · SMS) collapsed into one board, sorted by urgency.
+
+- **Watch:** a live status board of everything that needs you.
+- **Converse:** *"Approve this expense and send the reply mail."*
+- **Flow:** chat → channel → the agent reads state → returns a **before/after preview + approve card** → tap → applied, every device synced.
+- **Evolve:** *"Add a weekly throughput metric."* → it appears. No dev cycle — one sentence.
+
+> The demo above is an ANA built with this harness.
+
+---
+
+## Roadmap
+
+- [ ] One‑command scaffolder (`npx create-ana`)
+- [ ] More building blocks (auth gate, audit log, multi‑user)
+- [ ] Template gallery (planner, CRM‑lite, order desk, work queue)
+- [ ] Hosted quickstart tunnel
+
+---
+
+## Contributing
+
+ANA is meant to be **owned and evolved** — that includes this repo. Issues, ideas, and PRs are welcome.
+If ANA changes how you think about apps, **⭐ star the repo** so others can find it.
+
+---
+
+## License
+
+[MIT](LICENSE) © [tykimos](https://github.com/tykimos)
