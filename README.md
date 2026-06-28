@@ -74,13 +74,21 @@ These principles are also the acceptance criteria for every ANA built with this 
 ## How it works
 
 ```mermaid
-flowchart LR
-  U["User<br/>watch + converse"] --> D["Dashboard<br/>visual state + chat"]
-  D -->|"POST /api/chat"| B["Bridge server<br/>state + inbox + rich responses"]
-  B -->|"push inbound"| C["Channel<br/>MCP / fakechat"]
-  C --> A["Coding agent runtime<br/>read state, decide, act, evolve code"]
-  A -->|"POST /api/agent"| B
-  B -->|"proposal, approval, sync"| D
+flowchart TB
+  subgraph UX["Watch + Converse"]
+    direction LR
+    U["User"] <--> D["Dashboard"]
+  end
+
+  subgraph RT["Agent Runtime"]
+    direction LR
+    B["Bridge"] --> C["Channel"]
+    C --> A["Coding Agent"]
+    A --> B
+  end
+
+  D -->|"intent"| B
+  B -->|"proposal + sync"| D
 ```
 
 Inbound messages travel through the channel. Outbound agent responses return through the dashboard API, so ANA can show rich before/after proposals and approval cards. State is versioned, and every device syncs.
