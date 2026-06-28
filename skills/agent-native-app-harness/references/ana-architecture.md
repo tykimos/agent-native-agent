@@ -1,6 +1,6 @@
 # ANA 아키텍처 — 구성도와 설계 원리
 
-Agent Native App의 런타임 구조, 데이터 흐름, 그리고 "보면서 대화"가 어떻게 배선되는지를 상세히 설명한다. 빌딩블록 스킬(`uxui-design-system`, `fakechat-dashboard-agent`)이 각 구성요소를 어떻게 채우는지 매핑한다.
+Agent Native Agent의 런타임 구조, 데이터 흐름, 그리고 "보면서 대화"가 어떻게 배선되는지를 상세히 설명한다. 빌딩블록 스킬(`uxui-design-system`, `fakechat-dashboard-agent`)이 각 구성요소를 어떻게 채우는지 매핑한다.
 
 ## 목차
 1. 전체 구성도

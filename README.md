@@ -1,10 +1,10 @@
 <div align="center">
 
-# ⟁ ANA — Agent‑Native Agent
+# ⟁ ANA — Agent Native Agent
 
-### Apps a **coding agent builds, runs, and evolves at runtime.**
+### An autonomous agent for **Agent Native Lifestyle**.
 
-You watch a live dashboard and talk. The agent ships.
+ANA (read: **Ana**) helps realize ANL (read: **Anel**) — a lifestyle where autonomous agents understand your work and daily routines, act on your behalf, and keep improving the tools around you.
 
 [![Stars](https://img.shields.io/github/stars/tykimos/agent-native-agent?style=for-the-badge&logo=github&color=CC785C)](https://github.com/tykimos/agent-native-agent/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-1f6feb?style=for-the-badge)](LICENSE)
@@ -22,16 +22,31 @@ You watch a live dashboard and talk. The agent ships.
 
 ## TL;DR
 
-**ANA is a harness for building _Agent‑Native Agents_ — self‑hosted apps where a coding agent _is_ the runtime.**
-No deploy cycle. Zero dependencies. Fully owned. You operate the app by **watching** a dashboard and **conversing**; when you need a new feature, you just ask — and the agent rewrites the app, live.
+**ANA is an _Agent Native Agent_ for _Agent Native Lifestyle_ (ANL).**
+It is not a passive assistant that waits for instructions. It is an autonomous agent that watches context, reasons, acts, and repeatedly improves the app around your work and life.
 
-> **Read the name as _Coding‑Agent‑Native Agent_.** The center of gravity is the **builder** — the coding agent — not the service you see. The agent doesn't just answer; it **authors and keeps your app alive.**
+You operate ANA by **watching** a live dashboard and **conversing** with the agent. When you need a new behavior, you ask once — and ANA can propose the change, apply it with approval, and evolve the app at runtime.
+
+> **ANA is an Agent for Agent Native Lifestyle.** In Korean: **아나는 에이전트 네이티브 라이프스타일을 실현하는 자율형 에이전트입니다.**
 
 ---
 
-## Why ANA
+## ANA and ANL
 
-Every tool today forces a trade‑off between **using** and **building**:
+| Name | Reads as | Means | Role |
+|---|---|---|---|
+| **ANA** | Ana / 아나 | Agent Native Agent | The autonomous agent that understands, acts, and improves. |
+| **ANL** | Anel / 아넬 | Agent Native Lifestyle | The new way of working, learning, creating, consuming, and running daily routines with agents. |
+
+**ANA builds ANL.** The companion **ANL casebook** collects real examples made with ANA: [Agent Native Lifestyle](https://github.com/tykimos/agent-native-lifestyle).
+
+---
+
+## Why Agent, Not Assistant
+
+An assistant sounds helpful but passive. An agent implies judgment, execution, feedback loops, and improvement. That is the point of ANA: the user is not merely asking for help; the user is growing a lifestyle where the agent can act.
+
+Every tool today still forces a trade‑off between **using** and **building**:
 
 |  | SaaS / Apps | No‑code | Chatbots | Coding agents | **ANA** |
 |---|:---:|:---:|:---:|:---:|:---:|
@@ -41,7 +56,7 @@ Every tool today forces a trade‑off between **using** and **building**:
 | **Change at runtime — no deploy** | ❌ | ❌ | ❌ | ❌ | ✅ |
 | You fully own it (self‑host) | ❌ | ❌ | ❌ | ✅ | ✅ |
 
-SaaS is *instant but frozen*. Coding agents are *infinitely malleable but build‑time only* — you ship, then use. **ANA collapses build‑time into run‑time:** because the coding agent is native to the runtime, **using the app (talking) is the same act as building it (changing behavior).**
+SaaS is *instant but frozen*. Coding agents are *infinitely malleable but build‑time only* — you ship, then use. **ANA collapses build‑time into run‑time:** because the agent is native to the runtime, **using the app (talking) is the same act as building it (changing behavior).**
 
 > Use = Build. That's the whole idea.
 
@@ -74,7 +89,7 @@ Full philosophy in [`docs/ana-concept.md`](docs/ana-concept.md).
      before/after previews you approve. State is versioned; every device syncs.
 ```
 
-The coding agent is the backend. There is no separate server logic to write — you grow it by talking.
+The agent is the backend. There is no separate server logic to write — you grow it by talking.
 
 ---
 
@@ -88,7 +103,7 @@ cp -r agent-native-agent/skills/* ~/.claude/skills/
 Then, in **Claude Code**, just describe the app:
 
 ```text
-"Build a weekly family planner as an agent-native agent"
+"Build a weekly family planner as an agent native agent"
 "Add voice input to this ANA"        # ← evolve: one sentence, no deploy
 "Put an at-a-glance progress bar on top"
 ```
@@ -132,6 +147,7 @@ The `agent-native-app-harness` orchestrator skill triggers and builds your ANA: 
 ## Contributing
 
 ANA is meant to be **owned and evolved** — that includes this repo. Issues, ideas, and PRs are welcome.
+If you are publishing examples made with ANA, add them to the ANL casebook: [Agent Native Lifestyle](https://github.com/tykimos/agent-native-lifestyle).
 If ANA changes how you think about apps, **⭐ star the repo** so others can find it.
 
 ---

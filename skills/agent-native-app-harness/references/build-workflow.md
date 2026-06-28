@@ -1,6 +1,6 @@
 # ANA 구축 절차 (전문)
 
-Agent Native App을 처음 짓거나 기존 ANA를 진화시키는 단계별 절차. SKILL.md의 요약을 확장한 실행 가이드다. 상위 하네스 일반론은 github.com/revfactory/harness의 6단계 워크플로우를 참조한다.
+Agent Native Agent를 처음 짓거나 기존 ANA를 진화시키는 단계별 절차. SKILL.md의 요약을 확장한 실행 가이드다. 상위 하네스 일반론은 github.com/revfactory/harness의 6단계 워크플로우를 참조한다.
 
 ## 목차
 - Phase 0: 컨텍스트 확인

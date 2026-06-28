@@ -1,6 +1,6 @@
 {
   "name": "agent-native-app-harness",
-  "description": "Agent Native App (ANA) harness — build apps you operate by watching a dashboard and conversing with a coding agent that is the runtime. Bundles the ANA orchestrator skill plus reusable building-block skills (uxui-design-system, fakechat-dashboard-agent).",
+  "description": "Agent Native Agent (ANA) harness — build autonomous agents for Agent Native Lifestyle (ANL), operated by watching a dashboard and conversing with a coding agent that is the runtime. Bundles the ANA orchestrator skill plus reusable building-block skills (uxui-design-system, fakechat-dashboard-agent).",
   "version": "0.1.0",
   "author": {
     "name": "tykimos",
@@ -11,7 +11,10 @@
   "keywords": [
     "agent-native-app",
     "agent-native-app-harness",
+    "agent-native-agent",
+    "agent-native-lifestyle",
     "ana",
+    "anl",
     "harness",
     "claude-code",
     "dashboard-agent",
