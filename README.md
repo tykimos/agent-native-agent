@@ -10,11 +10,10 @@ ANA (read: **Ana**) is an agent-native agent for ANL (read: **Anel**) — **Agen
 [![License: MIT](https://img.shields.io/badge/License-MIT-1f6feb?style=for-the-badge)](LICENSE)
 [![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-CC785C?style=for-the-badge)](https://claude.com/claude-code)
 [![Protocol: MCP](https://img.shields.io/badge/protocol-MCP-111?style=for-the-badge)](https://modelcontextprotocol.io)
+[![Last commit](https://img.shields.io/github/last-commit/tykimos/agent-native-agent?style=for-the-badge&color=64748b)](https://github.com/tykimos/agent-native-agent/commits/main)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-22c55e?style=for-the-badge)](#contributing)
 
-![ANA demo — watch a dashboard, converse, and the app grows](docs/assets/demo.gif)
-
-**English** · [한국어](README.ko.md) · [Concept deck](docs/ana-concept.md)
+**English** · [Korean](README.ko.md)
 
 </div>
 
@@ -27,7 +26,7 @@ It is not a passive assistant that waits for instructions. It is an autonomous a
 
 You operate ANA by **watching** a live dashboard and **conversing** with the agent. When you need a new behavior, you ask once — and ANA can propose the change, apply it with approval, and evolve the app at runtime.
 
-> **ANA is an agent-native agent for Agent-Native Lifestyle.** In Korean: **아나는 에이전트 네이티브 라이프스타일을 위한 에이전트 네이티브 에이전트입니다.**
+> **ANA is an agent-native agent for Agent-Native Lifestyle.**
 
 ---
 
@@ -35,8 +34,8 @@ You operate ANA by **watching** a live dashboard and **conversing** with the age
 
 | Name | Reads as | Means | Role |
 |---|---|---|---|
-| **ANA** | Ana / 아나 | Agent Native Agent | The autonomous agent that understands, acts, and improves. |
-| **ANL** | Anel / 아넬 | Agent-Native Lifestyle | The new way of working, learning, creating, consuming, and running daily routines with agents. |
+| **ANA** | Ana | Agent Native Agent | The autonomous agent that understands, acts, and improves. |
+| **ANL** | Anel | Agent-Native Lifestyle | The new way of working, learning, creating, consuming, and running daily routines with agents. |
 
 **ANA enables ANL.** ANL is shown through concrete examples inside this repository: [`examples/`](examples/).
 
@@ -68,26 +67,23 @@ SaaS is *instant but frozen*. Coding agents are *infinitely malleable but build�
 2. **Agent as Runtime** — the agent reads your data → acts → and **rewrites the app's own code** when asked. Inference is the runtime.
 3. **Own Your Harness** — zero dependencies, self‑hosted, yours forever. It keeps evolving with you.
 
-Full philosophy in [`docs/ana-concept.md`](docs/ana-concept.md).
+These principles are also the acceptance criteria for every ANA built with this harness.
 
 ---
 
 ## How it works
 
+```mermaid
+flowchart LR
+  U["User<br/>watch + converse"] --> D["Dashboard<br/>visual state + chat"]
+  D -->|"POST /api/chat"| B["Bridge server<br/>state + inbox + rich responses"]
+  B -->|"push inbound"| C["Channel<br/>MCP / fakechat"]
+  C --> A["Coding agent runtime<br/>read state, decide, act, evolve code"]
+  A -->|"POST /api/agent"| B
+  B -->|"proposal, approval, sync"| D
 ```
-   You (phone / laptop)
-        │  watch dashboard  ▲ rich proposals + approve
-        ▼  natural language │
- ┌────────────────────────────────────────────┐
- │  Dashboard  ──►  Bridge server  ──►  Channel │   inbound = push
- │     ▲                                  │      │
- │     │  /api/agent (rich UI)            ▼      │
- │     └────────────  Coding Agent (runtime) ◄──┘   reads state → acts → rewrites app
- └────────────────────────────────────────────┘
-   • Inbound (you → agent) travels a push channel (MCP / fakechat).
-   • Outbound (agent → you) returns via the app API, so changes arrive as
-     before/after previews you approve. State is versioned; every device syncs.
-```
+
+Inbound messages travel through the channel. Outbound agent responses return through the dashboard API, so ANA can show rich before/after proposals and approval cards. State is versioned, and every device syncs.
 
 The agent is the backend. There is no separate server logic to write — you grow it by talking.
 
@@ -143,6 +139,18 @@ More ANL examples live in [`examples/`](examples/). They are not a separate repo
 - [ ] More building blocks (auth gate, audit log, multi‑user)
 - [ ] Template gallery (planner, CRM‑lite, order desk, work queue)
 - [ ] Hosted quickstart tunnel
+
+---
+
+## Star History
+
+<a href="https://www.star-history.com/#tykimos/agent-native-agent&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=tykimos/agent-native-agent&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=tykimos/agent-native-agent&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=tykimos/agent-native-agent&type=Date" />
+  </picture>
+</a>
 
 ---
 
