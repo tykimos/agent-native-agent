@@ -10,7 +10,7 @@ title: "Agent Native Agent (ANA)"
 # Agent Native Agent
 ## 에이전트 네이티브 에이전트 (ANA, 아나)
 
-**Agent Native Lifestyle (ANL, 아넬)을 실현하는 자율형 에이전트**
+**Agent-Native Lifestyle (ANL, 아넬)을 위한 agent-native agent**
 
 대시보드를 **보면서**, 에이전트와 **대화하며**, 일상과 업무 방식을 계속 개선한다
 
@@ -47,15 +47,15 @@ title: "Agent Native Agent (ANA)"
 | 이름 | 읽기 | 의미 | 역할 |
 |---|---|---|---|
 | **ANA** | 아나 | Agent Native Agent | 스스로 판단하고 실행하며 도구를 개선하는 자율형 에이전트 |
-| **ANL** | 아넬 | Agent Native Lifestyle | 일·학습·소비·창작·생활 루틴이 에이전트 네이티브로 바뀐 방식 |
+| **ANL** | 아넬 | Agent-Native Lifestyle | 일·학습·소비·창작·생활 루틴이 에이전트 네이티브로 바뀐 방식 |
 
-**ANA is an Agent for Agent Native Lifestyle.**
+**ANA is an agent-native agent for Agent-Native Lifestyle.**
 
 ---
 
 ## ANA 정의
 
-> **Agent Native Agent** = Agent Native Lifestyle을 실현하기 위해,
+> **Agent Native Agent** = Agent-Native Lifestyle을 위해,
 > 코딩 에이전트를 **운영의 코어(런타임)** 로 삼아,
 > 사용자가 **대시보드를 보면서 대화로 운영**하고,
 > 필요하면 **앱 자체를 그 자리에서 바꿔** 나가는 자율형 에이전트.
@@ -154,7 +154,7 @@ title: "Agent Native Agent (ANA)"
 1. **`uxui-design-system`** — 토스 스타일·의존성 0 디자인 시스템(토큰·하단 액션 바·바텀시트/팝업).
 2. **`fakechat-dashboard-agent`** — 대시보드 + 채널 + 코딩 에이전트로 ANA를 짓는 템플릿(서버·릴레이·아키텍처).
 
-> "보면서 대화하는 운영 도구"를 누구나 자기 도메인에 복제하고, ANL 사례집(github.com/tykimos/agent-native-lifestyle)에 모을 수 있도록.
+> "보면서 대화하는 운영 도구"를 누구나 자기 도메인에 복제하고, 이 저장소의 `examples/`에서 ANL 사례로 보여줄 수 있도록.
 
 ---
 
@@ -176,4 +176,4 @@ title: "Agent Native Agent (ANA)"
 대시보드를 보며, 에이전트와 대화하며 운영한다.
 **앱이 나에게 맞춰 자라는** 경험.
 
-**Agent Native Agent** — Agent Native Lifestyle을 위한 자율형 에이전트.
+**Agent Native Agent** — Agent-Native Lifestyle을 위한 agent-native agent.

@@ -1,12 +1,12 @@
 {
   "name": "agent-native-app-harness",
-  "description": "Agent Native Agent (ANA) harness — build autonomous agents for Agent Native Lifestyle (ANL), operated by watching a dashboard and conversing with a coding agent that is the runtime. Bundles the ANA orchestrator skill plus reusable building-block skills (uxui-design-system, fakechat-dashboard-agent).",
+  "description": "Agent Native Agent (ANA) harness — build agent-native agents for Agent-Native Lifestyle (ANL), operated by watching a dashboard and conversing with a coding agent that is the runtime. Bundles the ANA orchestrator skill plus reusable building-block skills (uxui-design-system, fakechat-dashboard-agent).",
   "version": "0.1.0",
   "author": {
     "name": "tykimos",
     "url": "https://github.com/tykimos"
   },
-  "homepage": "https://github.com/tykimos/agent-native-app-harness",
+  "homepage": "https://github.com/tykimos/agent-native-agent",
   "license": "MIT",
   "keywords": [
     "agent-native-app",

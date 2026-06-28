@@ -1,6 +1,6 @@
 # Agent Native Agent (ANA)
 
-> **ANA(아나)** 는 **ANL(아넬, Agent Native Lifestyle)** 을 실현하는 자율형 에이전트입니다. 사용자의 일상과 업무 방식을 이해하고, 스스로 판단하고 실행하며, 필요한 도구를 반복적으로 개선해 새로운 라이프스타일을 만들어갑니다.
+> **ANA(아나)** 는 **ANL(아넬, Agent-Native Lifestyle)** 을 위한 **agent-native agent**입니다. 사용자의 일상과 업무 방식을 이해하고, 스스로 판단하고 실행하며, 필요한 도구를 반복적으로 개선해 새로운 라이프스타일을 만들어갑니다.
 
 **ANA(Agent Native Agent)** 하네스는 코딩 에이전트(Claude Code)를 **운영의 런타임이자 빌더**로 삼아, 사용자가 대시보드를 보면서 대화로 운영하고 필요하면 앱 코드까지 그 자리에서 바꾸는 자율형 에이전트를 짓고 진화시키는 하네스입니다.
 
@@ -9,22 +9,22 @@
 | 이름 | 읽기 | 의미 | 역할 |
 |---|---|---|---|
 | **ANA** | 아나 | Agent Native Agent | 사용자의 맥락을 이해하고, 판단하고, 실행하며, 도구를 개선하는 자율형 에이전트 |
-| **ANL** | 아넬 | Agent Native Lifestyle | 에이전트와 함께 일하고, 배우고, 소비하고, 창작하고, 생활 루틴을 운영하는 새로운 방식 |
+| **ANL** | 아넬 | Agent-Native Lifestyle | 에이전트와 함께 일하고, 배우고, 소비하고, 창작하고, 생활 루틴을 운영하는 새로운 방식 |
 
-**ANA is an Agent for Agent Native Lifestyle.**  
-즉, **아나는 에이전트 네이티브 라이프스타일을 실현하는 자율형 에이전트입니다.**
+**ANA is an agent-native agent for Agent-Native Lifestyle.**  
+즉, **아나는 에이전트 네이티브 라이프스타일을 위한 에이전트 네이티브 에이전트입니다.**
 
 `Assistant`는 "도와주는 비서"처럼 수동적으로 들립니다. 반면 `Agent`는 스스로 판단하고, 실행하고, 피드백을 받아 반복적으로 개선하는 존재라는 의미가 분명합니다. 그래서 ANA의 중심 단어는 Assistant가 아니라 **Agent**입니다.
 
-ANL은 ANA로 만든 여러 실제 사례를 모아두는 사례집입니다. Companion 저장소: [Agent Native Lifestyle](https://github.com/tykimos/agent-native-lifestyle)
+ANL은 별도 리포지토리가 아니라, 이 저장소 안에서 ANA로 만든 실제 사례로 보여줍니다. 사례는 [`examples/`](examples/) 아래에 둡니다.
 
-이 저장소는 [revfactory/harness](https://github.com/revfactory/harness)의 메타-팩토리 패턴을 따르되, 산출물을 **Agent Native Lifestyle을 위한 자율형 에이전트**로 특화합니다. 상위에 ANA 하네스 스킬(오케스트레이터)을 두고, 그 아래 재사용 빌딩블록 스킬들을 조립합니다.
+이 저장소는 [revfactory/harness](https://github.com/revfactory/harness)의 메타-팩토리 패턴을 따르되, 산출물을 **Agent-Native Lifestyle을 위한 자율형 에이전트**로 특화합니다. 상위에 ANA 하네스 스킬(오케스트레이터)을 두고, 그 아래 재사용 빌딩블록 스킬들을 조립합니다.
 
 > 이 저장소는 `ai-solopreneur-skills`에서 이름을 바꾼 것입니다. 기존 스킬은 ANA를 짓는 빌딩블록으로 편입되었습니다.
 
 ## ANA란
 
-> **Agent Native Agent** = Agent Native Lifestyle을 실현하기 위해, 코딩 에이전트를 운영의 런타임이자 빌더로 삼아, 사용자가 대시보드를 보면서 대화로 운영하고, 필요하면 앱 코드까지 그 자리에서 바꾸는 자율형 에이전트.
+> **Agent Native Agent** = Agent-Native Lifestyle을 위해, 코딩 에이전트를 운영의 런타임이자 빌더로 삼아, 사용자가 대시보드를 보면서 대화로 운영하고, 필요하면 앱 코드까지 그 자리에서 바꾸는 자율형 에이전트.
 
 전통 SaaS · 순수 챗봇 · 노코드는 모두 "내가 앱에 맞추는" 구조입니다. ANA만이 **시각 맥락(내 대시보드) + 자연어 운영 + 그 자리에서 코드 변경 + 완전한 소유(셀프호스팅)** 를 동시에 만족합니다.
 
@@ -84,11 +84,10 @@ cp -r skills/* ~/.claude/skills/
 - **흐름**: 채팅 → 채널 → Claude 세션이 `schedule.json` 읽고 → 전/후 미리보기 + 승인 카드 → 누르면 반영, 모든 기기 동기화.
 - **진화**: "음성으로 입력되게" → 마이크 추가. 개발 사이클이 아니라 대화 한 번.
 
-## ANL 사례집
+## ANL 예시
 
-ANA로 만든 여러 사례는 ANL 저장소에 모읍니다. ANL은 "삶 자체"라는 추상적 구호보다 구체적인 라이프스타일 변화에 집중합니다. 일하는 방식, 배우는 방식, 소비하는 방식, 창작하는 방식, 생활 루틴이 어떻게 바뀌는지를 사례로 보여줍니다.
+ANA로 만든 여러 사례는 이 저장소의 [`examples/`](examples/) 아래에 모읍니다. ANL은 별도 제품이나 별도 리포지토리가 아니라, ANA가 만들어내는 구체적인 라이프스타일 변화입니다. 일하는 방식, 배우는 방식, 소비하는 방식, 창작하는 방식, 생활 루틴이 어떻게 바뀌는지를 사례로 보여줍니다.
 
-- ANL: [Agent Native Lifestyle](https://github.com/tykimos/agent-native-lifestyle)
 - ANA: [Agent Native Agent](https://github.com/tykimos/agent-native-agent)
 
 ## 라이선스

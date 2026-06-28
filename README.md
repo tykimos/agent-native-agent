@@ -2,9 +2,9 @@
 
 # ⟁ ANA — Agent Native Agent
 
-### An autonomous agent for **Agent Native Lifestyle**.
+### An agent-native agent for **Agent-Native Lifestyle**.
 
-ANA (read: **Ana**) helps realize ANL (read: **Anel**) — a lifestyle where autonomous agents understand your work and daily routines, act on your behalf, and keep improving the tools around you.
+ANA (read: **Ana**) is an agent-native agent for ANL (read: **Anel**) — **Agent-Native Lifestyle**, a way of working and living where agents understand your routines, act on your behalf, and keep improving the tools around you.
 
 [![Stars](https://img.shields.io/github/stars/tykimos/agent-native-agent?style=for-the-badge&logo=github&color=CC785C)](https://github.com/tykimos/agent-native-agent/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-1f6feb?style=for-the-badge)](LICENSE)
@@ -22,12 +22,12 @@ ANA (read: **Ana**) helps realize ANL (read: **Anel**) — a lifestyle where aut
 
 ## TL;DR
 
-**ANA is an _Agent Native Agent_ for _Agent Native Lifestyle_ (ANL).**
+**ANA is an _agent-native agent_ for _Agent-Native Lifestyle_ (ANL).**
 It is not a passive assistant that waits for instructions. It is an autonomous agent that watches context, reasons, acts, and repeatedly improves the app around your work and life.
 
 You operate ANA by **watching** a live dashboard and **conversing** with the agent. When you need a new behavior, you ask once — and ANA can propose the change, apply it with approval, and evolve the app at runtime.
 
-> **ANA is an Agent for Agent Native Lifestyle.** In Korean: **아나는 에이전트 네이티브 라이프스타일을 실현하는 자율형 에이전트입니다.**
+> **ANA is an agent-native agent for Agent-Native Lifestyle.** In Korean: **아나는 에이전트 네이티브 라이프스타일을 위한 에이전트 네이티브 에이전트입니다.**
 
 ---
 
@@ -36,9 +36,9 @@ You operate ANA by **watching** a live dashboard and **conversing** with the age
 | Name | Reads as | Means | Role |
 |---|---|---|---|
 | **ANA** | Ana / 아나 | Agent Native Agent | The autonomous agent that understands, acts, and improves. |
-| **ANL** | Anel / 아넬 | Agent Native Lifestyle | The new way of working, learning, creating, consuming, and running daily routines with agents. |
+| **ANL** | Anel / 아넬 | Agent-Native Lifestyle | The new way of working, learning, creating, consuming, and running daily routines with agents. |
 
-**ANA builds ANL.** The companion **ANL casebook** collects real examples made with ANA: [Agent Native Lifestyle](https://github.com/tykimos/agent-native-lifestyle).
+**ANA enables ANL.** ANL is shown through concrete examples inside this repository: [`examples/`](examples/).
 
 ---
 
@@ -133,6 +133,8 @@ The `agent-native-app-harness` orchestrator skill triggers and builds your ANA: 
 
 > The demo above is an ANA built with this harness.
 
+More ANL examples live in [`examples/`](examples/). They are not a separate repository; they are concrete lifestyle cases made with ANA.
+
 ---
 
 ## Roadmap
@@ -147,7 +149,7 @@ The `agent-native-app-harness` orchestrator skill triggers and builds your ANA: 
 ## Contributing
 
 ANA is meant to be **owned and evolved** — that includes this repo. Issues, ideas, and PRs are welcome.
-If you are publishing examples made with ANA, add them to the ANL casebook: [Agent Native Lifestyle](https://github.com/tykimos/agent-native-lifestyle).
+If you are publishing examples made with ANA, add them under [`examples/`](examples/) so ANL stays visible as real usage, not a separate product.
 If ANA changes how you think about apps, **⭐ star the repo** so others can find it.
 
 ---
