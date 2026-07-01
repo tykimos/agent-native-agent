@@ -37,7 +37,7 @@ You operate ANA by **watching** a live dashboard and **conversing** with the age
 | **ANA** | Ana | Agent Native Agent | The autonomous agent that understands, acts, and improves. |
 | **ANL** | Anel | Agent-Native Lifestyle | The new way of working, learning, creating, consuming, and running daily routines with agents. |
 
-**ANA enables ANL.** ANL is shown through concrete examples inside this repository: [`examples/`](examples/).
+**ANA enables ANL.** ANL — real use cases built with ANA — lives in its own companion repository: **[agent‑native‑lifestyle](https://github.com/tykimos/agent-native-lifestyle)**.
 
 ---
 
@@ -137,7 +137,7 @@ The `agent-native-app-harness` orchestrator skill triggers and builds your ANA: 
 
 > The demo above is an ANA built with this harness.
 
-More ANL examples live in [`examples/`](examples/). They are not a separate repository; they are concrete lifestyle cases made with ANA.
+Real ANL cases — lifestyles built with ANA — live in the companion repo **[agent‑native‑lifestyle](https://github.com/tykimos/agent-native-lifestyle)**.
 
 ---
 
@@ -165,7 +165,7 @@ More ANL examples live in [`examples/`](examples/). They are not a separate repo
 ## Contributing
 
 ANA is meant to be **owned and evolved** — that includes this repo. Issues, ideas, and PRs are welcome.
-If you are publishing examples made with ANA, add them under [`examples/`](examples/) so ANL stays visible as real usage, not a separate product.
+If you build something with ANA, add it to the **[agent‑native‑lifestyle](https://github.com/tykimos/agent-native-lifestyle)** gallery so ANL stays visible as real usage.
 If ANA changes how you think about apps, **⭐ star the repo** so others can find it.
 
 ---

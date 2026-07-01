@@ -18,7 +18,7 @@
 
 `Assistant`는 "도와주는 비서"처럼 수동적으로 들립니다. 반면 `Agent`는 스스로 판단하고, 실행하고, 피드백을 받아 반복적으로 개선하는 존재라는 의미가 분명합니다. 그래서 ANA의 중심 단어는 Assistant가 아니라 **Agent**입니다.
 
-ANL은 별도 리포지토리가 아니라, 이 저장소 안에서 ANA로 만든 실제 사례로 보여줍니다. 사례는 [`examples/README.ko.md`](examples/README.ko.md) 아래에 둡니다.
+ANL — ANA로 만든 실제 활용사례 — 은 별도 컴패니언 리포지토리에 모읍니다: **[agent-native-lifestyle](https://github.com/tykimos/agent-native-lifestyle)**.
 
 이 저장소는 [revfactory/harness](https://github.com/revfactory/harness)의 메타-팩토리 패턴을 따르되, 산출물을 **Agent-Native Lifestyle을 위한 자율형 에이전트**로 특화합니다. 상위에 ANA 하네스 스킬(오케스트레이터)을 두고, 그 아래 재사용 빌딩블록 스킬들을 조립합니다.
 
@@ -88,9 +88,9 @@ cp -r skills/* ~/.claude/skills/
 
 ## ANL 예시
 
-ANA로 만든 여러 사례는 이 저장소의 [`examples/README.ko.md`](examples/README.ko.md) 아래에 모읍니다. ANL은 별도 제품이나 별도 리포지토리가 아니라, ANA가 만들어내는 구체적인 라이프스타일 변화입니다. 일하는 방식, 배우는 방식, 소비하는 방식, 창작하는 방식, 생활 루틴이 어떻게 바뀌는지를 사례로 보여줍니다.
+ANA로 만든 실제 사례는 컴패니언 리포지토리 **[agent-native-lifestyle](https://github.com/tykimos/agent-native-lifestyle)** 에 모읍니다. ANL은 ANA가 만들어내는 구체적인 라이프스타일 변화입니다 — 일하는 방식, 배우는 방식, 소비하는 방식, 창작하는 방식, 생활 루틴이 어떻게 바뀌는지를 사례로 보여줍니다.
 
-- ANA: [Agent Native Agent](https://github.com/tykimos/agent-native-agent)
+- 활용사례 갤러리(ANL): [agent-native-lifestyle](https://github.com/tykimos/agent-native-lifestyle)
 
 ## 라이선스
 
