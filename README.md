@@ -1,6 +1,8 @@
 <div align="center">
 
-# ⟁ ANA — Agent Native Agent
+<img src="docs/assets/ana-logo.png" width="92" alt="ANA logo" />
+
+# ANA — Agent Native Agent
 
 ### An agent-native agent for **Agent-Native Lifestyle**.
 
@@ -113,6 +115,33 @@ Then, in **Claude Code**, just describe the app:
 ```
 
 The `agent-native-app-harness` orchestrator skill triggers and builds your ANA: **define one screen → design → wire up → run the evolution loop.** Step‑by‑step in [`build-workflow.md`](skills/agent-native-app-harness/references/build-workflow.md).
+
+---
+
+## Start from a template
+
+Don't want to build from an empty screen? **[ana-starter](https://github.com/tykimos/ana-starter)** is a ready‑to‑run ANA — the **same design system, logo, and runtime** as the reference dashboard — with a simple menu you grow by talking.
+
+<div align="center">
+
+[![Use this template](https://img.shields.io/badge/use%20this%20template-ana--starter-2F6BFF?style=for-the-badge&logo=github)](https://github.com/tykimos/ana-starter/generate)
+
+<img src="docs/assets/starter-dashboard.png" alt="ANA Starter — 비서 · 메모 dashboards" width="880" />
+
+</div>
+
+```
+비서 (Secretary)        메모 (Memo)
+├─ 할일  (To-do)        ├─ 업무  (Work)
+└─ 스케줄 (Schedule)     └─ 공부  (Study)
+```
+
+```bash
+# GitHub → “Use this template”, then in your clone:
+node server.js        # → http://localhost:8777   (npm start / node start.js also work)
+```
+
+It ships the dashboard + fakechat relay (② + ③). Connect a Claude Code session with the **fakechat channel** to complete the watch→converse loop (`npm run all` starts server + relay together). Details in the [starter README](https://github.com/tykimos/ana-starter#connect-a-coding-agent-the-full-loop).
 
 ---
 
