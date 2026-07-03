@@ -2,11 +2,9 @@
 
 <img src="docs/assets/ana-logo.png" width="92" alt="ANA logo" />
 
-# ANA — Agent Native Agent
+# ANA — Agent‑Native Agent
 
-### An agent-native agent for **Agent-Native Lifestyle**.
-
-ANA (read: **Ana**) is an agent-native agent for ANL (read: **Anel**) — **Agent-Native Lifestyle**, a way of working and living where agents understand your routines, act on your behalf, and keep improving the tools around you.
+### Build apps you operate by watching and talking.
 
 [![Stars](https://img.shields.io/github/stars/tykimos/agent-native-agent?style=for-the-badge&logo=github&color=CC785C)](https://github.com/tykimos/agent-native-agent/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-1f6feb?style=for-the-badge)](LICENSE)
@@ -15,7 +13,11 @@ ANA (read: **Ana**) is an agent-native agent for ANL (read: **Anel**) — **Agen
 [![Last commit](https://img.shields.io/github/last-commit/tykimos/agent-native-agent?style=for-the-badge&color=64748b)](https://github.com/tykimos/agent-native-agent/commits/main)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-22c55e?style=for-the-badge)](#contributing)
 
-**English** · [Korean](README.ko.md)
+**English** · [한국어](README.ko.md)
+
+<br/>
+
+![ANA — watch a dashboard, converse, the app ships](docs/assets/demo.gif)
 
 </div>
 
@@ -23,53 +25,35 @@ ANA (read: **Ana**) is an agent-native agent for ANL (read: **Anel**) — **Agen
 
 ## TL;DR
 
-**ANA is an _agent-native agent_ for _Agent-Native Lifestyle_ (ANL).**
-It is not a passive assistant that waits for instructions. It is an autonomous agent that watches context, reasons, acts, and repeatedly improves the app around your work and life.
-
-You operate ANA by **watching** a live dashboard and **conversing** with the agent. When you need a new behavior, you ask once — and ANA can propose the change, apply it with approval, and evolve the app at runtime.
-
-> **ANA is an agent-native agent for Agent-Native Lifestyle.**
-
----
-
-## ANA and ANL
-
-| Name | Reads as | Means | Role |
-|---|---|---|---|
-| **ANA** | Ana | Agent Native Agent | The autonomous agent that understands, acts, and improves. |
-| **ANL** | Anel | Agent-Native Lifestyle | The new way of working, learning, creating, consuming, and running daily routines with agents. |
-
-**ANA enables ANL.** ANL — real use cases built with ANA — lives in its own companion repository: **[agent‑native‑lifestyle](https://github.com/tykimos/agent-native-lifestyle)**.
-
----
-
-## Why Agent, Not Assistant
-
-An assistant sounds helpful but passive. An agent implies judgment, execution, feedback loops, and improvement. That is the point of ANA: the user is not merely asking for help; the user is growing a lifestyle where the agent can act.
-
-Every tool today still forces a trade‑off between **using** and **building**:
-
-|  | SaaS / Apps | No‑code | Chatbots | Coding agents | **ANA** |
-|---|:---:|:---:|:---:|:---:|:---:|
-| Use it instantly | ✅ | ✅ | ✅ | ❌ | ✅ |
-| Change *anything* | ❌ | ⚠️ in‑box | ❌ | ✅ | ✅ |
-| Sees your live data | ✅ | ✅ | ❌ | ⚠️ | ✅ |
-| **Change at runtime — no deploy** | ❌ | ❌ | ❌ | ❌ | ✅ |
-| You fully own it (self‑host) | ❌ | ❌ | ❌ | ✅ | ✅ |
-
-SaaS is *instant but frozen*. Coding agents are *infinitely malleable but build‑time only* — you ship, then use. **ANA collapses build‑time into run‑time:** because the agent is native to the runtime, **using the app (talking) is the same act as building it (changing behavior).**
+**ANA is an _Agent‑Native Agent_ for _Agent‑Native Lifestyle_ (ANL).** It is a self‑hosted app you operate by **watching** a live dashboard and **conversing** with a coding agent that serves as the runtime. Need a new behavior? Ask once — ANA proposes the change, applies it on approval, and evolves the app at runtime. No PR, no ship step — the running agent rewrites the app live and the dashboard reloads.
 
 > Use = Build. That's the whole idea.
 
 ---
 
+## Why Agent, Not Assistant
+
+An assistant waits for instructions. An agent uses judgment, executes, and improves the tools around your work. Every tool today still forces a trade‑off between **using** and **building** — ANA collapses that gap.
+
+|  | SaaS / Apps | No‑code | Chatbots | Coding agents | **ANA** |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Use it instantly | ✅ | ✅ | ✅ | ❌ | ✅ |
+| Change *anything* | ❌ | ⚠️ in‑box | ❌ | ✅ | ✅ |
+| Sees your live data | ✅ | ✅ | ⚠️ | ⚠️ | ✅ |
+| **Change it while using it — same conversation** | ❌ | ❌ | ❌ | ⚠️ | ✅ |
+| You fully own it (self‑host) | ❌ | ❌ | ❌ | ✅ | ✅ |
+
+SaaS is *instant but frozen*. Coding agents are *infinitely malleable but build‑time only* — you ship, then use. **ANA makes using the app (talking) the same act as building it (changing behavior),** because the agent is native to the runtime.
+
+---
+
 ## The Three Principles
 
-1. **Watch + Converse** — visual state and a chat live in *one* view. You operate by looking and talking, not clicking through fixed UI.
-2. **Agent as Runtime** — the agent reads your data → acts → and **rewrites the app's own code** when asked. Inference is the runtime.
+1. **Watch + Converse** — visual state and chat live in *one* view. You operate by looking and talking, not clicking through fixed UI.
+2. **Agent as Runtime** — the agent reads your data, acts, and **rewrites the app's own code** when asked. Inference is the runtime.
 3. **Own Your Harness** — zero dependencies, self‑hosted, yours forever. It keeps evolving with you.
 
-These principles are also the acceptance criteria for every ANA built with this harness.
+These are also the acceptance criteria for every ANA built with this harness.
 
 ---
 
@@ -93,13 +77,13 @@ flowchart TB
   B -->|"proposal + sync"| D
 ```
 
-Inbound messages travel through the channel. Outbound agent responses return through the dashboard API, so ANA can show rich before/after proposals and approval cards. State is versioned, and every device syncs.
-
-The agent is the backend. There is no separate server logic to write — you grow it by talking.
+Inbound messages travel through the channel. Outbound agent responses return through the dashboard API, so ANA can show rich before/after proposals and approval cards. State is versioned, and every device syncs. **The agent is the backend** — there's no separate server logic to write; you grow it by talking.
 
 ---
 
-## Quickstart
+## Install the skills (30 s)
+
+> **Prerequisite:** [Claude Code](https://claude.com/claude-code) installed. Want a *running* app first, no setup? Jump to [Start from a template](#start-from-a-template) → `node server.js`.
 
 ```bash
 git clone https://github.com/tykimos/agent-native-agent
@@ -120,28 +104,22 @@ The `agent-native-app-harness` orchestrator skill triggers and builds your ANA: 
 
 ## Start from a template
 
-Don't want to build from an empty screen? **[ana-starter](https://github.com/tykimos/ana-starter)** is a ready‑to‑run ANA — the **same design system, logo, and runtime** as the reference dashboard — with a simple menu you grow by talking.
+Don't want to build from an empty screen? **[ana‑starter](https://github.com/tykimos/ana-starter)** is a ready‑to‑run ANA — the **same design system, logo, and runtime** as the reference dashboard — with a simple menu you grow by talking.
 
 <div align="center">
 
 [![Use this template](https://img.shields.io/badge/use%20this%20template-ana--starter-2F6BFF?style=for-the-badge&logo=github)](https://github.com/tykimos/ana-starter/generate)
 
-<img src="docs/assets/starter-dashboard.png" alt="ANA Starter — 비서 · 메모 dashboards" width="880" />
+<img src="docs/assets/starter-dashboard.png" alt="ANA Starter dashboard — Secretary and Memo boards" width="880" />
 
 </div>
 
-```
-비서 (Secretary)        메모 (Memo)
-├─ 할일  (To-do)        ├─ 업무  (Work)
-└─ 스케줄 (Schedule)     └─ 공부  (Study)
-```
-
 ```bash
-# GitHub → “Use this template”, then in your clone:
+# GitHub → "Use this template", then in your clone:
 node server.js        # → http://localhost:8777   (npm start / node start.js also work)
 ```
 
-It ships the dashboard + fakechat relay (② + ③). Connect a Claude Code session with the **fakechat channel** to complete the watch→converse loop (`npm run all` starts server + relay together). Details in the [starter README](https://github.com/tykimos/ana-starter#connect-a-coding-agent-the-full-loop).
+It ships the dashboard + fakechat relay. Connect a Claude Code session with the **fakechat channel** to complete the watch→converse loop (`npm run all` starts server + relay together). Details in the [starter README](https://github.com/tykimos/ana-starter#connect-a-coding-agent-the-full-loop).
 
 ---
 
@@ -153,29 +131,18 @@ It ships the dashboard + fakechat relay (② + ③). Connect a Claude Code sessi
 | [`uxui-design-system`](skills/uxui-design-system/) | Building block — *the face* | Zero‑dependency, Toss‑style design system: the dashboard's visual context. |
 | [`fakechat-dashboard-agent`](skills/fakechat-dashboard-agent/) | Building block — *the nervous system* | Wires dashboard + channel + coding agent for watch + converse. |
 
----
-
-## Example — a real ANA in 60 seconds
-
-**"Work Secretary"** — six channels (mail · Slack · KakaoTalk · approvals · calendar · SMS) collapsed into one board, sorted by urgency.
-
-- **Watch:** a live status board of everything that needs you.
-- **Converse:** *"Approve this expense and send the reply mail."*
-- **Flow:** chat → channel → the agent reads state → returns a **before/after preview + approve card** → tap → applied, every device synced.
-- **Evolve:** *"Add a weekly throughput metric."* → it appears. No dev cycle — one sentence.
-
-> The demo above is an ANA built with this harness.
-
-Real ANL cases — lifestyles built with ANA — live in the companion repo **[agent‑native‑lifestyle](https://github.com/tykimos/agent-native-lifestyle)**.
+> The demo GIF at the top is the **"Work Secretary"** ANA — six channels (mail · Slack · KakaoTalk · approvals · calendar · SMS) collapsed into one board, sorted by urgency, evolved by talking.
 
 ---
 
-## Roadmap
+## ANA and ANL
 
-- [ ] One‑command scaffolder (`npx create-ana`)
-- [ ] More building blocks (auth gate, audit log, multi‑user)
-- [ ] Template gallery (planner, CRM‑lite, order desk, work queue)
-- [ ] Hosted quickstart tunnel
+| Name | Reads as | Means | Role |
+|---|---|---|---|
+| **ANA** | Ana | Agent‑Native Agent | The autonomous agent that understands, acts, and improves the app. |
+| **ANL** | Anel | Agent‑Native Lifestyle | The new way of working, learning, creating, and running daily routines with agents. |
+
+**ANA enables ANL.** Real ANL cases — lifestyles built with ANA — live in the companion repo: **[agent‑native‑lifestyle](https://github.com/tykimos/agent-native-lifestyle)**.
 
 ---
 
@@ -193,8 +160,10 @@ Real ANL cases — lifestyles built with ANA — live in the companion repo **[a
 
 ## Contributing
 
-ANA is meant to be **owned and evolved** — that includes this repo. Issues, ideas, and PRs are welcome.
+ANA is meant to be **owned and evolved** — that includes this repo. Issues, ideas, and PRs are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) for how to add building blocks or examples.
+
 If you build something with ANA, add it to the **[agent‑native‑lifestyle](https://github.com/tykimos/agent-native-lifestyle)** gallery so ANL stays visible as real usage.
+
 If ANA changes how you think about apps, **⭐ star the repo** so others can find it.
 
 ---
