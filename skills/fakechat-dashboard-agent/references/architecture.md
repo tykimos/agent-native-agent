@@ -77,6 +77,14 @@ fakechat 은 로컬 테스트용 MCP 채널 서버다(Bun 실행). 두 면을 �
 4. 대시보드에 **제안 카드(전/후 미리보기)** 표시
 5. 사용자가 승인 → POST /api/approve → 서버 applyDiff + version++ → 모든 접속자 자동 반영
 
+## 진화 엔드포인트 (Evolution — 진화 탭용)
+
+앱이 스스로 개선점을 제안하는 "진화 탭"을 위한 API. 데이터: `data/evolve.json` = `{version, proposals:[{id,type,title,desc,status}]}` (type: improve|add|remove, status: new|doing|dismissed).
+
+- `GET /api/evolve` → 미처리(dismissed 제외) 제안 목록.
+- `POST /api/evolve` → 에이전트가 제안 등록(`{proposals:[…]}` 또는 `{proposal:{…}}`). 분석 요청 시 에이전트가 여기로 결과를 올린다.
+- `POST /api/evolve-act {id, action}` → `"ignore"`: dismissed 처리 / `"do"`: status=doing + `/api/chat`과 동일하게 inbox에 "[진화 수행 요청]"을 큐잉(에이전트가 이후 실제 반영).
+
 ## 핵심 설계 결정 (왜 이렇게)
 
 1. **인바운드만 릴레이, 응답은 항상 `/api/agent`**

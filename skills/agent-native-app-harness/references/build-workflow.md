@@ -72,6 +72,18 @@ Agent Native Agent를 처음 짓거나 기존 ANA를 진화시키는 단계별 �
 
 같은 유형의 요청이 2회 이상 반복되면 빌딩블록 스킬 자체에 반영을 제안한다(진화).
 
+### 진화 탭 (Evolution tab) — 진화 루프를 앱 안으로
+
+진화를 "채팅으로만" 두지 않고 **전용 탭**으로 노출하면, 앱이 스스로 개선점을 제안한다. 표준 패턴(ANA 기본 탑재):
+
+- **스냅샷**: 현재 기능(탭/카테고리) · 데이터(항목 수·분포) · 최근 대화(피드)를 한눈에.
+- **제안 목록**: 에이전트가 개선(improve) · 추가(add) · 삭제(remove)를 카드로 제시. 각 카드에 **[대화] [수행] [무시]**.
+  - 대화 → 그 제안을 맥락으로 채팅 열기 · 수행 → 에이전트가 이후 실제 반영(변경 큐잉) · 무시 → 카드 제거.
+- **[에이전트에게 분석 요청]** 버튼 → 현재 기능·데이터·대화기록을 분석해 제안을 `/api/evolve`에 등록하도록 요청.
+- 서버 엔드포인트(빌딩블록 포함): `GET /api/evolve`(제안 조회) · `POST /api/evolve`(에이전트가 제안 등록) · `POST /api/evolve-act {id, action:"do"|"ignore"}`. 데이터: `data/evolve.json` = `{version, proposals:[{id,type,title,desc,status}]}` (status: new|doing|dismissed).
+
+레퍼런스 구현: **[ana-starter](https://github.com/tykimos/ana-starter)** 템플릿(`node server.js` → 진화 탭). 새 ANA는 이 탭을 기본 탑재한다.
+
 ## Phase 5: 소유·공개 (Own Your Harness)
 
 - **셀프호스팅 유지**: 의존성 0, 종속 없음, 이식 가능.
