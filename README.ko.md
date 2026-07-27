@@ -130,6 +130,15 @@ node server.js        # → http://localhost:8777   (npm start / node start.js a
 | [`agent-native-app-harness`](skills/agent-native-app-harness/) | **오케스트레이터** | ANA를 만들기 위해 *무엇을, 어떤 순서로 조립할지*를 정의하고 진화 루프를 실행합니다. |
 | [`uxui-design-system`](skills/uxui-design-system/) | 구성 요소 — *얼굴* | 의존성 없는 Toss 스타일 디자인 시스템: 대시보드의 시각적 맥락. |
 | [`fakechat-dashboard-agent`](skills/fakechat-dashboard-agent/) | 구성 요소 — *신경계* | watch + converse를 위해 대시보드 + 채널 + 코딩 에이전트를 연결합니다. |
+| [`realtime-mirror-channel`](skills/realtime-mirror-channel/) | 구성 요소 — *감각* | 실시간 양방향 연결: 인바운드 릴레이 + **세션 미러링**(내 입력·도구 활동·응답이 화면에 실시간으로 표시). |
+| [`content-studio`](skills/content-studio/) | 구성 요소 — *콘텐츠형 몸체* | ANA의 **문서 편집형**: 문서를 보면서 요소를 탭해 칩으로 집고 대화로 고칩니다 — 에이전트가 원본을 수정하고 다시 렌더합니다. |
+
+**ANA의 두 형태** — 같은 원칙, 다른 *watch* 대상:
+
+| 형태 | 무엇을 보나 | 조립 | 예시 |
+|---|---|---|---|
+| **대시보드형** (기본) | 상태 · 목록 · 지표 | `uxui-design-system` + `fakechat-dashboard-agent` (+ `realtime-mirror-channel`) | 업무 현황판, 주간 계획표, 주문 큐 |
+| **콘텐츠 스튜디오형** | 문서 자체 | `content-studio` + `realtime-mirror-channel` (+ `uxui-design-system`) | 교재·매뉴얼 편집, 리포트 조판, 슬라이드 |
 
 > 상단의 데모 GIF는 **"Work Secretary"** ANA입니다 — 여섯 개 채널(메일 · Slack · KakaoTalk · 결재 · 캘린더 · SMS)을 하나의 보드로 합치고, 긴급도순으로 정렬하며, 말하는 것으로 진화시킵니다.
 

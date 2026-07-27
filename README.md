@@ -130,6 +130,15 @@ It ships the dashboard + fakechat relay. Connect a Claude Code session with the 
 | [`agent-native-app-harness`](skills/agent-native-app-harness/) | **Orchestrator** | Defines *what to assemble, in what order* to build an ANA, and runs the evolution loop. |
 | [`uxui-design-system`](skills/uxui-design-system/) | Building block — *the face* | Zero‑dependency, Toss‑style design system: the dashboard's visual context. |
 | [`fakechat-dashboard-agent`](skills/fakechat-dashboard-agent/) | Building block — *the nervous system* | Wires dashboard + channel + coding agent for watch + converse. |
+| [`realtime-mirror-channel`](skills/realtime-mirror-channel/) | Building block — *the senses* | Real‑time two‑way link: inbound relay + **mirrors the session** (your input, its tool calls, its answers) onto the screen as it happens. |
+| [`content-studio`](skills/content-studio/) | Building block — *the content body* | The **document‑editing** form of ANA: watch a document, tap an element to pin it as a chip, and edit it by talking — the agent rewrites the source and re‑renders. |
+
+**Two shapes of ANA** — same principles, different *watch* target:
+
+| Shape | You watch | Assemble | Examples |
+|---|---|---|---|
+| **Dashboard** (default) | state · lists · metrics | `uxui-design-system` + `fakechat-dashboard-agent` (+ `realtime-mirror-channel`) | work board, weekly planner, order queue |
+| **Content studio** | the document itself | `content-studio` + `realtime-mirror-channel` (+ `uxui-design-system`) | textbook/manual editing, report layout, slides |
 
 > The demo GIF at the top is the **"Work Secretary"** ANA — six channels (mail · Slack · KakaoTalk · approvals · calendar · SMS) collapsed into one board, sorted by urgency, evolved by talking.
 

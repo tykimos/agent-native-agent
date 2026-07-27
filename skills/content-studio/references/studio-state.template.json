@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "bookVersion": 1,
+  "book": "Document v1",
+  "page": 1,
+  "messages": [],
+  "inbox": [],
+  "proposals": [],
+  "status": {
+    "text": "",
+    "ts": 0
+  }
+}

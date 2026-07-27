@@ -27,6 +27,8 @@ description: Build a "dashboard agent" — a web dashboard the user watches whil
 3. **fakechat 채널**: 메시지를 Claude 세션에 `<channel source="fakechat">`로 푸시, Claude는 `reply` 또는(권장) 대시보드 API로 응답.
 4. **Claude 세션(두뇌)**: 채널 메시지를 받아 데이터 API를 읽고, `POST /api/agent`로 **리치 응답**(텍스트 또는 diff 제안)을 보낸다 → 대시보드에 표시.
 
+> **실시간 양방향·세션 활동 미러링이 필요하면** `realtime-mirror-channel` 빌딩블록을 함께 쓴다 — 이 스킬이 기본 배선을 깔고, 그 스킬이 WS 주입 포맷(`{id,text}`)·활동 미러 훅·포트 격리로 실시간을 강화한다. (`skills/realtime-mirror-channel/SKILL.md`)
+
 > 설계 포인트: **인바운드만 릴레이**로 보내고 **응답은 항상 `/api/agent`**로 보낸다. 그래야 제안/승인 카드 같은 리치 UX가 유지되고 채널은 "푸시 배달"만 담당한다. fakechat의 user 주입은 채널 UI로 echo되지 않아 중복도 없다.
 
 ## 데이터 동기화 (여러 기기/탭)

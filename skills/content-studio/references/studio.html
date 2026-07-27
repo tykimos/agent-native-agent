@@ -1,0 +1,194 @@
+<!doctype html><html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>콘텐츠 스튜디오</title><!-- ▶ 프로젝트별: 문서 이름으로 교체 -->
+<style>
+  :root{--ink:#161616;--paper:#f7efe1;--teal:#2f6244;--mint:#5FBFA6;--burg:#BF3D1C;--muted:#53504B;--line:#e6ddca;--radius:14px;--panel:400px}
+  *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:#e9e0cf;font-family:-apple-system,'Noto Sans KR',sans-serif;color:var(--ink)}
+  /* 문서 뷰 — 상단바 없음, 왼쪽 본문만 (오버레이 없음) */
+  #viewwrap{position:fixed;top:0;bottom:0;left:0;right:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:#e9e0cf}
+  #stage{position:relative;width:100%;margin:0 auto}
+  #frame{position:absolute;top:0;left:0;border:0;display:block;background:#fff;transform-origin:top left;overflow:hidden}
+  /* 모바일 우측하단 둥근 채팅 FAB(오버레이) */
+  #talk{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;background:var(--ink);color:#fff;border:none;font-size:25px;cursor:pointer;z-index:36;box-shadow:0 6px 20px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center}
+  #talk:active{transform:scale(.94)}
+  #talk .badge{position:absolute;top:-3px;right:-3px;background:var(--burg);color:#fff;border-radius:999px;font-size:11px;font-weight:700;min-width:19px;height:19px;padding:0 5px;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+  /* ===== 채팅 사이드(ANA 스타일) — 모바일: 바텀시트 / PC: 오른쪽 도킹 ===== */
+  #sheet{position:fixed;left:0;right:0;bottom:0;height:80vh;background:#fbf7ef;border-top:2px solid var(--ink);border-radius:20px 20px 0 0;
+    transform:translateY(102%);transition:transform .28s cubic-bezier(.2,.8,.2,1);z-index:40;display:flex;flex-direction:column;box-shadow:0 -6px 24px rgba(0,0,0,.15)}
+  #sheet.open{transform:translateY(0)}
+  #grab{width:44px;height:5px;background:#ccc;border-radius:3px;margin:8px auto 4px;flex:none}
+  #sheet .sh{display:flex;align-items:center;gap:7px;padding:10px 14px 9px;border-bottom:1px solid var(--line);font-weight:800;font-size:14px;flex:none}
+  #sheet .sh .dot{width:9px;height:9px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 3px rgba(95,191,166,.25)}
+  #sheet .sh .ver{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);font-weight:400;margin-left:8px}
+  #sheet .sh .close{margin-left:auto;border:none;background:none;font-size:20px;cursor:pointer;color:var(--muted)}
+  /* 뷰 툴바(쪽맞춤·폭맞춤·100%·확대/축소 + 검수·버전) */
+  #toolbar{flex:none;display:flex;flex-wrap:wrap;gap:6px;padding:9px 12px;border-bottom:1px solid var(--line);background:#fff}
+  #toolbar .tgrp{display:flex;gap:5px;align-items:center}
+  #toolbar .sp{flex:1}
+  #toolbar button{border:1.5px solid var(--ink);background:#fff;border-radius:9px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;line-height:1}
+  #toolbar button.on{background:var(--ink);color:#fff}
+  #toolbar .zoom{display:flex;align-items:center;gap:4px}
+  #toolbar .zoom button{width:30px;padding:6px 0;text-align:center;font-size:15px}
+  #zoomLbl{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);min-width:38px;text-align:center}
+  /* 피드 */
+  #feed{flex:1;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:88%;font-size:13.5px;line-height:1.5;padding:9px 12px;border-radius:14px;white-space:pre-wrap;word-break:break-word}
+  .msg.user{align-self:flex-end;background:var(--ink);color:#fff;border-bottom-right-radius:5px}
+  .msg.agent{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:5px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .msg.system{align-self:center;background:none;color:var(--muted);font-size:11.5px;font-style:italic}
+  .msg .mchips{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px}
+  .msg .mchips .c{background:rgba(95,191,166,.25);border-radius:999px;font-size:10px;padding:1px 6px;color:#08321f}
+  /* 상태(처리 중…) */
+  #sheet .sh .stat{font-size:11px;color:var(--mint);font-weight:600;margin-left:2px}
+  #sheet .sh .stat.on::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--mint);margin-right:4px;animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+  /* 도구 활동(회색 줄, ANA) */
+  .act-group{align-self:stretch;display:flex;flex-direction:column;gap:2px;margin:2px 0;padding:6px 10px;background:rgba(0,0,0,.03);border:1px solid var(--line);border-radius:10px}
+  .act-item{font-size:11px;color:var(--muted);font-family:'Space Mono',monospace;white-space:pre-wrap;word-break:break-word}
+  .act-item::before{content:'⟩ ';color:var(--mint)}
+  /* 마크다운(어시스턴트 말풍선 내부) */
+  .msg.assistant .md-h2{font-weight:800;font-size:14px;margin:6px 0 3px}
+  .msg.assistant .md-h3{font-weight:700;font-size:13px;margin:5px 0 2px}
+  .msg.assistant .md-li{margin:1px 0}
+  .msg.assistant .md-pre{background:#0d1117;color:#c9d1d9;font-family:'Space Mono',monospace;font-size:11px;padding:8px;border-radius:8px;overflow:auto;white-space:pre;margin:5px 0}
+  .msg.assistant .md-code{background:rgba(0,0,0,.06);border-radius:4px;padding:0 4px;font-family:'Space Mono',monospace;font-size:12px}
+  .msg.assistant .md-img{max-width:100%;border-radius:8px;margin:5px 0}
+  .msg.assistant a{color:var(--teal);text-decoration:underline}
+  /* 승인 카드 */
+  .card{align-self:stretch;border:1.5px solid var(--ink);border-radius:14px;overflow:hidden;box-shadow:3px 3px 0 var(--ink);background:#fff}
+  .card .ct{background:var(--ink);color:#fff;padding:8px 12px;font-weight:800;font-size:13px}
+  .card .cb{padding:10px 12px;font-size:12.5px}
+  .card .diff{background:#0d1117;color:#c9d1d9;font-family:'Space Mono',monospace;font-size:11px;padding:8px;border-radius:8px;max-height:180px;overflow:auto;white-space:pre;margin-top:6px}
+  .card .diff .a{color:#7ee787}.card .diff .d{color:#ffa198}
+  .card .ba{display:flex;gap:6px;margin-top:8px}
+  .card .ba img{flex:1;width:0;border:1px solid var(--line);border-radius:6px}
+  .card .act{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line)}
+  .card .act button{flex:1;border:1.5px solid var(--ink);border-radius:10px;padding:9px;font-weight:800;font-size:13px;cursor:pointer}
+  .card .ok{background:var(--mint)}.card .no{background:#fff}
+  /* 입력 */
+  #inbox{border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));flex:none;background:#fff}
+  #chipsin{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;margin-bottom:6px}
+  #chipsin:empty{margin:0}
+  .chip{background:var(--mint);color:#08321f;border:1.5px solid var(--ink);border-radius:999px;font-size:11px;font-weight:700;padding:4px 8px;display:flex;gap:4px;align-items:center;box-shadow:2px 2px 0 var(--ink)}
+  .chip b{font-weight:800}.chip .x{cursor:pointer;font-weight:900;opacity:.7}
+  .chip .i{cursor:pointer;font-weight:700;opacity:.75;font-size:12px}
+  .chip .i:hover{opacity:1}
+  .chip .capst{font-size:11px;margin-left:1px}
+  .chip .capbtn{cursor:pointer;font-size:11.5px;margin-left:1px;opacity:.8}
+  .chip .capbtn:hover{opacity:1}
+  /* 다중선택 토글(＋) */
+  #multiToggle{flex:none;width:40px;height:40px;border:1.5px solid var(--t-line,#E5E8EB);background:var(--t-bg,#F2F4F6);color:var(--t-sub,#4E5968);border-radius:12px;font-size:20px;font-weight:700;cursor:pointer;line-height:1}
+  #multiToggle.on{background:var(--t-blue,#3182F6);color:#fff;border-color:var(--t-blue,#3182F6)}
+  /* 키/터치 안내(화면별) */
+  .kh-m{display:inline}.kh-d{display:none}
+  /* 캡처 이미지: 칩 위에, 칩 너비에 맞춰 작게(세로 스택) */
+  .chipwrap{display:inline-flex;flex-direction:column;gap:3px;align-items:stretch;vertical-align:top}
+  .chipthumb{width:100%;height:auto;max-height:96px;border-radius:8px;border:1.5px solid var(--ink);object-fit:cover;cursor:zoom-in;box-shadow:2px 2px 0 var(--ink);display:block}
+  /* 키 사용법 안내 */
+  #keyhint{display:flex;flex-wrap:wrap;gap:12px;margin-top:7px;font-size:10.5px;color:var(--t-weak,#8B95A1)}
+  #keyhint b{color:var(--t-sub,#4E5968);font-weight:700}
+  /* 칩 상세 정보 패널 */
+  #chipInfo{margin-bottom:7px;border:1px solid var(--t-line,#E5E8EB);border-radius:12px;background:var(--t-surface,#fff);padding:9px 11px;font-size:12px;max-height:200px;overflow:auto}
+  #chipInfo .ci-h{display:flex;align-items:center;font-size:12.5px;color:var(--t-text,#191F28);margin-bottom:5px}
+  #chipInfo .ci-h .ci-x{margin-left:auto;cursor:pointer;font-weight:900;opacity:.5;font-size:15px}
+  #chipInfo .ci-row{display:flex;gap:7px;padding:3px 0;color:var(--t-sub,#4E5968);line-height:1.4;border-top:1px solid var(--t-line,#EDF0F2)}
+  #chipInfo .ci-row span{flex:none;width:34px;color:var(--t-weak,#8B95A1);font-weight:700;font-size:11px}
+  #chipInfo .ci-row code{font-family:'Space Mono',monospace;font-size:11px;word-break:break-all;color:var(--t-blue,#3182F6)}
+  #row{display:flex;gap:8px;align-items:flex-end}
+  #ta{flex:1;border:1.5px solid var(--ink);border-radius:14px;padding:9px 12px;font-size:16px;font-family:inherit;resize:none;max-height:100px;min-height:40px}
+  #send{background:var(--ink);color:#fff;border:none;border-radius:999px;width:44px;height:44px;font-size:18px;cursor:pointer;flex:none}
+
+  /* ============ 채팅창 ANA 토스(Toss) 스타일 ============ */
+  #sheet{--t-bg:#F2F4F6;--t-surface:#FFFFFF;--t-text:#191F28;--t-sub:#4E5968;--t-weak:#8B95A1;
+    --t-line:#E5E8EB;--t-blue:#3182F6;--t-blue-weak:#E8F1FE;
+    background:var(--t-surface);font-family:-apple-system,'Noto Sans KR',sans-serif}
+  #sheet .sh{border-bottom:1px solid var(--t-line);color:var(--t-text)}
+  #sheet .sh .dot{background:var(--t-blue);box-shadow:0 0 0 3px rgba(49,130,246,.15)}
+  #sheet .sh .ver{color:var(--t-weak)}
+  #sheet .sh .stat{color:var(--t-blue);font-weight:700}
+  #sheet .sh .stat.on::before{background:var(--t-blue)}
+  #toolbar{background:var(--t-surface);border-bottom:1px solid var(--t-line)}
+  #toolbar button{border:1px solid var(--t-line);background:var(--t-bg);color:var(--t-sub);border-radius:10px;font-weight:600}
+  #toolbar button.on{background:var(--t-blue);color:#fff;border-color:var(--t-blue)}
+  #zoomLbl{color:var(--t-weak)}
+  #feed{background:var(--t-bg)}
+  .msg{font-size:14px;line-height:1.5;border-radius:16px;box-shadow:none}
+  .msg.user{background:var(--t-blue);color:#fff;border-bottom-right-radius:6px}
+  .msg.assistant{background:var(--t-surface);border:1px solid var(--t-line);color:var(--t-text);border-bottom-left-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .msg.system{color:var(--t-weak)}
+  .msg .mchips .c{background:var(--t-blue-weak);color:var(--t-blue)}
+  .msg.assistant .md-code{background:var(--t-bg)}
+  .msg.assistant a{color:var(--t-blue)}
+  /* 이미지 썸네일 + 라이트박스 */
+  .msg .md-img{max-width:230px;max-height:260px;width:auto;border-radius:12px;margin:5px 0;display:block;cursor:zoom-in;border:1px solid var(--t-line)}
+  .msg.user .md-img{border-color:rgba(255,255,255,.4)}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:20px}
+  .lightbox img{max-width:94vw;max-height:94vh;border-radius:8px}
+  /* 도구 콜링(시스템 활동) — 잘 보이게 */
+  .act-group{background:var(--t-surface);border:1px solid var(--t-line);border-radius:12px;padding:7px 11px}
+  .act-item{color:var(--t-sub);font-size:11.5px}
+  .act-item::before{content:'› ';color:var(--t-blue);font-weight:700}
+  /* 처리 중… 타이핑 인디케이터 */
+  #typing{align-self:flex-start;display:flex;align-items:center;gap:9px;background:var(--t-surface);border:1px solid var(--t-line);
+    border-radius:16px;border-bottom-left-radius:6px;padding:10px 14px;font-size:12.5px;color:var(--t-sub);box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  #typing .dots{display:inline-flex;gap:4px}
+  #typing .dots i{width:6px;height:6px;border-radius:50%;background:var(--t-blue);display:inline-block;animation:td 1.2s infinite}
+  #typing .dots i:nth-child(2){animation-delay:.15s}
+  #typing .dots i:nth-child(3){animation-delay:.3s}
+  @keyframes td{0%,70%,100%{opacity:.25;transform:translateY(0)}35%{opacity:1;transform:translateY(-3px)}}
+  /* 입력·칩·카드 토스화 */
+  #inbox{background:var(--t-surface);border-top:1px solid var(--t-line)}
+  #ta{border:1px solid var(--t-line);background:var(--t-bg);border-radius:14px;color:var(--t-text)}
+  #ta:focus{outline:none;border-color:var(--t-blue);background:#fff}
+  #send{background:var(--t-blue)}
+  .chip{background:var(--t-blue-weak);color:var(--t-blue);border:1px solid var(--t-blue);box-shadow:none;font-weight:600}
+  .chip .x{color:var(--t-blue);opacity:.8}
+  .card{border:1px solid var(--t-line);border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);background:#fff}
+  .card .ct{background:var(--t-blue)}
+  .card .ok{background:var(--t-blue);color:#fff;border:1px solid var(--t-blue)}
+  .card .no{background:#fff;border:1px solid var(--t-line);color:var(--t-sub)}
+  .card .diff{border-radius:10px}
+
+  /* ===== PC(≥900px): 왼쪽 본문 + 오른쪽 사이드바(툴바+채팅, 항상 열림) ===== */
+  @media (min-width:900px){
+    #viewwrap{right:var(--panel);bottom:0}
+    #talk{display:none}
+    .kh-d{display:inline}.kh-m{display:none}   /* 데스크톱은 키 안내 */
+    #sheet{left:auto;right:0;top:0;bottom:0;width:var(--panel);height:auto;
+      transform:none!important;border-radius:0;border-top:none;border-left:2px solid var(--ink);box-shadow:-6px 0 24px rgba(0,0,0,.08)}
+    #grab{display:none}
+    #sheet .sh .close{display:none}
+  }
+</style></head>
+<body>
+  <!-- ▶ 프로젝트별: iframe src 는 studio.js 의 DOC_URL · studio-server.mjs 의 DOC_ROUTE 와 동일해야 한다 -->
+  <div id="viewwrap"><div id="stage"><iframe id="frame" scrolling="no" src="/document.html"></iframe></div></div>
+  <button id="talk" aria-label="대화하기"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.6-.8L3 20l1.3-4A8.5 8.5 0 1 1 21 11.5z"/></svg><span class="badge" id="talkBadge" style="display:none"></span></button>
+
+  <aside id="sheet">
+    <div id="grab"></div>
+    <div class="sh"><span class="dot"></span>ANA와 대화 <span class="stat" id="status"></span><span class="ver" id="loc">Document v1 · p1</span><button class="close" id="shClose">×</button></div>
+    <div id="toolbar">
+      <div class="tgrp">
+        <button data-fit="height">쪽맞춤</button>
+        <button data-fit="width">폭맞춤</button>
+        <button data-fit="100">100%</button>
+      </div>
+      <div class="tgrp zoom"><button id="zoomOut">−</button><span id="zoomLbl">100%</span><button id="zoomIn">＋</button></div>
+    </div>
+    <div id="feed"></div>
+    <div id="inbox">
+      <div id="chipsin"></div>
+      <div id="chipInfo" style="display:none"></div>
+      <div id="row"><button id="multiToggle" aria-label="다중 선택 모드" title="여러 개 선택 모드">＋</button><textarea id="ta" placeholder="메시지를 입력하세요…"></textarea><button id="send">↑</button></div>
+      <div id="keyhint">
+        <span class="kh-d"><b>⇧ Shift</b>+클릭 · 여러 개</span>
+        <span class="kh-d"><b>⌥ Option</b>+클릭 · 영역 캡처</span>
+        <span class="kh-m"><b>＋</b> 켜고 탭 · 여러 개 선택</span>
+        <span class="kh-m">칩의 <b>캡처</b> 버튼 · 영역 캡처</span>
+      </div>
+    </div>
+  </aside>
+  <script src="/studio.js"></script>
+</body></html>
