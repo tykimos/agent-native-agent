@@ -7,7 +7,7 @@
     "url": "https://github.com/tykimos"
   },
   "homepage": "https://github.com/tykimos/agent-native-agent",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "keywords": [
     "agent-native-app",
     "agent-native-app-harness",

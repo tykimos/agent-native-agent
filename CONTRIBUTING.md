@@ -32,4 +32,4 @@ Building blocks are Claude Code skills the `agent-native-app-harness` orchestrat
 4. Open the PR with a clear description of *what* changed and *why*. Link related issues.
 5. A maintainer reviews — we aim to respond within a couple of days.
 
-By contributing, you agree your work is licensed under the repo's [MIT License](LICENSE).
+By contributing, you agree your work is licensed under the repo's [AGPL-3.0 License](LICENSE), and you grant AI Factory Inc. the right to also offer your contribution under a commercial license (see [COMMERCIAL.md](COMMERCIAL.md)).
