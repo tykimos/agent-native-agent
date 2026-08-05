@@ -51,6 +51,7 @@ description: Build a "dashboard agent" — a web dashboard the user watches whil
 
 ## 운영 시 알아둘 점
 - **세션 의존**: 자동 응답은 Claude 세션 + 릴레이 + 서버 + (공개 시) 터널이 모두 떠 있을 때만.
+- **채팅을 보냈는데 세션이 무반응이면** — 추측하지 말고 절단점을 찍는다. 브리지를 건너뛰고 채널에 직접 주입: `curl -s -X POST localhost:8787/ -F 'id=diag-1' -F 'text=진단'`(기대 204). 세션에 **뜨면** 범인은 앱/브리지, **안 뜨면** 세션이 채널을 물지 않은 것 — 채널은 **기동 시점에만** 붙으므로 `--channels`로 재기동해야 한다. 전체 진단·복구 순서 → [`realtime-mirror-channel/references/connection-troubleshooting.md`](../realtime-mirror-channel/references/connection-troubleshooting.md).
 - **단일 채팅방**: 모든 접속자가 같은 피드를 공유하고 메시지에 발신자 구분이 없다 → 필요하면 이름 입력/세션 분리 추가.
 - **동시 수정**: 잠금 없음(last-write-wins). 소규모 팀엔 충분, 충돌 드묾.
 - **터널 URL은 임시**: 무료 퀵터널은 재시작마다 주소 변경. 고정 필요 시 named tunnel.

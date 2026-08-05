@@ -67,7 +67,8 @@ ws.send(JSON.stringify({ type: 'user', text }));              // ❌ id 없음 �
 ws.send(JSON.stringify({ id: 'studio-' + (++seq), text }));   // ✅ deliver → 세션에 채널 메시지 도착
 ```
 
-세션 도착 형태: `<channel source="plugin:fakechat:fakechat" message_id="studio-N">`
+세션 도착 형태: `<channel source="fakechat" chat_id="web" message_id="app-N">`
+(플러그인이 `mcp.notification`의 `meta`에 `chat_id:"web"`, `message_id`를 실어 보낸다.)
 
 ## 구축 절차
 
@@ -127,6 +128,19 @@ ws.send(JSON.stringify({ id: 'studio-' + (++seq), text }));   // ✅ deliver →
 | 서버 재기동 후 피드 정지 | 프론트가 옛 `lastMsg` id로 폴링 | 서버가 부팅 에폭 `sync` 전달 → 프론트가 `lastMsg` 초기화 |
 | 남의 세션이 내 메시지 수신 | fakechat 포트 충돌 | 세션별 포트 분리 |
 
+### 연결이 안 될 때 — 추측하지 말고 이분 탐색
+
+끊기는 지점은 거의 항상 **브리지→fakechat(③)** 아니면 **fakechat→세션(④)** 이고, 둘 다 **에러 없이 조용히** 실패한다. 가장 빠른 판별은 브리지를 건너뛰고 채널에 직접 쏘는 것:
+
+```bash
+curl -s -X POST localhost:8787/ -F 'id=diag-1' -F 'text=진단 테스트'   # 기대: 204
+```
+
+- 세션에 **뜨면** → 채널·세션은 정상 = 범인은 앱/브리지(페이로드 `id` 누락, 브리지 미실행).
+- **안 뜨면** → 세션이 채널을 물지 않은 것 = `--channels`로 **재기동** 필요(채널은 기동 시점에만 붙는다).
+
+전체 절단점 진단·복구 순서는 **[`references/connection-troubleshooting.md`](references/connection-troubleshooting.md)** 참조.
+
 ## 보안·운영
 
 - **자격증명 불필요**: fakechat은 로컬 WS로만 동작한다. 이 빌딩블록에 텔레그램·외부 토큰이 없다.
@@ -136,6 +150,7 @@ ws.send(JSON.stringify({ id: 'studio-' + (++seq), text }));   // ✅ deliver →
 ## 참고 파일
 
 - [`references/realtime-architecture.md`](references/realtime-architecture.md) — 양방향 흐름도·인바운드/아웃바운드 상세·포트 격리·활성 조건·함정표
+- [`references/connection-troubleshooting.md`](references/connection-troubleshooting.md) — **연결이 안 될 때**: 4구간 절단점 진단·30초 체크·증상별 원인표·안전 재기동 순서
 - [`references/studio-bridge.mjs`](references/studio-bridge.mjs) — 인바운드 릴레이 + broadcast 미러(의존성 0, Node 22)
 - [`references/mirror-hook.mjs`](references/mirror-hook.mjs) — 활동 미러 훅(소유권 가드·dedup·내부 스킵·첨부 이미지)
 - 선행 빌딩블록: `skills/fakechat-dashboard-agent/SKILL.md`

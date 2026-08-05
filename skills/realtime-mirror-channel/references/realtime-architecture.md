@@ -18,7 +18,7 @@ ANA 앱의 채팅 패널과 Claude Code 세션을 **fakechat 채널**로 잇는 
  GET /api/inbox-wait  ──►  bridge  ──ws.send({id, text})──►  [fakechat 서버 :8798 /ws]
                                                                   │ deliver → MCP notification
                                                                   ▼
-                                                    [Claude 세션]  <channel source="plugin:fakechat:fakechat">
+                                                    [Claude 세션]  <channel source="fakechat" chat_id="web">
                                                                   │ 두뇌가 작업 수행 + 응답
                             ┌──────────────── 아웃바운드(두 경로 중 하나) ───────────────┐
                             │ (a) 그냥 텍스트로 답 → 미러 훅이 /api/activity 로 게시       │
@@ -55,7 +55,7 @@ if (id && text?.trim()) deliver(id, text);
 즉 **`id`가 없으면(falsy) 메시지를 조용히 버린다.** 에러도, 로그도 없다.
 
 - 잘못된 예(전형적 초기 버그): `ws.send({ type:'user', text, tag })` → `id` 없음 → **드롭 → 세션 무응답**.
-- 올바른 예: `ws.send(JSON.stringify({ id: 'studio-' + (++seq), text }))` → `deliver` → 세션에 `<channel source="plugin:fakechat:fakechat" message_id="studio-N">` 로 도착.
+- 올바른 예: `ws.send(JSON.stringify({ id: 'studio-' + (++seq), text }))` → `deliver` → 세션에 `<channel source="fakechat" chat_id="web" message_id="app-N">` 로 도착.
 
 세션에 도착한 채널 메시지 텍스트에는 칩(어떤 화면/요소를 가리키는지 + 상세 위치정보)과 지시가 담긴다(브리지 `toText()`가 구성). 칩 스키마는 앱 도메인에 맞춰 필드만 바꾸고 구조는 유지한다.
 
