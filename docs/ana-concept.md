@@ -33,32 +33,32 @@ Assistant는 보조자에 가깝다. 사용자가 시키는 일을 돕는 느낌
 
 ## 4. 작동 구조
 
-Mermaid는 README에서도 잘 보이도록 가로로 길게 늘리지 않고, 두 개의 균형 잡힌 블록으로 배치한다.
+구조는 단순하다. 브리지도 MCP도 별도 플러그인도 없다. 서버 하나(`channel-core.js`)가 브라우저와 tmux 페인 사이를 직접 잇는다.
 
 ```mermaid
 flowchart TB
-  subgraph UX["Watch + Converse"]
+  subgraph UX["Watch + Converse (브라우저)"]
     direction LR
     U["사용자"] <--> D["대시보드"]
   end
 
-  subgraph RT["Agent Runtime"]
+  subgraph RT["ANA 런타임 — 한 파일: channel-core.js"]
     direction LR
-    B["브리지"] --> C["채널"]
-    C --> A["코딩 에이전트"]
-    A --> B
+    S["서버"] -->|"paste-buffer + Enter"| A["코딩 에이전트 · tmux"]
+    A -->|"capture-pane · 300ms"| S
   end
 
-  D -->|"의도"| B
-  B -->|"제안 + 동기화"| D
+  D -->|"POST /api/chat"| S
+  S -->|"SSE /api/stream + 제안"| D
 ```
 
 역할은 분리된다.
 
 - 대시보드는 핵심 상태와 대화 입력을 한 화면에 둔다.
-- 브리지는 상태, 요청 큐, 승인 카드, 동기화를 담당한다.
-- 채널은 사용자 의도를 에이전트 세션에 확실히 밀어 넣는다.
-- 코딩 에이전트는 상태를 읽고, 판단하고, 실행하고, 앱을 고친다.
+- 서버는 브라우저 메시지를 tmux 페인에 주입하고, `capture-pane`로 세션을 되비춰 원장에 확정하며, 리치 응답의 제안·승인·버전 동기화를 담당한다.
+- 코딩 에이전트는 tmux 안에서 상태를 읽고, 판단하고, 실행하고, 앱을 고친다.
+
+주입은 `paste-buffer`(bracketed paste) + `Enter`로, 미러링은 300ms `capture-pane` 폴링으로 이뤄진다. 중간 릴레이 프로세스가 없어 붙이기 쉽고 장애 지점이 적다.
 
 ## 5. Agentic Loop
 

@@ -1,23 +1,23 @@
 # Contributing to ANA
 
-Thanks for helping grow the **Agent‑Native Agent** harness. Contributions of any size — a fix, a new building block, or a real ANA example — are welcome.
+Thanks for helping grow **ANA — the Agent‑Native Agent** runtime. Contributions of any size — a bug fix, a runtime improvement, a cleaner example, or a real ANA lifestyle — are welcome.
 
 ## Ways to contribute
 
 - **Report or fix a bug** — open an issue with steps to reproduce, or send a PR.
-- **Improve docs** — clarify the quickstart, the build workflow, or the principles.
-- **Add a building block** — a new skill the orchestrator can assemble (see below).
+- **Improve docs** — clarify the quickstart, the attach recipe, or the principles.
+- **Improve the runtime** — `channel-core.js` is the whole engine (tmux inject/mirror/ledger). Bug fixes and robustness improvements are the highest‑value contributions; every change must keep `node test.cjs` green.
+- **Improve the example** — the reference dashboard (`dashboard.html` + `dashboard-api.js`) shows one way to build on the core. Cleaner examples and new interaction patterns are welcome.
 - **Share an ANA example** — a lifestyle built with ANA belongs in the [agent‑native‑lifestyle](https://github.com/tykimos/agent-native-lifestyle) gallery.
 
-## Adding a building block
+## Working on the runtime
 
-Building blocks are Claude Code skills the `agent-native-app-harness` orchestrator composes into an ANA.
+`channel-core.js` is intentionally **dependency‑free** (Node ≥ 20 + tmux only) — keep it that way; the third principle applies to the engine too.
 
-1. Create a skill folder under `skills/<your-skill>/` with a `SKILL.md` (name, description, when it triggers).
-2. Keep it **zero‑dependency and self‑hosted** — the third principle applies to blocks too.
-3. Make it composable: a block should do one job (the *face*, the *nervous system*, an auth gate, an audit log, etc.) and hand off cleanly.
-4. Document how the orchestrator should invoke it — inputs, outputs, and the order it slots into the build workflow.
-5. Add it to the **Building blocks** table in `README.md` with its layer and role.
+1. Make the change small and focused; one concern per PR.
+2. Add or update a test in `test.cjs` that would fail without your change. The suite runs both unit checks and integration against `mock_agent.py` (a deterministic TUI stand‑in) — no real agent needed.
+3. Run `node test.cjs` and keep it fully green.
+4. If you change a public endpoint or option, update `skills/ana/SKILL.md` and both READMEs so the attach recipe stays accurate.
 
 ## Adding an example
 

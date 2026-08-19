@@ -397,7 +397,7 @@ function createChannelServer(opts) {
     READY_TIMEOUT = Number(process.env.ANA_READY_TIMEOUT || 5000),
   } = opts;
   const ch = createChannel(opts);
-  // agent.sh 없이도 동작: 타깃 팬에 연결되면 필수 tmux 옵션을 자동 적용(한 번, 멱등).
+  // 타깃 팬에 연결되면 필수 tmux 옵션을 자동 적용(한 번, 멱등) — 별도 실행 스크립트가 필요 없다.
   // alternate-screen off = alt 화면이면 스크롤백이 안 쌓여 긴 응답이 유실되는 것을 막는다.
   // window-size manual = 클라이언트 attach 시 팬 폭이 줄어 리와핑으로 원장이 중복되는 것을 막는다.
   let paneConfigured = false;
@@ -621,7 +621,7 @@ function createChannelServer(opts) {
         if (Buffer.byteLength(text) > MAX_TEXT) return sendJson(res, 413, { error: `text too long (>${MAX_TEXT} bytes)` });
         if (typeof body.submit !== 'undefined' && typeof body.submit !== 'boolean') return sendJson(res, 400, { error: 'submit must be boolean' });
         if (!(await hasSession())) return sendJson(res, 409, { error: `tmux 타깃 '${getTarget()}' 없음 — 설정에서 세션을 지정하거나 tmux를 기동하세요` });
-        if (!(await agentAlive())) return sendJson(res, 409, { error: '에이전트가 실행 중이 아닙니다(셸 상태) — ./agent.sh 재기동 필요' });
+        if (!(await agentAlive())) return sendJson(res, 409, { error: `에이전트가 실행 중이 아닙니다(셸 상태) — tmux 세션 '${getTarget()}'에서 코딩 에이전트(claude 등)를 다시 실행하세요` });
         if (lastDraft && !force) return sendJson(res, 409, { error: '터미널 입력창에 작성 중인 내용이 있습니다 — 비운 뒤 다시 시도하세요', recoverable: 'ctrl-u' });
         if (!(await waitInputReady())) return sendJson(res, 409, { error: '에이전트 입력창이 준비되지 않았습니다(기동 중이거나 다이얼로그 대기 중) — 터미널을 확인하세요' });
         await enqueue(() => injectText(text, submit, force)); // force면 주입 전 Ctrl-u로 입력창 비움

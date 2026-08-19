@@ -17,7 +17,7 @@
 
 <br/>
 
-![ANA — watch a dashboard, converse, the app ships](docs/assets/demo.gif)
+![ANA — 대시보드를 보며 대화하면 앱이 진화한다](docs/assets/dashboard-ana.png)
 
 </div>
 
@@ -61,23 +61,22 @@ SaaS는 *즉시 쓸 수 있지만 고정*되어 있습니다. 코딩 에이전�
 
 ```mermaid
 flowchart TB
-  subgraph UX["Watch + Converse"]
+  subgraph UX["Watch + Converse (브라우저)"]
     direction LR
-    U["User"] <--> D["Dashboard"]
+    U["사용자"] <--> D["대시보드"]
   end
 
-  subgraph RT["Agent Runtime"]
+  subgraph RT["ANA 런타임 — 한 파일: channel-core.js"]
     direction LR
-    B["Bridge"] --> C["Channel"]
-    C --> A["Coding Agent"]
-    A --> B
+    S["서버"] -->|"paste-buffer + Enter"| A["코딩 에이전트 · tmux"]
+    A -->|"capture-pane · 300ms"| S
   end
 
-  D -->|"intent"| B
-  B -->|"proposal + sync"| D
+  D -->|"POST /api/chat"| S
+  S -->|"SSE /api/stream + 제안"| D
 ```
 
-인바운드 메시지는 채널을 통해 전달됩니다. 아웃바운드 에이전트 응답은 대시보드 API를 통해 돌아오므로, ANA는 풍부한 전/후 제안과 승인 카드를 보여줄 수 있습니다. 상태는 버전 관리되며, 모든 기기가 동기화됩니다. **에이전트가 곧 백엔드입니다** — 따로 작성할 서버 로직이 없으며, 말하는 것으로 앱을 키워 나갑니다.
+**브리지도 MCP도 없습니다.** 브라우저가 서버로 보내면, 서버가 그 텍스트를 tmux 페인에 곧바로 주입하고, 300ms `capture-pane` 루프가 세션을 append-only 원장으로 되비춰 SSE로 내보냅니다. 리치 응답의 경우 에이전트가 **제안**(전/후 + 승인 카드)을 올리고, 승인하면 서버가 diff를 적용한 뒤 `version`을 올려 모든 기기가 다시 동기화됩니다. **코딩 에이전트가 곧 백엔드입니다** — 말하는 것으로 앱을 키웁니다.
 
 ---
 
@@ -173,7 +172,7 @@ skills/ana/SKILL.md   "서비스에 ANA 붙이기" — 위 간단 레시피
 
 ## 기여하기(Contributing)
 
-ANA는 **소유하고 진화시키기** 위한 것입니다 — 이 저장소도 마찬가지입니다. 이슈, 아이디어, PR 모두 환영합니다. 구성 요소나 예제를 추가하는 방법은 [CONTRIBUTING.md](CONTRIBUTING.md)를 참고하세요.
+ANA는 **소유하고 진화시키기** 위한 것입니다 — 이 저장소도 마찬가지입니다. 이슈, 아이디어, PR 모두 환영합니다. 런타임이나 예제 대시보드를 개선하는 방법은 [CONTRIBUTING.md](CONTRIBUTING.md)를 참고하세요.
 
 ANA로 무언가를 만들었다면, **[agent‑native‑lifestyle](https://github.com/tykimos/agent-native-lifestyle)** 갤러리에 추가해 ANL이 실제 사용 사례로 계속 드러나도록 해주세요.
 

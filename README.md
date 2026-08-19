@@ -17,7 +17,7 @@
 
 <br/>
 
-![ANA — watch a dashboard, converse, the app ships](docs/assets/demo.gif)
+![ANA — watch a dashboard, converse, the app evolves](docs/assets/dashboard-ana.png)
 
 </div>
 
@@ -61,23 +61,22 @@ These are also the acceptance criteria for every ANA built with this harness.
 
 ```mermaid
 flowchart TB
-  subgraph UX["Watch + Converse"]
+  subgraph UX["Watch + Converse (browser)"]
     direction LR
     U["User"] <--> D["Dashboard"]
   end
 
-  subgraph RT["Agent Runtime"]
+  subgraph RT["ANA runtime — one file: channel-core.js"]
     direction LR
-    B["Bridge"] --> C["Channel"]
-    C --> A["Coding Agent"]
-    A --> B
+    S["Server"] -->|"paste-buffer + Enter"| A["Coding agent · tmux"]
+    A -->|"capture-pane · 300ms"| S
   end
 
-  D -->|"intent"| B
-  B -->|"proposal + sync"| D
+  D -->|"POST /api/chat"| S
+  S -->|"SSE /api/stream + proposals"| D
 ```
 
-Inbound messages travel through the channel. Outbound agent responses return through the dashboard API, so ANA can show rich before/after proposals and approval cards. State is versioned, and every device syncs. **The agent is the backend** — there's no separate server logic to write; you grow it by talking.
+There is **no bridge and no MCP**. The browser posts to the server, the server injects the text straight into the tmux pane, and a 300 ms `capture-pane` loop mirrors the session back as an append-only ledger over SSE. For rich replies the agent posts a **proposal** (before/after + approve card); on approval the server applies the diff and bumps a `version` so every device re-syncs. **The coding agent is the backend** — you grow the app by talking to it.
 
 ---
 
@@ -173,7 +172,7 @@ skills/ana/SKILL.md   "attach ANA to your service" — the simple recipe above
 
 ## Contributing
 
-ANA is meant to be **owned and evolved** — that includes this repo. Issues, ideas, and PRs are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) for how to add building blocks or examples.
+ANA is meant to be **owned and evolved** — that includes this repo. Issues, ideas, and PRs are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) for how to improve the runtime or the example dashboard.
 
 If you build something with ANA, add it to the **[agent‑native‑lifestyle](https://github.com/tykimos/agent-native-lifestyle)** gallery so ANL stays visible as real usage.
 
