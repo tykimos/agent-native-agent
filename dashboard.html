@@ -1,0 +1,1243 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F2F4F6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#17181C" media="(prefers-color-scheme: dark)">
+<title>ANA</title>
+<style>
+/* =========================================================================
+   ANA 대시보드 — 좌: 할일/일정/메모/진화 4탭, 우: 접이식 채팅 사이드바
+   토스 스타일 토큰(uxui-design-system). 하드코딩 금지, 다크모드·노치 대응.
+   ========================================================================= */
+:root {
+  --bg: #F2F4F6; --surface: #FFFFFF; --surface-2: #F9FAFB;
+  --text: #191F28; --text-sub: #4E5968; --text-weak: #6B7684;
+  --line: #E5E8EB; --line-2: #EDF0F2;
+  --blue: #3182F6; --blue-700: #1B64DA; --blue-weak: #E8F1FE;
+  --green: #16C47F; --white: #FFFFFF;
+  --danger: #E0342B; --danger-bg: #FDECEC; --success: #0F9D58; --success-bg: #E7F8EF;
+  --warm-bg: #FFF2E5; --warm-fg: #E8731C;
+  --c-1: #FF5A8A;
+  --r-xl: 24px; --r-lg: 20px; --r: 16px; --r-sm: 12px; --r-xs: 10px;
+  --sh-card: 0 1px 3px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.04);
+  --sh-fab: 0 8px 20px rgba(49,130,246,.4);
+  --sh-sheet: 0 -10px 40px rgba(0,0,0,.16);
+  --header-h: 52px; --chat-w: 400px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+  font-family: "Pretendard", "Pretendard Variable", -apple-system, BlinkMacSystemFont,
+               "Apple SD Gothic Neo", system-ui, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17181C; --surface: #1F2126; --surface-2: #25272E;
+    --text: #F2F4F6; --text-sub: #C2C7CE; --text-weak: #97A1AD;
+    --line: #2E3138; --line-2: #292C32; --blue-weak: #16335C;
+    --danger-bg: #4A1A18; --danger: #FF9B93; --success-bg: #143D2A; --success: #5BE2A0;
+    --warm-bg: #4A3115; --warm-fg: #FFC489;
+    --blue-700: #9CC2FF; --sh-card: 0 1px 3px rgba(0,0,0,.4);
+  }
+}
+* { box-sizing: border-box; margin: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; height: 100dvh; }
+body { background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.5; letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased; overscroll-behavior-y: none; overflow-x: hidden;
+  display: grid; grid-template-columns: minmax(0, 1fr) 0; height: 100dvh; transition: grid-template-columns .24s cubic-bezier(.32,.72,0,1); }
+/* 채팅 도킹: 열리면 우측 컬럼이 생기며 메인이 줄어든다(오버레이 아님, 횡스크롤 없음) */
+body.chatting { grid-template-columns: minmax(0, 1fr) var(--chat-w); }
+body.chat-resizing { transition: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input { font-family: inherit; }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+.card { background: var(--surface); border-radius: var(--r); box-shadow: var(--sh-card); }
+
+/* ---------- 좌: 메인 (할일/일정/진화) ---------- */
+#main { grid-column: 1; grid-row: 1; min-width: 0; display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+.topnav { flex: 0 0 auto; display: flex; align-items: stretch; gap: 0; padding: var(--safe-t) 10px 0; height: calc(var(--header-h) + var(--safe-t));
+  border-bottom: 1px solid var(--line-2); background: var(--bg); }
+.topnav-brand { flex: 0 0 auto; display: flex; align-items: center; gap: 9px; padding: 0 10px; }
+.topnav-brand img { width: 30px; height: 30px; border-radius: 8px; display: block; }
+.topnav-brand .bname { font-size: 17px; font-weight: 800; letter-spacing: -0.03em; }
+.topnav .tab { position: relative; display: flex; align-items: center; justify-content: center; padding: 0 16px;
+  color: var(--text-weak); font-size: 14.5px; font-weight: 800; letter-spacing: -0.02em; }
+.topnav .tab.on { color: var(--text); }
+.topnav .tab.on::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 0; height: 2.5px; border-radius: 2px; background: var(--text); }
+.topnav .tab .tbadge { min-width: 17px; height: 17px; margin-left: 5px; padding: 0 5px; border-radius: 999px; background: var(--c-1); color: #fff; font-size: 10.5px; line-height: 17px; font-weight: 800; display: none; }
+.topnav .tab .tbadge.show { display: inline-block; }
+.topnav .sp { flex: 1; }
+/* ANA 토글 버튼 */
+.mode-toggle { flex: 0 0 auto; align-self: center; display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 6px; margin-right: 8px;
+  border-radius: 999px; background: var(--surface-2); color: var(--text-weak); font-size: 12.5px; font-weight: 800; letter-spacing: .02em; transition: background .15s, color .15s; }
+.mode-toggle .knob { width: 40px; height: 22px; border-radius: 999px; background: var(--line); position: relative; transition: background .18s; flex: 0 0 auto; }
+.mode-toggle .knob::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 999px; background: #fff; box-shadow: var(--sh-card); transition: transform .18s; }
+body.ana-mode .mode-toggle { background: var(--blue-weak); color: var(--blue-700); }
+body.ana-mode .mode-toggle .knob { background: var(--blue); }
+body.ana-mode .mode-toggle .knob::after { transform: translateX(18px); }
+/* 진화 탭은 ANA 모드에서만 표시 */
+body:not(.ana-mode) .tab[data-view="evolve"] { display: none; }
+/* ANA 모드: 캡처 가능한 요소에 클릭 어포던스(클릭 시 컨텍스트 칩으로 추가) */
+body.ana-mode .item, body.ana-mode .kpi, body.ana-mode .up-item, body.ana-mode .ev-item,
+body.ana-mode .memo-item, body.ana-mode .evo-card { cursor: copy; }
+body.ana-mode .item:hover, body.ana-mode .kpi:hover, body.ana-mode .up-item:hover, body.ana-mode .ev-item:hover,
+body.ana-mode .memo-item:hover, body.ana-mode .evo-card:hover { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 10px; }
+/* ANA 모드: 메모 내용은 드래그 선택 → 칩 */
+body.ana-mode #mmBody { cursor: text; }
+/* 컨텍스트 칩 (채팅 컴포저 위) */
+.chips { display: none; flex-wrap: wrap; gap: 6px; padding: 8px 12px 0; }
+body.chatting .chips.has { display: flex; }
+.chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 5px 8px 5px 11px; border-radius: 999px; background: var(--blue-weak); color: var(--blue-700); font-size: 12px; font-weight: 700; }
+.chip .ct { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip .k { opacity: .6; font-weight: 800; }
+.chip button { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 999px; color: var(--blue-700); opacity: .7; }
+.chip button:hover { opacity: 1; background: rgba(0,0,0,.08); }
+.chip button svg { width: 11px; height: 11px; }
+/* 채팅 펼치기 버튼(사이드바 접힘 상태, PC) */
+.chat-open-btn { flex: 0 0 auto; align-self: center; display: none; align-items: center; gap: 6px; height: 36px; padding: 0 14px; margin-right: 4px;
+  border-radius: 999px; background: var(--surface); box-shadow: var(--sh-card); color: var(--blue-700); font-size: 13px; font-weight: 800; }
+body.chat-collapsed .chat-open-btn { display: inline-flex; }
+
+.view { display: none; flex: 1; min-height: 0; overflow-y: auto; }
+.view.on { display: block; }
+.wrap { max-width: 900px; margin: 0 auto; padding: 16px clamp(14px, 4vw, 28px) 48px; }
+
+/* 섹션 헤더 + 추가 버튼 */
+.sec-head { display: flex; align-items: center; gap: 10px; margin: 4px 2px 12px; }
+.sec-head h2 { font-size: 18px; font-weight: 800; letter-spacing: -0.03em; }
+.sec-head .cnt { font-size: 13px; color: var(--text-weak); font-weight: 700; }
+.sec-head .sp { flex: 1; }
+.add-btn { display: inline-flex; align-items: center; gap: 5px; height: 38px; padding: 0 16px; border-radius: 999px;
+  background: var(--blue); color: var(--white); font-size: 14px; font-weight: 800; box-shadow: var(--sh-fab); }
+.add-btn:active { transform: scale(.97); }
+
+/* 할일 KPI */
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+.kpi { padding: 14px; }
+.kpi .n { font-size: clamp(24px, 5vw, 30px); font-weight: 800; letter-spacing: -0.045em; line-height: 1; }
+.kpi .l { font-size: 12px; color: var(--text-sub); font-weight: 700; margin-top: 6px; }
+.kpi.total .n { color: var(--text); } .kpi.open .n { color: var(--blue); } .kpi.done .n { color: var(--green); }
+
+/* 할일 리스트 */
+.item { display: flex; align-items: flex-start; gap: 11px; padding: 13px 15px; margin-bottom: 8px; cursor: pointer; transition: transform .08s; }
+.item:active { transform: scale(.992); }
+.item.done { opacity: .55; }
+.chk { flex: 0 0 auto; width: 23px; height: 23px; border-radius: 999px; border: 2px solid var(--line); margin-top: 1px; display: grid; place-items: center; transition: .15s; }
+.item.done .chk { background: var(--green); border-color: var(--green); }
+.chk svg { width: 13px; height: 13px; stroke: var(--white); stroke-width: 3; fill: none; opacity: 0; }
+.item.done .chk svg { opacity: 1; }
+.item .body { flex: 1; min-width: 0; }
+.item .title { display: block; font-size: 14.5px; font-weight: 700; color: var(--text); word-break: break-word; }
+.item.done .title { text-decoration: line-through; }
+.item .due { font-size: 12px; color: var(--warm-fg); font-weight: 700; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+.item .due svg { width: 13px; height: 13px; opacity: .75; }
+.item .del { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 999px; color: var(--text-weak); font-size: 16px; opacity: 0; transition: .12s; }
+.item:hover .del { opacity: 1; }
+.empty { text-align: center; color: var(--text-weak); padding: 40px 0; font-weight: 600; font-size: 13.5px; }
+
+/* 일정 달력 — 3단: 좌(다가오는 일정) / 중앙(달력) / 우(선택일 시간 항목) */
+#scheduleView .wrap { max-width: 1200px; }
+.sched-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr) 270px; gap: 16px; align-items: start; }
+.up-panel { padding: 14px; }
+.up-panel .phead { font-size: 13.5px; font-weight: 800; color: var(--text-sub); margin-bottom: 8px; }
+.up-item { display: flex; align-items: center; gap: 8px; padding: 8px 7px; border-radius: var(--r-xs); cursor: pointer; transition: background .12s; }
+.up-item:hover { background: var(--surface-2); }
+.up-item .mark { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 999px; background: var(--blue); }
+.up-item.todo .mark { border-radius: 2px; background: var(--warm-fg); }
+.up-item .ud { flex: 0 0 auto; font-size: 11.5px; font-weight: 800; color: var(--text-weak); min-width: 40px; }
+.up-item .ut { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.cal-head .mtitle { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; min-width: 130px; text-align: center; }
+.cal-nav { width: 36px; height: 36px; border-radius: 999px; background: var(--surface); box-shadow: var(--sh-card); font-size: 16px; color: var(--text-sub); display: grid; place-items: center; }
+.cal-today { height: 34px; padding: 0 12px; border-radius: 999px; background: var(--surface); box-shadow: var(--sh-card); font-size: 12.5px; font-weight: 800; color: var(--blue-700); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.cal-dow { text-align: center; font-size: 11.5px; font-weight: 800; color: var(--text-weak); padding: 2px 0 6px; }
+.cal-dow.sun { color: var(--c-1); } .cal-dow.sat { color: var(--blue); }
+.cal-cell { position: relative; aspect-ratio: 1 / 1; border-radius: var(--r-sm); background: var(--surface); box-shadow: var(--sh-card);
+  display: flex; flex-direction: column; align-items: center; padding-top: 7px; cursor: pointer; transition: transform .08s; overflow: hidden; }
+.cal-cell:active { transform: scale(.96); }
+.cal-cell.blank { background: none; box-shadow: none; cursor: default; }
+.cal-cell.today { outline: 2px solid var(--blue); }
+.cal-cell.sel { background: var(--blue-weak); }
+.cal-cell .dnum { font-size: 13px; font-weight: 800; color: var(--text); }
+.cal-cell.sun .dnum { color: var(--c-1); } .cal-cell.sat .dnum { color: var(--blue); }
+.cal-cell .dots { display: flex; gap: 2px; margin-top: 3px; flex-wrap: wrap; justify-content: center; }
+.cal-cell .dot-e { width: 5px; height: 5px; border-radius: 999px; background: var(--blue); }
+.cal-cell .dot-e.done { background: var(--text-weak); }
+.cal-cell .dot-t { width: 5px; height: 5px; border-radius: 1.5px; background: var(--warm-fg); }
+.cal-cell .dot-t.done { background: var(--text-weak); }
+@media (max-width: 500px) { .cal-grid { gap: 4px; } .cal-cell { padding-top: 4px; } .cal-cell .dnum { font-size: 12px; } }
+
+/* 선택 날짜 일정 리스트 (우측 패널) */
+.day-panel { min-width: 0; }
+.day-panel .dhead { font-size: 14px; font-weight: 800; color: var(--text-sub); margin: 0 2px 10px; }
+@media (max-width: 899px) {
+  .sched-layout { grid-template-columns: 1fr; }
+  .cal-box { order: 1; } .day-panel { order: 2; } .up-panel { order: 3; }
+}
+.ev-item { display: flex; align-items: center; gap: 11px; padding: 12px 14px; margin-bottom: 8px; }
+.ev-item.done { opacity: .55; }
+.ev-item .chk { margin-top: 0; }
+.ev-item.done .chk { background: var(--green); border-color: var(--green); }
+.ev-item .etime { flex: 0 0 auto; font-size: 13px; font-weight: 800; color: var(--blue-700); min-width: 44px; }
+.ev-item .etitle { flex: 1; font-size: 14.5px; font-weight: 700; word-break: break-word; }
+.ev-item.done .etitle { text-decoration: line-through; }
+.ev-item .del { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 999px; color: var(--text-weak); font-size: 16px; }
+.ev-item .ebadge { flex: 0 0 auto; font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: var(--warm-bg); color: var(--warm-fg); }
+
+/* 메모 탭 — 좌: 목록 / 우: 편집기 */
+#memoView .wrap { max-width: 1100px; }
+.memo-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; align-items: start; }
+.memo-side { padding: 8px; max-height: calc(100dvh - var(--header-h) - 130px); overflow-y: auto; }
+.memo-item { padding: 10px 12px; border-radius: var(--r-xs); cursor: pointer; transition: background .12s; }
+.memo-item:hover { background: var(--surface-2); }
+.memo-item.sel { background: var(--blue-weak); }
+.memo-item .mtop { display: flex; align-items: center; gap: 8px; }
+.memo-item .mt { flex: 1; min-width: 0; font-size: 14px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.memo-item .del { flex: 0 0 auto; width: 24px; height: 24px; border-radius: 999px; color: var(--text-weak); font-size: 14px; opacity: 0; transition: .12s; }
+.memo-item:hover .del { opacity: 1; }
+.memo-item .mp { font-size: 12px; color: var(--text-weak); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.memo-item .md { font-size: 11px; color: var(--text-weak); font-weight: 700; margin-top: 3px; }
+/* 목록 맨 아래 항목형 추가 버튼 — 상단 ＋메모 버튼 대체 */
+.memo-add { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; margin-top: 4px;
+  padding: 10px 12px; border-radius: var(--r-xs); font-size: 14px; font-weight: 800; color: var(--blue-700); transition: background .12s; }
+.memo-add:hover { background: var(--blue-weak); }
+.memo-add:active { transform: scale(.98); }
+.memo-editor { display: flex; flex-direction: column; padding: 18px 20px; min-height: min(64vh, 560px); }
+.memo-editor input { border: none; background: none; outline: none; font-size: 18px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); padding: 0 0 10px; border-bottom: 1px solid var(--line-2); }
+.memo-editor input::placeholder, .memo-editor textarea::placeholder { color: var(--text-weak); }
+.memo-editor textarea { flex: 1; border: none; background: none; outline: none; resize: none; font-family: inherit; font-size: 14.5px; line-height: 1.7; color: var(--text); padding: 12px 0 0; min-height: 320px; }
+.memo-ebar { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.memo-ebar .sp { flex: 1; }
+.memo-ebar .mstate { font-size: 12px; color: var(--text-weak); font-weight: 700; }
+.memo-ebar .mdel { height: 32px; padding: 0 13px; border-radius: 999px; background: var(--danger-bg); color: var(--danger); font-size: 12.5px; font-weight: 800; }
+.memo-none { display: flex; align-items: center; justify-content: center; min-height: 300px; color: var(--text-weak); font-weight: 600; font-size: 13.5px; }
+@media (max-width: 899px) { .memo-layout { grid-template-columns: 1fr; } .memo-side { max-height: 260px; } }
+
+/* 진화 탭 */
+.evo-head { display: flex; align-items: baseline; gap: 8px; margin: 4px 2px 12px; }
+.evo-lead { font-size: 12px; color: var(--text-weak); font-weight: 600; }
+.evo-cta { margin-bottom: 12px; }
+.evo-cta button { height: 40px; padding: 0 18px; border-radius: var(--r-sm); background: var(--blue); color: var(--white); font-weight: 800; font-size: 14px; box-shadow: var(--sh-fab); }
+.evo-cta button:disabled { opacity: .4; box-shadow: none; }
+.evo-card { padding: 13px 15px; margin-bottom: 9px; }
+.evo-top { display: flex; align-items: center; gap: 8px; }
+.evo-type { font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; flex: 0 0 auto; }
+.evo-type.improve { background: var(--blue-weak); color: var(--blue-700); }
+.evo-type.add { background: var(--success-bg); color: var(--success); }
+.evo-type.remove { background: var(--danger-bg); color: var(--danger); }
+.evo-t { flex: 1; font-size: 14.5px; font-weight: 800; }
+.evo-st { font-size: 11.5px; font-weight: 800; color: var(--warm-fg); background: var(--warm-bg); border-radius: 999px; padding: 2px 8px; }
+.evo-d { margin-top: 6px; font-size: 13px; color: var(--text-sub); line-height: 1.55; }
+.evo-acts { display: flex; gap: 7px; margin-top: 10px; }
+.evo-acts button { height: 36px; padding: 0 16px; border-radius: var(--r-sm); font-weight: 800; font-size: 13px; }
+.evo-acts .talk { background: var(--blue-weak); color: var(--blue-700); }
+.evo-acts .do { background: var(--blue); color: var(--white); }
+.evo-acts .ignore { background: var(--surface-2); color: var(--text-sub); box-shadow: var(--sh-card); }
+
+/* ---------- 우: 채팅 도킹 사이드바 ---------- */
+/* grid 2번째 컬럼. 닫히면 컬럼 폭 0이라 화면에서 사라지고 메인이 전체 폭. */
+#chatSide { grid-column: 2; grid-row: 1; position: relative; overflow: hidden; min-width: 0; display: flex; flex-direction: column; height: 100dvh;
+  background: var(--surface); border-left: 1px solid var(--line-2); }
+/* 내부 콘텐츠는 고정 폭 유지 — 컬럼이 0→chat-w로 애니메이트될 때 찌그러지지 않도록 */
+#chatSide > *:not(#chatResize) { width: var(--chat-w); flex-shrink: 0; align-self: flex-end; }
+#chatSide > #feed { flex: 1 1 auto; }
+/* 채팅 폭 조절바 — 좌측 가장자리, 항상 옅게 보이고 hover/드래그 시 강조 */
+#chatResize { position: absolute; left: -3px; top: 0; bottom: 0; width: 10px; cursor: col-resize; z-index: 6; display: flex; align-items: center; justify-content: center; }
+#chatResize::before { content: ""; width: 3px; height: 42px; border-radius: 3px; background: var(--line); transition: background .15s, height .15s; }
+#chatResize:hover::before, #chatResize.dragging::before { background: var(--blue); height: 64px; }
+.chat-scrim { display: none; }
+@media (max-width: 640px) {
+  body.chatting { grid-template-columns: 0 1fr; }         /* 모바일: 채팅이 전체, 메인 숨김 */
+  #chatResize { display: none; }
+  #chatSide, #chatSide > * { width: 100vw; }
+}
+@keyframes pulse { 50% { opacity: .35; } }
+/* 채팅 헤더(간소): 제목 + 닫기 */
+.ana-status { flex: 0 0 auto; padding: calc(10px + var(--safe-t)) 14px 10px; border-bottom: 1px solid var(--line-2); background: var(--surface); }
+.as-top { display: flex; align-items: center; gap: 8px; }
+.as-title { flex: 1; min-width: 0; font-size: 14px; font-weight: 800; color: var(--text); }
+.icon-btn { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 999px; background: var(--surface-2); color: var(--text-sub); display: grid; place-items: center; }
+.icon-btn:hover { color: var(--text); }
+.icon-btn svg { width: 18px; height: 18px; }
+/* 채팅창 상단 연결 표시 pill(ANA 연결 여부) — 클릭 시 tmux 선택 드롭다운 */
+.conn { position: relative; flex: 1; min-width: 0; display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); font-size: 13px; font-weight: 800; color: var(--text-sub); cursor: pointer; }
+.conn:hover { border-color: var(--line-2); }
+.conn .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conn .dot { width: 8px; height: 8px; border-radius: 999px; background: var(--line); flex: 0 0 auto; }
+.conn.ok .dot { background: var(--green); } .conn.ok { color: var(--text); }
+.conn.bad .dot { background: var(--danger); }
+.conn svg { width: 14px; height: 14px; opacity: .55; flex: 0 0 auto; }
+/* 드롭다운(tmux 선택) — 채팅 헤더 아래로 펼쳐짐 */
+.conn-pop { position: absolute; top: calc(100% + 8px); left: 0; right: 0; padding: 12px; z-index: 60;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sh-fab); cursor: default; }
+/* tmux 세션 연결 설정 팝오버 */
+.tmux-cfg { margin-top: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+.tmux-cfg-title { font-size: 11.5px; font-weight: 800; color: var(--text-sub); margin-bottom: 6px; }
+.tmux-cfg-list { display: flex; flex-direction: column; gap: 4px; max-height: 160px; overflow-y: auto; margin-bottom: 8px; }
+.tmux-cfg-list button { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 6px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--text); font-size: 12px; cursor: pointer; }
+.tmux-cfg-list button:hover { border-color: var(--accent); }
+.tmux-cfg-list button.cur { border-color: var(--success); }
+.tmux-cfg-list button small { color: var(--text-weak); font-weight: 700; }
+.tmux-cfg-list .none { color: var(--text-weak); font-size: 12px; padding: 4px; }
+.tmux-cfg-manual { display: flex; gap: 6px; }
+.tmux-cfg-manual input { flex: 1; min-width: 0; padding: 6px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--text); font-size: 12px; }
+.tmux-cfg-manual button { flex: 0 0 auto; padding: 6px 12px; border-radius: 7px; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; }
+.tmux-cfg-hint { margin-top: 8px; font-size: 10.5px; color: var(--text-weak); line-height: 1.4; }
+.as-row .mini.ok { background: var(--green); } .as-row .mini.bad { background: var(--danger); }
+
+#feed { flex: 1; overflow-y: auto; padding: 14px 14px 10px; display: flex; flex-direction: column; gap: 10px; position: relative; }
+.msg { max-width: 86%; padding: 10px 14px; border-radius: var(--r); font-size: 14px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+.msg.user { align-self: flex-end; background: var(--blue); color: var(--white); border-bottom-right-radius: 5px; }
+.msg.assistant { align-self: flex-start; background: var(--surface-2); color: var(--text); border-bottom-left-radius: 5px; }
+.msg.system, .msg.marker { align-self: center; background: transparent; color: var(--text-weak); font-size: 12px; font-weight: 700; text-align: center; }
+.act { align-self: flex-start; max-width: 92%; font-size: 12px; color: var(--text-weak); font-weight: 700; padding: 0 4px; }
+.act.tool::before { content: "› "; }
+.act.toolresult { font-family: ui-monospace, Menlo, monospace; font-weight: 400; max-height: 6.5em; overflow: hidden; position: relative; cursor: pointer; }
+.act.toolresult.expanded { max-height: none; cursor: default; }
+.act.toolresult.clip::after { content: "⋯ 더 보기"; position: absolute; bottom: 0; left: 0; right: 0; text-align: center; font-family: inherit; font-size: 11px; color: var(--blue-700); background: linear-gradient(transparent, var(--surface) 70%); padding-top: 14px; }
+#pendingWrap .msg, #pendingWrap .act { opacity: .75; }
+#optimistic .msg.user { opacity: .55; }
+/* 전송 상태 배지(진화 #7) — 낙관적 에코에 전송중/전달됨/실패·미확인 상태 표시 */
+.optim { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; align-self: flex-end; max-width: 86%; }
+.optim .msg.user { max-width: 100%; }
+.optim.sent .msg.user { opacity: .8; }
+.sstat { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text-weak); }
+.sstat.ok { color: var(--green); }
+.sstat.err { color: var(--danger); }
+.sstat button { font-size: 11px; font-weight: 800; padding: 2px 9px; border-radius: 999px; background: var(--blue-weak); color: var(--blue-700); }
+.sstat button.dis { background: var(--surface-2); color: var(--text-weak); }
+/* 상태 스트립 — 피드 밖 고정 높이 영역이라 표시/숨김에도 메시지가 밀리지 않는다 */
+.feedstatus { flex: 0 0 auto; height: 26px; display: flex; align-items: center; gap: 12px; padding: 0 16px; overflow: hidden; }
+.resync { display: none; color: var(--warm-fg); font-size: 12px; font-weight: 700; }
+.typing { display: none; align-items: center; gap: 8px; color: var(--text-sub); font-size: 12.5px; font-weight: 700; min-width: 0; white-space: nowrap; }
+.typing.on { display: flex; }
+.typing #typTx { overflow: hidden; text-overflow: ellipsis; }
+.typing .dots { display: inline-flex; gap: 3px; }
+.typing .dots i { width: 6px; height: 6px; border-radius: 999px; background: var(--blue); animation: blink 1.2s infinite both; }
+.typing .dots i:nth-child(2) { animation-delay: .2s; } .typing .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 0%,80%,100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+.feed-empty { align-self: center; color: var(--text-weak); font-size: 13px; margin-top: 32px; text-align: center; }
+.feed-empty code { background: var(--surface-2); padding: 2px 6px; border-radius: 5px; }
+.newpill { display: none; position: sticky; bottom: 6px; align-self: center; background: var(--blue); color: var(--white); border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 800; box-shadow: var(--sh-fab); }
+
+/* 제안 승인 카드 */
+.prop { align-self: flex-start; max-width: 94%; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; }
+.prop .pt { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.prop .row { font-size: 13px; padding: 3px 0; color: var(--text-sub); display: flex; gap: 7px; }
+.prop .row .k { font-weight: 800; flex: 0 0 auto; }
+.prop .k-add { color: var(--green); } .prop .k-up { color: var(--blue); } .prop .k-rm { color: var(--c-1); }
+.prop .acts { display: flex; gap: 8px; margin-top: 11px; }
+.prop .acts button { flex: 1; height: 40px; border-radius: var(--r-sm); font-weight: 800; font-size: 13.5px; }
+.prop .ok { background: var(--blue); color: var(--white); } .prop .no { background: var(--surface); box-shadow: var(--sh-card); }
+.prop .state { margin-top: 9px; font-size: 12.5px; font-weight: 800; display: none; }
+.prop.applied .acts, .prop.rejected .acts { display: none; }
+.prop.applied .state, .prop.rejected .state { display: block; }
+.prop.applied .state { color: var(--green); } .prop.rejected .state { color: var(--text-weak); }
+
+.errbar { display: none; align-items: center; gap: 8px; margin: 0 14px 8px; padding: 8px 12px; background: var(--danger-bg); border-radius: var(--r-xs); color: var(--danger); font-size: 12.5px; font-weight: 700; }
+.errbar button { margin-left: auto; font-size: 15px; color: var(--danger); }
+/* 터미널 다이얼로그 안내 카드(권한/확인 창이 열렸을 때) */
+.dlgcard { display: none; margin: 0 14px 8px; padding: 10px 12px; background: var(--blue-weak); border: 1px solid var(--blue); border-radius: var(--r-xs); }
+.dlgcard.on { display: block; }
+.dlgcard-h { font-size: 12.5px; font-weight: 800; color: var(--blue-700); margin-bottom: 6px; }
+.dlgcard-body { max-height: 130px; overflow: auto; margin: 0 0 8px; padding: 8px; background: var(--surface); border-radius: 6px; font: 12px/1.45 ui-monospace, Menlo, monospace; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+.dlgcard-keys { display: flex; flex-wrap: wrap; gap: 6px; }
+.dlgcard-keys button { min-height: 34px; padding: 4px 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); color: var(--text-sub); font-size: 12.5px; font-weight: 700; }
+.dlgcard-keys button:hover { border-color: var(--blue); color: var(--text); }
+.dlgcard-keys button.primary { margin-left: auto; background: var(--blue); border-color: var(--blue); color: var(--white); }
+.keys { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 8px; }
+.keys button { min-height: 34px; padding: 4px 11px; border-radius: 999px; background: var(--surface-2); box-shadow: var(--sh-card); color: var(--text-sub); font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.keys .sp { flex: 1; box-shadow: none; background: none; min-height: 0; }
+.keys button.danger { color: var(--danger); background: var(--danger-bg); }
+.keys button:disabled { opacity: .4; cursor: default; }
+@media (any-pointer: coarse) { .keys button { min-height: 44px; } }
+.composer { flex: 0 0 auto; display: flex; align-items: flex-end; gap: 8px; padding: 0 14px calc(14px + var(--safe-b)); }
+.inputwrap { position: relative; flex: 1; }
+.inputwrap textarea { width: 100%; display: block; min-height: 44px; max-height: 92px; resize: none; overflow-y: auto; border-radius: var(--r-sm); background: var(--surface-2); border: 1.5px solid var(--line); padding: 11px 14px; font-size: 14.5px; line-height: 1.45; color: var(--text); outline: none; font-family: inherit; }
+.inputwrap textarea:focus { border-color: var(--blue); background: var(--surface); }
+#ghost { position: absolute; inset: 1.5px; padding: 11px 14px; font-size: 14.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; overflow: hidden; pointer-events: none; }
+#ghost .typed { color: transparent; } #ghost .rest { color: var(--text-weak); opacity: .8; }
+#ghost .tabhint { color: var(--text-weak); opacity: .7; font-size: 10.5px; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 6px; vertical-align: 1px; }
+.inputwrap.ghost-on textarea::placeholder { color: transparent; }
+#send { width: 42px; height: 42px; border-radius: 999px; background: var(--blue); color: var(--white); flex: 0 0 auto; display: grid; place-items: center; font-size: 18px; box-shadow: var(--sh-fab); }
+#send:disabled { opacity: .4; box-shadow: none; cursor: default; }
+
+/* 우하단 채팅 FAB — ANA 모드에서만 표시(일반 모드엔 채팅 버튼 없음), 클릭 시 채팅 도킹 열림 */
+.fab { display: none; position: fixed; right: 18px; bottom: calc(20px + var(--safe-b)); width: 56px; height: 56px; border-radius: 999px; background: var(--blue); color: var(--white); box-shadow: var(--sh-fab); z-index: 38; place-items: center; }
+.fab svg { width: 24px; height: 24px; }
+body.ana-mode:not(.chatting) .fab { display: grid; }     /* ANA 모드 + 채팅 닫힘일 때만 */
+.fab.busy::after { content: ""; position: absolute; inset: -3px; border-radius: 999px; border: 2px solid var(--green); animation: pulse 1.4s infinite; }
+.fab .badge { position: absolute; top: -3px; right: -3px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--c-1); color: #fff; font-size: 11px; font-weight: 800; line-height: 20px; text-align: center; display: none; }
+.fab.unread .badge { display: block; }
+
+/* ---------- 반응형 ---------- */
+@media (max-width: 899px) {
+  .conn .label { display: none; }                         /* 좁은 화면: 연결 pill은 점만 */
+}
+
+/* ---------- 모달 (수동 추가 팝업) ---------- */
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 60; opacity: 0; pointer-events: none; transition: .2s; }
+.scrim.on { opacity: 1; pointer-events: auto; }
+.modal { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -46%); z-index: 70; width: min(440px, calc(100vw - 32px));
+  background: var(--surface); border-radius: var(--r-xl); box-shadow: var(--sh-sheet); padding: 20px; opacity: 0; pointer-events: none; transition: .2s; }
+.modal.on { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%); }
+@media (max-width: 560px) { .modal { top: auto; bottom: 0; left: 0; transform: translateY(100%); width: 100vw; border-radius: var(--r-xl) var(--r-xl) 0 0; padding-bottom: calc(20px + var(--safe-b)); }
+  .modal.on { transform: translateY(0); } }
+.modal h3 { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 16px; }
+.fld { margin-bottom: 14px; }
+.fld label { display: block; font-size: 12.5px; font-weight: 800; color: var(--text-weak); margin-bottom: 7px; }
+.fld input { width: 100%; height: 48px; border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 0 14px; font-size: 15px; color: var(--text); background: var(--surface-2); outline: none; }
+.fld input:focus { border-color: var(--blue); background: var(--surface); }
+.frow { display: flex; gap: 10px; } .frow .fld { flex: 1; }
+.modal-acts { display: flex; gap: 9px; margin-top: 20px; }
+.modal-acts button { flex: 1; height: 48px; border-radius: var(--r-sm); font-weight: 800; font-size: 15px; }
+.modal-acts .cancel { background: var(--surface-2); color: var(--text-sub); box-shadow: var(--sh-card); }
+.modal-acts .save { background: var(--blue); color: var(--white); }
+.modal-acts .save:disabled { opacity: .4; }
+</style>
+</head>
+<body>
+
+<!-- ◀ 메인: 할일 / 일정 / 진화 -->
+<div id="main">
+  <nav class="topnav" aria-label="주 메뉴" role="tablist">
+    <div class="topnav-brand"><img src="/ana-logo.png" alt="ANA 로고"><span class="bname">ANA</span></div>
+    <button class="tab on" data-view="todo" role="tab" aria-selected="true">할일</button>
+    <button class="tab" data-view="schedule" role="tab" aria-selected="false">일정</button>
+    <button class="tab" data-view="memo" role="tab" aria-selected="false">메모</button>
+    <button class="tab" data-view="evolve" role="tab" aria-selected="false">진화<span class="tbadge" id="evoBadge">0</span></button>
+    <span class="sp"></span>
+    <button id="modeToggle" class="mode-toggle" role="switch" aria-checked="false" aria-label="ANA 모드">
+      <span class="knob"></span>ANA
+    </button>
+  </nav>
+
+  <!-- 할일 -->
+  <section class="view on" id="todoView" role="tabpanel"><div class="wrap">
+    <div class="kpis">
+      <div class="kpi card total"><div class="n" id="kTotal">0</div><div class="l">전체</div></div>
+      <div class="kpi card open"><div class="n" id="kOpen">0</div><div class="l">대기</div></div>
+      <div class="kpi card done"><div class="n" id="kDone">0</div><div class="l">완료</div></div>
+    </div>
+    <div class="sec-head"><h2>할일</h2><span class="cnt" id="todoMeta"></span><span class="sp"></span>
+      <button class="add-btn" id="addTodoBtn">＋ 할일</button></div>
+    <div id="todoList"></div>
+    <div class="empty" id="todoEmpty">할일이 없습니다 — ＋할일 또는 채팅으로 추가</div>
+  </div></section>
+
+  <!-- 일정 (달력) -->
+  <section class="view" id="scheduleView" role="tabpanel"><div class="wrap">
+    <div class="sec-head"><span class="sp"></span><button class="add-btn" id="addEventBtn">＋ 일정</button></div>
+    <div class="sched-layout">
+      <aside class="up-panel card" aria-label="다가오는 일정">
+        <div class="phead">앞으로의 일정</div>
+        <div id="upList"></div>
+      </aside>
+      <div class="cal-box">
+        <div class="cal-head">
+          <button class="cal-nav" id="calPrev" aria-label="이전 달">‹</button>
+          <div class="mtitle" id="calTitle"></div>
+          <button class="cal-nav" id="calNext" aria-label="다음 달">›</button>
+          <span class="sp"></span>
+          <button class="cal-today" id="calToday">오늘</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+      <aside class="day-panel" aria-label="선택한 날짜의 일정"><div class="dhead" id="dayHead"></div><div id="dayList"></div></aside>
+    </div>
+  </div></section>
+
+  <!-- 메모 (좌: 목록 / 우: 편집기) -->
+  <section class="view" id="memoView" role="tabpanel"><div class="wrap">
+    <div class="memo-layout">
+      <aside class="memo-side card" aria-label="메모 목록">
+        <div id="memoList"></div>
+        <div class="empty" id="memoEmpty" style="padding:24px 0">메모가 없습니다 — 아래 ＋ 버튼으로 추가</div>
+        <button class="memo-add" id="addMemoBtn" aria-label="새 메모 추가">＋ 새 메모</button>
+      </aside>
+      <div class="memo-main">
+        <div class="memo-editor card" id="memoEditor" style="display:none">
+          <input id="mmTitle" placeholder="제목" aria-label="메모 제목" autocomplete="off">
+          <textarea id="mmBody" placeholder="내용을 입력하세요…" aria-label="메모 내용"></textarea>
+          <div class="memo-ebar"><span class="mstate" id="mmState"></span><span class="sp"></span><button class="mdel" id="mmDel">삭제</button></div>
+        </div>
+        <div class="memo-none" id="memoNone">메모를 선택하거나 목록의 ＋ 버튼으로 추가하세요</div>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- 진화 -->
+  <section class="view" id="evolveView" role="tabpanel"><div class="wrap">
+    <div class="evo-head"><span class="evo-lead">이 앱을 스스로 개선합니다</span></div>
+    <div class="evo-cta"><button id="evoAnalyze">에이전트에게 분석 요청</button></div>
+    <div id="evoList"></div>
+    <div class="empty" id="evoEmpty">제안이 없습니다 — [에이전트에게 분석 요청]을 눌러 보세요</div>
+  </div></section>
+</div>
+
+<!-- ▶ 채팅 사이드바 -->
+<aside id="chatSide" aria-label="에이전트 채팅">
+  <div id="chatResize" aria-hidden="true"></div>
+  <div class="ana-status">
+    <div class="as-top">
+      <div class="conn bad" id="connPill" role="button" tabindex="0" aria-label="ANA 연결 상태 — 클릭하여 연결할 에이전트 선택">
+        <span class="dot"></span><span class="label" id="connLabel">Connecting…</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        <div class="conn-pop" id="tmuxCfg" hidden>
+          <div class="tmux-cfg-title">연결할 에이전트</div>
+          <div class="tmux-cfg-list" id="tmuxCfgList">불러오는 중…</div>
+          <div class="tmux-cfg-hint">연결할 에이전트를 선택하세요.</div>
+        </div>
+      </div>
+      <button class="icon-btn" id="chatCloseBtn" aria-label="채팅 닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="feed" aria-live="polite" aria-relevant="additions">
+    <div class="feed-empty" id="feedEmpty">에이전트 연결 대기 중 — 위쪽 연결 표시를 눌러 에이전트를 선택하세요</div>
+    <div id="msgs" style="display:contents"></div>
+    <div id="pendingWrap" style="display:contents"></div>
+    <div id="optimistic" style="display:contents"></div>
+    <button class="newpill" id="newpill">새 메시지 ↓</button>
+  </div>
+  <div class="feedstatus">
+    <div class="typing" id="typing"><span class="dots"><i></i><i></i><i></i></span><span id="typTx">작업 중…</span></div>
+    <span class="resync" id="resync">기록 재동기화 중…</span>
+  </div>
+  <div class="errbar" id="errbar" role="alert"><span id="errtext"></span><button id="errclose" aria-label="닫기">✕</button></div>
+  <div class="dlgcard" id="dlgcard" role="alert">
+    <div class="dlgcard-h">터미널에 확인이 필요한 창이 열려 있습니다</div>
+    <pre class="dlgcard-body" id="dlgcardBody"></pre>
+    <div class="dlgcard-keys">
+      <button data-key="up" aria-label="위로">↑</button>
+      <button data-key="down" aria-label="아래로">↓</button>
+      <button data-key="1" aria-label="선택지 1">1</button>
+      <button data-key="2" aria-label="선택지 2">2</button>
+      <button data-key="esc">Esc 취소</button>
+      <button data-key="enter" class="primary">⏎ 선택</button>
+    </div>
+  </div>
+  <div class="chips" id="chips" aria-label="추가된 컨텍스트"></div>
+  <div class="keys" id="keysRow">
+    <button data-key="ctrl-c" class="danger" id="ctrlc" title="작업 중단">중단</button>
+  </div>
+  <div class="composer">
+    <div class="inputwrap" id="inputwrap">
+      <textarea id="input" rows="1" placeholder="메시지 입력 — Enter 전송, Shift+Enter 줄바꿈" aria-label="메시지 입력"></textarea>
+      <div id="ghost"></div>
+    </div>
+    <button id="send" title="전송" aria-label="전송">↑</button>
+  </div>
+</aside>
+
+<div class="chat-scrim" id="chatScrim"></div>
+<button class="fab" id="fab" aria-label="채팅 열기"><span class="badge" id="fabBadge">0</span>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+</button>
+
+<!-- 모달: 할일 추가 -->
+<div class="scrim" id="scrim"></div>
+<div class="modal" id="todoModal" role="dialog" aria-modal="true" aria-label="할일 추가">
+  <h3>할일 추가</h3>
+  <div class="fld"><label>제목</label><input id="tTitle" placeholder="예: 제안서 검토" autocomplete="off"></div>
+  <div class="fld"><label>마감일 (선택)</label><input id="tDue" type="date"></div>
+  <div class="modal-acts"><button class="cancel" data-close>취소</button><button class="save" id="tSave">추가</button></div>
+</div>
+<!-- 모달: 일정 추가 -->
+<div class="modal" id="eventModal" role="dialog" aria-modal="true" aria-label="일정 추가">
+  <h3>일정 추가</h3>
+  <div class="fld"><label>제목</label><input id="eTitle" placeholder="예: 팀 회의" autocomplete="off"></div>
+  <div class="frow">
+    <div class="fld"><label>날짜</label><input id="eDate" type="date"></div>
+    <div class="fld"><label>시간 (선택)</label><input id="eTime" type="time"></div>
+  </div>
+  <div class="modal-acts"><button class="cancel" data-close>취소</button><button class="save" id="eSave">추가</button></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const escapeHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const post = (p, body) => fetch(p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+let sessionAlive = false, busy = false, atBottom = true;
+
+/* ================= 데이터 (할일 + 일정) ================= */
+let dataVersion = 0, items = [], events = [], notes = [];
+const proposals = new Map();
+async function refreshData() {
+  let s;
+  try { s = await (await fetch('/api/state')).json(); } catch { return; }
+  dataVersion = s.version || 1;
+  items = s.items || []; events = s.events || []; notes = s.notes || [];
+  (s.proposals || []).forEach((p) => proposals.set(p.id, p));
+  renderTodos(); renderCalendar(); renderDay(); renderUpcoming(); renderMemos();
+  refreshPropCards();
+}
+
+/* ---- 할일 ---- */
+function renderTodos() {
+  const done = items.filter((x) => x.done).length;
+  $('kTotal').textContent = items.length;
+  $('kOpen').textContent = items.length - done;
+  $('kDone').textContent = done;
+  $('todoMeta').textContent = `v${dataVersion}`;
+  $('todoList').innerHTML = items.map((it) => `
+    <div class="item card ${it.done ? 'done' : ''}" data-id="${escapeHtml(it.id)}" role="button" tabindex="0" aria-pressed="${!!it.done}">
+      <span class="chk"><svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg></span>
+      <span class="body"><span class="title">${escapeHtml(it.title || it.text || '')}</span>${it.due ? `<span class="due"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${escapeHtml(it.due)}</span>` : ''}</span>
+      <button class="del" data-del="${escapeHtml(it.id)}" aria-label="삭제">✕</button>
+    </div>`).join('');
+  $('todoEmpty').style.display = items.length ? 'none' : 'block';
+}
+function toggleTodo(el) {
+  const done = !el.classList.contains('done');
+  post('/api/done', { id: el.dataset.id, done }).then((r) => { if (!r.ok) refreshData(); }).catch(() => refreshData());
+  el.classList.toggle('done', done); el.setAttribute('aria-pressed', String(done));
+}
+$('todoList').addEventListener('click', (e) => {
+  const del = e.target.closest('[data-del]');
+  if (del) { post('/api/todo-remove', { id: del.dataset.del }).then(refreshData); return; }
+  // 완료 처리는 앞의 체크박스(.chk)를 눌렀을 때만 — 항목 본문 클릭으로는 체크되지 않는다
+  if (e.target.closest('.chk')) { const el = e.target.closest('.item'); if (el) toggleTodo(el); }
+});
+$('todoList').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const el = e.target.closest('.item'); if (!el) return; e.preventDefault(); toggleTodo(el);
+});
+
+/* ---- 일정 (달력) ---- */
+let calY, calM, selDate; // calM: 0-11
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const weekLater = () => { const d = new Date(); d.setDate(d.getDate() + 7); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+function initCal() { const d = new Date(); calY = d.getFullYear(); calM = d.getMonth(); selDate = today(); }
+const DOW = ['일','월','화','수','목','금','토'];
+function renderCalendar() {
+  $('calTitle').textContent = `${calY}년 ${calM + 1}월`;
+  const first = new Date(calY, calM, 1).getDay();
+  const days = new Date(calY, calM + 1, 0).getDate();
+  const byDate = {};
+  events.forEach((e) => { (byDate[e.date] = byDate[e.date] || []).push(e); });
+  const todoByDate = {};
+  items.forEach((t) => { if (t.due) (todoByDate[t.due] = todoByDate[t.due] || []).push(t); });
+  let html = DOW.map((d, i) => `<div class="cal-dow ${i===0?'sun':i===6?'sat':''}">${d}</div>`).join('');
+  for (let i = 0; i < first; i++) html += `<div class="cal-cell blank"></div>`;
+  for (let d = 1; d <= days; d++) {
+    const date = `${calY}-${String(calM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow = new Date(calY, calM, d).getDay();
+    const evs = byDate[date] || [];
+    const tds = todoByDate[date] || [];
+    const dots = evs.slice(0, 3).map((e) => `<span class="dot-e ${e.done?'done':''}"></span>`).join('')
+      + tds.slice(0, 3).map((t) => `<span class="dot-t ${t.done?'done':''}"></span>`).join('');
+    html += `<div class="cal-cell ${dow===0?'sun':dow===6?'sat':''} ${date===today()?'today':''} ${date===selDate?'sel':''}" data-date="${date}">
+      <span class="dnum">${d}</span><div class="dots">${dots}</div></div>`;
+  }
+  $('calGrid').innerHTML = html;
+}
+$('calGrid').addEventListener('click', (e) => {
+  const cell = e.target.closest('.cal-cell[data-date]'); if (!cell) return;
+  selDate = cell.dataset.date; renderCalendar(); renderDay();
+});
+function renderDay() {
+  const evs = events.filter((e) => e.date === selDate).sort((a, b) => (a.time || '99').localeCompare(b.time || '99'));
+  const dues = items.filter((x) => x.due === selDate);
+  const [y, m, d] = selDate.split('-');
+  $('dayHead').textContent = `${+m}월 ${+d}일 · 일정 ${evs.length}개${dues.length ? ` · 마감 ${dues.length}개` : ''}`;
+  const evHtml = evs.map((e) => `
+    <div class="ev-item card ${e.done ? 'done' : ''}" data-id="${escapeHtml(e.id)}">
+      <span class="chk" data-toggle><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#fff;stroke-width:3;fill:none;opacity:${e.done?1:0}"><path d="M4 12l5 5L20 6"/></svg></span>
+      <span class="etime">${e.time ? escapeHtml(e.time) : '종일'}</span>
+      <span class="etitle">${escapeHtml(e.title)}</span>
+      <button class="del" data-del aria-label="삭제">✕</button>
+    </div>`).join('');
+  const dueHtml = dues.map((x) => `
+    <div class="ev-item card ${x.done ? 'done' : ''}" data-id="${escapeHtml(x.id)}" data-kind="todo">
+      <span class="chk" data-toggle><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#fff;stroke-width:3;fill:none;opacity:${x.done?1:0}"><path d="M4 12l5 5L20 6"/></svg></span>
+      <span class="ebadge">할일 마감</span>
+      <span class="etitle">${escapeHtml(x.title || x.text || '')}</span>
+    </div>`).join('');
+  $('dayList').innerHTML = (evHtml + dueHtml) || `<div class="empty" style="padding:24px 0">이 날 일정이 없습니다</div>`;
+}
+$('dayList').addEventListener('click', (e) => {
+  const el = e.target.closest('.ev-item'); if (!el) return;
+  const id = el.dataset.id;
+  if (el.dataset.kind === 'todo') {
+    if (e.target.closest('[data-toggle]')) { post('/api/done', { id, done: !el.classList.contains('done') }).then((r) => { if (!r.ok) refreshData(); }); el.classList.toggle('done'); }
+    return;
+  }
+  if (e.target.closest('[data-del]')) { post('/api/event', { action: 'remove', id }).then(refreshData); return; }
+  if (e.target.closest('[data-toggle]')) { post('/api/event', { action: 'done', id, done: !el.classList.contains('done') }).then((r) => { if (!r.ok) refreshData(); }); el.classList.toggle('done'); return; }
+});
+
+/* ---- 다가오는 일정 리스트 (달력 좌측) ---- */
+function gotoDate(date) { selDate = date; const p = date.split('-'); calY = +p[0]; calM = +p[1] - 1; renderCalendar(); renderDay(); }
+function renderUpcoming() {
+  const t = today();
+  const ups = [
+    ...events.filter((e) => !e.done && e.date >= t).map((e) => ({ kind: 'event', date: e.date, time: e.time || '', title: e.title })),
+    ...items.filter((x) => !x.done && x.due && x.due >= t).map((x) => ({ kind: 'todo', date: x.due, time: '', title: x.title || x.text || '' })),
+  ].sort((a, b) => (a.date + (a.time || '99:99')).localeCompare(b.date + (b.time || '99:99'))).slice(0, 15);
+  $('upList').innerHTML = ups.length ? ups.map((u) => `
+    <div class="up-item ${u.kind === 'todo' ? 'todo' : ''}" data-date="${u.date}" role="button" tabindex="0" title="${escapeHtml(u.title)}">
+      <span class="mark"></span>
+      <span class="ud">${+u.date.slice(5, 7)}/${+u.date.slice(8, 10)}</span>
+      <span class="ut">${escapeHtml(u.title)}${u.time ? ` · ${escapeHtml(u.time)}` : ''}</span>
+    </div>`).join('') : `<div class="empty" style="padding:14px 0;font-size:12.5px">예정된 일정이 없습니다</div>`;
+}
+$('upList').addEventListener('click', (e) => {
+  const el = e.target.closest('.up-item[data-date]'); if (el) gotoDate(el.dataset.date);
+});
+$('upList').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const el = e.target.closest('.up-item[data-date]'); if (el) { e.preventDefault(); gotoDate(el.dataset.date); }
+});
+$('calPrev').onclick = () => { if (--calM < 0) { calM = 11; calY--; } renderCalendar(); };
+$('calNext').onclick = () => { if (++calM > 11) { calM = 0; calY++; } renderCalendar(); };
+$('calToday').onclick = () => { const d = new Date(); calY = d.getFullYear(); calM = d.getMonth(); selDate = today(); renderCalendar(); renderDay(); };
+
+/* ---- 메모 (좌: 목록 / 우: 편집기, 자동 저장) ---- */
+let memoSel = null, memoSaveTimer = null;
+const memoEditing = () => (document.activeElement === $('mmTitle') || document.activeElement === $('mmBody')) && $('memoEditor').dataset.id === memoSel;
+function renderMemos() {
+  const list = [...notes].sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+  if (memoSel && !list.some((n) => n.id === memoSel)) memoSel = null;
+  if (!memoSel && list.length) memoSel = list[0].id;
+  $('memoList').innerHTML = list.map((n) => {
+    const title = (n.title || '').trim() || (n.text || '').trim().split('\n')[0].slice(0, 40) || '제목 없음';
+    const prev = (n.text || '').trim().replace(/\s+/g, ' ').slice(0, 60);
+    const d = String(n.updatedAt || '').slice(0, 10);
+    return `<div class="memo-item ${n.id === memoSel ? 'sel' : ''}" data-id="${escapeHtml(n.id)}" role="button" tabindex="0">
+      <div class="mtop"><span class="mt">${escapeHtml(title)}</span><button class="del" data-del="${escapeHtml(n.id)}" aria-label="메모 삭제">✕</button></div>
+      ${prev ? `<div class="mp">${escapeHtml(prev)}</div>` : ''}
+      ${d ? `<div class="md">${escapeHtml(d)}</div>` : ''}
+    </div>`; }).join('');
+  $('memoEmpty').style.display = list.length ? 'none' : 'block';
+  fillMemoEditor();
+}
+function fillMemoEditor() {
+  const n = notes.find((x) => x.id === memoSel);
+  $('memoEditor').style.display = n ? 'flex' : 'none';
+  $('memoNone').style.display = n ? 'none' : 'flex';
+  if (!n) { $('memoEditor').dataset.id = ''; return; }
+  // 입력 중에는 서버 갱신이 편집 내용을 덮어쓰지 않게 한다
+  if (!memoEditing()) { $('mmTitle').value = n.title || ''; $('mmBody').value = n.text || ''; $('mmState').textContent = ''; }
+  $('memoEditor').dataset.id = n.id;
+}
+async function saveMemo(id) {
+  const n = notes.find((x) => x.id === id); if (!n) return;
+  n.title = $('mmTitle').value; n.text = $('mmBody').value; // 로컬 선반영(목록 미리보기)
+  $('mmState').textContent = '저장 중…';
+  try {
+    const r = await post('/api/note', { action: 'update', id, title: n.title, text: n.text });
+    if (r.ok) { const j = await r.json(); dataVersion = j.version || dataVersion; $('mmState').textContent = '저장됨'; }
+    else { $('mmState').textContent = '저장 실패'; showErr('메모 저장 실패'); }
+  } catch { $('mmState').textContent = '저장 실패'; showErr('메모 저장 실패'); }
+  renderMemos();
+}
+function memoInput() {
+  const id = $('memoEditor').dataset.id; if (!id) return;
+  $('mmState').textContent = '입력 중…';
+  clearTimeout(memoSaveTimer);
+  memoSaveTimer = setTimeout(() => saveMemo(id), 700);
+}
+$('mmTitle').addEventListener('input', memoInput);
+$('mmBody').addEventListener('input', memoInput);
+$('addMemoBtn').onclick = async () => {
+  let r; try { r = await post('/api/note', { action: 'add' }); } catch { showErr('메모 추가 실패'); return; }
+  if (!r.ok) { showErr('메모 추가 실패'); return; }
+  const j = await r.json(); memoSel = j.id;
+  await refreshData();
+  $('mmTitle').focus();
+};
+function removeMemo(id) {
+  if (memoSel === id) memoSel = null;
+  post('/api/note', { action: 'remove', id }).then((r) => { if (!r.ok) showErr('메모 삭제 실패'); refreshData(); }).catch(() => showErr('메모 삭제 실패'));
+}
+// 빈 메모 자동 정리(진화 #3): 편집기 이탈·탭 전환·다른 메모 선택 시 제목과 내용이 모두 빈 메모를 지운다.
+// 편집기에 떠 있는 메모는 저장 debounce(700ms)가 아직 안 돈 로컬 입력값 기준으로 판정한다.
+function cleanupEmptyMemos(exceptId) {
+  const editorId = $('memoEditor').dataset.id;
+  for (const n of [...notes]) {
+    if (n.id === exceptId) continue;
+    const title = n.id === editorId ? $('mmTitle').value : (n.title || '');
+    const text = n.id === editorId ? $('mmBody').value : (n.text || '');
+    if (title.trim() || text.trim()) continue;
+    if (n.id === editorId) clearTimeout(memoSaveTimer); // 삭제할 빈 메모의 저장 예약 취소
+    removeMemo(n.id);
+  }
+}
+$('mmDel').onclick = () => { const id = $('memoEditor').dataset.id; if (id) removeMemo(id); };
+$('memoEditor').addEventListener('focusout', (e) => {
+  if ($('memoEditor').contains(e.relatedTarget)) return; // 편집기 내부 포커스 이동은 이탈이 아님
+  setTimeout(() => { if (!memoEditing()) cleanupEmptyMemos(); }, 0);
+});
+$('memoList').addEventListener('click', (e) => {
+  const del = e.target.closest('[data-del]');
+  if (del) { removeMemo(del.dataset.del); return; }
+  const el = e.target.closest('.memo-item'); if (el) { cleanupEmptyMemos(el.dataset.id); memoSel = el.dataset.id; renderMemos(); }
+});
+$('memoList').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const el = e.target.closest('.memo-item'); if (!el) return; e.preventDefault(); cleanupEmptyMemos(el.dataset.id); memoSel = el.dataset.id; renderMemos();
+});
+
+/* ---- 진화 ---- */
+async function refreshEvolve() {
+  let ev; try { ev = await (await fetch('/api/evolve')).json(); } catch { return; }
+  const live = (ev.proposals || []).filter((x) => x.status !== 'dismissed');
+  const nw = live.filter((x) => x.status === 'new').length;
+  $('evoBadge').textContent = nw; $('evoBadge').classList.toggle('show', nw > 0);
+  const TYPES = { improve: 'improve', add: 'add', remove: 'remove' };
+  $('evoList').innerHTML = live.map((p) => {
+    const type = TYPES[p.type] || 'improve'; const id = Number(p.id) || 0;
+    return `<div class="evo-card card" data-eid="${id}"><div class="evo-top">
+      <span class="evo-type ${type}">${type}</span><span class="evo-t">${escapeHtml(p.title)}</span>
+      ${p.status === 'doing' ? '<span class="evo-st">수행 중</span>' : ''}</div>
+      ${p.desc ? `<div class="evo-d">${escapeHtml(p.desc)}</div>` : ''}
+      ${p.status === 'new' ? `<div class="evo-acts"><button class="talk">대화</button><button class="do">수행</button><button class="ignore">무시</button></div>` : ''}
+    </div>`; }).join('');
+  $('evoEmpty').style.display = live.length ? 'none' : 'block';
+}
+$('evoList').addEventListener('click', (e) => {
+  const card = e.target.closest('.evo-card'); const btn = e.target.closest('button');
+  if (!card || !btn) return;
+  const id = Number(card.dataset.eid);
+  const title = card.querySelector('.evo-t')?.textContent || '';
+  const desc = card.querySelector('.evo-d')?.textContent || '';
+  if (btn.classList.contains('talk')) { addChip('제안', title); openChat(); setTimeout(() => $('input').focus(), 60); return; } // 제안을 컨텍스트 칩으로 등록
+  const action = btn.classList.contains('do') ? 'do' : 'ignore';
+  post('/api/evolve-act', { id, action }).then((r) => { if (!r.ok) showErr('진화 제안 처리 실패'); refreshEvolve(); }).catch(() => showErr('진화 제안 처리 실패'));
+  // '수행'은 상태만 바꾸지 않고 코딩 에이전트에게 실제 구현을 지시 + 채팅을 연다(대화가 시작됨).
+  if (action === 'do') {
+    openChat();
+    post('/api/chat', { text: `[진화 수행] 제안 #${id} "${title}"${desc ? ' — ' + desc : ''} 을(를) 실제로 구현/적용해줘. 완료하면 알려줘.`, force: true })
+      .then((r) => { if (!r.ok) r.json().then((x) => showErr(x.error || '수행 지시 전송 실패(에이전트 미연결?)')).catch(() => {}); })
+      .catch(() => showErr('수행 지시 전송 실패'));
+  }
+});
+$('evoAnalyze').onclick = () => {
+  const b = $('evoAnalyze'); b.disabled = true; const orig = b.textContent; b.textContent = '요청 중…';
+  const prompt = `[진화] 현재 앱의 기능·데이터·최근 대화를 분석해 개선/추가/삭제 제안을 등록해줘.\n등록: curl -s -X POST http://${location.host}/api/evolve -H 'content-type: application/json' -d '{"proposals":[{"type":"improve","title":"제목","desc":"설명"}]}' (type은 improve|add|remove).`;
+  post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || '분석 요청 실패')).catch(() => {}); else openChat(); })
+    .catch(() => showErr('분석 요청 실패')).finally(() => { b.disabled = false; b.textContent = orig; });
+};
+
+/* ================= 탭 전환 ================= */
+document.querySelectorAll('.topnav .tab').forEach((b) => {
+  b.onclick = () => {
+    if ($('memoView').classList.contains('on') && b.dataset.view !== 'memo') cleanupEmptyMemos(); // 메모 탭 이탈 시 빈 메모 정리(진화 #3)
+    document.querySelectorAll('.topnav .tab').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
+    ['todo', 'schedule', 'memo', 'evolve'].forEach((v) => $(v + 'View').classList.toggle('on', b.dataset.view === v));
+    if (b.dataset.view === 'evolve') refreshEvolve();
+  };
+});
+
+/* ================= 모달 (수동 추가) ================= */
+let modalCur = null;
+function openModal(id) { modalCur = id; $('scrim').classList.add('on'); $(id).classList.add('on'); const inp = $(id).querySelector('input'); if (inp) setTimeout(() => inp.focus(), 50); }
+function closeModal() { if (!modalCur) return; $('scrim').classList.remove('on'); $(modalCur).classList.remove('on'); modalCur = null; }
+$('scrim').onclick = closeModal;
+document.querySelectorAll('[data-close]').forEach((b) => b.onclick = closeModal);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalCur) closeModal(); });
+$('addTodoBtn').onclick = () => { $('tTitle').value = ''; $('tDue').value = weekLater(); openModal('todoModal'); };
+$('addEventBtn').onclick = () => { $('eTitle').value = ''; $('eDate').value = selDate || today(); $('eTime').value = ''; openModal('eventModal'); };
+$('tSave').onclick = async () => {
+  const title = $('tTitle').value.trim(); if (!title) { $('tTitle').focus(); return; }
+  const body = { title }; if ($('tDue').value) body.due = $('tDue').value;
+  const r = await post('/api/todo', body);
+  if (r.ok) { closeModal(); refreshData(); } else { const e = await r.json().catch(() => ({})); showErr(e.error || '할일 추가 실패'); }
+};
+$('eSave').onclick = async () => {
+  const title = $('eTitle').value.trim(); const date = $('eDate').value;
+  if (!title) { $('eTitle').focus(); return; } if (!date) { $('eDate').focus(); return; }
+  const body = { action: 'add', title, date }; if ($('eTime').value) body.time = $('eTime').value;
+  const r = await post('/api/event', body);
+  if (r.ok) { closeModal(); selDate = date; const d = date.split('-'); calY = +d[0]; calM = +d[1] - 1; refreshData(); } else { const e = await r.json().catch(() => ({})); showErr(e.error || '일정 추가 실패'); }
+};
+
+/* ================= 채팅 접기/펼치기 + 폭 조절 ================= */
+(() => {
+  const MIN = 300, MAX = 640;
+  const saved = Number(localStorage.getItem('ana-chat-w'));
+  if (saved >= MIN && saved <= MAX) document.documentElement.style.setProperty('--chat-w', saved + 'px');
+  const h = $('chatResize');
+  let dragging = false, startX = 0, startW = 0;
+  h.addEventListener('pointerdown', (e) => {
+    dragging = true; startX = e.clientX; startW = $('chatSide').getBoundingClientRect().width;
+    h.classList.add('dragging'); document.body.classList.add('chat-resizing');
+    h.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  h.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const w = Math.min(MAX, Math.max(MIN, Math.round(startW + (startX - e.clientX))));
+    document.documentElement.style.setProperty('--chat-w', w + 'px');
+  });
+  const end = () => {
+    if (!dragging) return; dragging = false;
+    h.classList.remove('dragging'); document.body.classList.remove('chat-resizing');
+    const w = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--chat-w'));
+    if (w) localStorage.setItem('ana-chat-w', String(w));
+  };
+  h.addEventListener('pointerup', end); h.addEventListener('pointercancel', end);
+})();
+
+/* ================= ANA 상태 패널 ================= */
+let srvConnected = false, health = null;
+function renderStatus() {
+  const ses = health ? health.session : sessionAlive;
+  const shell = /^-?(zsh|bash|sh|fish|dash|ksh|tcsh|csh|login)$/.test((health && health.command) || '');
+  const agentOk = ses && health && health.command && !shell;
+  // 상단 연결 pill: 코딩 에이전트 연결 여부만 표시
+  const pill = $('connPill');
+  pill.className = 'conn ' + (agentOk ? 'ok' : 'bad');
+  // ANA(코딩 에이전트) 연결 여부를 영문으로 표시
+  $('connLabel').textContent = agentOk ? 'ANA connected' : 'ANA disconnected';
+  pill.title = agentOk ? `Connected to ${health.target || health.name}${health.size ? ' · ' + health.size : ''} — click to switch`
+    : !srvConnected ? 'Server unreachable — reconnecting'
+    : !ses ? 'No agent — click to select'
+    : shell ? 'Shell only (agent not running) — click to select'
+    : 'Connecting…';
+  $('typing').classList.toggle('on', busy);
+  $('fab').classList.toggle('busy', ses && busy);
+  $('send').disabled = !ses;
+  $('ctrlc').disabled = !ses;
+  $('ctrlc').style.display = ses && busy ? '' : 'none'; // 중단 버튼은 처리 중일 때만
+  updateDialog(!!(health && health.dialog) && ses);   // 터미널에 확인 창이 열렸는지
+}
+// 터미널 다이얼로그(권한 프롬프트·/remote-control 등)가 열리면 채팅에 안내 카드 표시.
+// TUI 다이얼로그는 채팅 말풍선으로 렌더되지 않으므로, 열려 있음을 알리고 내용을 보여준다.
+let dialogShown = false;
+async function updateDialog(open) {
+  const card = $('dlgcard');
+  if (!open) { card.classList.remove('on'); dialogShown = false; return; }
+  // 다이얼로그 내용을 화면 캡처에서 추출해 표시(마지막 구분선 이후 영역)
+  try {
+    const s = await (await fetch('/api/screen')).json();
+    $('dlgcardBody').textContent = extractDialog(s.screen || '') || '(터미널을 확인하세요)';
+  } catch { $('dlgcardBody').textContent = '(터미널을 확인하세요)'; }
+  card.classList.add('on');
+  if (!dialogShown) { dialogShown = true; if (!document.body.classList.contains('chatting')) openChat(); pinChat(); }
+}
+// 화면에서 다이얼로그 본문 추출: 마지막 긴 구분선(▔/─ 연속) 이후의 비어있지 않은 줄들
+function extractDialog(screen) {
+  const lines = screen.split('\n');
+  let sep = -1;
+  for (let i = lines.length - 1; i >= 0; i--) { if (/[▔─━═]{10,}/.test(lines[i])) { sep = i; break; } }
+  const region = (sep >= 0 ? lines.slice(sep + 1) : lines.slice(-10));
+  return region.map((l) => l.replace(/\s+$/, '')).filter((l) => l.trim()).join('\n').trim();
+}
+async function pollHealth() { try { health = await (await fetch('/api/health')).json(); } catch { health = null; } renderStatus(); }
+setInterval(() => { if (!document.hidden) pollHealth(); }, 5000); pollHealth();
+
+/* tmux 세션 연결 설정 — 서버를 먼저 띄우고 여기서 세션을 고르면 /api/config로 즉시 재연결 */
+const cfgPanel = $('tmuxCfg');
+async function refreshTmuxCfg() {
+  const list = $('tmuxCfgList');
+  let d; try { d = await (await fetch('/api/config')).json(); } catch { list.innerHTML = '<div class="none">불러오기 실패</div>'; return; }
+  const cur = d.target;
+  if (!d.sessions || !d.sessions.length) { list.innerHTML = '<div class="none">실행 중인 에이전트가 없습니다 — 터미널에서 에이전트를 먼저 실행하세요</div>'; return; }
+  list.innerHTML = d.sessions.map((s) => {
+    const isCur = s.name === cur;
+    const shell = /^-?(zsh|bash|sh|fish|dash|ksh)$/.test(s.command || '');
+    const tag = shell ? '셸' : (s.command || '');
+    return `<button data-t="${s.name}" class="${isCur ? 'cur' : ''}"><span>${s.name}${isCur ? ' ✓' : ''}</span><small>${tag}${s.attached ? ' · attached' : ''}</small></button>`;
+  }).join('');
+  list.querySelectorAll('button').forEach((b) => b.onclick = () => applyTmuxTarget(b.dataset.t));
+}
+async function applyTmuxTarget(t) {
+  if (!t || !t.trim()) return;
+  let r; try { r = await post('/api/config', { target: t.trim() }); } catch { return; }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) { alert(d.error || '연결 실패'); return; }
+  await pollHealth();       // 즉시 상태 반영
+  await refreshTmuxCfg();   // 현재 타깃 표시 갱신
+  if (d.connected) cfgPanel.hidden = true;
+}
+// 상단 연결 pill 클릭 → tmux 선택 드롭다운 토글
+$('connPill').addEventListener('click', (e) => {
+  if (e.target.closest('.conn-pop')) return; // 드롭다운 내부 클릭은 무시
+  cfgPanel.hidden = !cfgPanel.hidden;
+  if (!cfgPanel.hidden) refreshTmuxCfg();
+});
+$('connPill').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('connPill').click(); } });
+// 바깥 클릭 시 드롭다운 닫기
+document.addEventListener('click', (e) => { if (!e.target.closest('#connPill') && !cfgPanel.hidden) cfgPanel.hidden = true; });
+
+/* ================= 채팅 렌더 ================= */
+function diffRows(diff) {
+  const rows = [];
+  (diff.add || []).forEach((a) => rows.push(`<div class="row"><span class="k k-add">추가</span><span>${escapeHtml(a.title || a.text || JSON.stringify(a))}</span></div>`));
+  (diff.update || []).forEach((u) => rows.push(`<div class="row"><span class="k k-up">변경</span><span>${escapeHtml(JSON.stringify(u))}</span></div>`));
+  (diff.remove || []).forEach((id) => rows.push(`<div class="row"><span class="k k-rm">삭제</span><span>${escapeHtml(id)}</span></div>`));
+  return rows.join('');
+}
+function propCard(pid, text) {
+  const pr = proposals.get(pid); const st = pr ? pr.status : 'pending';
+  return `<div class="prop ${st === 'applied' ? 'applied' : st === 'rejected' ? 'rejected' : ''}" data-pid="${pid}">
+    <div class="pt">${escapeHtml(text)}</div>${pr ? diffRows(pr.diff || {}) : ''}
+    <div class="acts"><button class="ok">승인</button><button class="no">거절</button></div>
+    <div class="state">${st === 'applied' ? '✓ 적용됨' : '거절됨'}</div></div>`;
+}
+function refreshPropCards() { document.querySelectorAll('[data-prop]').forEach((el) => { const pid = Number(el.dataset.prop); const pt = el.querySelector('.pt'); el.innerHTML = propCard(pid, pt ? pt.textContent : '변경 제안'); }); }
+const msgHtml = (m) => {
+  const seq = m.seq ? ` data-seq="${m.seq}"` : '';
+  if (m.role === 'proposal' && m.pid) return `<div${seq} data-prop="${m.pid}" style="display:contents">${propCard(m.pid, m.text)}</div>`;
+  if (m.role === 'tool') return `<div class="act tool"${seq}>${escapeHtml(m.text)}</div>`;
+  if (m.role === 'toolresult') return `<div class="act toolresult"${seq}>${escapeHtml(m.text)}</div>`;
+  return `<div class="msg ${m.role}"${seq}>${escapeHtml(m.text)}</div>`;
+};
+$('feed').addEventListener('click', (e) => {
+  const pbtn = e.target.closest('.prop button');
+  if (pbtn) { const decision = pbtn.classList.contains('ok') ? 'approve' : 'reject'; const pid = Number(pbtn.closest('.prop').dataset.pid);
+    post('/api/approve', { pid, decision }).then((r) => { if (!r.ok) r.json().then((x) => showErr(x.error || '승인 처리 실패')).catch(() => {}); }).catch(() => showErr('승인 처리 실패')); return; }
+  const tr = e.target.closest('.act.toolresult.clip'); if (tr) { tr.classList.add('expanded'); tr.classList.remove('clip'); }
+});
+function markClip() { document.querySelectorAll('.act.toolresult:not(.expanded)').forEach((el) => { el.classList.toggle('clip', el.scrollHeight > el.clientHeight + 2); }); }
+function renderPending(list) {
+  const box = $('pendingWrap');
+  const cls = (m) => (m.role === 'tool' || m.role === 'toolresult') ? 'act ' + m.role : 'msg ' + m.role;
+  // 제자리 갱신: 통째로 지우지 않는다(지우면 비었다→다시그림으로 높이가 출렁여 메시지가 위아래로 튄다).
+  // 남는 말풍선은 뒤에서 제거, 부족하면 뒤에 추가, 나머지는 역할/텍스트만 바꾼다.
+  while (box.children.length > list.length) box.lastChild.remove();
+  list.forEach((m, i) => {
+    let el = box.children[i];
+    if (!el) { el = document.createElement('div'); box.appendChild(el); }
+    if (el.dataset.role !== m.role) { el.className = cls(m); el.dataset.role = m.role; }
+    if (el.textContent !== m.text) el.textContent = m.text;
+  });
+}
+// 커밋 직후 다음 pending 이벤트가 오기 전까지 같은 내용이 이중으로 보이는 것을 막는다.
+function dropPendingDup(msgs) {
+  const box = $('pendingWrap');
+  for (const m of msgs) {
+    const el = box.children[0]; if (!el) return;
+    if (el.dataset.role === m.role && (normWs(m.text) === normWs(el.textContent) || normWs(m.text).startsWith(normWs(el.textContent)))) el.remove();
+  }
+}
+function updateEmpty() { const has = $('msgs').children.length || $('pendingWrap').children.length; $('feedEmpty').style.display = has ? 'none' : 'block';
+  $('feedEmpty').innerHTML = sessionAlive ? '대화를 시작하세요' : '에이전트 연결 대기 중 — 위쪽 연결 표시를 눌러 에이전트를 선택하세요'; }
+function pinChat() { if (atBottom) $('feed').scrollTop = $('feed').scrollHeight; }
+$('feed').addEventListener('scroll', () => { const v = $('feed'); atBottom = v.scrollHeight - v.scrollTop - v.clientHeight < 40; if (atBottom) $('newpill').style.display = 'none'; });
+$('newpill').onclick = () => { atBottom = true; pinChat(); $('newpill').style.display = 'none'; };
+let unread = 0;
+const chatHidden = () => !document.body.classList.contains('chatting');
+function notifyNew() { if (!atBottom) $('newpill').style.display = 'block'; if (chatHidden()) { unread++; $('fabBadge').textContent = unread > 9 ? '9+' : String(unread); $('fab').classList.add('unread'); } }
+
+/* 고스트 draft */
+let draftNow = '';
+function ghostActive() { const v = $('input').value; return !!draftNow && draftNow !== v && (v === '' || draftNow.startsWith(v)); }
+function updateGhost() { const g = $('ghost'); if (!ghostActive()) { g.innerHTML = ''; $('inputwrap').classList.remove('ghost-on'); return; }
+  const v = $('input').value; g.innerHTML = `<span class="typed"></span><span class="rest"></span><span class="tabhint">Tab</span>`;
+  g.querySelector('.typed').textContent = v; g.querySelector('.rest').textContent = draftNow.slice(v.length); $('inputwrap').classList.add('ghost-on'); }
+function renderDraft(t) { draftNow = t || ''; updateGhost(); }
+
+/* ================= SSE + 폴링 ================= */
+let es = null, backoff = 1000, lastSeq = 0;
+function connect() {
+  es = new EventSource('/api/stream' + (lastSeq ? `?since=${lastSeq}` : ''));
+  es.onopen = () => { backoff = 1000; srvConnected = true; renderStatus(); };
+  es.onmessage = (e) => {
+    const d = JSON.parse(e.data);
+    switch (d.kind) {
+      case 'snapshot':
+        (d.proposals || []).forEach((p) => proposals.set(p.id, p));
+        if (lastSeq && d.messages.length) $('msgs').insertAdjacentHTML('beforeend', d.messages.map(msgHtml).join('')); else if (!lastSeq) $('msgs').innerHTML = d.messages.map(msgHtml).join('');
+        if (d.messages.length) lastSeq = d.messages[d.messages.length - 1].seq;
+        renderPending(d.pending); sessionAlive = d.session; busy = d.busy; $('typTx').textContent = d.spin || '작업 중…'; renderDraft(d.draft || '');
+        srvConnected = true; renderStatus();
+        if (d.version !== dataVersion) refreshData(); else refreshPropCards();
+        updateEmpty(); markClip(); pinChat();
+        break;
+      case 'commit':
+        dropPendingDup(d.messages);
+        $('msgs').insertAdjacentHTML('beforeend', d.messages.map(msgHtml).join(''));
+        if (d.messages.length) lastSeq = d.messages[d.messages.length - 1].seq;
+        updateEmpty(); markClip(); reconcile(); pinChat(); notifyNew(); break;
+      case 'pending': renderPending(d.pending); reconcile(); updateEmpty(); pinChat(); break;
+      case 'status': sessionAlive = d.session; busy = d.busy; $('typTx').textContent = d.spin || '작업 중…'; if (d.resync !== undefined) $('resync').style.display = d.resync ? 'block' : 'none'; renderStatus(); updateEmpty(); break;
+      case 'draft': renderDraft(d.draft); break;
+      case 'proposal': proposals.set(d.proposal.id, d.proposal); refreshPropCards(); break;
+      case 'data': if (d.version !== dataVersion) refreshData(); break;
+      case 'evolve': if ($('evolveView').classList.contains('on')) refreshEvolve(); else refreshEvolve(); break;
+    }
+  };
+  es.onerror = () => { if (es.readyState === EventSource.CLOSED || es.readyState === EventSource.CONNECTING) { try { es.close(); } catch {} srvConnected = false; renderStatus(); setTimeout(connect, backoff); backoff = Math.min(backoff * 2, 15000); } };
+}
+initCal(); connect(); refreshData(); refreshEvolve();
+setInterval(async () => {
+  if (document.hidden) return;
+  let d; try { d = await (await fetch(`/api/feed?since=${lastSeq}`)).json(); } catch { return; }
+  if (!srvConnected) { srvConnected = true; renderStatus(); }
+  if (d.pending) renderPending(d.pending);
+  if (d.version !== dataVersion) refreshData();
+  const fresh = (d.items || []).filter((m) => m.seq > lastSeq && !document.querySelector(`[data-seq="${m.seq}"]`));
+  if (fresh.length) { dropPendingDup(fresh); $('msgs').insertAdjacentHTML('beforeend', fresh.map(msgHtml).join('')); lastSeq = fresh[fresh.length - 1].seq; updateEmpty(); markClip(); reconcile(); pinChat(); notifyNew(); }
+}, 2500);
+
+/* ================= 입력 / 낙관적 에코 / force ================= */
+function showErr(m) { $('errtext').textContent = m; $('errbar').style.display = 'flex'; }
+$('errclose').onclick = () => { $('errbar').style.display = 'none'; };
+// 입력창은 약 3행까지 커지고, 그 이상은 내부 세로 스크롤(max-height는 CSS와 함께 3행 기준)
+function autoGrow() { const el = $('input'); el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 92) + 'px'; }
+const isTouch = matchMedia('(pointer: coarse)').matches;
+const normWs = (s) => s.replace(/\s+/g, ' ').trim();
+let optim = [];
+/* 전송 상태 배지(진화 #7): 전송중 → 전달됨(서버가 pane 주입 완료) → 원장 에코 확인 시 제거.
+   실패하거나 12초 내 에코가 확인되지 않으면 배지에 재전송·삭제 버튼을 노출한다. */
+function addOptimistic(display, sendText) {
+  const wrap = document.createElement('div'); wrap.className = 'optim';
+  const div = document.createElement('div'); div.className = 'msg user'; div.textContent = display;
+  const badge = document.createElement('div'); badge.className = 'sstat';
+  wrap.append(div, badge); $('optimistic').appendChild(wrap);
+  const o = { sendText, el: wrap, badge, state: 'sending', t: Date.now() };
+  optim.push(o); setOptimState(o, 'sending'); pinChat(); reconcile();
+  return o;
+}
+function setOptimState(o, state, detail) {
+  o.state = state; o.el.classList.toggle('sent', state === 'sent');
+  const b = o.badge;
+  b.className = 'sstat' + (state === 'sent' ? ' ok' : state === 'sending' ? '' : ' err');
+  if (state === 'sending') { b.textContent = '전송중…'; return; }
+  if (state === 'sent') { b.textContent = '전달됨 ✓'; return; }
+  b.textContent = '';
+  const t = document.createElement('span');
+  t.textContent = state === 'failed' ? (detail ? `전송 실패 — ${String(detail).slice(0, 60)}` : '전송 실패') : '수신 미확인';
+  const re = document.createElement('button'); re.textContent = '재전송'; re.onclick = () => postChat(o);
+  const x = document.createElement('button'); x.textContent = '✕'; x.className = 'dis'; x.setAttribute('aria-label', '메시지 삭제');
+  x.onclick = () => { optim = optim.filter((z) => z !== o); o.el.remove(); };
+  b.append(t, re, x);
+}
+async function postChat(o) {
+  setOptimState(o, 'sending');
+  let r;
+  try { r = await post('/api/chat', { text: o.sendText, force: true }); }
+  catch { setOptimState(o, 'failed', '서버 연결 실패'); showErr('전송 실패 — 서버에 연결할 수 없습니다.'); return; }
+  if (!r.ok) { const e = await r.json().catch(() => ({}));
+    setOptimState(o, 'failed', e.error || `HTTP ${r.status}`); showErr(e.error || `전송 실패 (${r.status})`); return; }
+  o.t = Date.now(); setOptimState(o, 'sent'); // 200 = 에이전트 입력창까지 주입 완료
+}
+function reconcile() {
+  const server = [];
+  $('pendingWrap').querySelectorAll('.msg.user').forEach((e) => server.push(normWs(e.textContent)));
+  const recent = $('msgs').querySelectorAll('.msg.user');
+  for (let i = Math.max(0, recent.length - 6); i < recent.length; i++) server.push(normWs(recent[i].textContent));
+  optim = optim.filter((o) => {
+    if (server.includes(normWs(o.sendText))) { o.el.remove(); return false; } // 원장 에코 확인 → 수신 확정
+    if (o.state === 'sent' && Date.now() - o.t > 12000) setOptimState(o, 'unconfirmed');
+    return true;
+  });
+}
+setInterval(reconcile, 3000); // SSE 이벤트가 없어도 미확인 판정이 굴러가게
+async function send() {
+  const raw = $('input').value.trim();
+  if (!raw && !contextChips.length) return;
+  const text = buildMessage(raw);  // 컨텍스트 칩을 본문 앞에 붙임
+  $('errbar').style.display = 'none'; atBottom = true;
+  // 실패해도 말풍선의 재전송 버튼으로 복구되므로 입력창은 즉시 비운다.
+  $('input').value = ''; autoGrow(); updateGhost(); clearChips();
+  // 웹에서는 항상 force로 전송한다. capture-pane -p가 흐림 서식을 버려서 Claude Code의
+  // 고스트 자동완성을 '작성 중 draft'로 오인해 막던 문제(remote-C1 오탐)를 근본 차단.
+  // force는 주입 전 Ctrl-U로 입력줄을 비우므로 고스트/기존 입력에 붙지 않고 깨끗이 덮어쓴다.
+  await postChat(addOptimistic(raw || '(컨텍스트 전송)', text));
+}
+$('send').onclick = () => send();
+$('input').addEventListener('keydown', (e) => {
+  if (e.isComposing || e.keyCode === 229) return;
+  if (e.key === 'Tab' && !e.shiftKey && ghostActive()) { e.preventDefault(); $('input').value = draftNow; $('input').setSelectionRange(draftNow.length, draftNow.length); autoGrow(); updateGhost(); return; }
+  if (e.key === 'Enter' && !e.shiftKey && !isTouch) { e.preventDefault(); send(); }
+});
+$('input').addEventListener('input', () => { autoGrow(); updateGhost(); });
+// 특수키 버튼(중단 + 다이얼로그 응답 키). 중단은 확인 팝업 없이 즉시 전송.
+document.querySelectorAll('[data-key]').forEach((b) => {
+  b.onclick = () => post('/api/keys', { key: b.dataset.key })
+    .then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || '키 전송 실패')).catch(() => {}); })
+    .catch(() => showErr('키 전송 실패'));
+});
+
+/* ================= 모드 (일반 / ANA) ================= */
+function setMode(m) {
+  const ana = m === 'ana';
+  document.body.classList.toggle('ana-mode', ana);
+  $('modeToggle').setAttribute('aria-checked', ana);
+  if (!ana) {
+    closeChat(); clearChips();                              // 일반 모드: 채팅 버튼 없음 → 닫고 칩 비움
+    if ($('evolveView').classList.contains('on')) document.querySelector('.tab[data-view="todo"]').click(); // 진화 탭 숨김 → 할일로
+  } else refreshEvolve();                                   // ANA 모드 진입 시 이미 분석된 제안 리스트 갱신
+  try { localStorage.setItem('ana-mode', ana ? '1' : '0'); } catch {}
+}
+$('modeToggle').onclick = () => setMode(document.body.classList.contains('ana-mode') ? 'normal' : 'ana');
+setMode((() => { try { return localStorage.getItem('ana-mode') === '1' ? 'ana' : 'normal'; } catch { return 'normal'; } })());
+
+/* ================= 컨텍스트 칩 (ANA 모드: 요소 클릭 → 채팅 컨텍스트) ================= */
+let contextChips = [];
+const XSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+function renderChips() {
+  const box = $('chips');
+  box.classList.toggle('has', contextChips.length > 0);
+  box.innerHTML = contextChips.map((c, i) =>
+    `<span class="chip"><span class="k">${escapeHtml(c.k)}</span><span class="ct">${escapeHtml(c.t)}</span><button data-i="${i}" aria-label="제거">${XSVG}</button></span>`).join('');
+  box.querySelectorAll('button').forEach((b) => b.onclick = () => { contextChips.splice(+b.dataset.i, 1); renderChips(); });
+}
+function addChip(k, t) {
+  t = (t || '').replace(/\s+/g, ' ').trim(); if (!t) return;
+  contextChips = [{ k, t }]; // 칩은 항상 하나 — 새 요소를 선택하면 기존 칩을 대체
+  renderChips();
+}
+function clearChips() { contextChips = []; renderChips(); }
+function buildMessage(raw) {
+  if (!contextChips.length) return raw;
+  const ctx = contextChips.map((c) => `- [${c.k}] ${c.t}`).join('\n');
+  return `참고 컨텍스트:\n${ctx}${raw ? '\n\n' + raw : ''}`;
+}
+// ANA 모드에서 캡처 가능한 요소 클릭 → 칩만 '추가로' 등록한다. 기존 동작(완료 토글·열림·날짜
+// 선택 등)은 그대로 동작하도록 이벤트를 가로채지 않는다(preventDefault/stopPropagation 없음).
+const CAP = [
+  ['.item', '할일', (el) => el.querySelector('.title')?.textContent],
+  ['.kpi', '지표', (el) => el.textContent],
+  ['.up-item', '일정', (el) => el.textContent],
+  ['.ev-item', '일정', (el) => el.textContent],                 // 날짜 선택 후 나오는 시간 일정
+  ['.evo-card', '제안', (el) => el.querySelector('.evo-t')?.textContent || el.textContent],
+  ['.memo-item', '메모', (el) => el.querySelector('.mt')?.textContent || el.textContent],
+];
+// 현재 선택된 텍스트(일반 DOM + textarea/input 모두 대응)
+function selectedText() {
+  const ae = document.activeElement;
+  if (ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT') && ae.selectionStart != null && ae.selectionEnd > ae.selectionStart)
+    return ae.value.substring(ae.selectionStart, ae.selectionEnd);
+  return (window.getSelection && window.getSelection().toString()) || '';
+}
+$('main').addEventListener('click', (e) => {
+  if (!document.body.classList.contains('ana-mode')) return;
+  if (e.target.closest('button, .chk')) return;    // 삭제/추가 버튼·체크박스는 컨트롤(칩 아님)
+  if (selectedText().trim()) return;               // 드래그로 텍스트를 선택한 경우는 mouseup(선택)이 처리
+  for (const [sel, k, get] of CAP) {
+    const el = e.target.closest(sel);
+    if (el) {
+      addChip(k, get(el));                          // 칩만 추가 — 기존 동작은 그대로 진행되게 가로채지 않음
+      if (!document.body.classList.contains('chatting')) openChat();
+      return; // 한 클릭 = 칩 하나
+    }
+  }
+}, true); // capture phase — 칩을 먼저 등록하되 이벤트는 계속 전파(기존 핸들러 동작)
+// ANA 모드: 어디서든 텍스트를 드래그 선택하고 마우스를 떼면 그 선택 텍스트를 칩으로 등록.
+// 단 채팅 입력창(#input) 안의 선택은 사용자가 작성 중인 메시지이므로 제외.
+document.addEventListener('mouseup', () => {
+  if (!document.body.classList.contains('ana-mode')) return;
+  if (document.activeElement === $('input')) return;
+  const sel = selectedText().trim();
+  if (sel) { addChip('선택', sel); if (!document.body.classList.contains('chatting')) openChat(); }
+});
+
+/* ================= 채팅 도킹 (우하단 FAB로 열기) ================= */
+function openChat() { document.body.classList.add('chatting'); unread = 0; $('fabBadge').textContent = '0'; $('fab').classList.remove('unread'); setTimeout(() => { $('input').focus(); pinChat(); }, 60); }
+function closeChat() { document.body.classList.remove('chatting'); }
+$('fab').onclick = openChat;
+$('chatCloseBtn').onclick = closeChat;
+$('chatScrim').onclick = closeChat;
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('chatting')) closeChat(); });
+if (window.visualViewport) window.visualViewport.addEventListener('resize', () => pinChat());
+</script>
+</body>
+</html>

@@ -9,7 +9,7 @@
 [![Stars](https://img.shields.io/github/stars/tykimos/agent-native-agent?style=for-the-badge&logo=github&color=CC785C)](https://github.com/tykimos/agent-native-agent/stargazers)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-1f6feb?style=for-the-badge)](LICENSE)
 [![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-CC785C?style=for-the-badge)](https://claude.com/claude-code)
-[![Protocol: MCP](https://img.shields.io/badge/protocol-MCP-111?style=for-the-badge)](https://modelcontextprotocol.io)
+[![Zero dependencies](https://img.shields.io/badge/dependencies-0-111?style=for-the-badge)](channel-core.js)
 [![Last commit](https://img.shields.io/github/last-commit/tykimos/agent-native-agent?style=for-the-badge&color=64748b)](https://github.com/tykimos/agent-native-agent/commits/main)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-22c55e?style=for-the-badge)](#contributing)
 
@@ -81,66 +81,70 @@ Inbound messages travel through the channel. Outbound agent responses return thr
 
 ---
 
-## Install the skills (30 s)
+## Quickstart — run the base (2 min)
 
-> **Prerequisite:** [Claude Code](https://claude.com/claude-code) installed. Want a *running* app first, no setup? Jump to [Start from a template](#start-from-a-template) → `node server.js`.
+**Prerequisites:** Node ≥ 20, tmux, and a coding-agent CLI (e.g. [Claude Code](https://claude.com/claude-code)). No `npm install` — zero dependencies.
 
 ```bash
 git clone https://github.com/tykimos/agent-native-agent
-cp -r agent-native-agent/skills/* ~/.claude/skills/
+cd agent-native-agent
+
+# 1) start your coding agent inside tmux
+tmux new -s ana          # inside the session, run:  claude   (or any agent CLI)
+
+# 2) in another terminal, start ANA
+node server.js           # → http://localhost:8809
 ```
 
-Then, in **Claude Code**, just describe the app:
+Open **http://localhost:8809**, flip on **ANA mode**, and talk. There is **no launcher script** — the server auto-configures the tmux pane (scrollback-safe) on connect. Runtime state lives in `.ana/` (git-ignored).
 
-```text
-"Build a weekly family planner as an agent native agent"
-"Add voice input to this ANA"        # ← evolve: one sentence, no deploy
-"Put an at-a-glance progress bar on top"
-```
-
-The `agent-native-app-harness` orchestrator skill triggers and builds your ANA: **define one screen → design → wire up → run the evolution loop.** Step‑by‑step in [`build-workflow.md`](skills/agent-native-app-harness/references/build-workflow.md).
+The reference dashboard ships **ANA mode** (click any element to pin it as a context chip), a docked chat you resize, and an **evolution tab** — ask for a change, approve it, the running agent rewrites the app.
 
 ---
 
-## Start from a template
+## Attach ANA to your own service (very simple)
 
-Don't want to build from an empty screen? **[ana‑starter](https://github.com/tykimos/ana-starter)** is a ready‑to‑run ANA — the **same design system, logo, and runtime** as the reference dashboard — with a simple menu you grow by talking.
+The **entire runtime is one dependency-free file: [`channel-core.js`](channel-core.js).** Drop it in and mount it:
 
-<div align="center">
+```js
+const path = require('node:path');
+const core = require('./channel-core.js');
+const app = core.createChannelServer({
+  PORT: 8809, BIND: '127.0.0.1',
+  SESSION: process.env.TMUX_SESSION || 'ana',
+  SOCKET: process.env.TMUX_SOCKET || '',
+  TARGET: core.resolveTarget(__dirname, process.env),
+  FEED_FILE: path.join(__dirname, '.ana', 'transcript.jsonl'),
+  SERVABLE: new Set(['index.html']),   // your dashboard file(s)
+  defaultDoc: 'index.html',
+  autoConfigPane: true,
+});
+app.listen(() => console.log('ANA → http://localhost:8809'));
+```
 
-[![Use this template](https://img.shields.io/badge/use%20this%20template-ana--starter-2F6BFF?style=for-the-badge&logo=github)](https://github.com/tykimos/ana-starter/generate)
-
-<img src="docs/assets/starter-dashboard.png" alt="ANA Starter dashboard — Secretary and Memo boards" width="880" />
-
-</div>
+Then, on your page: send with `POST /api/chat {text, force:true}` and stream with `GET /api/stream` (SSE). That's the whole integration. Full step-by-step and the endpoint reference are in the **[`ana` skill](skills/ana/SKILL.md)** — install it into Claude Code and it will wire ANA into your app for you:
 
 ```bash
-# GitHub → "Use this template", then in your clone:
-node server.js        # → http://localhost:8777   (npm start / node start.js also work)
+# use as a Claude Code plugin/skill
+cp -r skills/ana ~/.claude/skills/           # then: "attach ANA to my app"
 ```
-
-It ships the dashboard + fakechat relay. Connect a Claude Code session with the **fakechat channel** to complete the watch→converse loop (`npm run all` starts server + relay together). Details in the [starter README](https://github.com/tykimos/ana-starter#connect-a-coding-agent-the-full-loop).
 
 ---
 
-## Building blocks
+## Repository layout
 
-| Skill | Layer | Role |
-|---|---|---|
-| [`agent-native-app-harness`](skills/agent-native-app-harness/) | **Orchestrator** | Defines *what to assemble, in what order* to build an ANA, and runs the evolution loop. |
-| [`uxui-design-system`](skills/uxui-design-system/) | Building block — *the face* | Zero‑dependency, Toss‑style design system: the dashboard's visual context. |
-| [`fakechat-dashboard-agent`](skills/fakechat-dashboard-agent/) | Building block — *the nervous system* | Wires dashboard + channel + coding agent for watch + converse. |
-| [`realtime-mirror-channel`](skills/realtime-mirror-channel/) | Building block — *the senses* | Real‑time two‑way link: inbound relay + **mirrors the session** (your input, its tool calls, its answers) onto the screen as it happens. |
-| [`content-studio`](skills/content-studio/) | Building block — *the content body* | The **document‑editing** form of ANA: watch a document, tap an element to pin it as a chip, and edit it by talking — the agent rewrites the source and re‑renders. |
+```
+channel-core.js     ★ the whole ANA runtime — tmux inject / capture-pane mirror / ledger (0 deps)
+server.js             base app: mounts channel-core + dashboard-api, serves dashboard.html
+dashboard-api.js      example rich-response API (todo · schedule · memo · evolve, diff→approve)
+dashboard.html        reference UI: ANA mode, context chips, docked chat, evolution tab
+test.cjs              57 tests (unit + integration against mock_agent.py)
+mock_agent.py         deterministic TUI stand-in for tests
+skills/ana/SKILL.md   "attach ANA to your service" — the simple recipe above
+.claude-plugin/       Claude Code plugin manifest
+```
 
-**Two shapes of ANA** — same principles, different *watch* target:
-
-| Shape | You watch | Assemble | Examples |
-|---|---|---|---|
-| **Dashboard** (default) | state · lists · metrics | `uxui-design-system` + `fakechat-dashboard-agent` (+ `realtime-mirror-channel`) | work board, weekly planner, order queue |
-| **Content studio** | the document itself | `content-studio` + `realtime-mirror-channel` (+ `uxui-design-system`) | textbook/manual editing, report layout, slides |
-
-> The demo GIF at the top is the **"Work Secretary"** ANA — six channels (mail · Slack · KakaoTalk · approvals · calendar · SMS) collapsed into one board, sorted by urgency, evolved by talking.
+`channel-core.js` is the reusable core; `dashboard-api.js` / `dashboard.html` are the **example** you copy from and replace with your own.
 
 ---
 

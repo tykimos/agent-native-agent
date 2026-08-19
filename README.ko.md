@@ -9,7 +9,7 @@
 [![Stars](https://img.shields.io/github/stars/tykimos/agent-native-agent?style=for-the-badge&logo=github&color=CC785C)](https://github.com/tykimos/agent-native-agent/stargazers)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-1f6feb?style=for-the-badge)](LICENSE)
 [![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-CC785C?style=for-the-badge)](https://claude.com/claude-code)
-[![Protocol: MCP](https://img.shields.io/badge/protocol-MCP-111?style=for-the-badge)](https://modelcontextprotocol.io)
+[![Zero dependencies](https://img.shields.io/badge/dependencies-0-111?style=for-the-badge)](channel-core.js)
 [![Last commit](https://img.shields.io/github/last-commit/tykimos/agent-native-agent?style=for-the-badge&color=64748b)](https://github.com/tykimos/agent-native-agent/commits/main)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-22c55e?style=for-the-badge)](#contributing)
 
@@ -81,66 +81,70 @@ flowchart TB
 
 ---
 
-## 스킬 설치 (30초)
+## 빠른 시작 — 베이스 실행 (2분)
 
-> **사전 요구사항:** [Claude Code](https://claude.com/claude-code) 설치. *실행되는* 앱을 먼저 보고 싶으신가요? [템플릿으로 시작하기](#템플릿으로-시작하기) → `node server.js`.
+**사전 요구사항:** Node ≥ 20, tmux, 그리고 코딩 에이전트 CLI(예: [Claude Code](https://claude.com/claude-code)). `npm install` 불필요 — 의존성이 없습니다.
 
 ```bash
 git clone https://github.com/tykimos/agent-native-agent
-cp -r agent-native-agent/skills/* ~/.claude/skills/
+cd agent-native-agent
+
+# 1) tmux 안에서 코딩 에이전트를 먼저 띄웁니다
+tmux new -s ana          # 세션 안에서 실행:  claude   (또는 아무 에이전트 CLI)
+
+# 2) 다른 터미널에서 ANA 서버를 띄웁니다
+node server.js           # → http://localhost:8809
 ```
 
-그런 다음 **Claude Code**에서 앱을 설명하기만 하면 됩니다:
+**http://localhost:8809**을 열고 **ANA 모드**를 켠 뒤 대화하세요. **실행 스크립트가 따로 없습니다** — 서버가 연결 시 tmux 페인을 자동 설정(스크롤백 보존)합니다. 런타임 상태는 `.ana/`에 저장됩니다(git 제외).
 
-```text
-"Build a weekly family planner as an agent native agent"
-"Add voice input to this ANA"        # ← 진화: 한 문장, 배포 없이
-"Put an at-a-glance progress bar on top"
-```
-
-`agent-native-app-harness` 오케스트레이터 스킬이 트리거되어 당신의 ANA를 만듭니다: **한 화면 정의 → 디자인 → 연결 → 진화 루프 실행.** 단계별 설명은 [`build-workflow.md`](skills/agent-native-app-harness/references/build-workflow.md)에 있습니다.
+레퍼런스 대시보드에는 **ANA 모드**(요소를 클릭해 컨텍스트 칩으로 고정), 크기 조절 가능한 도킹 채팅, **진화 탭**(변경을 요청 → 승인하면 실행 중인 에이전트가 앱을 직접 수정)이 들어 있습니다.
 
 ---
 
-## 템플릿으로 시작하기
+## 기존 서비스에 ANA 붙이기 (아주 간단)
 
-빈 화면부터 만들고 싶지 않으신가요? **[ana‑starter](https://github.com/tykimos/ana-starter)**는 바로 실행 가능한 ANA입니다 — 레퍼런스 대시보드와 **동일한 디자인 시스템, 로고, 런타임**을 갖췄으며, 말하는 것으로 키워 나가는 간단한 메뉴를 제공합니다.
+**런타임 전체가 의존성 없는 한 파일 [`channel-core.js`](channel-core.js)** 입니다. 넣고 마운트하기만 하면 됩니다:
 
-<div align="center">
+```js
+const path = require('node:path');
+const core = require('./channel-core.js');
+const app = core.createChannelServer({
+  PORT: 8809, BIND: '127.0.0.1',
+  SESSION: process.env.TMUX_SESSION || 'ana',
+  SOCKET: process.env.TMUX_SOCKET || '',
+  TARGET: core.resolveTarget(__dirname, process.env),
+  FEED_FILE: path.join(__dirname, '.ana', 'transcript.jsonl'),
+  SERVABLE: new Set(['index.html']),   // 당신의 대시보드 파일(들)
+  defaultDoc: 'index.html',
+  autoConfigPane: true,
+});
+app.listen(() => console.log('ANA → http://localhost:8809'));
+```
 
-[![Use this template](https://img.shields.io/badge/use%20this%20template-ana--starter-2F6BFF?style=for-the-badge&logo=github)](https://github.com/tykimos/ana-starter/generate)
-
-<img src="docs/assets/starter-dashboard.png" alt="ANA Starter dashboard — Secretary and Memo boards" width="880" />
-
-</div>
+그리고 페이지에서: `POST /api/chat {text, force:true}` 로 보내고 `GET /api/stream`(SSE)으로 받습니다. 이게 통합의 전부입니다. 단계별 설명과 엔드포인트 레퍼런스는 **[`ana` 스킬](skills/ana/SKILL.md)** 에 있습니다 — Claude Code에 설치하면 스킬이 당신의 앱에 ANA를 대신 연결해 줍니다:
 
 ```bash
-# GitHub → "Use this template", then in your clone:
-node server.js        # → http://localhost:8777   (npm start / node start.js also work)
+# Claude Code 플러그인/스킬로 사용
+cp -r skills/ana ~/.claude/skills/           # 그런 다음: "내 앱에 ANA 붙여줘"
 ```
-
-대시보드 + fakechat 릴레이가 함께 제공됩니다. **fakechat 채널**로 Claude Code 세션을 연결하면 watch→converse 루프가 완성됩니다(`npm run all`은 서버 + 릴레이를 함께 시작합니다). 자세한 내용은 [starter README](https://github.com/tykimos/ana-starter#connect-a-coding-agent-the-full-loop)를 참고하세요.
 
 ---
 
-## 구성 요소(Building blocks)
+## 저장소 구성
 
-| 스킬 | 계층 | 역할 |
-|---|---|---|
-| [`agent-native-app-harness`](skills/agent-native-app-harness/) | **오케스트레이터** | ANA를 만들기 위해 *무엇을, 어떤 순서로 조립할지*를 정의하고 진화 루프를 실행합니다. |
-| [`uxui-design-system`](skills/uxui-design-system/) | 구성 요소 — *얼굴* | 의존성 없는 Toss 스타일 디자인 시스템: 대시보드의 시각적 맥락. |
-| [`fakechat-dashboard-agent`](skills/fakechat-dashboard-agent/) | 구성 요소 — *신경계* | watch + converse를 위해 대시보드 + 채널 + 코딩 에이전트를 연결합니다. |
-| [`realtime-mirror-channel`](skills/realtime-mirror-channel/) | 구성 요소 — *감각* | 실시간 양방향 연결: 인바운드 릴레이 + **세션 미러링**(내 입력·도구 활동·응답이 화면에 실시간으로 표시). |
-| [`content-studio`](skills/content-studio/) | 구성 요소 — *콘텐츠형 몸체* | ANA의 **문서 편집형**: 문서를 보면서 요소를 탭해 칩으로 집고 대화로 고칩니다 — 에이전트가 원본을 수정하고 다시 렌더합니다. |
+```
+channel-core.js     ★ ANA 런타임 전부 — tmux 주입 / capture-pane 미러 / 원장 (의존성 0)
+server.js             베이스 앱: channel-core + dashboard-api 마운트, dashboard.html 제공
+dashboard-api.js      리치 응답 API 예시 (할일 · 일정 · 메모 · 진화, diff→승인)
+dashboard.html        레퍼런스 UI: ANA 모드, 컨텍스트 칩, 도킹 채팅, 진화 탭
+test.cjs              57개 테스트 (단위 + mock_agent.py 대상 통합)
+mock_agent.py         테스트용 결정적 TUI 스탠드인
+skills/ana/SKILL.md   "서비스에 ANA 붙이기" — 위 간단 레시피
+.claude-plugin/       Claude Code 플러그인 매니페스트
+```
 
-**ANA의 두 형태** — 같은 원칙, 다른 *watch* 대상:
-
-| 형태 | 무엇을 보나 | 조립 | 예시 |
-|---|---|---|---|
-| **대시보드형** (기본) | 상태 · 목록 · 지표 | `uxui-design-system` + `fakechat-dashboard-agent` (+ `realtime-mirror-channel`) | 업무 현황판, 주간 계획표, 주문 큐 |
-| **콘텐츠 스튜디오형** | 문서 자체 | `content-studio` + `realtime-mirror-channel` (+ `uxui-design-system`) | 교재·매뉴얼 편집, 리포트 조판, 슬라이드 |
-
-> 상단의 데모 GIF는 **"Work Secretary"** ANA입니다 — 여섯 개 채널(메일 · Slack · KakaoTalk · 결재 · 캘린더 · SMS)을 하나의 보드로 합치고, 긴급도순으로 정렬하며, 말하는 것으로 진화시킵니다.
+`channel-core.js`는 재사용 가능한 코어이고, `dashboard-api.js` / `dashboard.html`은 복사해서 당신의 것으로 교체하는 **예시**입니다.
 
 ---
 

@@ -1,0 +1,11 @@
+# ANA runtime state — never commit conversation ledgers / board data / pane ids
+.ana/
+transcript.jsonl
+data/
+*.jsonl
+.ana_pane_id
+
+# deps / os
+node_modules/
+.DS_Store
+*.log

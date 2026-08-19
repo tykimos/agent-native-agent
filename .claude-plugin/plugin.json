@@ -1,7 +1,7 @@
 {
-  "name": "agent-native-app-harness",
-  "description": "Agent Native Agent (ANA) harness — build agent-native agents for Agent-Native Lifestyle (ANL), operated by watching a dashboard and conversing with a coding agent that is the runtime. Bundles the ANA orchestrator skill plus reusable building-block skills (uxui-design-system, fakechat-dashboard-agent).",
-  "version": "0.1.0",
+  "name": "ana",
+  "description": "ANA — Agent-Native Agent. Attach a watch-a-dashboard + talk-to-a-coding-agent runtime to any web app, or run the standalone base. A coding agent runs inside tmux; chat is injected via paste-buffer and the session is mirrored via capture-pane — zero dependencies (no MCP, no bridge, no hooks). The whole runtime is one file, channel-core.js. Use to add ANA to an existing service or scaffold a new agent-native app.",
+  "version": "0.3.0",
   "author": {
     "name": "tykimos",
     "url": "https://github.com/tykimos"
@@ -9,15 +9,14 @@
   "homepage": "https://github.com/tykimos/agent-native-agent",
   "license": "AGPL-3.0-or-later",
   "keywords": [
-    "agent-native-app",
-    "agent-native-app-harness",
     "agent-native-agent",
     "agent-native-lifestyle",
     "ana",
     "anl",
-    "harness",
     "claude-code",
     "dashboard-agent",
+    "tmux",
+    "watch-and-converse",
     "solopreneur"
   ]
 }
