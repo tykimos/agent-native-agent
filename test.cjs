@@ -60,6 +60,67 @@ t('parseTranscript: 사용자/에이전트/도구/도구결과 분리', () => {
   assert.equal(m[3].text, '답변입니다.');
 });
 
+t('dashboard.html: 스크립트가 로드 시 예외 없이 끝까지 실행된다 (TDZ 회귀 방지)', () => {
+  // 실제 사고: 부트스트랩(setMode)이 `let contextChips` 선언줄보다 위에서 실행돼
+  // "Cannot access 'contextChips' before initialization"이 나고, 그 예외가 스크립트
+  // 나머지를 통째로 중단시켜 화면의 버튼이 전부 죽었다. 정적 검사로는 못 잡아 실행해 본다.
+  const vm = require('node:vm');
+  const html = fs.readFileSync(path.join(ROOT, 'dashboard.html'), 'utf8');
+  const blocks = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+  assert.ok(blocks.length >= 1, '스크립트 블록을 찾지 못함');
+  // 무엇을 물어도 호출 가능한 값을 돌려주는 관대한 스텁. 전역을 Proxy로 열어(has: true)
+  // 브라우저 API 부재로 인한 ReferenceError를 없애고, 스크립트 자신의 선언 순서 문제만 남긴다.
+  const mk = () => new Proxy(function () {}, {
+    get: (t, k) => {
+      if (k === Symbol.toPrimitive) return () => '';
+      if (k === Symbol.iterator) return function* () {};
+      if (k === Symbol.unscopables || k === 'then') return undefined;
+      if (k === 'length') return 0;
+      return mk();
+    },
+    apply: () => mk(),
+    construct: () => mk(),
+    set: () => true,
+  });
+  for (const code of blocks) {
+    const base = { console: { log() {}, warn() {}, error() {} }, JSON, Math, Date, Object, Array, String,
+      Number, Boolean, Promise, Map, Set, RegExp, Error, URL, Symbol, parseInt, parseFloat, isNaN,
+      setTimeout: () => 0, setInterval: () => 0, clearTimeout: () => {}, clearInterval: () => {} };
+    const ctx = vm.createContext(new Proxy(base, {
+      has: () => true,                                   // 미정의 전역은 ReferenceError 대신 스텁으로
+      get: (t, k) => (k in t ? t[k] : (k === Symbol.unscopables ? undefined : mk())),
+      set: (t, k, v) => { t[k] = v; return true; },
+    }));
+    try {
+      vm.runInContext(code, ctx, { timeout: 5000 });
+    } catch (e) {
+      const msg = String((e && e.message) || e);
+      // 이것만이 이 테스트의 관심사 — 선언 전에 접근해 스크립트가 통째로 죽는 사고.
+      if (/before initialization|Assignment to constant/.test(msg)) throw e;
+    }
+  }
+});
+
+t('parseTranscript: ● 마커(v2.2.x)도 에이전트 턴 — 사용자 말풍선에 흡수 금지', () => {
+  const m = srv.parseTranscript('❯ 안녕\n\n● 답변입니다.\n\n● Bash(pwd)\n⎿ /tmp\n\n✻ Worked for 1s\n');
+  assert.deepEqual(m.map((x) => [x.role, x.text]), [
+    ['user', '안녕'], ['assistant', '답변입니다.'], ['tool', 'Bash(pwd)'], ['toolresult', '/tmp'],
+  ]);
+  // ● 상태 라인은 계속 노이즈로 버린다
+  const s = srv.parseTranscript('❯ q\n\n● high · /effort\n\n● 응답\n\n✻ Worked for 1s\n');
+  assert.deepEqual(s.map((x) => [x.role, x.text]), [['user', 'q'], ['assistant', '응답']]);
+  // 슬래시 경로가 섞인 본문은 상태 라인이 아니다
+  const p = srv.parseTranscript('❯ q\n\n● 수정 완료 · /home/u/a.js 를 고쳤습니다\n\n✻ Worked for 1s\n');
+  assert.deepEqual(p.map((x) => x.role), ['user', 'assistant']);
+});
+
+t('parseTranscript: 하단 팁 배너 제거, 들여쓴 본문의 Tip: 은 보존', () => {
+  const m = srv.parseTranscript('❯ q\n\n● 응답\n\nTip: Use /btw to ask a quick side question\n\n✻ Worked for 1s\n');
+  assert.deepEqual(m.map((x) => [x.role, x.text]), [['user', 'q'], ['assistant', '응답']]);
+  const body = srv.parseTranscript('❯ q\n\n● 정리:\n  Tip: 이건 본문입니다\n\n✻ Worked for 1s\n');
+  assert.equal(body[1].text, '정리:\nTip: 이건 본문입니다');
+});
+
 t('parseTranscript: 노이즈 제거 (테두리·구분선·스피너·다이얼로그 메뉴·placeholder)', () => {
   const cap = [
     '╭── banner ──╮', '│ Claude Code │', '╰────────────╯',
