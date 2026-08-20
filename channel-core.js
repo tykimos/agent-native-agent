@@ -66,7 +66,10 @@ const FOLDED_TOOL_RE = /^(Read|Ran|Listed|Searched|Updated|Wrote|Edited|Created|
 // 알려진 도구 이름 화이트리스트: ⏺ 뒤 첫 토큰이 이것일 때만 tool 판정(coding-M2 — 본문 정규식 오탐 제거)
 const TOOL_NAMES = /^(Read|Edit|Write|Bash|Grep|Glob|Task|WebFetch|WebSearch|Update Todos|NotebookEdit|MultiEdit|TodoWrite|Ls|Search)\b/;
 
-// 캡처 텍스트 → 메시지. "❯ "/"> "=사용자, "⏺"=에이전트(도구면 tool), "⎿"=도구결과.
+// 에이전트 턴 마커: 구버전은 ⏺(U+23FA), v2.2.x는 ●(U+25CF)로 렌더한다.
+// 인식 못 하면 에이전트 줄이 직전 사용자 메시지 본문으로 흡수돼 파란 말풍선에 합쳐진다.
+const AGENT_MARK = /^[⏺●]/;
+// 캡처 텍스트 → 메시지. "❯ "/"> "=사용자, "⏺"/"●"=에이전트(도구면 tool), "⎿"=도구결과.
 function parseTranscript(text, width = 200) {
   const msgs = [];
   let cur = null, prevRaw = '', lastBlank = false;
@@ -83,16 +86,18 @@ function parseTranscript(text, width = 200) {
       flush(); if (msgs.length) msgs[msgs.length - 1].done = true; continue;
     }
     if (/^[✻✽✢✳✶∗⏵]{1,2}\s/.test(t)) continue;                    // 스피너/작업 상태줄
-    if (/^[●○◉◍]\s.*·\s*\//.test(t)) continue;                      // v2.1.x 상태 라인 (● high · /effort)
+    // v2.1.x 상태 라인 (● high · /effort). ●는 에이전트 마커이기도 하므로 슬래시 명령으로 끝나는 짧은 줄만 버린다.
+    if (/^[●○◉◍]\s[^·]{0,40}·\s*\/[a-z][a-z-]*$/.test(t)) continue;
     if (/^\[[A-Z]{2,4}\]\s|Plugin not found\. Run:/.test(t)) continue; // 플러그인 배너(일반화 — [OMC] 등)
     if (/^Resume this session with:/.test(t)) continue;            // /exit·resume 배너(coding-M4)
+    if (/^Tip: /.test(line)) { flush(); continue; }               // 입력 박스 위 팁 배너(v2.x) — 본문은 2칸 들여쓰기라 열0만 해당
     if (/^[❯>]\s+\d+\./.test(t)) continue;                          // 다이얼로그 메뉴 항목
     if (/^[❯>] Try "/.test(t)) continue;                            // placeholder
     if (!t) { if (cur) cur.text += '\n'; lastBlank = true; continue; }
     if (/^[❯>] /.test(line)) { flush(); cur = { role: 'user', text: line.replace(/^[❯>] /, '') }; prevRaw = line; lastBlank = false; continue; }
-    if (/^⏺/.test(line)) {
+    if (AGENT_MARK.test(line)) {
       flush();
-      const body = line.replace(/^⏺\s*/, '');
+      const body = line.replace(/^[⏺●]\s*/, '');
       const isTool = TOOL_NAMES.test(body) || FOLDED_TOOL_RE.test(body);
       cur = { role: isTool ? 'tool' : 'assistant', text: body };
       prevRaw = line; lastBlank = false; continue;
@@ -552,12 +557,26 @@ function createChannelServer(opts) {
   }
 
   // ---- 정적 서빙 ----
+  // 페이지 빌드 식별자 — 브라우저가 자기 로드 시점 값과 비교해 '옛 페이지'인지 스스로 안다.
+  // (수정이 반영 안 된 것처럼 보이는 혼동을 없애기 위한 것 — 캐시 무효화가 아니라 표시 목적)
+  function buildId() {
+    try {
+      const st = fs.statSync(path.join(ROOT, defaultDoc));
+      return crypto.createHash('sha1').update(`${st.mtimeMs}:${st.size}`).digest('hex').slice(0, 8);
+    } catch { return 'unknown'; }
+  }
+
   function serveStatic(res, urlPath) {
     const rel = urlPath === '/' ? defaultDoc : urlPath.replace(/^\/+/, '');
     if (!SERVABLE.has(rel)) return sendJson(res, 404, { error: 'not found' });
     const abs = path.join(ROOT, rel);
     if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) return sendJson(res, 404, { error: 'not found' });
-    res.writeHead(200, { 'content-type': MIME[path.extname(abs)] || 'application/octet-stream' });
+    // no-cache: 캐시는 하되 매 요청 재검증. 없으면 Safari가 휴리스틱으로 옛 HTML을 재사용해
+    // 수정이 반영 안 된 것처럼 보인다(모바일에서 실제로 겪음).
+    res.writeHead(200, {
+      'content-type': MIME[path.extname(abs)] || 'application/octet-stream',
+      'cache-control': 'no-cache',
+    });
     fs.createReadStream(abs).pipe(res);
   }
 
@@ -580,7 +599,7 @@ function createChannelServer(opts) {
           command = (await tmux(['display-message', '-p', '-t', getTarget(), '#{pane_current_command}'])).trim();
           size = (await tmux(['display-message', '-p', '-t', getTarget(), '#{pane_width}x#{pane_height}'])).trim();
         }
-        const base = { server: true, session: alive, name: SESSION, target: getTarget(), command, size, ready: lastReady, dialog: lastDialog, messages: feed.length, busy: lastBusy };
+        const base = { server: true, session: alive, name: SESSION, target: getTarget(), command, size, ready: lastReady, dialog: lastDialog, messages: feed.length, busy: lastBusy, build: buildId() };
         return sendJson(res, 200, snapshotExtra ? { ...base, ...snapshotExtra() } : base);
       }
 
@@ -690,6 +709,8 @@ function createChannelServer(opts) {
 }
 
 // 기본 pane 타깃 해석(공유): ANA_PANE_ID > .ana_pane_id 파일(검증) > 세션명
+// 기본 세션명은 README의 퀵스타트(`tmux new -s ana`)와 일치해야 한다. 다른 세션·팬을 쓰려면
+// TMUX_SESSION/ANA_PANE_ID 또는 설정 페이지(/api/config)에서 지정한다.
 function resolveTarget(ROOT, env) {
   if (env.ANA_PANE_ID) return env.ANA_PANE_ID;
   if (!env.TMUX_SESSION) {
@@ -698,7 +719,7 @@ function resolveTarget(ROOT, env) {
       if (/^%\d+$/.test(id)) return id;
     } catch {}
   }
-  return env.TMUX_SESSION || 'ana-agent';
+  return env.TMUX_SESSION || 'ana';
 }
 
 module.exports = {

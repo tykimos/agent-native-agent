@@ -1156,6 +1156,12 @@ document.querySelectorAll('[data-key]').forEach((b) => {
     .catch(() => showErr('키 전송 실패'));
 });
 
+/* 컨텍스트 칩 상태 — 선언은 여기(모드보다 위)에 둔다.
+   아래 setMode() 부트스트랩이 clearChips()를 거쳐 이 값을 건드리므로, 칩 섹션에서 선언하면
+   "Cannot access 'contextChips' before initialization"(TDZ)이 나고 그 예외가 스크립트 나머지를
+   통째로 중단시켜 화면의 버튼이 전부 죽는다. */
+let contextChips = [];
+
 /* ================= 모드 (일반 / ANA) ================= */
 function setMode(m) {
   const ana = m === 'ana';
@@ -1171,7 +1177,7 @@ $('modeToggle').onclick = () => setMode(document.body.classList.contains('ana-mo
 setMode((() => { try { return localStorage.getItem('ana-mode') === '1' ? 'ana' : 'normal'; } catch { return 'normal'; } })());
 
 /* ================= 컨텍스트 칩 (ANA 모드: 요소 클릭 → 채팅 컨텍스트) ================= */
-let contextChips = [];
+/* contextChips 선언은 위 모드 섹션 앞에 있다(TDZ 회피) */
 const XSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 function renderChips() {
   const box = $('chips');
