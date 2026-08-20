@@ -15,17 +15,20 @@
   --bg: #F2F4F6; --surface: #FFFFFF; --surface-2: #F9FAFB;
   --text: #191F28; --text-sub: #4E5968; --text-weak: #6B7684;
   --line: #E5E8EB; --line-2: #EDF0F2;
-  --blue: #3182F6; --blue-700: #1B64DA; --blue-weak: #E8F1FE;
+  /* 강조색은 계절 토큰(--acc*)을 경유한다 — 계절 규칙은 --acc*만 바꾸면 된다 */
+  --acc: #3182F6; --acc-strong: #1B64DA; --acc-weak: #E8F1FE;
+  --blue: var(--acc); --blue-700: var(--acc-strong); --blue-weak: var(--acc-weak);
   --green: #16C47F; --white: #FFFFFF;
   --danger: #E0342B; --danger-bg: #FDECEC; --success: #0F9D58; --success-bg: #E7F8EF;
   --warm-bg: #FFF2E5; --warm-fg: #E8731C;
   --c-1: #FF5A8A;
   --r-xl: 24px; --r-lg: 20px; --r: 16px; --r-sm: 12px; --r-xs: 10px;
   --sh-card: 0 1px 3px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.04);
-  --sh-fab: 0 8px 20px rgba(49,130,246,.4);
+  --sh-fab: 0 8px 20px color-mix(in srgb, var(--acc) 40%, transparent);
   --sh-sheet: 0 -10px 40px rgba(0,0,0,.16);
   --header-h: 52px; --chat-w: 400px;
   --safe-b: env(safe-area-inset-bottom, 0px);
+  --kb: 0px;   /* 모바일 키보드가 가리는 높이(visualViewport로 갱신) */
   --safe-t: env(safe-area-inset-top, 0px);
   font-family: "Pretendard", "Pretendard Variable", -apple-system, BlinkMacSystemFont,
                "Apple SD Gothic Neo", system-ui, "Segoe UI", Roboto, sans-serif;
@@ -34,10 +37,10 @@
   :root {
     --bg: #17181C; --surface: #1F2126; --surface-2: #25272E;
     --text: #F2F4F6; --text-sub: #C2C7CE; --text-weak: #97A1AD;
-    --line: #2E3138; --line-2: #292C32; --blue-weak: #16335C;
+    --line: #2E3138; --line-2: #292C32; --acc-weak: #16335C;
     --danger-bg: #4A1A18; --danger: #FF9B93; --success-bg: #143D2A; --success: #5BE2A0;
     --warm-bg: #4A3115; --warm-fg: #FFC489;
-    --blue-700: #9CC2FF; --sh-card: 0 1px 3px rgba(0,0,0,.4);
+    --acc-strong: #9CC2FF; --sh-card: 0 1px 3px rgba(0,0,0,.4);
   }
 }
 * { box-sizing: border-box; margin: 0; -webkit-tap-highlight-color: transparent; }
@@ -67,6 +70,10 @@ input { font-family: inherit; }
 .topnav .tab.on::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 0; height: 2.5px; border-radius: 2px; background: var(--text); }
 .topnav .tab .tbadge { min-width: 17px; height: 17px; margin-left: 5px; padding: 0 5px; border-radius: 999px; background: var(--c-1); color: #fff; font-size: 10.5px; line-height: 17px; font-weight: 800; display: none; }
 .topnav .tab .tbadge.show { display: inline-block; }
+/* 탭이 늘어나도 브랜드·ANA 토글은 고정되고 탭만 가로로 밀린다(좁은 폭 대응) */
+.tabstrip { flex: 1 1 auto; min-width: 0; display: flex; align-items: stretch; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+.tabstrip::-webkit-scrollbar { display: none; }
+.topnav .tab { flex: 0 0 auto; white-space: nowrap; }
 .topnav .sp { flex: 1; }
 /* ANA 토글 버튼 */
 .mode-toggle { flex: 0 0 auto; align-self: center; display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 6px; margin-right: 8px;
@@ -99,7 +106,8 @@ body.chatting .chips.has { display: flex; }
   border-radius: 999px; background: var(--surface); box-shadow: var(--sh-card); color: var(--blue-700); font-size: 13px; font-weight: 800; }
 body.chat-collapsed .chat-open-btn { display: inline-flex; }
 
-.view { display: none; flex: 1; min-height: 0; overflow-y: auto; }
+/* #feed와 같은 이유 — overflow-y만 주면 overflow-x가 auto로 계산돼 긴 항목 하나가 탭 전체를 옆으로 민다 */
+.view { display: none; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
 .view.on { display: block; }
 .wrap { max-width: 900px; margin: 0 auto; padding: 16px clamp(14px, 4vw, 28px) 48px; }
 
@@ -128,8 +136,9 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .chk svg { width: 13px; height: 13px; stroke: var(--white); stroke-width: 3; fill: none; opacity: 0; }
 .item.done .chk svg { opacity: 1; }
 .item .body { flex: 1; min-width: 0; }
-.item .title { display: block; font-size: 14.5px; font-weight: 700; color: var(--text); word-break: break-word; }
+.item .title { display: block; font-size: 14.5px; font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
 .item.done .title { text-decoration: line-through; }
+.itby { display: block; margin-top: 5px; }
 .item .due { font-size: 12px; color: var(--warm-fg); font-weight: 700; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
 .item .due svg { width: 13px; height: 13px; opacity: .75; }
 .item .del { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 999px; color: var(--text-weak); font-size: 16px; opacity: 0; transition: .12s; }
@@ -139,7 +148,8 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 /* 일정 달력 — 3단: 좌(다가오는 일정) / 중앙(달력) / 우(선택일 시간 항목) */
 #scheduleView .wrap { max-width: 1200px; }
 .sched-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr) 270px; gap: 16px; align-items: start; }
-.up-panel { padding: 14px; }
+.up-panel { padding: 14px; min-width: 0; }
+.cal-box { min-width: 0; }
 .up-panel .phead { font-size: 13.5px; font-weight: 800; color: var(--text-sub); margin-bottom: 8px; }
 .up-item { display: flex; align-items: center; gap: 8px; padding: 8px 7px; border-radius: var(--r-xs); cursor: pointer; transition: background .12s; }
 .up-item:hover { background: var(--surface-2); }
@@ -173,7 +183,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .day-panel { min-width: 0; }
 .day-panel .dhead { font-size: 14px; font-weight: 800; color: var(--text-sub); margin: 0 2px 10px; }
 @media (max-width: 899px) {
-  .sched-layout { grid-template-columns: 1fr; }
+  .sched-layout { grid-template-columns: minmax(0, 1fr); }
   .cal-box { order: 1; } .day-panel { order: 2; } .up-panel { order: 3; }
 }
 .ev-item { display: flex; align-items: center; gap: 11px; padding: 12px 14px; margin-bottom: 8px; }
@@ -181,7 +191,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .ev-item .chk { margin-top: 0; }
 .ev-item.done .chk { background: var(--green); border-color: var(--green); }
 .ev-item .etime { flex: 0 0 auto; font-size: 13px; font-weight: 800; color: var(--blue-700); min-width: 44px; }
-.ev-item .etitle { flex: 1; font-size: 14.5px; font-weight: 700; word-break: break-word; }
+.ev-item .etitle { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 700; overflow-wrap: anywhere; }
 .ev-item.done .etitle { text-decoration: line-through; }
 .ev-item .del { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 999px; color: var(--text-weak); font-size: 16px; }
 .ev-item .ebadge { flex: 0 0 auto; font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: var(--warm-bg); color: var(--warm-fg); }
@@ -189,7 +199,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 /* 메모 탭 — 좌: 목록 / 우: 편집기 */
 #memoView .wrap { max-width: 1100px; }
 .memo-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; align-items: start; }
-.memo-side { padding: 8px; max-height: calc(100dvh - var(--header-h) - 130px); overflow-y: auto; }
+.memo-side { padding: 8px; min-width: 0; max-height: calc(100dvh - var(--header-h) - 130px); overflow-y: auto; overflow-x: hidden; }
 .memo-item { padding: 10px 12px; border-radius: var(--r-xs); cursor: pointer; transition: background .12s; }
 .memo-item:hover { background: var(--surface-2); }
 .memo-item.sel { background: var(--blue-weak); }
@@ -213,7 +223,174 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .memo-ebar .mstate { font-size: 12px; color: var(--text-weak); font-weight: 700; }
 .memo-ebar .mdel { height: 32px; padding: 0 13px; border-radius: 999px; background: var(--danger-bg); color: var(--danger); font-size: 12.5px; font-weight: 800; }
 .memo-none { display: flex; align-items: center; justify-content: center; min-height: 300px; color: var(--text-weak); font-weight: 600; font-size: 13.5px; }
-@media (max-width: 899px) { .memo-layout { grid-template-columns: 1fr; } .memo-side { max-height: 260px; } }
+@media (max-width: 899px) { .memo-layout { grid-template-columns: minmax(0, 1fr); } .memo-side { max-height: 260px; } }
+.memo-main { min-width: 0; }
+
+/* 미팅 탭 — 카드 하나에 제목·일시·주요내용·사진 */
+.meet { padding: 16px 18px; margin-bottom: 12px; }
+.meet-top { display: flex; align-items: baseline; gap: 10px; }
+.meet-t { flex: 1; min-width: 0; font-size: 16px; font-weight: 800; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.meet-when { flex: 0 0 auto; font-size: 12.5px; font-weight: 800; color: var(--blue-700); background: var(--blue-weak); border-radius: 999px; padding: 3px 10px; }
+.meet-del { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 999px; color: var(--text-weak); font-size: 15px; }
+.meet-meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 10px 0 0; font-size: 13px; }
+.meet-meta dt { color: var(--text-weak); font-weight: 800; white-space: nowrap; }
+.meet-meta dd { margin: 0; min-width: 0; color: var(--text-sub); font-weight: 600; overflow-wrap: anywhere; }
+.meet-sec { margin-top: 13px; }
+.meet-h { font-size: 12px; font-weight: 800; color: var(--blue-700); background: var(--blue-weak); display: inline-block;
+  border-radius: 999px; padding: 2px 9px; margin-bottom: 6px; }
+.meet-notes { margin: 4px 0 0; padding-left: 18px; }
+.meet-notes li { font-size: 14px; line-height: 1.65; color: var(--text-sub); margin-bottom: 3px; overflow-wrap: anywhere; }
+.meet-notes li::marker { color: var(--blue); }
+.meet-notes a { color: var(--blue-700); font-weight: 700; }
+.meet-notes.decide li { color: var(--text); font-weight: 600; }
+.meet-acts { list-style: none; margin: 4px 0 0; padding: 0; }
+.meet-acts li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 7px 10px; margin-bottom: 6px;
+  border-radius: var(--r-xs); background: var(--surface-2); font-size: 13.5px; }
+.meet-acts .at { flex: 1 1 140px; min-width: 0; color: var(--text); font-weight: 700; overflow-wrap: anywhere; }
+.meet-acts .ao { flex: 0 0 auto; font-size: 11.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--blue-weak); color: var(--blue-700); }
+.meet-acts .ad { flex: 0 0 auto; font-size: 11.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--warm-bg); color: var(--warm-fg); }
+.meet-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; margin-top: 13px; }
+.meet-photos img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-sm); background: var(--surface-2); cursor: zoom-in; display: block; }
+/* 모달 안 사진 선택 */
+.photo-pick { height: 40px; padding: 0 15px; border-radius: var(--r-sm); background: var(--surface-2); box-shadow: var(--sh-card); color: var(--blue-700); font-size: 13.5px; font-weight: 800; }
+.photo-picks { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+.photo-picks .pp { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px 4px 10px; border-radius: 999px; background: var(--blue-weak); color: var(--blue-700); font-size: 12px; font-weight: 700; }
+.photo-picks .pp.up { opacity: .55; }
+.photo-picks .pp button { width: 16px; height: 16px; display: grid; place-items: center; color: inherit; }
+.photo-picks .pp button svg { width: 11px; height: 11px; }
+#mNotes, #mDecide, #mActions { width: 100%; border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 11px 14px; font-size: 15px; font-family: inherit;
+  line-height: 1.6; color: var(--text); background: var(--surface-2); outline: none; resize: vertical; }
+#mNotes:focus, #mDecide:focus, #mActions:focus { border-color: var(--blue); background: var(--surface); }
+/* 미팅 요약 카드 */
+.meet[data-open] { cursor: pointer; transition: transform .12s, box-shadow .12s; }
+.meet[data-open]:active { transform: scale(.995); }
+.meet-sub { margin-top: 6px; font-size: 12.5px; font-weight: 700; color: var(--text-weak); overflow-wrap: anywhere; }
+.meet-first { margin-top: 8px; font-size: 14px; line-height: 1.55; color: var(--text-sub);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.meet-foot { display: flex; align-items: center; gap: 6px; margin-top: 11px; flex-wrap: wrap; }
+.meet-foot img { width: 44px; height: 34px; object-fit: cover; border-radius: 7px; background: var(--surface-2); }
+.meet-foot .sp { flex: 1; }
+.meet-cnt { font-size: 11.5px; font-weight: 800; color: var(--text-weak); }
+
+/* 상세 시트 — 데스크톱은 가운데 패널, 모바일은 전체화면 */
+.sheet { position: fixed; z-index: 66; left: 50%; top: 50%; transform: translate(-50%, -46%);
+  width: min(680px, calc(100vw - 32px)); max-height: 86dvh; display: flex; flex-direction: column;
+  background: var(--surface); border-radius: var(--r-xl); box-shadow: var(--sh-sheet);
+  opacity: 0; pointer-events: none; transition: .2s; }
+.sheet.on { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%); }
+.sheet-bar { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 16px 18px 12px; border-bottom: 1px solid var(--line-2); }
+.sheet-bar h3 { flex: 1; min-width: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.02em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sheet-bar .sp { display: none; }
+.sheet-bar .medit, .sheet-bar .mdel, .sheet-bar .mshare, .sheet-bar .icon-btn { flex: 0 0 auto; }
+.sheet-body { overflow-wrap: anywhere; }
+.sheet-bar .mdel { height: 32px; padding: 0 13px; border-radius: 999px; background: var(--danger-bg); color: var(--danger); font-size: 12.5px; font-weight: 800; }
+.sheet-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 16px 18px calc(20px + var(--safe-b)); }
+@media (max-width: 640px) {
+  .sheet { left: 0; top: auto; bottom: 0; width: 100vw; max-height: 92dvh; transform: translateY(100%);
+    border-radius: var(--r-xl) var(--r-xl) 0 0; }
+  .sheet.on { transform: translateY(0); }
+}
+
+/* 회의록 수정 버튼 + 댓글 */
+.sheet-bar .medit { height: 32px; padding: 0 13px; border-radius: 999px; background: var(--blue-weak); color: var(--blue-700); font-size: 12.5px; font-weight: 800; }
+.sheet-bar .mshare { height: 32px; padding: 0 13px; border-radius: 999px; background: var(--blue); color: var(--white); font-size: 12.5px; font-weight: 800; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(70px + var(--safe-b)); z-index: 96;
+  padding: 10px 18px; border-radius: 999px; background: var(--text); color: var(--surface); font-size: 13px; font-weight: 800;
+  box-shadow: var(--sh-sheet); opacity: 0; pointer-events: none; transition: opacity .2s; }
+.toast.on { opacity: 1; }
+.cmt-write { flex: 0 0 auto; display: flex; gap: 8px; padding: 10px 18px calc(14px + var(--safe-b)); border-top: 1px solid var(--line-2); }
+.cmt-write input { flex: 1; min-width: 0; height: 42px; border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 0 14px;
+  font-size: 15px; font-family: inherit; color: var(--text); background: var(--surface-2); outline: none; }
+.cmt-write input:focus { border-color: var(--blue); background: var(--surface); }
+.cmt-write button { flex: 0 0 auto; height: 42px; padding: 0 16px; border-radius: var(--r-sm); background: var(--blue); color: var(--white); font-size: 14px; font-weight: 800; }
+.cmt-write button:disabled { opacity: .4; cursor: default; }
+.cmt-list { list-style: none; margin: 4px 0 0; padding: 0; }
+.cmt-list li { display: flex; align-items: flex-start; gap: 8px; padding: 9px 12px; margin-bottom: 6px; border-radius: var(--r-xs); background: var(--surface-2); }
+/* 답글 — 들여쓰고 왼쪽에 실선을 그어 부모와 묶어 보이게 */
+.cmt-list li.reply { margin-left: 22px; border-left: 2px solid var(--line); border-radius: 0 var(--r-xs) var(--r-xs) 0; background: transparent; }
+.cmt-list li.cmt-reply-box { margin-left: 22px; background: transparent; padding: 2px 0 8px; }
+.cmt-list .cb { flex: 1; min-width: 0; }
+.cmt-list .ct { font-size: 13.5px; line-height: 1.55; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.cmt-list .cw { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 4px; font-size: 11px; font-weight: 700; color: var(--text-weak); }
+.cacts { display: inline-flex; gap: 4px; margin-left: auto; }
+.cacts button { height: 24px; padding: 0 9px; border-radius: 999px; font-size: 11px; font-weight: 800; color: var(--text-weak); background: var(--surface); box-shadow: var(--sh-card); }
+.cacts button:hover { color: var(--text); }
+.cacts .cx { color: var(--danger); }
+.cacts .cr { color: var(--blue-700); }
+.cedit { width: 100%; }
+.cedit .ci { width: 100%; border: 1.5px solid var(--blue); border-radius: var(--r-xs); padding: 9px 11px;
+  font-family: inherit; font-size: 15px; line-height: 1.55; color: var(--text); background: var(--surface); outline: none; resize: vertical; }
+.cebar { display: flex; justify-content: flex-end; gap: 7px; margin-top: 7px; }
+.cebar button { height: 32px; padding: 0 14px; border-radius: 999px; font-size: 12.5px; font-weight: 800; }
+.cebar .cno { background: var(--surface); box-shadow: var(--sh-card); color: var(--text-sub); }
+.cebar .cok { background: var(--blue); color: var(--white); }
+.cmt-none { font-size: 13px; color: var(--text-weak); font-weight: 600; padding: 4px 2px; }
+
+/* 프로필 아바타 */
+.av { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 999px; background: var(--blue-weak);
+  color: var(--blue-700); font-size: 12.5px; font-weight: 800; overflow: hidden; flex: 0 0 auto; }
+.av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.av.lg { width: 64px; height: 64px; font-size: 24px; }
+.av.sm { width: 20px; height: 20px; font-size: 9.5px; }
+.avatar-btn { flex: 0 0 auto; align-self: center; margin-left: 4px; padding: 0; border-radius: 999px; }
+.avatar-btn .av { box-shadow: var(--sh-card); }
+.me-row { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.me-pic { padding: 0; border-radius: 999px; }
+.me-id { min-width: 0; }
+.me-mail { font-size: 14px; font-weight: 800; overflow-wrap: anywhere; }
+.me-hint { font-size: 12px; color: var(--text-weak); font-weight: 700; margin-top: 3px; }
+/* 작성자 배지 */
+.by { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 800; color: var(--text-weak); }
+.by .av { width: 18px; height: 18px; font-size: 9px; }
+/* 멤버 */
+.mem { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; margin-bottom: 9px; }
+.mem .av { width: 44px; height: 44px; font-size: 17px; }
+.mem-b { flex: 1; min-width: 0; }
+.mem-n { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.mem-n b { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.mem-mail { font-size: 12px; color: var(--text-weak); font-weight: 600; margin-top: 2px; overflow-wrap: anywhere; }
+.mem-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.mem-tag { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-sub); }
+.mem-tag.on { background: var(--blue-weak); color: var(--blue-700); }
+.mem-tag.me { background: var(--success-bg); color: var(--success); }
+.mem-tag.bot { background: var(--warm-bg); color: var(--warm-fg); }
+.mem-when { font-size: 11.5px; color: var(--text-weak); font-weight: 700; margin-top: 7px; }
+.mem-act { flex: 0 0 auto; text-align: right; }
+.mem-act .n { font-size: 19px; font-weight: 800; color: var(--blue); letter-spacing: -0.03em; }
+.mem-act .l { font-size: 11px; color: var(--text-weak); font-weight: 700; }
+
+/* 통계 */
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 999px; padding: 3px; box-shadow: var(--sh-card); }
+.seg button { height: 30px; padding: 0 14px; border-radius: 999px; font-size: 12.5px; font-weight: 800; color: var(--text-weak); }
+.seg button.on { background: var(--surface); color: var(--text); box-shadow: var(--sh-card); }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.stat { padding: 14px; }
+.stat .n { font-size: clamp(22px, 5vw, 28px); font-weight: 800; letter-spacing: -0.04em; line-height: 1; color: var(--blue); }
+.stat .l { font-size: 12px; color: var(--text-sub); font-weight: 700; margin-top: 6px; }
+.spark { display: flex; align-items: flex-end; gap: 3px; height: 64px; padding: 12px 14px; }
+.spark i { flex: 1; background: var(--blue-weak); border-radius: 3px 3px 0 0; min-height: 2px; position: relative; }
+.spark i.hi { background: var(--blue); }
+.people { margin-top: 10px; }
+.person { display: flex; align-items: center; gap: 10px; padding: 11px 14px; margin-bottom: 8px; }
+.person .pn { flex: 1; min-width: 0; font-size: 14px; font-weight: 800; overflow-wrap: anywhere; }
+.person .pc { flex: 0 0 auto; font-size: 12.5px; font-weight: 800; color: var(--text-weak); }
+.person .bar { flex: 0 0 84px; height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.person .bar span { display: block; height: 100%; background: var(--blue); border-radius: 999px; }
+.act-row { display: flex; align-items: center; gap: 9px; padding: 9px 13px; margin-bottom: 6px; font-size: 13px; }
+.act-row .aa { flex: 0 0 auto; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-sub); }
+.act-row .at2 { flex: 1; min-width: 0; color: var(--text-sub); overflow-wrap: anywhere; }
+.act-row .aw { flex: 0 0 auto; font-size: 11px; font-weight: 700; color: var(--text-weak); }
+
+/* 새 버전 알림 — 열어 둔 탭이 옛 코드일 때만 뜬다 */
+.newver { display: none; position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + var(--safe-b)); z-index: 88;
+  padding: 10px 18px; border-radius: 999px; background: var(--text); color: var(--surface); font-size: 13px; font-weight: 800; box-shadow: var(--sh-sheet); }
+.newver.on { display: block; }
+
+/* 사진 확대 뷰어 */
+.lightbox { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.9); display: none; place-items: center; padding: 16px; cursor: zoom-out; }
+.lightbox.on { display: grid; }
+.lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--r-sm); }
 
 /* 진화 탭 */
 .evo-head { display: flex; align-items: baseline; gap: 8px; margin: 4px 2px 12px; }
@@ -227,9 +404,9 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .evo-type.improve { background: var(--blue-weak); color: var(--blue-700); }
 .evo-type.add { background: var(--success-bg); color: var(--success); }
 .evo-type.remove { background: var(--danger-bg); color: var(--danger); }
-.evo-t { flex: 1; font-size: 14.5px; font-weight: 800; }
+.evo-t { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 800; overflow-wrap: anywhere; }
 .evo-st { font-size: 11.5px; font-weight: 800; color: var(--warm-fg); background: var(--warm-bg); border-radius: 999px; padding: 2px 8px; }
-.evo-d { margin-top: 6px; font-size: 13px; color: var(--text-sub); line-height: 1.55; }
+.evo-d { margin-top: 6px; font-size: 13px; color: var(--text-sub); line-height: 1.55; overflow-wrap: anywhere; }
 .evo-acts { display: flex; gap: 7px; margin-top: 10px; }
 .evo-acts button { height: 36px; padding: 0 16px; border-radius: var(--r-sm); font-weight: 800; font-size: 13px; }
 .evo-acts .talk { background: var(--blue-weak); color: var(--blue-700); }
@@ -248,10 +425,25 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 #chatResize::before { content: ""; width: 3px; height: 42px; border-radius: 3px; background: var(--line); transition: background .15s, height .15s; }
 #chatResize:hover::before, #chatResize.dragging::before { background: var(--blue); height: 64px; }
 .chat-scrim { display: none; }
-@media (max-width: 640px) {
-  body.chatting { grid-template-columns: 0 1fr; }         /* 모바일: 채팅이 전체, 메인 숨김 */
+/* 모바일/태블릿 세로: 도킹 컬럼이 아니라 전체화면 오버레이.
+   그리드 컬럼은 항상 0으로 두고 #chatSide를 position:fixed로 띄운다.
+   (fixed 요소는 문서 스크롤 폭에 기여하지 않아 가로 스크롤이 생기지 않는다) */
+@media (max-width: 768px) {
+  body, body.chatting { grid-template-columns: minmax(0, 1fr) 0; }
   #chatResize { display: none; }
-  #chatSide, #chatSide > * { width: 100vw; }
+  #chatSide { position: fixed; inset: 0; z-index: 50; width: 100%; height: calc(100dvh - var(--kb)); border-left: none;
+    visibility: hidden; transform: translateX(100%);
+    transition: transform .24s cubic-bezier(.32,.72,0,1), visibility 0s .24s; }
+  body.chatting #chatSide { visibility: visible; transform: none;
+    transition: transform .24s cubic-bezier(.32,.72,0,1), visibility 0s 0s; }
+  /* 데스크톱의 고정 폭(--chat-w) 대신 화면 폭에 맞춘다 — 컴포저·입력창 잘림 방지 */
+  #chatSide > *:not(#chatResize) { width: 100%; align-self: stretch; }
+  /* 상단 탭바: 좁은 폭에서 탭 글자가 세로로 쪼개지지 않도록 압축 */
+  .topnav { padding: var(--safe-t) 4px 0; }
+  .topnav-brand { padding: 0 6px; }
+  .topnav-brand .bname { display: none; }
+  .topnav .tab { padding: 0 10px; white-space: nowrap; }
+  .mode-toggle { gap: 6px; padding: 0 11px 0 5px; margin-right: 4px; }
 }
 @keyframes pulse { 50% { opacity: .35; } }
 /* 채팅 헤더(간소): 제목 + 닫기 */
@@ -276,11 +468,12 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 /* tmux 세션 연결 설정 팝오버 */
 .tmux-cfg { margin-top: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
 .tmux-cfg-title { font-size: 11.5px; font-weight: 800; color: var(--text-sub); margin-bottom: 6px; }
-.tmux-cfg-list { display: flex; flex-direction: column; gap: 4px; max-height: 160px; overflow-y: auto; margin-bottom: 8px; }
+.tmux-cfg-list { display: flex; flex-direction: column; gap: 4px; max-height: 160px; overflow-y: auto; overflow-x: hidden; margin-bottom: 8px; }
 .tmux-cfg-list button { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 6px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--text); font-size: 12px; cursor: pointer; }
 .tmux-cfg-list button:hover { border-color: var(--accent); }
 .tmux-cfg-list button.cur { border-color: var(--success); }
-.tmux-cfg-list button small { color: var(--text-weak); font-weight: 700; }
+.tmux-cfg-list button { overflow-wrap: anywhere; }
+.tmux-cfg-list button small { flex: 0 0 auto; color: var(--text-weak); font-weight: 700; }
 .tmux-cfg-list .none { color: var(--text-weak); font-size: 12px; padding: 4px; }
 .tmux-cfg-manual { display: flex; gap: 6px; }
 .tmux-cfg-manual input { flex: 1; min-width: 0; padding: 6px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--text); font-size: 12px; }
@@ -288,14 +481,21 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .tmux-cfg-hint { margin-top: 8px; font-size: 10.5px; color: var(--text-weak); line-height: 1.4; }
 .as-row .mini.ok { background: var(--green); } .as-row .mini.bad { background: var(--danger); }
 
-#feed { flex: 1; overflow-y: auto; padding: 14px 14px 10px; display: flex; flex-direction: column; gap: 10px; position: relative; }
-.msg { max-width: 86%; padding: 10px 14px; border-radius: var(--r); font-size: 14px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+/* overflow-y만 지정하면 CSS 규칙상 overflow-x가 auto로 계산되어, 긴 경로·명령 한 줄이
+   피드 전체를 옆으로 밀어 버린다(모바일 횡스크롤의 원인). 가로는 명시적으로 잠근다. */
+#feed { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 14px 14px 10px; display: flex; flex-direction: column; gap: 10px; position: relative; }
+#feed > * { max-width: 100%; }
+.msg { max-width: 86%; padding: 10px 14px; border-radius: var(--r); font-size: 14px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
+.msg-by { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; opacity: .85; margin-bottom: 5px; }
+.msg-by .av { width: 16px; height: 16px; font-size: 8.5px; background: rgba(255,255,255,.25); color: #fff; }
 .msg.user { align-self: flex-end; background: var(--blue); color: var(--white); border-bottom-right-radius: 5px; }
 .msg.assistant { align-self: flex-start; background: var(--surface-2); color: var(--text); border-bottom-left-radius: 5px; }
 .msg.system, .msg.marker { align-self: center; background: transparent; color: var(--text-weak); font-size: 12px; font-weight: 700; text-align: center; }
-.act { align-self: flex-start; max-width: 92%; font-size: 12px; color: var(--text-weak); font-weight: 700; padding: 0 4px; }
+/* 도구 줄·도구 결과: 끊을 공백이 없는 긴 경로가 흔하다 → 어디서든 줄바꿈 허용 */
+.act { align-self: flex-start; max-width: 92%; font-size: 12px; color: var(--text-weak); font-weight: 700; padding: 0 4px; overflow-wrap: anywhere; }
 .act.tool::before { content: "› "; }
-.act.toolresult { font-family: ui-monospace, Menlo, monospace; font-weight: 400; max-height: 6.5em; overflow: hidden; position: relative; cursor: pointer; }
+.act.toolresult { font-family: ui-monospace, Menlo, monospace; font-weight: 400; max-height: 6.5em; overflow: hidden; position: relative; cursor: pointer;
+  white-space: pre-wrap; }   /* 터미널 출력이라 줄바꿈이 의미를 가진다 */
 .act.toolresult.expanded { max-height: none; cursor: default; }
 .act.toolresult.clip::after { content: "⋯ 더 보기"; position: absolute; bottom: 0; left: 0; right: 0; text-align: center; font-family: inherit; font-size: 11px; color: var(--blue-700); background: linear-gradient(transparent, var(--surface) 70%); padding-top: 14px; }
 #pendingWrap .msg, #pendingWrap .act { opacity: .75; }
@@ -324,7 +524,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .newpill { display: none; position: sticky; bottom: 6px; align-self: center; background: var(--blue); color: var(--white); border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 800; box-shadow: var(--sh-fab); }
 
 /* 제안 승인 카드 */
-.prop { align-self: flex-start; max-width: 94%; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; }
+.prop { align-self: flex-start; max-width: 94%; overflow-wrap: anywhere; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; }
 .prop .pt { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
 .prop .row { font-size: 13px; padding: 3px 0; color: var(--text-sub); display: flex; gap: 7px; }
 .prop .row .k { font-weight: 800; flex: 0 0 auto; }
@@ -364,6 +564,21 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .inputwrap.ghost-on textarea::placeholder { color: transparent; }
 #send { width: 42px; height: 42px; border-radius: 999px; background: var(--blue); color: var(--white); flex: 0 0 auto; display: grid; place-items: center; font-size: 18px; box-shadow: var(--sh-fab); }
 #send:disabled { opacity: .4; box-shadow: none; cursor: default; }
+/* 첨부 버튼 — 전송 버튼과 같은 크기의 원형, 컴포저 왼쪽 */
+.attach { flex: 0 0 auto; width: 42px; height: 42px; border-radius: 999px; background: var(--surface-2); box-shadow: var(--sh-card);
+  color: var(--text-sub); display: grid; place-items: center; }
+.attach:hover { color: var(--text); }
+.attach:disabled { opacity: .4; cursor: default; }
+.attach svg { width: 18px; height: 18px; }
+/* 첨부 칩 — 컨텍스트 칩과 구분되는 중립 색 */
+.chip.file { background: var(--surface-2); color: var(--text-sub); }
+.chip.file .k { color: var(--blue-700); }
+.chip.file.up { opacity: .55; }
+/* 드래그해서 파일을 떨굴 수 있는 상태 */
+#chatSide.dropping { outline: 2px dashed var(--blue); outline-offset: -6px; }
+#send svg { width: 15px; height: 15px; }
+/* 입력이 비어 있고 작업 중이면 전송 → 정지(클로드와 동일한 자리·동작) */
+#send.stop { background: var(--text); color: var(--surface); box-shadow: none; }
 
 /* 우하단 채팅 FAB — ANA 모드에서만 표시(일반 모드엔 채팅 버튼 없음), 클릭 시 채팅 도킹 열림 */
 .fab { display: none; position: fixed; right: 18px; bottom: calc(20px + var(--safe-b)); width: 56px; height: 56px; border-radius: 999px; background: var(--blue); color: var(--white); box-shadow: var(--sh-fab); z-index: 38; place-items: center; }
@@ -374,8 +589,8 @@ body.ana-mode:not(.chatting) .fab { display: grid; }     /* ANA 모드 + 채팅 
 .fab.unread .badge { display: block; }
 
 /* ---------- 반응형 ---------- */
-@media (max-width: 899px) {
-  .conn .label { display: none; }                         /* 좁은 화면: 연결 pill은 점만 */
+@media (min-width: 769px) and (max-width: 899px) {
+  .conn .label { display: none; }   /* 채팅이 도킹된 좁은 화면에서만 pill을 점으로 축소 */
 }
 
 /* ---------- 모달 (수동 추가 팝업) ---------- */
@@ -384,6 +599,7 @@ body.ana-mode:not(.chatting) .fab { display: grid; }     /* ANA 모드 + 채팅 
 .modal { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -46%); z-index: 70; width: min(440px, calc(100vw - 32px));
   background: var(--surface); border-radius: var(--r-xl); box-shadow: var(--sh-sheet); padding: 20px; opacity: 0; pointer-events: none; transition: .2s; }
 .modal.on { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%); }
+.modal { max-height: 88dvh; overflow-y: auto; overflow-x: hidden; overflow-wrap: anywhere; }   /* 사진·주요내용이 길어져도 저장 버튼에 닿게 */
 @media (max-width: 560px) { .modal { top: auto; bottom: 0; left: 0; transform: translateY(100%); width: 100vw; border-radius: var(--r-xl) var(--r-xl) 0 0; padding-bottom: calc(20px + var(--safe-b)); }
   .modal.on { transform: translateY(0); } }
 .modal h3 { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 16px; }
@@ -396,8 +612,96 @@ body.ana-mode:not(.chatting) .fab { display: grid; }     /* ANA 모드 + 채팅 
 .modal-acts button { flex: 1; height: 48px; border-radius: var(--r-sm); font-weight: 800; font-size: 15px; }
 .modal-acts .cancel { background: var(--surface-2); color: var(--text-sub); box-shadow: var(--sh-card); }
 .modal-acts .save { background: var(--blue); color: var(--white); }
+.modal-acts .danger-act { background: var(--danger); color: #fff; }
+/* 삭제 확인 — 되돌릴 수 없는 동작 앞의 마지막 관문 */
+.modal.confirm { z-index: 95; }
+.modal.confirm .cf-body { font-size: 14px; line-height: 1.6; color: var(--text-sub); word-break: break-word; }
+.scrim.hard { z-index: 94; }
 .modal-acts .save:disabled { opacity: .4; }
+/* iOS Safari는 폰트 16px 미만 입력에 포커스하면 페이지를 확대한다(확대되면 버튼이 화면 밖으로 밀린다).
+   개별 선택자를 나열하면 새 입력창을 추가할 때마다 빠뜨리게 되므로 전역으로 건다.
+   #ghost는 textarea 위에 겹치는 오버레이라 크기를 반드시 함께 맞춰야 한다.
+   같은 특정도끼리는 소스 순서가 승자를 정하므로 이 블록은 스타일시트 맨 끝에 둔다. */
+@media (any-pointer: coarse) {
+  /* !important인 이유: 개별 규칙(.inputwrap textarea 등)이 특정도에서 이겨 버리면 확대가 되살아난다.
+     "터치 기기에서 입력 글꼴은 16px 미만이 될 수 없다"는 불변 조건이라 예외를 두지 않는다. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea, select, #ghost { font-size: 16px !important; }
+}
+
+/* ===================== 계절 · 시간대 테마 =====================
+   <html>의 data-season(spring|summer|autumn|winter), data-daypart(morning|day|evening|night),
+   data-mode(light|dark)를 JS가 채운다. 규칙 순서가 곧 우선순위다:
+   ① 모드(명암) → ② 계절(강조색) → ③ 모드+계절(강조색 명암 보정) → ④ 시간대(배경 온도).
+   밤에는 OS 설정과 무관하게 어두운 팔레트를 쓴다. */
+
+/* ① 밤 또는 OS 다크 → 어두운 중립색 (위 prefers-color-scheme 블록은 JS 없을 때의 폴백) */
+:root[data-mode="dark"] {
+  --bg: #17181C; --surface: #1F2126; --surface-2: #25272E;
+  --text: #F2F4F6; --text-sub: #C2C7CE; --text-weak: #97A1AD;
+  --line: #2E3138; --line-2: #292C32;
+  --danger-bg: #4A1A18; --danger: #FF9B93; --success-bg: #143D2A; --success: #5BE2A0;
+  --warm-bg: #4A3115; --warm-fg: #FFC489;
+  --sh-card: 0 1px 3px rgba(0,0,0,.4);
+}
+
+/* ② 계절 강조색 — 봄 벚꽃 / 여름 청록 / 가을 단풍 / 겨울 한파 */
+:root[data-season="spring"] { --acc: #F2789F; --acc-strong: #C7477A; --acc-weak: #FDEDF3; }
+:root[data-season="summer"] { --acc: #0FA3C0; --acc-strong: #08748A; --acc-weak: #E1F5F9; }
+:root[data-season="autumn"] { --acc: #E8731C; --acc-strong: #B85712; --acc-weak: #FFF0E1; }
+:root[data-season="winter"] { --acc: #3182F6; --acc-strong: #1B64DA; --acc-weak: #E8F1FE; }
+
+/* ③ 어두울 때는 강조색을 밝게, 옅은 배경색은 어둡게 뒤집는다 */
+:root[data-mode="dark"][data-season="spring"] { --acc: #FF8FB1; --acc-strong: #FFC2D6; --acc-weak: #44202E; }
+:root[data-mode="dark"][data-season="summer"] { --acc: #35C3DE; --acc-strong: #9BE3F1; --acc-weak: #0F3A44; }
+:root[data-mode="dark"][data-season="autumn"] { --acc: #FF9A4D; --acc-strong: #FFC489; --acc-weak: #45280F; }
+:root[data-mode="dark"][data-season="winter"] { --acc: #5C9DFF; --acc-strong: #9CC2FF; --acc-weak: #16335C; }
+
+/* ④ 시간대 = 배경의 색온도. 아침은 따뜻한 크림, 낮은 중립, 저녁은 노을빛 */
+:root[data-mode="light"][data-daypart="morning"] { --bg: #FFF8F1; --surface: #FFFFFF; --surface-2: #FFF3E8; --line: #F0E4D6; --line-2: #F7EDE2; }
+:root[data-mode="light"][data-daypart="day"]     { --bg: #F2F4F6; --surface: #FFFFFF; --surface-2: #F9FAFB; --line: #E5E8EB; --line-2: #EDF0F2; }
+:root[data-mode="light"][data-daypart="evening"] { --bg: #F5F0F5; --surface: #FFFFFF; --surface-2: #F7EFF3; --line: #E8DEE6; --line-2: #F0E7ED; }
+:root[data-mode="dark"][data-daypart="evening"]  { --bg: #1B181C; --surface: #231F25; --surface-2: #2A252C; }
+:root[data-mode="dark"][data-daypart="night"]    { --bg: #121317; --surface: #1A1C21; --surface-2: #212429; }
 </style>
+<script>
+/* 계절·시간대 테마 — <style> 직후에서 돌려 첫 페인트 전에 속성을 심는다(색 깜빡임 방지).
+   경계: 아침 05–10 / 낮 10–17 / 저녁 17–21 / 밤 21–05. 계절은 월 기준(3~5 봄, 6~8 여름, 9~11 가을, 12~2 겨울). */
+(() => {
+  const SEASON = { 1: 'winter', 2: 'winter', 3: 'spring', 4: 'spring', 5: 'spring', 6: 'summer',
+                   7: 'summer', 8: 'summer', 9: 'autumn', 10: 'autumn', 11: 'autumn', 12: 'winter' };
+  const KO = { spring: '봄', summer: '여름', autumn: '가을', winter: '겨울',
+               morning: '아침', day: '낮', evening: '저녁', night: '밤' };
+  const dark = matchMedia('(prefers-color-scheme: dark)');
+  const daypartOf = (h) => (h < 5 ? 'night' : h < 10 ? 'morning' : h < 17 ? 'day' : h < 21 ? 'evening' : 'night');
+  function apply() {
+    const now = new Date();
+    const season = SEASON[now.getMonth() + 1];
+    const daypart = daypartOf(now.getHours());
+    // 밤에는 OS가 라이트여도 어둡게 — '시간에 따라 변한다'가 이 기능의 요점이다.
+    const mode = daypart === 'night' || dark.matches ? 'dark' : 'light';
+    const r = document.documentElement;
+    r.dataset.season = season; r.dataset.daypart = daypart; r.dataset.mode = mode;
+    const label = `${KO[season]} · ${KO[daypart]}`;
+    const brand = document.querySelector('.topnav-brand');
+    if (brand) brand.title = `테마: ${label}`;
+    // 브라우저 상단 바 색도 배경에 맞춘다(정적 theme-color 메타는 교체한다)
+    const bg = getComputedStyle(r).getPropertyValue('--bg').trim();
+    if (bg) {
+      document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.remove());
+      const m = document.createElement('meta');
+      m.name = 'theme-color'; m.content = bg;
+      (document.head || r).appendChild(m);
+    }
+    return label;
+  }
+  apply();
+  setInterval(apply, 60000);   // 시간대 경계를 1분 안에 따라간다
+  dark.addEventListener('change', apply);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) apply(); });
+  window.anaTheme = apply;     // 콘솔에서 anaTheme()으로 즉시 재적용
+})();
+</script>
 </head>
 <body>
 
@@ -405,14 +709,19 @@ body.ana-mode:not(.chatting) .fab { display: grid; }     /* ANA 모드 + 채팅 
 <div id="main">
   <nav class="topnav" aria-label="주 메뉴" role="tablist">
     <div class="topnav-brand"><img src="/ana-logo.png" alt="ANA 로고"><span class="bname">ANA</span></div>
-    <button class="tab on" data-view="todo" role="tab" aria-selected="true">할일</button>
-    <button class="tab" data-view="schedule" role="tab" aria-selected="false">일정</button>
-    <button class="tab" data-view="memo" role="tab" aria-selected="false">메모</button>
-    <button class="tab" data-view="evolve" role="tab" aria-selected="false">진화<span class="tbadge" id="evoBadge">0</span></button>
-    <span class="sp"></span>
+    <div class="tabstrip">
+      <button class="tab on" data-view="todo" role="tab" aria-selected="true">할일</button>
+      <button class="tab" data-view="schedule" role="tab" aria-selected="false">일정</button>
+      <button class="tab" data-view="meeting" role="tab" aria-selected="false">미팅</button>
+      <button class="tab" data-view="memo" role="tab" aria-selected="false">메모</button>
+      <button class="tab" data-view="member" role="tab" aria-selected="false">멤버</button>
+      <button class="tab" data-view="stats" role="tab" aria-selected="false">통계</button>
+      <button class="tab" data-view="evolve" role="tab" aria-selected="false">진화<span class="tbadge" id="evoBadge">0</span></button>
+    </div>
     <button id="modeToggle" class="mode-toggle" role="switch" aria-checked="false" aria-label="ANA 모드">
       <span class="knob"></span>ANA
     </button>
+    <button id="meBtn" class="avatar-btn" aria-label="내 프로필"><span class="av">?</span></button>
   </nav>
 
   <!-- 할일 -->
@@ -451,6 +760,13 @@ body.ana-mode:not(.chatting) .fab { display: grid; }     /* ANA 모드 + 채팅 
   </div></section>
 
   <!-- 메모 (좌: 목록 / 우: 편집기) -->
+  <section class="view" id="meetingView" role="tabpanel"><div class="wrap">
+    <div class="sec-head"><h2>미팅</h2><span class="cnt" id="meetMeta"></span><span class="sp"></span>
+      <button class="add-btn" id="addMeetBtn">＋ 미팅</button></div>
+    <div id="meetList"></div>
+    <div class="empty" id="meetEmpty">미팅 기록이 없습니다 — ＋미팅으로 추가</div>
+  </div></section>
+
   <section class="view" id="memoView" role="tabpanel"><div class="wrap">
     <div class="memo-layout">
       <aside class="memo-side card" aria-label="메모 목록">
@@ -470,6 +786,20 @@ body.ana-mode:not(.chatting) .fab { display: grid; }     /* ANA 모드 + 채팅 
   </div></section>
 
   <!-- 진화 -->
+  <section class="view" id="memberView" role="tabpanel"><div class="wrap">
+    <div class="sec-head"><h2>멤버</h2><span class="cnt" id="memMeta"></span></div>
+    <div id="memList"></div>
+    <div class="empty" id="memEmpty" style="display:none">아직 멤버가 없습니다</div>
+  </div></section>
+
+  <section class="view" id="statsView" role="tabpanel"><div class="wrap">
+    <div class="sec-head"><h2>통계</h2><span class="sp"></span>
+      <div class="seg" id="statSeg"><button class="on" data-seg="mine">내 통계</button><button data-seg="all">전체</button></div></div>
+    <div id="statBody"></div>
+    <div class="sec-head" style="margin-top:22px"><h2>활동 이력</h2></div>
+    <div id="actList"></div>
+  </div></section>
+
   <section class="view" id="evolveView" role="tabpanel"><div class="wrap">
     <div class="evo-head"><span class="evo-lead">이 앱을 스스로 개선합니다</span></div>
     <div class="evo-cta"><button id="evoAnalyze">에이전트에게 분석 요청</button></div>
@@ -526,6 +856,10 @@ body.ana-mode:not(.chatting) .fab { display: grid; }     /* ANA 모드 + 채팅 
     <button data-key="ctrl-c" class="danger" id="ctrlc" title="작업 중단">중단</button>
   </div>
   <div class="composer">
+    <button id="attachBtn" class="attach" title="파일 첨부" aria-label="파일 첨부">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+    </button>
+    <input type="file" id="fileInput" multiple hidden>
     <div class="inputwrap" id="inputwrap">
       <textarea id="input" rows="1" placeholder="메시지 입력 — Enter 전송, Shift+Enter 줄바꿈" aria-label="메시지 입력"></textarea>
       <div id="ghost"></div>
@@ -534,12 +868,67 @@ body.ana-mode:not(.chatting) .fab { display: grid; }     /* ANA 모드 + 채팅 
   </div>
 </aside>
 
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<button class="newver" id="newver">새 버전이 있습니다 — 탭하여 새로고침</button>
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="사진 크게 보기"><img id="lightboxImg" alt=""></div>
 <div class="chat-scrim" id="chatScrim"></div>
 <button class="fab" id="fab" aria-label="채팅 열기"><span class="badge" id="fabBadge">0</span>
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
 </button>
 
 <!-- 모달: 할일 추가 -->
+<div class="modal" id="meetModal" role="dialog" aria-modal="true" aria-label="미팅 추가">
+  <h3>회의록 작성</h3>
+  <div class="fld"><label>회의명</label><input id="mTitle" placeholder="예: 착수회의" autocomplete="off"></div>
+  <div class="frow">
+    <div class="fld"><label>일시</label><input id="mDate" type="date"></div>
+    <div class="fld"><label>시작</label><input id="mTime" type="time"></div>
+    <div class="fld"><label>종료</label><input id="mEnd" type="time"></div>
+  </div>
+  <div class="fld"><label>장소</label><input id="mPlace" placeholder="예: 본사 3층 회의실 / Zoom" autocomplete="off"></div>
+  <div class="fld"><label>참석자 — 쉼표로 구분</label><input id="mAttend" placeholder="예: 김태영, 류태욱, 김상민" autocomplete="off"></div>
+  <div class="fld"><label>주요 내용 — 한 줄에 하나</label><textarea id="mNotes" rows="5" placeholder="논의한 안건을 줄바꿈으로 구분해 적어 주세요"></textarea></div>
+  <div class="fld"><label>결정 사항 — 한 줄에 하나</label><textarea id="mDecide" rows="3" placeholder="합의·확정된 내용"></textarea></div>
+  <div class="fld"><label>액션 아이템 — 한 줄에 하나 (@담당자 ~기한)</label>
+    <textarea id="mActions" rows="3" placeholder="예: 워크샵 일정안 정리 @김태영 ~2026-08-25"></textarea></div>
+  <div class="fld"><label>사진 (선택)</label>
+    <button class="photo-pick" id="mPhotoBtn">＋ 사진 선택</button>
+    <input type="file" id="mPhotoInput" accept="image/*" multiple hidden>
+    <div class="photo-picks" id="mPhotoList"></div>
+  </div>
+  <div class="modal-acts"><button class="cancel" data-close>취소</button><button class="save" id="mSave">추가</button></div>
+</div>
+<div class="sheet" id="meetSheet" role="dialog" aria-modal="true" aria-labelledby="msTitle">
+  <div class="sheet-bar">
+    <h3 id="msTitle">회의록</h3><span class="sp"></span>
+    <button class="mshare" id="msShare" aria-label="회의록 공유">공유</button>
+    <button class="medit" id="msEdit">수정</button>
+    <button class="mdel" id="msDel">삭제</button>
+    <button class="icon-btn" id="msClose" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="sheet-body" id="msBody"></div>
+  <div class="cmt-write">
+    <input id="msCmt" placeholder="댓글 입력" autocomplete="off" aria-label="댓글 입력">
+    <button id="msCmtAdd" aria-label="댓글 등록">등록</button>
+  </div>
+</div>
+<div class="modal" id="meModal" role="dialog" aria-modal="true" aria-label="내 프로필">
+  <h3>내 프로필</h3>
+  <div class="me-row">
+    <button class="me-pic" id="mePic" aria-label="프로필 사진 변경"><span class="av lg">?</span></button>
+    <div class="me-id"><div class="me-mail" id="meMail"></div><div class="me-hint">사진을 눌러 변경</div></div>
+  </div>
+  <input type="file" id="meFile" accept="image/*" hidden>
+  <div class="fld"><label>표시 이름</label><input id="meName" placeholder="예: 김태영" autocomplete="off"></div>
+  <div class="modal-acts"><button class="cancel" id="meLogout">로그아웃</button><button class="save" id="meSave">저장</button></div>
+</div>
+<div class="modal confirm" id="confirmModal" role="alertdialog" aria-modal="true" aria-labelledby="cfTitle">
+  <h3 id="cfTitle">삭제할까요?</h3>
+  <p class="cf-body" id="cfBody"></p>
+  <div class="modal-acts"><button class="cancel" id="cfNo">취소</button><button class="danger-act" id="cfYes">삭제</button></div>
+</div>
 <div class="scrim" id="scrim"></div>
 <div class="modal" id="todoModal" role="dialog" aria-modal="true" aria-label="할일 추가">
   <h3>할일 추가</h3>
@@ -563,17 +952,20 @@ const $ = (id) => document.getElementById(id);
 const escapeHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const post = (p, body) => fetch(p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 let sessionAlive = false, busy = false, atBottom = true;
+// 칩·첨부 상태는 부트스트랩(setMode 등)보다 먼저 초기화돼야 한다 — let은 호이스팅돼도 TDZ라
+// 선언줄 이전에 읽으면 던지고, 그러면 이후 스크립트 전체가 중단된다(실제로 그런 사고가 있었다).
+let contextChips = [], attachments = [];   // attachments: {name, size, path, pending}
 
 /* ================= 데이터 (할일 + 일정) ================= */
-let dataVersion = 0, items = [], events = [], notes = [];
+let dataVersion = 0, items = [], events = [], notes = [], meetings = [];
 const proposals = new Map();
 async function refreshData() {
   let s;
   try { s = await (await fetch('/api/state')).json(); } catch { return; }
   dataVersion = s.version || 1;
-  items = s.items || []; events = s.events || []; notes = s.notes || [];
+  items = s.items || []; events = s.events || []; notes = s.notes || []; meetings = s.meetings || [];
   (s.proposals || []).forEach((p) => proposals.set(p.id, p));
-  renderTodos(); renderCalendar(); renderDay(); renderUpcoming(); renderMemos();
+  renderTodos(); renderCalendar(); renderDay(); renderUpcoming(); renderMemos(); renderMeetings();
   refreshPropCards();
 }
 
@@ -587,8 +979,8 @@ function renderTodos() {
   $('todoList').innerHTML = items.map((it) => `
     <div class="item card ${it.done ? 'done' : ''}" data-id="${escapeHtml(it.id)}" role="button" tabindex="0" aria-pressed="${!!it.done}">
       <span class="chk"><svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg></span>
-      <span class="body"><span class="title">${escapeHtml(it.title || it.text || '')}</span>${it.due ? `<span class="due"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${escapeHtml(it.due)}</span>` : ''}</span>
-      <button class="del" data-del="${escapeHtml(it.id)}" aria-label="삭제">✕</button>
+      <span class="body"><span class="title">${escapeHtml(it.title || it.text || '')}</span>${it.due ? `<span class="due"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${escapeHtml(it.due)}</span>` : ''}${it.by ? `<span class="itby">${byBadge(it.by)}</span>` : ''}</span>
+      ${isMine(it) ? `<button class="del" data-del="${escapeHtml(it.id)}" aria-label="삭제">✕</button>` : ''}
     </div>`).join('');
   $('todoEmpty').style.display = items.length ? 'none' : 'block';
 }
@@ -599,7 +991,11 @@ function toggleTodo(el) {
 }
 $('todoList').addEventListener('click', (e) => {
   const del = e.target.closest('[data-del]');
-  if (del) { post('/api/todo-remove', { id: del.dataset.del }).then(refreshData); return; }
+  if (del) {
+    const t = del.closest('.item')?.querySelector('.title')?.textContent || '이 할일';
+    confirmDelete(`할일 「${t}」`).then((ok) => { if (ok) post('/api/todo-remove', { id: del.dataset.del }).then(refreshData); });
+    return;
+  }
   // 완료 처리는 앞의 체크박스(.chk)를 눌렀을 때만 — 항목 본문 클릭으로는 체크되지 않는다
   if (e.target.closest('.chk')) { const el = e.target.closest('.item'); if (el) toggleTodo(el); }
 });
@@ -667,7 +1063,11 @@ $('dayList').addEventListener('click', (e) => {
     if (e.target.closest('[data-toggle]')) { post('/api/done', { id, done: !el.classList.contains('done') }).then((r) => { if (!r.ok) refreshData(); }); el.classList.toggle('done'); }
     return;
   }
-  if (e.target.closest('[data-del]')) { post('/api/event', { action: 'remove', id }).then(refreshData); return; }
+  if (e.target.closest('[data-del]')) {
+    const t = e.target.closest('.ev-item')?.querySelector('.etitle')?.textContent || '이 일정';
+    confirmDelete(`일정 「${t}」`).then((ok) => { if (ok) post('/api/event', { action: 'remove', id }).then(refreshData); });
+    return;
+  }
   if (e.target.closest('[data-toggle]')) { post('/api/event', { action: 'done', id, done: !el.classList.contains('done') }).then((r) => { if (!r.ok) refreshData(); }); el.classList.toggle('done'); return; }
 });
 
@@ -709,9 +1109,10 @@ function renderMemos() {
     const prev = (n.text || '').trim().replace(/\s+/g, ' ').slice(0, 60);
     const d = String(n.updatedAt || '').slice(0, 10);
     return `<div class="memo-item ${n.id === memoSel ? 'sel' : ''}" data-id="${escapeHtml(n.id)}" role="button" tabindex="0">
-      <div class="mtop"><span class="mt">${escapeHtml(title)}</span><button class="del" data-del="${escapeHtml(n.id)}" aria-label="메모 삭제">✕</button></div>
+      <div class="mtop"><span class="mt">${escapeHtml(title)}</span>${
+        isMine(n) ? `<button class="del" data-del="${escapeHtml(n.id)}" aria-label="메모 삭제">✕</button>` : ''}</div>
       ${prev ? `<div class="mp">${escapeHtml(prev)}</div>` : ''}
-      ${d ? `<div class="md">${escapeHtml(d)}</div>` : ''}
+      <div class="md">${d ? escapeHtml(d) : ''}${n.by ? ' · ' + escapeHtml(displayName(n.by)) : ''}</div>
     </div>`; }).join('');
   $('memoEmpty').style.display = list.length ? 'none' : 'block';
   fillMemoEditor();
@@ -753,7 +1154,11 @@ $('addMemoBtn').onclick = async () => {
 };
 function removeMemo(id) {
   if (memoSel === id) memoSel = null;
-  post('/api/note', { action: 'remove', id }).then((r) => { if (!r.ok) showErr('메모 삭제 실패'); refreshData(); }).catch(() => showErr('메모 삭제 실패'));
+  const t = (notes.find((n) => n.id === id) || {}).title || '제목 없는 메모';
+  confirmDelete(`메모 「${t}」`).then((ok) => {
+    if (!ok) return;
+    post('/api/note', { action: 'remove', id }).then((r) => { if (!r.ok) showErr('메모 삭제 실패'); refreshData(); }).catch(() => showErr('메모 삭제 실패'));
+  });
 }
 // 빈 메모 자동 정리(진화 #3): 편집기 이탈·탭 전환·다른 메모 선택 시 제목과 내용이 모두 빈 메모를 지운다.
 // 편집기에 떠 있는 메모는 저장 debounce(700ms)가 아직 안 돈 로컬 입력값 기준으로 판정한다.
@@ -824,21 +1229,552 @@ $('evoAnalyze').onclick = () => {
     .catch(() => showErr('분석 요청 실패')).finally(() => { b.disabled = false; b.textContent = orig; });
 };
 
+/* ---- 삭제 확인 팝업 ----
+   되돌릴 수 없는 삭제 앞에 한 번 세운다. 다른 모달 위에서도 뜨도록 별도 z-index를 쓴다. */
+function confirmDelete(what) {
+  return new Promise((resolve) => {
+    const box = $('confirmModal'), scrim = $('scrim');
+    $('cfBody').textContent = `${what} — 삭제하면 되돌릴 수 없습니다.`;
+    const wasOpen = modalCur;                    // 다른 모달 위에서 열렸는지 기억
+    scrim.classList.add('on', 'hard'); box.classList.add('on');
+    const done = (v) => {
+      box.classList.remove('on'); scrim.classList.remove('hard');
+      if (!wasOpen) scrim.classList.remove('on');
+      $('cfYes').onclick = $('cfNo').onclick = null;
+      document.removeEventListener('keydown', onKey);
+      resolve(v);
+    };
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); done(false); } };
+    document.addEventListener('keydown', onKey);
+    $('cfYes').onclick = () => done(true);
+    $('cfNo').onclick = () => done(false);
+    setTimeout(() => $('cfNo').focus(), 50);
+  });
+}
+
+/* ---- 미팅 ---- */
+// 주요 내용 안의 URL은 링크로 만든다(에스케이프 후 치환 — XSS 방지 순서 유지)
+function linkify(escaped) {
+  return escaped.replace(/https?:\/\/[^\s<>"']+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+}
+function renderMeetings() {
+  const list = [...meetings].sort((a, b) => (b.date + (b.time || '')).localeCompare(a.date + (a.time || '')));
+  $('meetEmpty').style.display = list.length ? 'none' : '';
+  $('meetMeta').textContent = list.length ? `${list.length}건` : '';
+  // 목록은 요약만 — 전체 회의록은 카드를 눌러 상세로 본다.
+  $('meetList').innerHTML = list.map((m) => {
+    const when = `${m.date}${m.time ? ' ' + m.time : ''}${m.endTime ? '–' + m.endTime : ''}`;
+    const cnt = [
+      (m.notes || []).length ? `내용 ${m.notes.length}` : '',
+      (m.decisions || []).length ? `결정 ${m.decisions.length}` : '',
+      (m.actions || []).length ? `액션 ${m.actions.length}` : '',
+      (m.photos || []).length ? `사진 ${m.photos.length}` : '',
+    ].filter(Boolean).join(' · ');
+    const first = (m.notes || [])[0] || '';
+    return `
+    <div class="meet card" data-open="${escapeHtml(m.id)}" role="button" tabindex="0">
+      <div class="meet-top">
+        <span class="meet-t">${escapeHtml(m.title)}</span>
+        ${isMine(m) ? `<button class="meet-del" data-del="${escapeHtml(m.id)}" aria-label="미팅 삭제">✕</button>` : ''}
+      </div>
+      <div class="meet-sub">${escapeHtml(when)}${m.place ? ' · ' + escapeHtml(m.place) : ''}</div>
+      ${first ? `<div class="meet-first">${escapeHtml(first)}</div>` : ''}
+      <div class="meet-foot">
+        ${(m.photos || []).slice(0, 3).map((f) =>
+          `<img src="/uploads/${encodeURIComponent(f.thumb || f.full)}" alt="" loading="lazy">`).join('')}
+        ${byBadge(m.by)}
+        <span class="sp"></span>
+        ${cnt ? `<span class="meet-cnt">${escapeHtml(cnt)}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  $('meetList').querySelectorAll('[data-open]').forEach((c) => {
+    const open = () => openMeeting(c.dataset.open);
+    c.onclick = open;
+    c.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } };
+  });
+  if (meetOpenId && meetings.some((m) => m.id === meetOpenId)) openMeeting(meetOpenId);   // 열린 상세도 최신으로
+  backfillThumbs(list);
+  $('meetList').querySelectorAll('[data-del]').forEach((b) => b.onclick = async (e) => {
+    e.stopPropagation();
+    const t = (meetings.find((m2) => m2.id === b.dataset.del) || {}).title || '이 미팅';
+    if (!(await confirmDelete(`미팅 「${t}」`))) return;
+    const r = await post('/api/meeting', { action: 'remove', id: b.dataset.del });
+    if (r.ok) refreshData(); else showErr('미팅 삭제 실패');
+  });
+
+}
+$('lightbox').onclick = () => { $('lightbox').classList.remove('on'); $('lightboxImg').src = ''; };
+$('newver').onclick = () => location.reload();
+
+/* ---- 미팅 상세(회의록 전문) ---- */
+let meetOpenId = null;
+// 댓글 한 줄 — 본인 것에만 수정·삭제, 최상위에만 답글 버튼.
+function cmtItem(c, isReply) {
+  const acts = [
+    !isReply ? `<button class="cr" data-reply="${escapeHtml(c.id)}" aria-label="답글">답글</button>` : '',
+    isMine(c) ? `<button class="ce" data-edit="${escapeHtml(c.id)}" aria-label="댓글 수정">수정</button>` : '',
+    isMine(c) ? `<button class="cx" data-cid="${escapeHtml(c.id)}" aria-label="댓글 삭제">삭제</button>` : '',
+  ].filter(Boolean).join('');
+  return `<li class="cmt${isReply ? ' reply' : ''}" data-cmt="${escapeHtml(c.id)}">
+    ${avatarHtml(c.by, 'sm')}
+    <div class="cb">
+      <div class="ct">${linkify(escapeHtml(c.text))}</div>
+      <div class="cw">${escapeHtml(displayName(c.by))} · ${escapeHtml(fmtWhen(c.at))}${c.editedAt ? ' · 수정됨' : ''}
+        <span class="cacts">${acts}</span></div>
+    </div></li>`;
+}
+// 저장은 평면(parent 포인터) — 화면에서만 1단 스레드로 묶는다.
+function cmtTree(list) {
+  const tops = list.filter((c) => !c.parent);
+  const kids = (id) => list.filter((c) => c.parent === id);
+  return tops.map((c) => cmtItem(c, false) + kids(c.id).map((r) => cmtItem(r, true)).join('')).join('');
+}
+const fmtWhen = (iso) => { try { return new Date(iso).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
+let editingCmt = null;   // 인라인 편집 중인 댓글 id
+function openMeeting(id) {
+  const m = meetings.find((x) => x.id === id);
+  if (!m) return;
+  if (editingCmt && meetOpenId === id) return;   // 편집 중 재렌더는 입력을 날려 버린다
+  const keepScroll = meetOpenId === id ? $('msBody').scrollTop : 0;   // 갱신 시 보던 위치 유지
+  meetOpenId = id;
+  const sec = (label, arr, cls) => (arr && arr.length
+    ? `<div class="meet-sec"><div class="meet-h">${label}</div><ul class="meet-notes ${cls || ''}">${
+        arr.map((n) => `<li>${linkify(escapeHtml(n))}</li>`).join('')}</ul></div>` : '');
+  const when = `${m.date}${m.time ? ' ' + m.time : ''}${m.endTime ? '–' + m.endTime : ''}`;
+  const meta = [['일시', when], ['장소', m.place || ''], ['참석자', (m.attendees || []).join(', ')],
+    ['작성자', m.by ? displayName(m.by) : '']].filter(([, v]) => v);
+  $('msTitle').textContent = m.title;
+  const mine = isMine(m);
+  $('msEdit').style.display = mine ? '' : 'none';
+  $('msDel').style.display = mine ? '' : 'none';
+  $('msBody').innerHTML = `
+    <dl class="meet-meta">${meta.map(([k, v]) => `<dt>${k}</dt><dd>${escapeHtml(v)}</dd>`).join('')}</dl>
+    ${sec('주요 내용', m.notes)}
+    ${sec('결정 사항', m.decisions, 'decide')}
+    ${(m.actions && m.actions.length) ? `<div class="meet-sec"><div class="meet-h">액션 아이템</div><ul class="meet-acts">${
+      m.actions.map((a) => `<li><span class="at">${linkify(escapeHtml(a.task))}</span>${
+        a.owner ? `<span class="ao">${escapeHtml(a.owner)}</span>` : ''}${
+        a.due ? `<span class="ad">~${escapeHtml(a.due)}</span>` : ''}</li>`).join('')}</ul></div>` : ''}
+    ${(m.photos && m.photos.length) ? `<div class="meet-sec"><div class="meet-h">사진</div><div class="meet-photos">${
+      m.photos.map((f) => `<img src="/uploads/${encodeURIComponent(f.thumb || f.full)}" data-full="/uploads/${encodeURIComponent(f.full)}" alt="${escapeHtml(m.title)} 사진" loading="lazy">`).join('')}</div></div>` : ''}
+    <div class="meet-sec"><div class="meet-h">댓글 ${(m.comments || []).length}</div>
+      ${(m.comments || []).length ? `<ul class="cmt-list">${cmtTree(m.comments)}</ul>`
+        : '<div class="cmt-none">아직 댓글이 없습니다</div>'}
+    </div>`;
+  $('msBody').querySelectorAll('.meet-photos img').forEach((img) => img.onclick = () => {
+    $('lightboxImg').src = img.dataset.full || img.src; $('lightbox').classList.add('on');   // 확대는 항상 원본
+  });
+  $('msBody').querySelectorAll('[data-cid]').forEach((b) => b.onclick = async () => {
+    const kids = (m.comments || []).filter((x) => x.parent === b.dataset.cid).length;
+    if (!(await confirmDelete(kids ? `이 댓글과 답글 ${kids}개` : '이 댓글'))) return;
+    const r = await post('/api/meeting', { action: 'comment-remove', id: m.id, cid: b.dataset.cid });
+    if (r.ok) refreshData(); else showErr('댓글 삭제 실패');
+  });
+  // 답글 — 해당 댓글 아래에 입력창을 편다
+  $('msBody').querySelectorAll('[data-reply]').forEach((b) => b.onclick = () => {
+    const li = b.closest('[data-cmt]'); if (!li) return;
+    if (li.nextElementSibling && li.nextElementSibling.classList.contains('cmt-reply-box')) return;
+    const box = document.createElement('li');
+    box.className = 'cmt-reply-box';
+    box.innerHTML = `<div class="cedit"><textarea class="ci" rows="2" placeholder="답글 입력" aria-label="답글 입력"></textarea>
+      <div class="cebar"><button class="cno">취소</button><button class="cok">등록</button></div></div>`;
+    li.after(box);
+    const ta = box.querySelector('.ci'); ta.focus();
+    editingCmt = `reply:${b.dataset.reply}`;
+    const done = () => { editingCmt = null; openMeeting(m.id); };
+    box.querySelector('.cno').onclick = done;
+    box.querySelector('.cok').onclick = async () => {
+      const text = ta.value.trim(); if (!text) { ta.focus(); return; }
+      const r = await post('/api/meeting', { action: 'comment', id: m.id, text, parent: b.dataset.reply });
+      if (!r.ok) { showErr((await r.json().catch(() => ({}))).error || '답글 등록 실패'); return; }
+      editingCmt = null; await refreshData();
+    };
+    ta.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); done(); }
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); box.querySelector('.cok').click(); }
+    });
+  });
+  // 인라인 수정 — 항목 자리에서 바로 고친다(모달을 또 띄우지 않는다)
+  $('msBody').querySelectorAll('[data-edit]').forEach((b) => b.onclick = () => {
+    const li = b.closest('[data-cmt]'); if (!li || li.querySelector('.cedit')) return;
+    const cur = (m.comments || []).find((x) => x.id === b.dataset.edit); if (!cur) return;
+    editingCmt = cur.id;                       // 갱신이 와도 편집 중인 항목은 다시 그리지 않는다
+    li.innerHTML = `<div class="cedit" style="width:100%">
+      <textarea class="ci" rows="2" aria-label="댓글 수정"></textarea>
+      <div class="cebar"><button class="cno">취소</button><button class="cok">저장</button></div></div>`;
+    const ta = li.querySelector('.ci');
+    ta.value = cur.text; ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+    const done = () => { editingCmt = null; openMeeting(m.id); };
+    li.querySelector('.cno').onclick = done;
+    li.querySelector('.cok').onclick = async () => {
+      const text = ta.value.trim();
+      if (!text) { ta.focus(); return; }
+      const r = await post('/api/meeting', { action: 'comment-update', id: m.id, cid: cur.id, text });
+      if (!r.ok) { showErr((await r.json().catch(() => ({}))).error || '댓글 수정 실패'); return; }
+      editingCmt = null; await refreshData();
+    };
+    ta.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); done(); }
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); li.querySelector('.cok').click(); }
+    });
+  });
+  shareData = {
+    title: `${m.title} 회의록`,
+    text: `${m.title} · ${m.date}${m.time ? ' ' + m.time : ''}`,
+    url: `${location.origin}/m/${m.id}`,
+  };
+  $('scrim').classList.add('on'); $('meetSheet').classList.add('on');
+  $('msBody').scrollTop = keepScroll;
+}
+async function addComment() {
+  const text = $('msCmt').value.trim();
+  if (!text || !meetOpenId) return;
+  $('msCmtAdd').disabled = true;
+  const r = await post('/api/meeting', { action: 'comment', id: meetOpenId, text });
+  $('msCmtAdd').disabled = false;
+  if (!r.ok) { const e = await r.json().catch(() => ({})); showErr(e.error || '댓글 등록 실패'); return; }
+  $('msCmt').value = '';
+  await refreshData();
+  $('msBody').scrollTop = $('msBody').scrollHeight;   // 방금 쓴 댓글이 보이게
+}
+$('msCmtAdd').onclick = addComment;
+$('msCmt').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); addComment(); } });
+$('msEdit').onclick = () => { if (meetOpenId) editMeeting(meetOpenId); };
+/* 공유 — /m/<id> 읽기 전용 페이지 링크. 이 경로에 자체 인증은 없으므로,
+   공개 배포라면 앞단 게이트웨이가 접근을 통제해야 한다. */
+let toastT = null;
+function toast(msg) {
+  $('toast').textContent = msg; $('toast').classList.add('on');
+  clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), 2200);
+}
+// 공유 데이터는 상세를 열 때 미리 만들어 둔다 — 클릭 핸들러가 첫 줄에서 바로 share()를 부르도록
+// 해서 사용자 제스처(transient activation)를 잃지 않게 하기 위함이다.
+let shareData = null;
+async function copyLink(url, why) {
+  try { await navigator.clipboard.writeText(url); toast(why ? `${why} — 링크 복사됨` : '링크를 복사했습니다'); }
+  catch { showErr(`공유 링크: ${url}`); }
+}
+$('msShare').onclick = () => {
+  const d = shareData; if (!d) return;
+  if (!navigator.share) { copyLink(d.url, '이 브라우저는 공유 시트 미지원'); return; }
+  // 일부 환경은 title+text+url 조합을 거부한다 → 동기적으로 payload를 고른다(비동기 재시도는 제스처가 끊긴다).
+  const payload = (navigator.canShare && !navigator.canShare(d)) ? { url: d.url } : d;
+  navigator.share(payload).catch((e) => {
+    if (e && e.name === 'AbortError') return;                 // 사용자가 시트를 닫음 — 오류 아님
+    copyLink(d.url, `공유 시트 실패(${(e && e.name) || 'unknown'})`);
+  });
+};
+function closeMeeting() { meetOpenId = null; shareData = null; $('meetSheet').classList.remove('on'); if (!modalCur) $('scrim').classList.remove('on'); }
+$('msClose').onclick = closeMeeting;
+$('msDel').onclick = async () => {
+  const m = meetings.find((x) => x.id === meetOpenId); if (!m) return;
+  if (!(await confirmDelete(`미팅 「${m.title}」`))) return;
+  const r = await post('/api/meeting', { action: 'remove', id: m.id });
+  if (r.ok) { closeMeeting(); refreshData(); } else showErr('미팅 삭제 실패');
+};
+
+/* ---- 썸네일 ----
+   서버에 이미지 라이브러리가 없어(무의존성 유지) 리사이즈는 브라우저 canvas가 맡는다.
+   카드에는 썸네일, 확대할 때만 원본을 받는다. */
+const THUMB_MAX = 640;
+function makeThumb(blob) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, THUMB_MAX / Math.max(img.width, img.height));
+      if (scale === 1 && blob.size < 300 * 1024) { URL.revokeObjectURL(url); return resolve(null); } // 이미 충분히 작다
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob((b) => resolve(b), 'image/jpeg', 0.82);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;   // EXIF 회전은 브라우저가 알아서 반영한다
+  });
+}
+const blobToBase64 = (b) => new Promise((ok, no) => {
+  const r = new FileReader();
+  r.onload = () => ok(String(r.result).replace(/^data:[^,]*,/, ''));
+  r.onerror = () => no(new Error('썸네일 인코딩 실패'));
+  r.readAsDataURL(b);
+});
+async function uploadThumb(blob, baseName) {
+  const data = await blobToBase64(blob);
+  const r = await post('/api/upload', { name: `thumb-${baseName.replace(/\.[^.]+$/, '')}.jpg`, type: 'image/jpeg', data });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || '썸네일 업로드 실패');
+  return String(j.path).split('/').pop();
+}
+// 썸네일 없이 등록된 사진(예: 에이전트가 직접 넣은 것)을 화면이 한 번 보정해 준다.
+const thumbTried = new Set();
+async function backfillThumbs(list) {
+  for (const m of list) {
+    for (const ph of m.photos || []) {
+      if (!ph || ph.thumb || thumbTried.has(ph.full)) continue;
+      thumbTried.add(ph.full);
+      try {
+        const blob = await (await fetch(`/uploads/${encodeURIComponent(ph.full)}`)).blob();
+        if (!blob.type.startsWith('image/')) continue;
+        const th = await makeThumb(blob);
+        if (!th) continue;
+        const name = await uploadThumb(th, ph.full);
+        await post('/api/meeting', { action: 'thumb', id: m.id, full: ph.full, thumb: name });
+        refreshData();
+      } catch { /* 실패하면 원본으로 계속 보여 준다 */ }
+    }
+  }
+}
+
+/* ---- 회의록 작성 모달 ---- */
+let meetPhotos = [];   // {name, full, thumb, pending}
+function renderMeetPhotos() {
+  $('mPhotoList').innerHTML = meetPhotos.map((p2, i) =>
+    `<span class="pp${p2.pending ? ' up' : ''}">${escapeHtml(p2.name)}<button data-i="${i}" aria-label="사진 제거">${XSVG}</button></span>`).join('');
+  $('mPhotoList').querySelectorAll('button').forEach((b) => b.onclick = () => { meetPhotos.splice(+b.dataset.i, 1); renderMeetPhotos(); });
+}
+$('mPhotoBtn').onclick = () => $('mPhotoInput').click();
+$('mPhotoInput').addEventListener('change', async () => {
+  const files = Array.from($('mPhotoInput').files || []); $('mPhotoInput').value = '';
+  for (const f of files) {
+    if (f.size > MAX_UPLOAD) { showErr(`${f.name}: ${fmtSize(f.size)} — 10MB를 넘습니다`); continue; }
+    const item = { name: f.name, full: '', thumb: '', pending: true };
+    meetPhotos.push(item); renderMeetPhotos();
+    try {
+      const r = await post('/api/upload', { name: f.name, type: f.type || '', data: await readAsBase64(f) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || '업로드 실패');
+      item.full = String(j.path).split('/').pop();
+      const th = await makeThumb(f);                       // 카드용 축소본
+      if (th) { try { item.thumb = await uploadThumb(th, item.full); } catch {} }
+      item.pending = false;
+    } catch (e) { meetPhotos = meetPhotos.filter((x) => x !== item); showErr(`사진 업로드 실패 — ${e.message}`); }
+    renderMeetPhotos();
+  }
+});
+let meetEditId = null;   // null이면 새 회의록, 아니면 수정 중인 미팅 id
+$('addMeetBtn').onclick = () => {
+  meetEditId = null; meetPhotos = []; renderMeetPhotos();
+  ['mTitle', 'mTime', 'mEnd', 'mPlace', 'mAttend', 'mNotes', 'mDecide', 'mActions'].forEach((k) => { $(k).value = ''; });
+  $('mDate').value = new Date().toLocaleDateString('sv-SE');   // 로컬 기준 YYYY-MM-DD
+  $('meetModal').querySelector('h3').textContent = '회의록 작성';
+  $('mSave').textContent = '추가';
+  openModal('meetModal'); $('mTitle').focus();
+};
+// 액션 아이템을 다시 편집 가능한 한 줄 표기로 되돌린다(파싱의 역방향)
+const actionToLine = (a) => [a.task, a.owner ? '@' + a.owner : '', a.due ? '~' + a.due : ''].filter(Boolean).join(' ');
+function editMeeting(id) {
+  const m = meetings.find((x) => x.id === id);
+  if (!m) return;
+  meetEditId = id;
+  meetPhotos = (m.photos || []).map((f) => ({ name: f.full.replace(/^\d{14}-[0-9a-f]{6}-/, ''), full: f.full, thumb: f.thumb || '', pending: false }));
+  renderMeetPhotos();
+  $('mTitle').value = m.title || ''; $('mDate').value = m.date || '';
+  $('mTime').value = m.time || ''; $('mEnd').value = m.endTime || '';
+  $('mPlace').value = m.place || ''; $('mAttend').value = (m.attendees || []).join(', ');
+  $('mNotes').value = (m.notes || []).join('\n');
+  $('mDecide').value = (m.decisions || []).join('\n');
+  $('mActions').value = (m.actions || []).map(actionToLine).join('\n');
+  $('meetModal').querySelector('h3').textContent = '회의록 수정';
+  $('mSave').textContent = '저장';
+  openModal('meetModal'); $('mTitle').focus();
+}
+// "작업 @담당자 ~기한" 한 줄을 액션 아이템으로 쪼갠다. 표기가 없으면 전체가 작업이 된다.
+function parseAction(line) {
+  let task = line, owner = '', due = '';
+  task = task.replace(/~(\S+)/, (_, d) => { due = d; return ''; });
+  task = task.replace(/@(\S+)/, (_, o) => { owner = o; return ''; });
+  return { task: task.replace(/\s+/g, ' ').trim(), owner, due };
+}
+$('mSave').onclick = async () => {
+  const title = $('mTitle').value.trim(); const date = $('mDate').value;
+  if (!title) { $('mTitle').focus(); return; } if (!date) { $('mDate').focus(); return; }
+  if (meetPhotos.some((p2) => p2.pending)) { showErr('사진 업로드가 끝나면 저장됩니다 — 잠시만요'); return; }
+  const rows = (id) => $(id).value.split('\n').map((x) => x.trim()).filter(Boolean);
+  const body = {
+    action: 'add', title, date,
+    place: $('mPlace').value.trim(),
+    attendees: $('mAttend').value.split(',').map((x) => x.trim()).filter(Boolean),
+    notes: rows('mNotes'),
+    decisions: rows('mDecide'),
+    actions: rows('mActions').map(parseAction).filter((a) => a.task),
+    photos: meetPhotos.filter((p2) => p2.full).map((p2) => ({ full: p2.full, thumb: p2.thumb })),
+  };
+  if ($('mTime').value) body.time = $('mTime').value;
+  if ($('mEnd').value) body.endTime = $('mEnd').value;
+  if (meetEditId) { body.action = 'update'; body.id = meetEditId; }
+  const r = await post('/api/meeting', body);
+  if (r.ok) { const edited = meetEditId; meetEditId = null; closeModal(); await refreshData(); if (edited) openMeeting(edited); }
+  else { const e = await r.json().catch(() => ({})); showErr(e.error || (meetEditId ? '회의록 저장 실패' : '미팅 추가 실패')); }
+};
+
+/* ================= 계정 =================
+   신원은 서버가 앞단 프록시 헤더에서 읽어 /api/me로 알려준다(ANA_IDENTITY_HEADER).
+   미설정이면 단일 사용자 모드 — signedIn이 false이고 작성자 배지는 표시되지 않는다. */
+let me = { email: '', name: 'ANA', avatar: '' }, signedIn = false, userMap = {}, logoutUrl = '', meVia = '';
+const initial = (nameOrMail) => (String(nameOrMail || '?').trim()[0] || '?').toUpperCase();
+function avatarHtml(email, cls) {
+  const u = userMap[email] || (email === me.email ? me : null);
+  const name = (u && u.name) || (email ? email.split('@')[0] : 'ANA');
+  const av = u && u.avatar;
+  return `<span class="av ${cls || ''}">${av ? `<img src="/uploads/${encodeURIComponent(av)}" alt="">` : escapeHtml(initial(name))}</span>`;
+}
+const displayName = (email) => (userMap[email] && userMap[email].name) || (email ? email.split('@')[0] : 'ANA');
+// 항목 하단에 붙는 작성자 배지 — 작성자가 없는 과거 항목은 표시하지 않는다.
+const byBadge = (email) => (email ? `<span class="by">${avatarHtml(email)}${escapeHtml(displayName(email))}</span>` : '');
+const isMine = (rec) => !rec || !rec.by || rec.by === me.email;
+
+async function loadMe() {
+  try {
+    const r = await fetch('/api/me'); const j = await r.json();
+    signedIn = !!j.signedIn; me = j.me || me; logoutUrl = j.logoutUrl || '';
+    // via: single = 단일 사용자 모드 / header = 신원 확인됨 / missing = 헤더 이름은 설정됐는데 요청에 없음
+    meVia = j.via || '';
+  } catch {}
+  try { (await (await fetch('/api/users')).json()).users.forEach((u) => { userMap[u.email] = u; }); } catch {}
+  if (me.email) userMap[me.email] = me;
+  $('meBtn').innerHTML = avatarHtml(me.email);
+  $('meBtn').title = signedIn ? `${me.name} · ${me.email}`
+    : (meVia === 'missing' ? '신원 헤더가 요청에 없습니다 — 앞단 프록시 설정을 확인하세요' : '단일 사용자 모드');
+  $('meLogout').style.display = logoutUrl ? '' : 'none';   // 로그아웃 경로는 앞단이 정한다
+  renderTodos(); renderMeetings(); renderMemos(); renderUpcoming();
+}
+$('meBtn').onclick = () => {
+  $('meMail').textContent = signedIn ? me.email : '계정 정보를 찾을 수 없습니다';
+  $('meName').value = me.name || '';
+  $('mePic').innerHTML = avatarHtml(me.email, 'lg');
+  openModal('meModal');
+};
+$('mePic').onclick = () => $('meFile').click();
+$('meFile').addEventListener('change', async () => {
+  const f = ($('meFile').files || [])[0]; $('meFile').value = '';
+  if (!f) return;
+  if (f.size > MAX_UPLOAD) { showErr('사진이 10MB를 넘습니다'); return; }
+  try {
+    const th = await makeThumb(f) || f;                       // 아바타는 축소본이면 충분하다
+    const name = await uploadThumb(th, f.name || 'avatar.jpg');
+    const r = await post('/api/me', { avatar: name });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || '저장 실패');
+    me = { ...me, avatar: name }; userMap[me.email] = me;
+    await loadMe();
+    $('mePic').innerHTML = avatarHtml(me.email, 'lg');
+  } catch (e) { showErr(`프로필 사진 실패 — ${e.message}`); }
+});
+$('meSave').onclick = async () => {
+  const r = await post('/api/me', { name: $('meName').value.trim() });
+  if (!r.ok) { showErr((await r.json().catch(() => ({}))).error || '저장 실패'); return; }
+  closeModal(); await loadMe();
+  if ($('memberView').classList.contains('on')) renderMembers();
+};
+// 로그아웃은 앞단 게이트웨이의 몫 — ANA_LOGOUT_URL이 설정된 배포에서만 버튼이 보인다.
+$('meLogout').onclick = () => { if (logoutUrl) location.href = logoutUrl; };
+
+/* ================= 멤버 ================= */
+async function renderMembers() {
+  let d;
+  try { d = await (await fetch('/api/members')).json(); }
+  catch { $('memList').innerHTML = '<div class="empty">멤버를 불러오지 못했습니다</div>'; return; }
+  const list = d.members || [];
+  list.forEach((m2) => { userMap[m2.email] = { email: m2.email, name: m2.name, avatar: m2.avatar }; });
+  $('memMeta').textContent = list.length ? `${list.length}명` : '';
+  $('memEmpty').style.display = list.length ? 'none' : '';
+  const KO = { 'chat.send': '채팅', 'todo.add': '할일 추가', 'meeting.add': '미팅 추가', 'meeting.update': '미팅 수정',
+    'comment.add': '댓글', 'note.add': '메모 추가', 'profile.update': '프로필 수정' };
+  const c = (n, l) => (n ? `<span class="mem-tag">${l} ${n}</span>` : '');
+  $('memList').innerHTML = list.map((m2) => `
+    <div class="mem card">
+      ${avatarHtml(m2.email)}
+      <div class="mem-b">
+        <div class="mem-n"><b>${escapeHtml(m2.name)}</b>
+          ${m2.email === d.me ? '<span class="mem-tag me">나</span>' : ''}
+          ${m2.email === 'ana' ? '<span class="mem-tag bot">에이전트</span>' : ''}
+          ${m2.customized ? '<span class="mem-tag on">프로필 설정함</span>' : (m2.registered ? '<span class="mem-tag">기본 프로필</span>' : '')}
+        </div>
+        ${m2.email !== 'ana' ? `<div class="mem-mail">${escapeHtml(m2.email)}</div>` : ''}
+        <div class="mem-tags">${c(m2.counts.todos, '할일')}${c(m2.counts.meetings, '미팅')}${c(m2.counts.notes, '메모')}${
+          c(m2.counts.events, '일정')}${c(m2.counts.comments, '댓글')}${c(m2.counts.chats, '채팅')}</div>
+        <div class="mem-when">${m2.lastAt ? `최근 활동 ${escapeHtml(fmtWhen(m2.lastAt))} · ${escapeHtml(KO[m2.lastAction] || m2.lastAction)}` : '활동 없음'}${
+          m2.profileUpdatedAt ? ` · 프로필 수정 ${escapeHtml(fmtWhen(m2.profileUpdatedAt))}` : ''}</div>
+      </div>
+      <div class="mem-act"><div class="n">${m2.activity}</div><div class="l">활동</div></div>
+    </div>`).join('');
+}
+
+/* ================= 통계 ================= */
+let statSeg = 'mine';
+document.querySelectorAll('#statSeg button').forEach((b) => b.onclick = () => {
+  document.querySelectorAll('#statSeg button').forEach((x) => x.classList.toggle('on', x === b));
+  statSeg = b.dataset.seg; renderStats();
+});
+async function renderStats() {
+  let d, act;
+  try {
+    d = await (await fetch('/api/stats')).json();
+    act = await (await fetch(`/api/activity${statSeg === 'mine' ? '?mine=1' : ''}`)).json();
+  } catch { $('statBody').innerHTML = '<div class="empty">통계를 불러오지 못했습니다</div>'; return; }
+  const tile = (n, l) => `<div class="stat card"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+  if (statSeg === 'mine') {
+    const m = d.mine;
+    $('statBody').innerHTML = !m
+      ? '<div class="empty">계정 정보를 찾을 수 없어 내 통계를 만들 수 없습니다</div>'
+      : `<div class="stat-grid">${tile(m.total || 0, '전체 활동')}${tile(m.today || 0, '오늘 활동')}${
+          tile(m.todos || 0, '내 할일')}${tile(m.meetings || 0, '내 미팅')}${tile(m.notes || 0, '내 메모')}${
+          tile((m.actions && m.actions['chat.send']) || 0, '내 채팅')}</div>`;
+  } else {
+    const a = d.all, max = Math.max(1, ...a.days.map((x) => x.count));
+    $('statBody').innerHTML = `
+      <div class="stat-grid">${tile(a.total, '전체 활동')}${tile(a.people.length, '참여자')}${
+        tile(a.todos, '할일')}${tile(a.meetings, '미팅')}${tile(a.notes, '메모')}${tile(a.actions['chat.send'] || 0, '채팅')}</div>
+      <div class="card spark" title="최근 14일 활동">${a.days.map((x) =>
+        `<i class="${x.count === max && max > 0 ? 'hi' : ''}" style="height:${Math.round((x.count / max) * 100)}%" title="${x.date} · ${x.count}"></i>`).join('')}</div>
+      <div class="people">${a.people.map((pp) => `
+        <div class="person card">${avatarHtml(pp.by)}<span class="pn">${escapeHtml(pp.name)}</span>
+          <span class="bar"><span style="width:${Math.round((pp.total / Math.max(1, a.people[0].total)) * 100)}%"></span></span>
+          <span class="pc">${pp.total}</span></div>`).join('')}</div>`;
+  }
+  const ACT_KO = { 'todo.add': '할일 추가', 'todo.remove': '할일 삭제', 'todo.done': '할일 완료', 'todo.undone': '완료 해제',
+    'note.add': '메모 추가', 'note.remove': '메모 삭제', 'event.add': '일정 추가', 'event.remove': '일정 삭제',
+    'meeting.add': '미팅 추가', 'meeting.update': '미팅 수정', 'meeting.remove': '미팅 삭제',
+    'comment.add': '댓글', 'comment.remove': '댓글 삭제', 'chat.send': '채팅', 'profile.update': '프로필' };
+  $('actList').innerHTML = (act.activity || []).slice(0, 60).map((a) => `
+    <div class="act-row card">${avatarHtml(a.by, 'sm')}<span class="aa">${escapeHtml(ACT_KO[a.action] || a.action)}</span>
+      <span class="at2">${escapeHtml(a.target || '')}</span><span class="aw">${escapeHtml(fmtWhen(a.at))}</span></div>`).join('')
+    || '<div class="empty">활동 기록이 없습니다</div>';
+}
+
 /* ================= 탭 전환 ================= */
 document.querySelectorAll('.topnav .tab').forEach((b) => {
   b.onclick = () => {
     if ($('memoView').classList.contains('on') && b.dataset.view !== 'memo') cleanupEmptyMemos(); // 메모 탭 이탈 시 빈 메모 정리(진화 #3)
     document.querySelectorAll('.topnav .tab').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
-    ['todo', 'schedule', 'memo', 'evolve'].forEach((v) => $(v + 'View').classList.toggle('on', b.dataset.view === v));
+    ['todo', 'schedule', 'meeting', 'memo', 'member', 'stats', 'evolve'].forEach((v) => $(v + 'View').classList.toggle('on', b.dataset.view === v));
     if (b.dataset.view === 'evolve') refreshEvolve();
+    if (b.dataset.view === 'stats') renderStats();
+    if (b.dataset.view === 'member') renderMembers();
   };
 });
 
 /* ================= 모달 (수동 추가) ================= */
 let modalCur = null;
 function openModal(id) { modalCur = id; $('scrim').classList.add('on'); $(id).classList.add('on'); const inp = $(id).querySelector('input'); if (inp) setTimeout(() => inp.focus(), 50); }
-function closeModal() { if (!modalCur) return; $('scrim').classList.remove('on'); $(modalCur).classList.remove('on'); modalCur = null; }
-$('scrim').onclick = closeModal;
+function closeModal() {
+  if (!modalCur) return;
+  $(modalCur).classList.remove('on'); modalCur = null;
+  if (!$('meetSheet').classList.contains('on')) $('scrim').classList.remove('on');   // 상세 시트가 남아 있으면 스크림 유지
+}
+$('scrim').onclick = () => {
+  if ($('confirmModal').classList.contains('on')) return;   // 확인 창이 떠 있으면 뒤쪽을 건드리지 않는다
+  if ($('meetSheet').classList.contains('on')) closeMeeting();
+  closeModal();
+};
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if ($('lightbox').classList.contains('on')) { $('lightbox').classList.remove('on'); $('lightboxImg').src = ''; return; }
+  if ($('confirmModal').classList.contains('on')) return;   // 확인 창은 자체 핸들러가 처리
+  if ($('meetSheet').classList.contains('on')) closeMeeting();
+});
 document.querySelectorAll('[data-close]').forEach((b) => b.onclick = closeModal);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalCur) closeModal(); });
 $('addTodoBtn').onclick = () => { $('tTitle').value = ''; $('tDue').value = weekLater(); openModal('todoModal'); };
@@ -883,10 +1819,28 @@ $('eSave').onclick = async () => {
   h.addEventListener('pointerup', end); h.addEventListener('pointercancel', end);
 })();
 
+/* ===== 모바일 키보드 대응 =====
+   iOS는 키보드가 뜰 때 layout viewport를 그대로 두고 visual viewport만 줄인다.
+   position:fixed인 전체화면 채팅은 layout viewport에 붙으므로 컴포저가 키보드 뒤로 숨는다.
+   가려지는 높이를 --kb로 노출해 채팅 높이에서 빼준다. */
+(() => {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const apply = () => {
+    const hidden = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+    document.documentElement.style.setProperty('--kb', hidden + 'px');
+  };
+  vv.addEventListener('resize', apply);
+  vv.addEventListener('scroll', apply);
+  apply();
+})();
+
 /* ================= ANA 상태 패널 ================= */
 let srvConnected = false, health = null;
+// 세션 생존 판정 단일 소스 — health가 오기 전에는 SSE의 sessionAlive를 쓴다.
+function sesAlive() { return health ? health.session : sessionAlive; }
 function renderStatus() {
-  const ses = health ? health.session : sessionAlive;
+  const ses = sesAlive();
   const shell = /^-?(zsh|bash|sh|fish|dash|ksh|tcsh|csh|login)$/.test((health && health.command) || '');
   const agentOk = ses && health && health.command && !shell;
   // 상단 연결 pill: 코딩 에이전트 연결 여부만 표시
@@ -901,9 +1855,7 @@ function renderStatus() {
     : 'Connecting…';
   $('typing').classList.toggle('on', busy);
   $('fab').classList.toggle('busy', ses && busy);
-  $('send').disabled = !ses;
-  $('ctrlc').disabled = !ses;
-  $('ctrlc').style.display = ses && busy ? '' : 'none'; // 중단 버튼은 처리 중일 때만
+  updateSendMode();
   updateDialog(!!(health && health.dialog) && ses);   // 터미널에 확인 창이 열렸는지
 }
 // 터미널 다이얼로그(권한 프롬프트·/remote-control 등)가 열리면 채팅에 안내 카드 표시.
@@ -928,8 +1880,18 @@ function extractDialog(screen) {
   const region = (sep >= 0 ? lines.slice(sep + 1) : lines.slice(-10));
   return region.map((l) => l.replace(/\s+$/, '')).filter((l) => l.trim()).join('\n').trim();
 }
-async function pollHealth() { try { health = await (await fetch('/api/health')).json(); } catch { health = null; } renderStatus(); }
+// 이 페이지가 로드된 시점의 빌드. 서버 값이 달라지면 열어 둔 탭이 옛 코드라는 뜻이다.
+let bootBuild = null;
+async function pollHealth() {
+  try { health = await (await fetch('/api/health')).json(); } catch { health = null; }
+  if (health && health.build) {
+    if (!bootBuild) bootBuild = health.build;
+    else if (health.build !== bootBuild) $('newver').classList.add('on');
+  }
+  renderStatus();
+}
 setInterval(() => { if (!document.hidden) pollHealth(); }, 5000); pollHealth();
+loadMe();   // 앞단이 넘겨준 신원 → 아바타·작성자 표시 (없으면 단일 사용자)
 
 /* tmux 세션 연결 설정 — 서버를 먼저 띄우고 여기서 세션을 고르면 /api/config로 즉시 재연결 */
 const cfgPanel = $('tmuxCfg');
@@ -981,11 +1943,22 @@ function propCard(pid, text) {
     <div class="state">${st === 'applied' ? '✓ 적용됨' : '거절됨'}</div></div>`;
 }
 function refreshPropCards() { document.querySelectorAll('[data-prop]').forEach((el) => { const pid = Number(el.dataset.prop); const pt = el.querySelector('.pt'); el.innerHTML = propCard(pid, pt ? pt.textContent : '변경 제안'); }); }
+// 서버가 주입 시 붙이는 보낸사람 표기 — 화면에서는 떼고 작은 배지로 보여 준다.
+const ID_PREFIX = /^\[([^\]·]{1,40})·([^\]\s]{3,80})\]\s*/;
+const stripSender = (t) => String(t).replace(ID_PREFIX, '');
+const senderOf = (t) => { const m = ID_PREFIX.exec(String(t)); return m ? { name: m[1], email: m[2] } : null; };
 const msgHtml = (m) => {
   const seq = m.seq ? ` data-seq="${m.seq}"` : '';
   if (m.role === 'proposal' && m.pid) return `<div${seq} data-prop="${m.pid}" style="display:contents">${propCard(m.pid, m.text)}</div>`;
   if (m.role === 'tool') return `<div class="act tool"${seq}>${escapeHtml(m.text)}</div>`;
   if (m.role === 'toolresult') return `<div class="act toolresult"${seq}>${escapeHtml(m.text)}</div>`;
+  if (m.role === 'user') {
+    const who2 = senderOf(m.text);
+    // 보낸 사람이 나 자신이면 배지는 군더더기다 — 남이 보낸 것만 표시한다.
+    const tag = who2 && who2.email !== me.email
+      ? `<span class="msg-by">${avatarHtml(who2.email, 'sm')}${escapeHtml(who2.name)}</span>` : '';
+    return `<div class="msg user"${seq}>${tag}${escapeHtml(stripSender(m.text))}</div>`;
+  }
   return `<div class="msg ${m.role}"${seq}>${escapeHtml(m.text)}</div>`;
 };
 $('feed').addEventListener('click', (e) => {
@@ -1005,7 +1978,8 @@ function renderPending(list) {
     let el = box.children[i];
     if (!el) { el = document.createElement('div'); box.appendChild(el); }
     if (el.dataset.role !== m.role) { el.className = cls(m); el.dataset.role = m.role; }
-    if (el.textContent !== m.text) el.textContent = m.text;
+    const t = m.role === 'user' ? stripSender(m.text) : m.text;
+    if (el.textContent !== t) el.textContent = t;
   });
 }
 // 커밋 직후 다음 pending 이벤트가 오기 전까지 같은 내용이 이중으로 보이는 것을 막는다.
@@ -1124,7 +2098,9 @@ function reconcile() {
   const recent = $('msgs').querySelectorAll('.msg.user');
   for (let i = Math.max(0, recent.length - 6); i < recent.length; i++) server.push(normWs(recent[i].textContent));
   optim = optim.filter((o) => {
-    if (server.includes(normWs(o.sendText))) { o.el.remove(); return false; } // 원장 에코 확인 → 수신 확정
+    // 서버가 [이름·이메일]을 앞에 붙여 주입하므로 그 표기를 떼고 비교해야 에코가 매칭된다.
+    const want = normWs(o.sendText);
+    if (server.some((t) => t === want || normWs(stripSender(t)) === want)) { o.el.remove(); return false; }
     if (o.state === 'sent' && Date.now() - o.t > 12000) setOptimState(o, 'unconfirmed');
     return true;
   });
@@ -1132,7 +2108,9 @@ function reconcile() {
 setInterval(reconcile, 3000); // SSE 이벤트가 없어도 미확인 판정이 굴러가게
 async function send() {
   const raw = $('input').value.trim();
-  if (!raw && !contextChips.length) return;
+  const files = attachments.filter((a) => a.path);
+  if (attachments.some((a) => a.pending)) { showErr('첨부 업로드가 끝나면 전송됩니다 — 잠시만요'); return; }
+  if (!raw && !contextChips.length && !files.length) return;
   const text = buildMessage(raw);  // 컨텍스트 칩을 본문 앞에 붙임
   $('errbar').style.display = 'none'; atBottom = true;
   // 실패해도 말풍선의 재전송 버튼으로 복구되므로 입력창은 즉시 비운다.
@@ -1140,15 +2118,39 @@ async function send() {
   // 웹에서는 항상 force로 전송한다. capture-pane -p가 흐림 서식을 버려서 Claude Code의
   // 고스트 자동완성을 '작성 중 draft'로 오인해 막던 문제(remote-C1 오탐)를 근본 차단.
   // force는 주입 전 Ctrl-U로 입력줄을 비우므로 고스트/기존 입력에 붙지 않고 깨끗이 덮어쓴다.
-  await postChat(addOptimistic(raw || '(컨텍스트 전송)', text));
+  const label = raw || (files.length ? `(첨부 ${files.length}개 전송)` : '(컨텍스트 전송)');
+  await postChat(addOptimistic(label, text));
 }
-$('send').onclick = () => send();
+// 전송 버튼은 상황에 따라 정지 버튼이 된다(클로드 동작):
+//   작업 중 + 입력창이 비어 있음 → ■ 정지(ctrl-c). 그 외 → ↑ 전송.
+// 입력 중에는 전송이 우선이므로, 그때만 별도 '중단' pill을 남겨 인터럽트 경로를 유지한다.
+const SEND_GLYPH = '↑';
+const STOP_GLYPH = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>';
+function stopMode() {
+  return sesAlive() && busy && !$('input').value.trim() && !contextChips.length && !attachments.length;
+}
+function updateSendMode() {
+  const b = $('send'), stop = stopMode();
+  b.disabled = !sesAlive();
+  if (b.classList.contains('stop') !== stop) b.innerHTML = stop ? STOP_GLYPH : SEND_GLYPH;
+  b.classList.toggle('stop', stop);
+  b.title = stop ? '작업 중단' : '전송';
+  b.setAttribute('aria-label', b.title);
+  $('ctrlc').disabled = !sesAlive();
+  $('ctrlc').style.display = sesAlive() && busy && !stop ? '' : 'none';
+}
+function interrupt() {
+  return post('/api/keys', { key: 'ctrl-c' })
+    .then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || '중단 실패')).catch(() => {}); })
+    .catch(() => showErr('중단 실패'));
+}
+$('send').onclick = () => (stopMode() ? interrupt() : send());
 $('input').addEventListener('keydown', (e) => {
   if (e.isComposing || e.keyCode === 229) return;
   if (e.key === 'Tab' && !e.shiftKey && ghostActive()) { e.preventDefault(); $('input').value = draftNow; $('input').setSelectionRange(draftNow.length, draftNow.length); autoGrow(); updateGhost(); return; }
   if (e.key === 'Enter' && !e.shiftKey && !isTouch) { e.preventDefault(); send(); }
 });
-$('input').addEventListener('input', () => { autoGrow(); updateGhost(); });
+$('input').addEventListener('input', () => { autoGrow(); updateGhost(); updateSendMode(); });
 // 특수키 버튼(중단 + 다이얼로그 응답 키). 중단은 확인 팝업 없이 즉시 전송.
 document.querySelectorAll('[data-key]').forEach((b) => {
   b.onclick = () => post('/api/keys', { key: b.dataset.key })
@@ -1156,15 +2158,29 @@ document.querySelectorAll('[data-key]').forEach((b) => {
     .catch(() => showErr('키 전송 실패'));
 });
 
-/* 컨텍스트 칩 상태 — 선언은 여기(모드보다 위)에 둔다.
-   아래 setMode() 부트스트랩이 clearChips()를 거쳐 이 값을 건드리므로, 칩 섹션에서 선언하면
-   "Cannot access 'contextChips' before initialization"(TDZ)이 나고 그 예외가 스크립트 나머지를
-   통째로 중단시켜 화면의 버튼이 전부 죽는다. */
-let contextChips = [];
-
 /* ================= 모드 (일반 / ANA) ================= */
+// 화면을 덮는 레이어를 한 번에 걷어낸다. 모드 전환처럼 맥락이 바뀔 때 호출한다.
+function closeOverlays() {
+  if (typeof closeMeeting === 'function') closeMeeting();
+  closeModal();
+  $('lightbox').classList.remove('on'); $('lightboxImg').src = '';
+  $('confirmModal').classList.remove('on');
+  $('scrim').classList.remove('on', 'hard');
+}
+// 안전망: 스크림만 남아 화면 전체가 클릭을 먹는 상태를 자가 복구한다.
+// (예전에 이런 잔류가 실제로 있었다 — 어느 경로로 새든 여기서 끊는다.)
+function scrimWatchdog() {
+  const scrim = $('scrim');
+  if (!scrim.classList.contains('on')) return;
+  const owner = modalCur || $('meetSheet').classList.contains('on') || $('confirmModal').classList.contains('on');
+  if (!owner) scrim.classList.remove('on', 'hard');
+}
+setInterval(scrimWatchdog, 1000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) scrimWatchdog(); });
+
 function setMode(m) {
   const ana = m === 'ana';
+  closeOverlays();                       // 모드가 바뀌면 열려 있던 레이어는 맥락을 잃는다
   document.body.classList.toggle('ana-mode', ana);
   $('modeToggle').setAttribute('aria-checked', ana);
   if (!ana) {
@@ -1174,29 +2190,88 @@ function setMode(m) {
   try { localStorage.setItem('ana-mode', ana ? '1' : '0'); } catch {}
 }
 $('modeToggle').onclick = () => setMode(document.body.classList.contains('ana-mode') ? 'normal' : 'ana');
-setMode((() => { try { return localStorage.getItem('ana-mode') === '1' ? 'ana' : 'normal'; } catch { return 'normal'; } })());
 
 /* ================= 컨텍스트 칩 (ANA 모드: 요소 클릭 → 채팅 컨텍스트) ================= */
-/* contextChips 선언은 위 모드 섹션 앞에 있다(TDZ 회피) */
 const XSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 function renderChips() {
   const box = $('chips');
-  box.classList.toggle('has', contextChips.length > 0);
-  box.innerHTML = contextChips.map((c, i) =>
-    `<span class="chip"><span class="k">${escapeHtml(c.k)}</span><span class="ct">${escapeHtml(c.t)}</span><button data-i="${i}" aria-label="제거">${XSVG}</button></span>`).join('');
-  box.querySelectorAll('button').forEach((b) => b.onclick = () => { contextChips.splice(+b.dataset.i, 1); renderChips(); });
+  box.classList.toggle('has', contextChips.length + attachments.length > 0);
+  updateSendMode();
+  box.innerHTML =
+    attachments.map((a, i) =>
+      `<span class="chip file${a.pending ? ' up' : ''}"><span class="k">${a.pending ? '올리는 중' : '파일'}</span><span class="ct">${escapeHtml(a.name)}</span><span class="k">${fmtSize(a.size)}</span><button data-a="${i}" aria-label="첨부 제거">${XSVG}</button></span>`).join('') +
+    contextChips.map((c, i) =>
+      `<span class="chip"><span class="k">${escapeHtml(c.k)}</span><span class="ct">${escapeHtml(c.t)}</span><button data-i="${i}" aria-label="제거">${XSVG}</button></span>`).join('');
+  box.querySelectorAll('button[data-a]').forEach((b) => b.onclick = () => { attachments.splice(+b.dataset.a, 1); renderChips(); });
+  box.querySelectorAll('button[data-i]').forEach((b) => b.onclick = () => { contextChips.splice(+b.dataset.i, 1); renderChips(); });
 }
 function addChip(k, t) {
   t = (t || '').replace(/\s+/g, ' ').trim(); if (!t) return;
   contextChips = [{ k, t }]; // 칩은 항상 하나 — 새 요소를 선택하면 기존 칩을 대체
   renderChips();
 }
-function clearChips() { contextChips = []; renderChips(); }
+function clearChips() { contextChips = []; attachments = []; renderChips(); }
 function buildMessage(raw) {
-  if (!contextChips.length) return raw;
-  const ctx = contextChips.map((c) => `- [${c.k}] ${c.t}`).join('\n');
-  return `참고 컨텍스트:\n${ctx}${raw ? '\n\n' + raw : ''}`;
+  const parts = [];
+  if (contextChips.length) parts.push(`참고 컨텍스트:\n${contextChips.map((c) => `- [${c.k}] ${c.t}`).join('\n')}`);
+  const files = attachments.filter((a) => a.path);
+  if (files.length) parts.push(`첨부 파일 ${files.length}개 — 아래 경로를 읽어 확인해 주세요:\n${files.map((a) => `- ${a.path}`).join('\n')}`);
+  if (raw) parts.push(raw);
+  return parts.join('\n\n');
 }
+
+/* ================= 첨부 (파일 선택 · 클립보드 이미지 · 드래그&드롭) =================
+   에이전트는 tmux 너머의 터미널이라 바이너리를 받을 수 없다. 서버에 저장한 뒤
+   절대경로를 메시지에 실어 보내면 에이전트가 Read로 열어 본다. */
+const MAX_UPLOAD = 10 * 1024 * 1024;
+const fmtSize = (n) => (n >= 1048576 ? (n / 1048576).toFixed(1) + 'MB' : Math.max(1, Math.round(n / 1024)) + 'KB');
+const readAsBase64 = (file) => new Promise((ok, no) => {
+  const r = new FileReader();
+  r.onload = () => ok(String(r.result).replace(/^data:[^,]*,/, ''));
+  r.onerror = () => no(new Error('파일을 읽지 못했습니다'));
+  r.readAsDataURL(file);
+});
+async function attachFiles(files) {
+  for (const f of Array.from(files || [])) {
+    if (f.size > MAX_UPLOAD) { showErr(`${f.name || '파일'}: ${fmtSize(f.size)} — 10MB를 넘어 첨부할 수 없습니다`); continue; }
+    // 클립보드 이미지는 이름이 없을 수 있다 → 확장자를 MIME에서 복원
+    const name = f.name || `clipboard-${Date.now()}.${(f.type.split('/')[1] || 'png').replace(/[^\w]/g, '')}`;
+    const item = { name, size: f.size, path: '', pending: true };
+    attachments.push(item); renderChips();
+    try {
+      const r = await post('/api/upload', { name, type: f.type || '', data: await readAsBase64(f) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || `업로드 실패 (${r.status})`);
+      item.path = j.path; item.name = j.name || name; item.pending = false;
+    } catch (e) {
+      attachments = attachments.filter((a) => a !== item);
+      showErr(`첨부 실패 — ${e.message}`);
+    }
+    renderChips();
+  }
+}
+$('attachBtn').onclick = () => $('fileInput').click();
+$('fileInput').addEventListener('change', () => { attachFiles($('fileInput').files); $('fileInput').value = ''; });
+// 클립보드: 파일 항목이 있을 때만 가로챈다(텍스트 붙여넣기는 그대로).
+$('input').addEventListener('paste', (e) => {
+  const files = Array.from(e.clipboardData ? e.clipboardData.items : [])
+    .filter((i) => i.kind === 'file').map((i) => i.getAsFile()).filter(Boolean);
+  if (!files.length) return;
+  e.preventDefault();
+  attachFiles(files);
+});
+// 드래그&드롭 — 채팅 패널 어디에 떨궈도 첨부된다.
+(() => {
+  const side = $('chatSide');
+  let depth = 0;
+  side.addEventListener('dragenter', (e) => { e.preventDefault(); if (++depth === 1) side.classList.add('dropping'); });
+  side.addEventListener('dragover', (e) => { e.preventDefault(); });
+  side.addEventListener('dragleave', () => { if (--depth <= 0) { depth = 0; side.classList.remove('dropping'); } });
+  side.addEventListener('drop', (e) => {
+    e.preventDefault(); depth = 0; side.classList.remove('dropping');
+    if (e.dataTransfer && e.dataTransfer.files.length) attachFiles(e.dataTransfer.files);
+  });
+})();
 // ANA 모드에서 캡처 가능한 요소 클릭 → 칩만 '추가로' 등록한다. 기존 동작(완료 토글·열림·날짜
 // 선택 등)은 그대로 동작하도록 이벤트를 가로채지 않는다(preventDefault/stopPropagation 없음).
 const CAP = [
@@ -1244,6 +2319,11 @@ $('chatCloseBtn').onclick = closeChat;
 $('chatScrim').onclick = closeChat;
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('chatting')) closeChat(); });
 if (window.visualViewport) window.visualViewport.addEventListener('resize', () => pinChat());
+
+/* ================= 부트스트랩 =================
+   모든 선언이 끝난 뒤 실행한다. 위쪽에서 부르면 아직 초기화되지 않은 let을 건드려
+   예외가 나고, 그 예외가 스크립트 나머지를 통째로 중단시킨다(=화면이 죽는다). */
+setMode((() => { try { return localStorage.getItem('ana-mode') === '1' ? 'ana' : 'normal'; } catch { return 'normal'; } })());
 </script>
 </body>
 </html>
