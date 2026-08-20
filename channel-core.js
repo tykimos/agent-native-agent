@@ -491,7 +491,7 @@ function createChannelServer(opts) {
       }
       // 임계 초과: 갭 마커(src:'api' 강제됨) 후 재개. 전량 재확정 대신, 부분 일치가 없을 때만 신규 취급.
       if (feed.length && feed[feed.length - 1].role !== 'marker') {
-        const mk = commit({ role: 'marker', text: '⋯ 이전 기록과 연결이 끊겼습니다 (세션 교체 또는 스크롤백 이탈)' });
+        const mk = commit({ role: 'marker', text: '⋯ Disconnected from earlier history (session switched or scrollback lost)' });
         broadcast({ kind: 'commit', messages: [mk] });
       }
     }
@@ -624,7 +624,7 @@ function createChannelServer(opts) {
         const body = await jsonBody(req, res); if (!body) return;
         const t = body.target;
         // 세션 이름 또는 팬 id(%N)만 허용
-        if (typeof t !== 'string' || !/^(%\d+|[A-Za-z0-9_.:-]{1,64})$/.test(t)) return sendJson(res, 400, { error: 'invalid target (세션 이름 또는 %pane-id)' });
+        if (typeof t !== 'string' || !/^(%\d+|[A-Za-z0-9_.:-]{1,64})$/.test(t)) return sendJson(res, 400, { error: 'invalid target (session name or %pane-id)' });
         setTarget(t);
         // 즉시 존재 여부 확인해 응답에 담는다(사용자가 바로 연결 성공/실패를 안다)
         let ok = false;
@@ -642,17 +642,30 @@ function createChannelServer(opts) {
         if (typeof text !== 'string' || !text.trim()) return sendJson(res, 400, { error: 'text must be a non-empty string' });
         if (Buffer.byteLength(text) > MAX_TEXT) return sendJson(res, 413, { error: `text too long (>${MAX_TEXT} bytes)` });
         if (typeof body.submit !== 'undefined' && typeof body.submit !== 'boolean') return sendJson(res, 400, { error: 'submit must be boolean' });
-        if (!(await hasSession())) return sendJson(res, 409, { error: `tmux 타깃 '${getTarget()}' 없음 — 설정에서 세션을 지정하거나 tmux를 기동하세요` });
-        if (!(await agentAlive())) return sendJson(res, 409, { error: `에이전트가 실행 중이 아닙니다(셸 상태) — tmux 세션 '${getTarget()}'에서 코딩 에이전트(claude 등)를 다시 실행하세요` });
-        if (lastDraft && !force) return sendJson(res, 409, { error: '터미널 입력창에 작성 중인 내용이 있습니다 — 비운 뒤 다시 시도하세요', recoverable: 'ctrl-u' });
-        if (!(await waitInputReady())) return sendJson(res, 409, { error: '에이전트 입력창이 준비되지 않았습니다(기동 중이거나 다이얼로그 대기 중) — 터미널을 확인하세요' });
+        if (!(await hasSession())) return sendJson(res, 409, { error: `tmux target '${getTarget()}' not found — pick a session in settings or start tmux` });
+        if (!(await agentAlive())) return sendJson(res, 409, { error: `Agent is not running (shell only) — start your coding agent (e.g. claude) in tmux session '${getTarget()}'` });
         // 보낸 사람을 첫머리에 붙인다 — 접두어까지 포함한 길이로 상한을 다시 확인한다.
         const idn = typeof identify === 'function' ? identify(req) : null;
         const outText = idn && idn.label ? `[${idn.label}] ${text}` : text;
         if (Buffer.byteLength(outText) > MAX_TEXT) return sendJson(res, 413, { error: `text too long (>${MAX_TEXT} bytes)` });
-        await enqueue(() => injectText(outText, submit, force)); // force면 주입 전 Ctrl-u로 입력창 비움
-        try { if (typeof onChat === 'function') onChat(req, text); } catch {}
-        return sendJson(res, 200, { ok: true });
+        // TOCTOU 방지: draft 가드와 준비 검사를 큐 밖에서 미리 하면, 한 폴 주기(POLL_MS) 안에 들어온
+        // 두 요청이 서로의 주입 전에 모두 통과해 입력창에서 문장이 합쳐질 수 있다. 그래서 검사와 주입을
+        // 같은 큐 작업 안에서 원자적으로 수행하고, draft는 폴링값(lastDraft) 대신 그 시점에 화면을
+        // 새로 캡처해 판정한다(직전 큐 작업이 남긴 텍스트까지 반영). force면 주입 전 Ctrl-u로 비우므로 건너뛴다.
+        const outcome = await enqueue(async () => {
+          try {
+            if (!force) {
+              let screen = ''; try { screen = await captureScreen(); } catch {}
+              const draftNow = screen ? extractDraft(screen) : '';
+              if (draftNow) return { status: 409, body: { error: 'The terminal input line has unsent text — clear it and try again', recoverable: 'ctrl-u' } };
+            }
+            if (!(await waitInputReady())) return { status: 409, body: { error: 'Agent input line is not ready (starting up or waiting on a dialog) — check the terminal' } };
+            await injectText(outText, submit, force); // force면 주입 전 Ctrl-u로 입력창 비움
+            return { status: 200, body: { ok: true } };
+          } catch (e) { return { status: 500, body: { error: `injection failed: ${e && e.message}` } }; }
+        });
+        if (outcome.status === 200) { try { if (typeof onChat === 'function') onChat(req, text); } catch {} }
+        return sendJson(res, outcome.status, outcome.body);
       }
 
       // 채널 라우트: keys (TM-T3: copy-mode 해제 포함)
@@ -661,7 +674,7 @@ function createChannelServer(opts) {
         const body = await jsonBody(req, res); if (!body) return;
         const key = body.key;
         if (typeof key !== 'string' || !Object.hasOwn(KEYS, key)) return sendJson(res, 400, { error: `unsupported key: ${key}` });
-        if (!(await hasSession())) return sendJson(res, 409, { error: `tmux 세션 '${SESSION}' 없음` });
+        if (!(await hasSession())) return sendJson(res, 409, { error: `tmux session '${SESSION}' not found` });
         await enqueue(async () => { await ensureNotInCopyMode(); await tmux(['send-keys', '-t', getTarget(), KEYS[key]]); });
         return sendJson(res, 200, { ok: true });
       }
