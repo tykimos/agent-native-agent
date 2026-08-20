@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>회의록 — ANA</title>
+<title>Minutes — ANA</title>
 <style>
 /* 공유 회의록 — 읽기 전용 단일 페이지.
    이 페이지에는 자체 접근 통제가 없다 — 공개 배포라면 앞단 게이트웨이에서 인증을 걸어야 한다. */
@@ -69,46 +69,46 @@ ul.acts .ad { font-size: 11.5px; font-weight: 800; padding: 2px 8px; border-radi
 <body>
 <div class="top">
   <img src="/ana-logo.png" alt=""><span class="bn">ANA</span><span class="sp"></span>
-  <a href="/">대시보드 열기</a>
+  <a href="/">Open dashboard</a>
 </div>
-<div class="wrap"><div id="root" class="state">불러오는 중…</div></div>
+<div class="wrap"><div id="root" class="state">Loading…</div></div>
 <div class="lightbox" id="lb"><img id="lbImg" alt=""></div>
 <script>
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const linkify = (e) => e.replace(/https?:\/\/[^\s<>"']+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
-const fmtWhen = (iso) => { try { return new Date(iso).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
+const fmtWhen = (iso) => { try { return new Date(iso).toLocaleString('en-US', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
 
 (async () => {
   const id = location.pathname.split('/').filter(Boolean).pop();
   let m;
   try {
     const r = await fetch(`/api/meeting?id=${encodeURIComponent(id)}`);
-    if (r.status === 404) { $('root').textContent = '이 회의록을 찾을 수 없습니다 — 삭제되었을 수 있습니다.'; return; }
+    if (r.status === 404) { $('root').textContent = 'Minutes not found — they may have been deleted.'; return; }
     if (!r.ok) throw new Error(r.status);
     m = (await r.json()).meeting;
-  } catch { $('root').textContent = '불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'; return; }
+  } catch { $('root').textContent = 'Failed to load. Please try again shortly.'; return; }
 
-  document.title = `${m.title} — 회의록`;
+  document.title = `${m.title} — Minutes`;
   const sec = (label, arr, cls) => (arr && arr.length
     ? `<div class="sec"><div class="h">${label}</div><ul class="notes ${cls || ''}">${
         arr.map((n) => `<li>${linkify(esc(n))}</li>`).join('')}</ul></div>` : '');
   const when = `${m.date}${m.time ? ' ' + m.time : ''}${m.endTime ? '–' + m.endTime : ''}`;
-  const meta = [['일시', when], ['장소', m.place || ''], ['참석자', (m.attendees || []).join(', ')]].filter(([, v]) => v);
+  const meta = [['When', when], ['Location', m.place || ''], ['Attendees', (m.attendees || []).join(', ')]].filter(([, v]) => v);
 
   $('root').className = 'card';
   $('root').innerHTML = `
     <h1>${esc(m.title)}</h1>
     <dl class="meta">${meta.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
-    ${sec('주요 내용', m.notes)}
-    ${sec('결정 사항', m.decisions, 'decide')}
-    ${(m.actions && m.actions.length) ? `<div class="sec"><div class="h">액션 아이템</div><ul class="acts">${
+    ${sec('Notes', m.notes)}
+    ${sec('Decisions', m.decisions, 'decide')}
+    ${(m.actions && m.actions.length) ? `<div class="sec"><div class="h">Action items</div><ul class="acts">${
       m.actions.map((a) => `<li><span class="at">${linkify(esc(a.task))}</span>${
         a.owner ? `<span class="ao">${esc(a.owner)}</span>` : ''}${
         a.due ? `<span class="ad">~${esc(a.due)}</span>` : ''}</li>`).join('')}</ul></div>` : ''}
-    ${(m.photos && m.photos.length) ? `<div class="sec"><div class="h">사진</div><div class="photos">${
-      m.photos.map((f) => `<img src="/uploads/${encodeURIComponent(f.thumb || f.full)}" data-full="/uploads/${encodeURIComponent(f.full)}" alt="${esc(m.title)} 사진" loading="lazy">`).join('')}</div></div>` : ''}
-    ${(m.comments && m.comments.length) ? `<div class="sec"><div class="h">댓글 ${m.comments.length}</div><ul class="cmts">${
+    ${(m.photos && m.photos.length) ? `<div class="sec"><div class="h">Photos</div><div class="photos">${
+      m.photos.map((f) => `<img src="/uploads/${encodeURIComponent(f.thumb || f.full)}" data-full="/uploads/${encodeURIComponent(f.full)}" alt="${esc(m.title)} photo" loading="lazy">`).join('')}</div></div>` : ''}
+    ${(m.comments && m.comments.length) ? `<div class="sec"><div class="h">Comments ${m.comments.length}</div><ul class="cmts">${
       m.comments.map((c) => `<li><div class="ct">${linkify(esc(c.text))}</div><span class="cw">${esc(fmtWhen(c.at))}</span></li>`).join('')}</ul></div>` : ''}`;
 
   $('root').querySelectorAll('.photos img').forEach((img) => img.onclick = () => {

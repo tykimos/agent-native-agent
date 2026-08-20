@@ -143,10 +143,19 @@ function createDashboardApi(core, opts) {
     return null;
   }
   const hasDiff = (d) => !!d && !!((Array.isArray(d.add) && d.add.length) || (Array.isArray(d.update) && d.update.length) || (Array.isArray(d.remove) && d.remove.length));
+  // 필드별 상한 — 수동 라우트(/api/todo 등)의 캡과 맞춘다. done은 불리언, 나머지는 문자열로 강제 후 절단.
+  const FIELD_MAX = { title: 200, text: 20000, note: 20000, due: 40, priority: 20, category: 40, sender: 80, time: 40, day: 40, person: 80 };
+  // 문자열로 안전 변환: 객체·배열은 버리고(빈 문자열), 원시값만 String화해 캡을 적용한다.
+  const coerceField = (k, v) => {
+    if (k === 'done') return !!v;
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'object') return '';                 // {a:1} 같은 값이 state.json에 저장되지 않도록
+    return String(v).slice(0, FIELD_MAX[k] || 200);
+  };
   function assignFields(target, src) {
     for (const k of Object.keys(src)) {
       if (k === 'id') continue;
-      if (ITEM_FIELDS.has(k)) target[k] = k === 'done' ? !!src[k] : src[k];
+      if (ITEM_FIELDS.has(k)) target[k] = coerceField(k, src[k]);
     }
   }
   // 방어적 적용: caller id 무시(QA-M5), 키 화이트리스트(QA-m3), done 불리언, 실제 변경 0이면 version 미증가(QA-m2)
@@ -164,8 +173,9 @@ function createDashboardApi(core, opts) {
 
   // ---- 통지 push→pull (CR11) ----
   const pendingNotifs = []; // {id, kind, text, at, delivered}
+  let notifSeq = 0; // 단조 증가 카운터 — 같은 ms에 만든 알림도 id가 겹치지 않게 한다(커서 오작동 방지)
   function queueNotify(kind, text) {
-    const n = { id: kind.replace(/[^a-z]/gi, '') + '-' + Date.now().toString(36), kind, text, at: new Date().toISOString(), delivered: false };
+    const n = { id: kind.replace(/[^a-z]/gi, '') + '-' + Date.now().toString(36) + '-' + (++notifSeq).toString(36), kind, text, at: new Date().toISOString(), delivered: false };
     pendingNotifs.push(n);
     if (pendingNotifs.length > 100) pendingNotifs.splice(0, pendingNotifs.length - 100);
     return n;
@@ -175,13 +185,15 @@ function createDashboardApi(core, opts) {
     if (!NOTIFY_AGENT) return false;
     const n = pendingNotifs.find((x) => !x.delivered);
     if (!n) return false;
+    // 이중 주입 방지: await하기 전에 이 알림을 선점(delivered=true)한다. 그래야 첫 호출의 await 도중
+    // 들어온 동시 호출이 같은 알림을 미전달로 보지 않는다. 전달에 실패하면 다시 미전달로 되돌린다.
+    n.delivered = true;
     try {
-      if (!(await ctx.hasSession()) || !(await ctx.agentAlive()) || ctx.lastDraft) return false;
-      const msg = `[ANA-NOTIFY id=${n.id} kind=${n.kind}] ${n.text}\n(이 알림에는 답하지 마세요. 사용자의 다음 요청을 기다리세요.)`;
+      if (!(await ctx.hasSession()) || !(await ctx.agentAlive()) || ctx.lastDraft) { n.delivered = false; return false; }
+      const msg = `[ANA-NOTIFY id=${n.id} kind=${n.kind}] ${n.text}\n(Do not reply to this notification. Wait for the user's next request.)`;
       await ctx.enqueue(() => ctx.ch.injectText(msg));
-      n.delivered = true;
       return true;
-    } catch { return false; }
+    } catch { n.delivered = false; return false; }
   }
 
   // ---- 사용량/로그인 세션 (1시간 캐시) ----
@@ -247,7 +259,10 @@ function createDashboardApi(core, opts) {
       if (email) touchUser(email);
       return sendJson(res, 200, {
         signedIn: !!email,
-        me: email ? profileOf(email) : { email: '', name: 'ANA', avatar: '' },
+        // 단일 사용자 모드에서도 로컬 프로필('ana' 키)을 돌려준다 — 이름·아바타 저장이 동작하도록.
+        // email은 항상 'ana': 콘텐츠가 by:'ana'로 기록되므로 클라이언트 isMine()이 일치해야
+        // 수정/삭제 버튼이 프로필 저장 전에도 보인다.
+        me: email ? profileOf(email) : (loadUsers().users.ana || { email: 'ana', name: 'ANA', avatar: '' }),
         // 신원이 안 잡힐 때 원인을 눈으로 확인하기 위한 진단:
         //  single  = ANA_IDENTITY_HEADER 미설정(단일 사용자 모드)
         //  header  = 지정한 헤더에서 식별자를 읽음
@@ -260,15 +275,23 @@ function createDashboardApi(core, opts) {
     if (p === '/api/me' && req.method === 'POST') {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
       const email = who(req);
-      if (!email) return sendJson(res, 401, { error: '로그인이 필요합니다' }), true;
+      // 헤더 기반 배포에서 신원이 안 잡히면 거절. 단일 사용자 모드는 'ana' 로컬 프로필에 저장한다
+      // (콘텐츠도 전부 by:'ana'로 기록되므로 소유권 판정과 일관된다).
+      if (!email && ID_HEADER) return sendJson(res, 401, { error: 'Sign-in required' }), true;
+      const key = email || 'ana';
       const body = await jsonBody(req, res); if (!body) return true;
       const u = loadUsers();
-      touchUser(email);
-      const cur = loadUsers().users[email];
-      if (body.name !== undefined) cur.name = String(body.name).trim().slice(0, 40) || email.split('@')[0];
+      const now = new Date().toISOString();
+      if (!u.users[key]) u.users[key] = { email: key, name: email ? key.split('@')[0] : 'ANA', avatar: '', firstSeen: now, lastSeen: now };
+      else u.users[key].lastSeen = now;
+      const cur = u.users[key];
+      // 표시 이름은 채팅 발신자 접두어 [이름·이메일]에 그대로 실린다. 구분자('[', ']', '·')와 개행을
+      // 지우지 않으면 이름을 조작해 남을 사칭할 수 있으므로(멀티유저 스푸핑) 저장 전에 제거한다.
+      const cleanName = (v) => String(v).replace(/[[\]·\r\n]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40);
+      if (body.name !== undefined) cur.name = cleanName(body.name) || (email ? key.split('@')[0] : 'ANA');
       if (body.avatar !== undefined) cur.avatar = safeName(String(body.avatar).split('/').pop() || '') === 'file' ? '' : safeName(String(body.avatar).split('/').pop());
-      const all = loadUsers(); all.users[email] = cur; saveUsers(all);
-      audit(email, 'profile.update', email, cur.name);
+      saveUsers(u);
+      audit(key, 'profile.update', key, cur.name);
       return sendJson(res, 200, { ok: true, me: cur }), true;
     }
     // ---- 사람 목록(작성자 표시용) ----
@@ -371,7 +394,7 @@ function createDashboardApi(core, opts) {
     }
 
     if (p === '/api/state' && req.method === 'GET') {
-      let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }); }
+      let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
       const ps = loadProposals();
       return sendJson(res, 200, { ...s, proposals: ps.proposals.filter((x) => x.status === 'pending').slice(-50) }), true;
     }
@@ -392,7 +415,7 @@ function createDashboardApi(core, opts) {
       try {
         await fsp.mkdir(UPLOAD_DIR, { recursive: true });
         await fsp.writeFile(file, buf);
-      } catch (e) { return sendJson(res, 500, { error: `저장 실패: ${e.message}` }), true; }
+      } catch (e) { return sendJson(res, 500, { error: `Save failed: ${e.message}` }), true; }
       return sendJson(res, 200, { ok: true, path: file, name, size: buf.length }), true;
     }
 
@@ -475,7 +498,7 @@ function createDashboardApi(core, opts) {
         // 부분 수정 — 보낸 필드만 갈아끼운다(사진·썸네일은 건드리지 않는다).
         const m = s2.meetings.find((x) => x.id === body.id);
         if (!m) return sendJson(res, 404, { error: 'not found' }), true;
-        if (!owns(m, me)) return sendJson(res, 403, { error: '작성자만 수정할 수 있습니다' }), true;
+        if (!owns(m, me)) return sendJson(res, 403, { error: 'Only the author can edit this' }), true;
         const hhmm = (v) => { const t = String(v || '').trim(); return /^\d{2}:\d{2}$/.test(t) ? t : ''; };
         if (body.title !== undefined) {
           const t = String(body.title).trim();
@@ -524,7 +547,7 @@ function createDashboardApi(core, opts) {
         if (!m || !Array.isArray(m.comments)) return sendJson(res, 404, { error: 'not found' }), true;
         const c = m.comments.find((x) => x.id === body.cid);
         if (!c) return sendJson(res, 404, { error: 'not found' }), true;
-        if (!owns(c, me)) return sendJson(res, 403, { error: '작성자만 수정할 수 있습니다' }), true;
+        if (!owns(c, me)) return sendJson(res, 403, { error: 'Only the author can edit this' }), true;
         const text = String(body.text || '').trim();
         if (!text) return sendJson(res, 400, { error: 'text required' }), true;
         c.text = text.slice(0, 1000);
@@ -535,11 +558,11 @@ function createDashboardApi(core, opts) {
         if (!m || !Array.isArray(m.comments)) return sendJson(res, 404, { error: 'not found' }), true;
         const c = m.comments.find((x) => x.id === body.cid);
         if (!c) return sendJson(res, 404, { error: 'not found' }), true;
-        if (!owns(c, me)) return sendJson(res, 403, { error: '작성자만 삭제할 수 있습니다' }), true;
+        if (!owns(c, me)) return sendJson(res, 403, { error: 'Only the author can delete this' }), true;
         // 부모를 지우면 딸린 답글도 함께 사라진다(고아 답글을 남기지 않는다).
         const gone = m.comments.filter((x) => x.id === body.cid || x.parent === body.cid).length;
         m.comments = m.comments.filter((x) => x.id !== body.cid && x.parent !== body.cid);
-        audit(me, 'comment.remove', m.title.slice(0, 80), gone > 1 ? `답글 ${gone - 1}개 포함` : '');
+        audit(me, 'comment.remove', m.title.slice(0, 80), gone > 1 ? `incl. ${gone - 1} replies` : '');
       } else if (body.action === 'thumb') {
         // 브라우저가 만든 썸네일 연결(서버에 이미지 라이브러리가 없어 리사이즈는 클라이언트가 한다)
         const m = s2.meetings.find((x) => x.id === body.id);
@@ -552,7 +575,7 @@ function createDashboardApi(core, opts) {
       } else if (body.action === 'remove') {
         const m = s2.meetings.find((x) => x.id === body.id);
         if (!m) return sendJson(res, 404, { error: 'not found' }), true;
-        if (!owns(m, me)) return sendJson(res, 403, { error: '작성자만 삭제할 수 있습니다' }), true;
+        if (!owns(m, me)) return sendJson(res, 403, { error: 'Only the author can delete this' }), true;
         s2.meetings = s2.meetings.filter((x) => x.id !== body.id);
         audit(me, 'meeting.remove', m.title.slice(0, 80));
       } else return sendJson(res, 400, { error: 'action must be add|update|remove|comment|comment-update|comment-remove|thumb' }), true;
@@ -564,7 +587,14 @@ function createDashboardApi(core, opts) {
     // 에이전트 pull 통지 조회
     if (p === '/api/notifications' && req.method === 'GET') {
       const since = url.searchParams.get('since') || '';
-      const list = since ? pendingNotifs.slice(pendingNotifs.findIndex((n) => n.id === since) + 1) : pendingNotifs;
+      let list;
+      if (!since) list = pendingNotifs;
+      else {
+        const idx = pendingNotifs.findIndex((n) => n.id === since);
+        // 커서 id가 큐에 없다(상한으로 밀려남·재시작·무효 id) → 큐 전체를 되돌리면 이미 처리한 알림을
+        // 재전송하게 되므로, 안전하게 '새것 없음'으로 폴백한다.
+        list = idx === -1 ? [] : pendingNotifs.slice(idx + 1);
+      }
       return sendJson(res, 200, { notifications: list }), true;
     }
 
@@ -579,7 +609,7 @@ function createDashboardApi(core, opts) {
       if (!text && !hasDiff(body.diff)) return sendJson(res, 400, { error: 'text or diff required' }), true;
       if (hasDiff(body.diff)) {
         const ps = loadProposals();
-        const pr = { id: nextPid(ps), text: text || '변경 제안', diff: body.diff, status: 'pending', at: new Date().toISOString() };
+        const pr = { id: nextPid(ps), text: text || 'Change proposal', diff: body.diff, status: 'pending', at: new Date().toISOString() };
         ps.proposals.push(pr); saveProposals(ps);
         const entry = commit({ role: 'proposal', text: pr.text, src: 'api', pid: pr.id });
         broadcast({ kind: 'commit', messages: [entry] });
@@ -606,20 +636,20 @@ function createDashboardApi(core, opts) {
         try { result = applyDiff(pr.diff); }
         catch (e) { pr.status = 'pending'; saveProposals(ps); return sendJson(res, 500, { error: 'apply failed', detail: e.message }), true; }
         pr.status = 'applied'; saveProposals(ps);
-        const entry = commit({ role: 'system', text: `변경 적용 완료 (+${result.summary.added} ~${result.summary.updated} -${result.summary.removed}, v${result.version})`, src: 'api' });
+        const entry = commit({ role: 'system', text: `Changes applied (+${result.summary.added} ~${result.summary.updated} -${result.summary.removed}, v${result.version})`, src: 'api' });
         broadcast({ kind: 'commit', messages: [entry] });
         broadcast({ kind: 'proposal', proposal: pr });
         broadcast({ kind: 'data', version: result.version });
-        const n = queueNotify('proposal.applied', `제안 #${pr.id} 승인 → 서버가 이미 적용 완료 (v${result.version}). 재조회 불필요.`);
+        const n = queueNotify('proposal.applied', `Proposal #${pr.id} approved → already applied by the server (v${result.version}). No refetch needed.`);
         const notified = await tryDeliver(ctx);
         return sendJson(res, 200, { ok: true, applied: true, version: result.version, notified, notifyId: n.id }), true;
       }
       pr.status = 'rejected'; saveProposals(ps);
-      const entry = commit({ role: 'system', text: `제안 #${pr.id} 을(를) 취소했어요.`, src: 'api' });
+      const entry = commit({ role: 'system', text: `Proposal #${pr.id} was rejected.`, src: 'api' });
       broadcast({ kind: 'commit', messages: [entry] });
       broadcast({ kind: 'proposal', proposal: pr });
       broadcast({ kind: 'data', version: dataVersion() }); // 거절도 version 노출 갱신(remote: 폴링 스테일 방지)
-      const n = queueNotify('proposal.rejected', `제안 #${pr.id} 거절됨${body.reason ? ' — 사유: ' + String(body.reason).replace(/[\r\n]+/g, ' ').slice(0, 200) : ''}.`);
+      const n = queueNotify('proposal.rejected', `Proposal #${pr.id} rejected${body.reason ? ' — reason: ' + String(body.reason).replace(/[\r\n]+/g, ' ').slice(0, 200) : ''}.`);
       const notified = await tryDeliver(ctx);
       return sendJson(res, 200, { ok: true, applied: false, notified, notifyId: n.id }), true;
     }
@@ -668,7 +698,7 @@ function createDashboardApi(core, opts) {
       } else if (body.action === 'remove') {
         const ev = s.events.find((e) => e.id === body.id);
         if (!ev) return sendJson(res, 404, { error: 'not found' }), true;
-        if (!owns(ev, actor(req))) return sendJson(res, 403, { error: '작성자만 삭제할 수 있습니다' }), true;
+        if (!owns(ev, actor(req))) return sendJson(res, 403, { error: 'Only the author can delete this' }), true;
         s.events = s.events.filter((e) => e.id !== body.id);
         audit(actor(req), 'event.remove', String(ev.title).slice(0, 80));
       } else if (body.action === 'done') {
@@ -704,7 +734,7 @@ function createDashboardApi(core, opts) {
       let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
       const it = s.items.find((x) => x.id === body.id);
       if (!it) return sendJson(res, 404, { error: 'not found' }), true;
-      if (!owns(it, actor(req))) return sendJson(res, 403, { error: '작성자만 삭제할 수 있습니다' }), true;
+      if (!owns(it, actor(req))) return sendJson(res, 403, { error: 'Only the author can delete this' }), true;
       s.items = s.items.filter((x) => x.id !== body.id);
       audit(actor(req), 'todo.remove', String(it.title).slice(0, 80));
       s.version = (s.version || 1) + 1; saveData(s);
@@ -721,20 +751,20 @@ function createDashboardApi(core, opts) {
       if (body.action === 'add') {
         const n = { id: newId('n'), title: String(body.title || '').slice(0, 200), text: String(body.text || '').slice(0, 20000), by: actor(req), updatedAt: new Date().toISOString() };
         s.notes.push(n); noteId = n.id;
-        touchUser(actor(req)); audit(actor(req), 'note.add', n.title.slice(0, 80) || '(제목 없음)');
+        touchUser(actor(req)); audit(actor(req), 'note.add', n.title.slice(0, 80) || '(untitled)');
       } else if (body.action === 'update') {
         const n = s.notes.find((x) => x.id === body.id);
         if (!n) return sendJson(res, 404, { error: 'not found' }), true;
-        if (!owns(n, actor(req))) return sendJson(res, 403, { error: '작성자만 수정할 수 있습니다' }), true;
+        if (!owns(n, actor(req))) return sendJson(res, 403, { error: 'Only the author can edit this' }), true;
         if (body.title !== undefined) n.title = String(body.title).slice(0, 200);
         if (body.text !== undefined) n.text = String(body.text).slice(0, 20000);
         n.updatedAt = new Date().toISOString(); noteId = n.id;
       } else if (body.action === 'remove') {
         const n = s.notes.find((x) => x.id === body.id);
         if (!n) return sendJson(res, 404, { error: 'not found' }), true;
-        if (!owns(n, actor(req))) return sendJson(res, 403, { error: '작성자만 삭제할 수 있습니다' }), true;
+        if (!owns(n, actor(req))) return sendJson(res, 403, { error: 'Only the author can delete this' }), true;
         s.notes = s.notes.filter((x) => x.id !== body.id);
-        audit(actor(req), 'note.remove', String(n.title).slice(0, 80) || '(제목 없음)');
+        audit(actor(req), 'note.remove', String(n.title).slice(0, 80) || '(untitled)');
       } else return sendJson(res, 400, { error: 'action must be add|update|remove' }), true;
       s.version = (s.version || 1) + 1; saveData(s);
       broadcast({ kind: 'data', version: s.version });
@@ -785,7 +815,7 @@ function createDashboardApi(core, opts) {
       broadcast({ kind: 'evolve', version: ev.version });
       let notified;
       if (body.action === 'do') {
-        const n = queueNotify('evolve.do', `진화 제안 #${pr.id} 수행 요청 — [${pr.type}] ${pr.title.replace(/[\r\n]+/g, ' ')}. 반영 후 POST /api/evolve-act {"id":${pr.id},"action":"done"} 로 완료 표시.`);
+        const n = queueNotify('evolve.do', `Evolve proposal #${pr.id} requested — [${pr.type}] ${pr.title.replace(/[\r\n]+/g, ' ')}. After applying, mark it done with POST /api/evolve-act {"id":${pr.id},"action":"done"}.`);
         notified = await tryDeliver(ctx);
         return sendJson(res, 200, { ok: true, status: pr.status, version: ev.version, notified, notifyId: n.id }), true;
       }
@@ -801,7 +831,10 @@ function createDashboardApi(core, opts) {
     const e = who(req);
     if (!e) return null;
     const pr = profileOf(e);
-    return { email: e, label: `${pr.name}·${e}` };
+    // 접두어 파서(dashboard.html ID_PREFIX)는 '[', ']', '·'를 구분자로 쓴다. 이름에 남아 있을 수 있는
+    // 이 문자들을 여기서도 제거해(저장 전 정화가 없던 과거 프로필 방어) 발신자 위조를 원천 차단한다.
+    const safe = String(pr.name || '').replace(/[[\]·\r\n]/g, ' ').replace(/\s+/g, ' ').trim() || e.split('@')[0];
+    return { email: e, label: `${safe}·${e}` };
   };
   const onChat = (req, text) => { const me = actor(req); touchUser(me); audit(me, 'chat.send', String(text).replace(/\s+/g, ' ').slice(0, 80)); };
 

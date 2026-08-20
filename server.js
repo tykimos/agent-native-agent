@@ -30,6 +30,11 @@ const apiOpts = {
   DATA_FILE: env.DATA_FILE || path.join(DATA_DIR, 'state.json'),
   PROPOSALS_FILE: env.PROPOSALS_FILE || path.join(DATA_DIR, 'proposals.json'),
   EVOLVE_FILE: env.EVOLVE_FILE || path.join(DATA_DIR, 'evolve.json'),
+  // 사용자/감사/업로드도 DATA_DIR을 따라간다(ANA_DATA_DIR로 격리 가능). 미배선 시 ROOT/.ana에 고정돼
+  // 테스트가 실전 데이터를 오염시키고 ANA_DATA_DIR이 부분적으로만 먹던 문제를 없앤다.
+  USERS_FILE: env.USERS_FILE || path.join(DATA_DIR, 'users.json'),
+  AUDIT_FILE: env.AUDIT_FILE || path.join(DATA_DIR, 'audit.jsonl'),
+  UPLOAD_DIR: env.UPLOAD_DIR || path.join(DATA_DIR, 'uploads'),
   NOTIFY_AGENT: env.NOTIFY_AGENT !== '0',
   MAX_TEXT: Number(env.MAX_TEXT || 8000),
   // 신원은 앞단(리버스 프록시·SSO 게이트웨이)이 헤더로 실어 줄 때만 잡힌다. 미지정이면 단일 사용자.

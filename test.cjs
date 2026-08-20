@@ -19,9 +19,12 @@ const TEST_SESSION = `ana-selftest-${process.pid}`;
 const TEST_PORT = 8811 + (process.pid % 900);
 
 process.env.ANA_TEST = '1';
+// 모든 런타임 상태를 스크래치로 격리 — users/audit/uploads가 ROOT/.ana로 새지 않도록 ANA_DATA_DIR도 건다.
+process.env.ANA_DATA_DIR = path.join(SCRATCH, 'unit-ana');
 process.env.TRANSCRIPT_FILE = path.join(SCRATCH, 'unit-transcript.jsonl');
 process.env.DATA_FILE = path.join(SCRATCH, 'unit-state.json');
 process.env.PROPOSALS_FILE = path.join(SCRATCH, 'unit-proposals.json');
+delete process.env.ANA_PANE_ID;
 const srv = require('./server.js');
 
 let passed = 0, failed = 0;
@@ -404,9 +407,16 @@ async function integration() {
     TRANSCRIPT_FILE: FEED_FILE, POLL_MS: '150',
     DATA_FILE: path.join(SCRATCH, 'int-state.json'), PROPOSALS_FILE: path.join(SCRATCH, 'int-proposals.json'),
     EVOLVE_FILE: path.join(SCRATCH, 'int-evolve.json'),
+    // 사용자·감사·업로드도 스크래치로 격리 — 통합 실행이 실전 .ana/audit.jsonl 등을 오염시키지 않도록.
+    USERS_FILE: path.join(SCRATCH, 'int-users.json'),
+    AUDIT_FILE: path.join(SCRATCH, 'int-audit.jsonl'),
+    UPLOAD_DIR: path.join(SCRATCH, 'int-uploads'),
     NOTIFY_AGENT: '0', ANA_READY_GUARD: '0', // 승인 알림 주입이 mock 에이전트 에코를 유발해 total 계산을 흔들지 않도록
   };
   delete childEnv.ANA_TEST;
+  // ANA_PANE_ID는 resolveTarget에서 TMUX_SESSION보다 우선한다 — 개발자 셸에 남아 있으면 테스트가
+  // 격리 세션 대신 실제 에이전트 페인에 주입할 수 있으므로 자식 환경에서 제거한다.
+  delete childEnv.ANA_PANE_ID;
 
   const sh = (args) => execFileSync('tmux', args, { stdio: 'pipe' });
   try { sh(['kill-session', '-t', TEST_SESSION]); } catch { }
@@ -644,13 +654,37 @@ async function integration() {
       assert.equal((await post('/api/agent', { text: big })).status, 413);
     });
 
+    await ta('C12 diff 필드 방어: 객체 title은 버리고 done은 불리언, 긴 text는 캡(오픈 이슈 #2)', async () => {
+      const bigText = 'x'.repeat(30000);
+      const r = await post('/api/apply', { diff: { add: [{ title: { evil: 1 }, text: bigText, done: 'yes' }] } });
+      assert.equal(r.status, 200);
+      const s = await state();
+      const it = s.items[s.items.length - 1];
+      assert.equal(typeof it.title, 'string'); assert.equal(it.title, '', '객체 title은 빈 문자열로 환원');
+      assert.equal(it.done, true, 'done 문자열 → 불리언 true');
+      assert.ok(it.text.length <= 20000, `text는 20000자로 캡(실제 ${it.text.length})`);
+      await post('/api/apply', { diff: { remove: [it.id] } }); // 정리
+    });
+
+    await ta('C13 알림 커서: 무효 since는 큐 전체가 아니라 빈 목록 반환(오픈 이슈 #5)', async () => {
+      // 제안 생성→거절로 알림 하나 큐잉(NOTIFY_AGENT=0라 미전달로 큐에 남는다)
+      const j = await (await post('/api/agent', { text: 'notify-src', diff: { add: [{ title: 'n' }] } })).json();
+      await post('/api/approve', { pid: j.pid, decision: 'reject' });
+      const all = await (await fetch(`${api}/api/notifications`)).json();
+      assert.ok(all.notifications.length >= 1, '거절 알림이 큐에 있어야 함');
+      const ids = all.notifications.map((n) => n.id);
+      assert.equal(new Set(ids).size, ids.length, '알림 id는 유일해야 함(카운터 접미)');
+      const bogus = await (await fetch(`${api}/api/notifications?since=does-not-exist-000`)).json();
+      assert.equal(bogus.notifications.length, 0, '무효 커서 → 빈 목록(큐 재생 금지)');
+    });
+
     await ta('I13 draft 가드: 터미널 입력창에 미제출 텍스트 있으면 /api/chat 409 (맨 마지막 — 입력 박스가 화면에 남음)', async () => {
       await chat('draftbox 미리 입력한 문장');           // mock이 입력 박스를 렌더한 채 멈춤
       await sleep(600);                                    // 폴이 extractDraft로 lastDraft 채우기 대기
       const r = await chat('이건 막혀야 함');
       assert.equal(r.status, 409, `draft 있을 때 409 기대, 실제 ${r.status}`);
       const e = await r.json().catch(() => ({}));
-      assert.ok(/입력창/.test(e.error || ''), `draft 가드 메시지 기대: ${JSON.stringify(e)}`);
+      assert.ok(/unsent text/.test(e.error || ''), `draft 가드 메시지 기대: ${JSON.stringify(e)}`);
       assert.equal(e.recoverable, 'ctrl-u', 'recoverable 힌트 제공(프론트 자동 재전송 근거)');
     });
 
