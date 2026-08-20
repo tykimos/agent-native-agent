@@ -26,6 +26,67 @@ function createDashboardApi(core, opts) {
   const MAX_TEXT = opts.MAX_TEXT || 8000;
   const { writeJsonAtomic, readJsonStrict, sendJson } = core;
 
+  // ---------- 신원 ----------
+  // ANA는 스스로 로그인을 처리하지 않는다. 앞단(리버스 프록시·SSO 게이트웨이 등)이 인증을 마치고
+  // 사용자 식별자를 헤더로 실어 보내는 배포에서만 신원이 잡힌다. 헤더 이름은 ANA_IDENTITY_HEADER로
+  // 지정한다. 지정하지 않으면 단일 사용자 모드 — 모든 항목이 'ana' 소유가 되고 작성자 표시도 없다.
+  //
+  // 신뢰 전제: 이 헤더는 앞단이 붙였을 때만 의미가 있다. 서버를 루프백이나 그 프록시 뒤에만 두어라.
+  // 0.0.0.0으로 직접 노출하면서 이 옵션을 켜면 누구나 헤더를 위조해 남의 이름으로 쓸 수 있다.
+  const ID_HEADER = String(opts.IDENTITY_HEADER || '').trim().toLowerCase();
+  const LOGOUT_URL = String(opts.LOGOUT_URL || '').trim();
+  const USERS_FILE = opts.USERS_FILE || path.join(ROOT, '.ana', 'users.json');
+  const AUDIT_FILE = opts.AUDIT_FILE || path.join(ROOT, '.ana', 'audit.jsonl');
+  function who(req) {
+    if (!ID_HEADER) return '';
+    return String((req.headers || {})[ID_HEADER] || '').trim().toLowerCase();
+  }
+  // 신원이 없는 호출(단일 사용자 모드, 로컬 에이전트·스크립트)은 'ana'로 기록한다.
+  const actor = (req) => who(req) || 'ana';
+
+  function loadUsers() {
+    const u = readJsonStrict(USERS_FILE, () => ({ users: {} }));
+    if (!u || typeof u !== 'object' || typeof u.users !== 'object' || !u.users) return { users: {} };
+    return u;
+  }
+  const saveUsers = (u) => writeJsonAtomic(USERS_FILE, u);
+  function touchUser(email) {
+    if (!email || email === 'ana') return null;
+    const u = loadUsers();
+    const now = new Date().toISOString();
+    if (!u.users[email]) u.users[email] = { email, name: email.split('@')[0], avatar: '', firstSeen: now, lastSeen: now };
+    else u.users[email].lastSeen = now;
+    saveUsers(u);
+    return u.users[email];
+  }
+  const profileOf = (email) => (loadUsers().users[email] || { email, name: (email || '').split('@')[0] || 'ANA', avatar: '' });
+
+  // ---------- 감사 로그 ----------
+  // "누가 무엇을 추가/수정/삭제했는가"를 append-only로 남긴다. 통계도 여기서 뽑는다.
+  function audit(by, action, target, detail) {
+    const line = JSON.stringify({ at: new Date().toISOString(), by: by || 'ana', action, target: target || '', detail: detail || '' });
+    try { require('node:fs').appendFileSync(AUDIT_FILE, line + '\n'); } catch {}
+  }
+  function readAudit(limit) {
+    let raw = '';
+    try { raw = require('node:fs').readFileSync(AUDIT_FILE, 'utf8'); } catch { return []; }
+    const out = [];
+    for (const l of raw.split('\n')) { if (!l.trim()) continue; try { out.push(JSON.parse(l)); } catch {} }
+    return limit ? out.slice(-limit) : out;
+  }
+  // 소유권 — 작성자만 수정·삭제. 작성자가 없는 과거 항목은 누구나 손댈 수 있게 둔다(마이그레이션 유예).
+  const owns = (rec, me) => !rec || !rec.by || rec.by === me;
+
+  // 채팅 첨부: 터미널 에이전트는 바이너리를 받을 수 없다. 파일로 떨군 뒤 절대경로를 프롬프트에 실어 보낸다.
+  const UPLOAD_DIR = opts.UPLOAD_DIR || path.join(ROOT, '.ana', 'uploads');
+  const MAX_UPLOAD = opts.MAX_UPLOAD || 10 * 1024 * 1024;
+  // 경로 탈출·셸 특수문자 차단: 디렉터리 성분을 버리고 안전 문자만 남긴다.
+  const safeName = (n) => {
+    const base = String(n || 'file').split(/[\\/]/).pop() || 'file';
+    const clean = base.replace(/[^\w.\-가-힣]+/g, '_').replace(/^[._]+/, '').slice(-80);
+    return clean || 'file';
+  };
+
   // ---- 상태 파일 (원자적 + shape 검증) ----
   function loadData() {
     const s = readJsonStrict(DATA_FILE, () => ({ version: 1, items: [], events: [], notes: [] }));
@@ -33,6 +94,8 @@ function createDashboardApi(core, opts) {
       throw new Error(`state.json shape invalid (${DATA_FILE})`);
     if (!Array.isArray(s.events)) s.events = []; // 일정(달력) — 할일(items)과 별도
     if (!Array.isArray(s.notes)) s.notes = []; // 메모 — {id, title, text, updatedAt}
+    // 미팅(회의록) — {id, title, date, time, endTime, place, attendees[], notes[], decisions[], actions[], photos[], at}
+    if (!Array.isArray(s.meetings)) s.meetings = [];
     if (typeof s.version !== 'number' || !Number.isFinite(s.version)) s.version = 1;
     return s;
   }
@@ -178,6 +241,128 @@ function createDashboardApi(core, opts) {
     const p = url.pathname;
     const { commit, broadcast, csrfOk, jsonBody } = ctx;
 
+    // ---- 내 계정 ----
+    if (p === '/api/me' && req.method === 'GET') {
+      const email = who(req);
+      if (email) touchUser(email);
+      return sendJson(res, 200, {
+        signedIn: !!email,
+        me: email ? profileOf(email) : { email: '', name: 'ANA', avatar: '' },
+        // 신원이 안 잡힐 때 원인을 눈으로 확인하기 위한 진단:
+        //  single  = ANA_IDENTITY_HEADER 미설정(단일 사용자 모드)
+        //  header  = 지정한 헤더에서 식별자를 읽음
+        //  missing = 헤더 이름은 설정됐는데 요청에 그 헤더가 없음(앞단 설정 확인)
+        via: !ID_HEADER ? 'single' : (email ? 'header' : 'missing'),
+        idHeader: ID_HEADER,
+        logoutUrl: LOGOUT_URL,
+      }), true;
+    }
+    if (p === '/api/me' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const email = who(req);
+      if (!email) return sendJson(res, 401, { error: '로그인이 필요합니다' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      const u = loadUsers();
+      touchUser(email);
+      const cur = loadUsers().users[email];
+      if (body.name !== undefined) cur.name = String(body.name).trim().slice(0, 40) || email.split('@')[0];
+      if (body.avatar !== undefined) cur.avatar = safeName(String(body.avatar).split('/').pop() || '') === 'file' ? '' : safeName(String(body.avatar).split('/').pop());
+      const all = loadUsers(); all.users[email] = cur; saveUsers(all);
+      audit(email, 'profile.update', email, cur.name);
+      return sendJson(res, 200, { ok: true, me: cur }), true;
+    }
+    // ---- 사람 목록(작성자 표시용) ----
+    if (p === '/api/users' && req.method === 'GET') {
+      return sendJson(res, 200, { users: Object.values(loadUsers().users) }), true;
+    }
+    // ---- 멤버 카드 ----
+    // 계정 기록 + 감사 로그 + 실제 콘텐츠를 합쳐 한 번에 내려준다(클라이언트에서 조인하지 않도록).
+    if (p === '/api/members' && req.method === 'GET') {
+      const users = loadUsers().users;
+      const log = readAudit(0);
+      let st = null; try { st = loadData(); } catch {}
+      const seen = new Map();
+      const slot = (email) => {
+        if (!seen.has(email)) {
+          const u = users[email] || {};
+          seen.set(email, {
+            email, name: u.name || (email === 'ana' ? 'ANA' : email.split('@')[0]), avatar: u.avatar || '',
+            firstSeen: u.firstSeen || '', lastSeen: u.lastSeen || '',
+            registered: !!users[email],
+            // 표시 이름을 바꿨거나 사진을 올렸으면 '프로필을 손본 사람'
+            customized: !!(u.avatar || (u.name && u.name !== email.split('@')[0])),
+            profileUpdatedAt: '', activity: 0, lastAt: '', lastAction: '',
+            counts: { todos: 0, meetings: 0, notes: 0, events: 0, comments: 0, chats: 0 },
+          });
+        }
+        return seen.get(email);
+      };
+      Object.keys(users).forEach(slot);
+      for (const a of log) {
+        const m = slot(a.by || 'ana');
+        m.activity++;
+        if (!m.lastAt || a.at > m.lastAt) { m.lastAt = a.at; m.lastAction = a.action; }
+        if (a.action === 'chat.send') m.counts.chats++;
+        if (a.action === 'comment.add') m.counts.comments++;
+        if (a.action === 'profile.update' && (!m.profileUpdatedAt || a.at > m.profileUpdatedAt)) m.profileUpdatedAt = a.at;
+      }
+      if (st) {
+        for (const it of st.items || []) if (it.by) slot(it.by).counts.todos++;
+        for (const ev of st.events || []) if (ev.by) slot(ev.by).counts.events++;
+        for (const n of st.notes || []) if (n.by) slot(n.by).counts.notes++;
+        for (const mt of st.meetings || []) if (mt.by) slot(mt.by).counts.meetings++;
+      }
+      const members = [...seen.values()].sort((a, b) => (b.activity - a.activity) || a.email.localeCompare(b.email));
+      return sendJson(res, 200, { members, me: who(req) }), true;
+    }
+    // ---- 활동 이력 / 통계 ----
+    if (p === '/api/activity' && req.method === 'GET') {
+      const me = who(req);
+      const mine = url.searchParams.get('mine') === '1';
+      let list = readAudit(0).slice(-500).reverse();
+      if (mine && me) list = list.filter((a) => a.by === me);
+      return sendJson(res, 200, { activity: list.slice(0, 200), me }), true;
+    }
+    if (p === '/api/stats' && req.method === 'GET') {
+      const me = who(req);
+      const log = readAudit(0);
+      const users = loadUsers().users;
+      const day = (iso) => String(iso).slice(0, 10);
+      const today = new Date().toISOString().slice(0, 10);
+      const per = {};      // by → {total, today, actions:{}}
+      const actions = {};  // action → count
+      const daily = {};    // YYYY-MM-DD → count (최근 14일)
+      for (const a of log) {
+        const b = a.by || 'ana';
+        per[b] = per[b] || { by: b, name: (users[b] && users[b].name) || (b === 'ana' ? 'ANA' : b.split('@')[0]), avatar: (users[b] && users[b].avatar) || '', total: 0, today: 0, actions: {} };
+        per[b].total++; if (day(a.at) === today) per[b].today++;
+        per[b].actions[a.action] = (per[b].actions[a.action] || 0) + 1;
+        actions[a.action] = (actions[a.action] || 0) + 1;
+        daily[day(a.at)] = (daily[day(a.at)] || 0) + 1;
+      }
+      const days = [];
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date(Date.now() - i * 864e5).toISOString().slice(0, 10);
+        days.push({ date: d, count: daily[d] || 0 });
+      }
+      let s4 = null; try { s4 = loadData(); } catch {}
+      const mineCount = (arr) => (arr || []).filter((x) => x.by === me).length;
+      return sendJson(res, 200, {
+        me,
+        mine: me ? {
+          ...(per[me] || { total: 0, today: 0, actions: {} }),
+          todos: mineCount(s4 && s4.items), meetings: mineCount(s4 && s4.meetings),
+          events: mineCount(s4 && s4.events), notes: mineCount(s4 && s4.notes),
+        } : null,
+        all: {
+          total: log.length, actions, days,
+          people: Object.values(per).sort((a, b) => b.total - a.total),
+          todos: (s4 && s4.items || []).length, meetings: (s4 && s4.meetings || []).length,
+          events: (s4 && s4.events || []).length, notes: (s4 && s4.notes || []).length,
+        },
+      }), true;
+    }
+
     if (p === '/api/usage' && req.method === 'GET') {
       if (!usageCache.data || Date.now() - usageCache.at > 3600_000) {
         usageCache = { at: Date.now(), data: await collectUsage() };
@@ -189,6 +374,191 @@ function createDashboardApi(core, opts) {
       let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }); }
       const ps = loadProposals();
       return sendJson(res, 200, { ...s, proposals: ps.proposals.filter((x) => x.status === 'pending').slice(-50) }), true;
+    }
+
+    // 채팅 첨부 업로드(base64 JSON — csrfOk가 JSON content-type을 요구하므로 multipart 대신 사용)
+    if (p === '/api/upload' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const cap = Math.ceil(MAX_UPLOAD * 4 / 3) + 8192;   // base64 팽창분 + 필드 여유
+      const body = await jsonBody(req, res, cap); if (!body) return true;
+      const b64 = typeof body.data === 'string' ? body.data.replace(/^data:[^,]*,/, '') : '';
+      if (!b64) return sendJson(res, 400, { error: 'data required (base64)' }), true;
+      const buf = Buffer.from(b64, 'base64');
+      if (!buf.length) return sendJson(res, 400, { error: 'empty file' }), true;
+      if (buf.length > MAX_UPLOAD) return sendJson(res, 413, { error: `file too large (>${MAX_UPLOAD} bytes)` }), true;
+      const name = safeName(body.name);
+      const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
+      const file = path.join(UPLOAD_DIR, `${stamp}-${crypto.randomBytes(3).toString('hex')}-${name}`);
+      try {
+        await fsp.mkdir(UPLOAD_DIR, { recursive: true });
+        await fsp.writeFile(file, buf);
+      } catch (e) { return sendJson(res, 500, { error: `저장 실패: ${e.message}` }), true; }
+      return sendJson(res, 200, { ok: true, path: file, name, size: buf.length }), true;
+    }
+
+    // 업로드 파일 서빙 — 파일명 성분만 받고 UPLOAD_DIR 안으로 해석되는지 재확인(경로 탈출 차단)
+    if (p.startsWith('/uploads/') && (req.method === 'GET' || req.method === 'HEAD')) {
+      const name = safeName(decodeURIComponent(p.slice('/uploads/'.length)));
+      const abs = path.join(UPLOAD_DIR, name);
+      if (path.dirname(abs) !== UPLOAD_DIR) return sendJson(res, 403, { error: 'forbidden' }), true;
+      let st; try { st = await fsp.stat(abs); } catch { return sendJson(res, 404, { error: 'not found' }), true; }
+      if (!st.isFile()) return sendJson(res, 404, { error: 'not found' }), true;
+      const ext = path.extname(abs).toLowerCase();
+      const type = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif',
+        '.webp': 'image/webp', '.heic': 'image/heic', '.pdf': 'application/pdf' }[ext] || 'application/octet-stream';
+      res.writeHead(200, { 'content-type': type, 'content-length': st.size, 'cache-control': 'public, max-age=86400' });
+      if (req.method === 'HEAD') return res.end(), true;
+      require('node:fs').createReadStream(abs).pipe(res);
+      return true;
+    }
+
+    // 공유 링크 — /m/<id> 는 읽기 전용 회의록 페이지를 그대로 내려준다.
+    // 이 경로에는 자체 접근 통제가 없다. 링크를 아는 사람은 서버에 닿을 수만 있으면 열람할 수 있으므로,
+    // 공개 배포라면 앞단(리버스 프록시·SSO 게이트웨이)에서 인증을 걸어야 한다.
+    if (/^\/m\/[\w-]+$/.test(p) && (req.method === 'GET' || req.method === 'HEAD')) {
+      const abs = path.join(ROOT, 'share.html');
+      let body; try { body = await fsp.readFile(abs); } catch { return sendJson(res, 404, { error: 'not found' }), true; }
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' });
+      return res.end(req.method === 'HEAD' ? undefined : body), true;
+    }
+
+    // 미팅 단건 조회(공유 페이지용)
+    if (p === '/api/meeting' && req.method === 'GET') {
+      let s3; try { s3 = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
+      const m = s3.meetings.find((x) => x.id === url.searchParams.get('id'));
+      if (!m) return sendJson(res, 404, { error: 'not found' }), true;
+      return sendJson(res, 200, { meeting: m }), true;
+    }
+
+    // 미팅(회의록) — {action: add|remove|thumb}
+    if (p === '/api/meeting' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      const me = actor(req); touchUser(me);
+      let s2; try { s2 = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
+      const lines = (v, max, len) => (Array.isArray(v) ? v : [])
+        .map((n) => String(n || '').trim()).filter(Boolean).slice(0, max).map((n) => n.slice(0, len));
+      // 사진은 업로드된 파일명만 신뢰한다(절대경로가 와도 파일명으로 환원). {full, thumb} 또는 문자열 모두 허용.
+      // safeName은 빈 입력에 'file'을 돌려주므로(기본값), 빈 값은 여기서 먼저 걸러야 한다.
+      const one = (v) => { const t = String(v || '').split('/').pop(); return t ? safeName(t) : ''; };
+      const photoOf = (f) => {
+        if (f && typeof f === 'object') { const full = one(f.full); return full ? { full, thumb: one(f.thumb) } : null; }
+        const full = one(f); return full ? { full, thumb: '' } : null;
+      };
+      if (body.action === 'add') {
+        const title = String(body.title || '').trim();
+        const date = String(body.date || '').trim();
+        if (!title) return sendJson(res, 400, { error: 'title required' }), true;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return sendJson(res, 400, { error: 'date must be YYYY-MM-DD' }), true;
+        const hhmm = (v) => { const t = String(v || '').trim(); return /^\d{2}:\d{2}$/.test(t) ? t : ''; };
+        if (body.time && !hhmm(body.time)) return sendJson(res, 400, { error: 'time must be HH:MM' }), true;
+        if (body.endTime && !hhmm(body.endTime)) return sendJson(res, 400, { error: 'endTime must be HH:MM' }), true;
+        const actions = (Array.isArray(body.actions) ? body.actions : []).slice(0, 30).map((a) => ({
+          task: String((a && a.task) || '').trim().slice(0, 300),
+          owner: String((a && a.owner) || '').trim().slice(0, 60),
+          due: /^\d{4}-\d{2}-\d{2}$/.test(String((a && a.due) || '')) ? a.due : String((a && a.due) || '').trim().slice(0, 40),
+        })).filter((a) => a.task);
+        s2.meetings.push({
+          id: newId('m'), title: title.slice(0, 200), date,
+          time: hhmm(body.time), endTime: hhmm(body.endTime),
+          place: String(body.place || '').trim().slice(0, 200),
+          attendees: lines(body.attendees, 50, 60),
+          notes: lines(body.notes, 40, 300),
+          decisions: lines(body.decisions, 30, 300),
+          actions,
+          photos: (Array.isArray(body.photos) ? body.photos : []).map(photoOf).filter(Boolean).slice(0, 12),
+          comments: [],
+          by: me, at: new Date().toISOString(),
+        });
+        audit(me, 'meeting.add', title.slice(0, 80));
+      } else if (body.action === 'update') {
+        // 부분 수정 — 보낸 필드만 갈아끼운다(사진·썸네일은 건드리지 않는다).
+        const m = s2.meetings.find((x) => x.id === body.id);
+        if (!m) return sendJson(res, 404, { error: 'not found' }), true;
+        if (!owns(m, me)) return sendJson(res, 403, { error: '작성자만 수정할 수 있습니다' }), true;
+        const hhmm = (v) => { const t = String(v || '').trim(); return /^\d{2}:\d{2}$/.test(t) ? t : ''; };
+        if (body.title !== undefined) {
+          const t = String(body.title).trim();
+          if (!t) return sendJson(res, 400, { error: 'title required' }), true;
+          m.title = t.slice(0, 200);
+        }
+        if (body.date !== undefined) {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.date))) return sendJson(res, 400, { error: 'date must be YYYY-MM-DD' }), true;
+          m.date = body.date;
+        }
+        if (body.time !== undefined) m.time = hhmm(body.time);
+        if (body.endTime !== undefined) m.endTime = hhmm(body.endTime);
+        if (body.place !== undefined) m.place = String(body.place).trim().slice(0, 200);
+        if (body.attendees !== undefined) m.attendees = lines(body.attendees, 50, 60);
+        if (body.notes !== undefined) m.notes = lines(body.notes, 40, 300);
+        if (body.decisions !== undefined) m.decisions = lines(body.decisions, 30, 300);
+        if (body.photos !== undefined) {
+          m.photos = (Array.isArray(body.photos) ? body.photos : []).map(photoOf).filter(Boolean).slice(0, 12);
+        }
+        if (body.actions !== undefined) {
+          m.actions = (Array.isArray(body.actions) ? body.actions : []).slice(0, 30).map((a) => ({
+            task: String((a && a.task) || '').trim().slice(0, 300),
+            owner: String((a && a.owner) || '').trim().slice(0, 60),
+            due: String((a && a.due) || '').trim().slice(0, 40),
+          })).filter((a) => a.task);
+        }
+        audit(me, 'meeting.update', m.title.slice(0, 80));
+      } else if (body.action === 'comment') {
+        const m = s2.meetings.find((x) => x.id === body.id);
+        if (!m) return sendJson(res, 404, { error: 'not found' }), true;
+        const text = String(body.text || '').trim();
+        if (!text) return sendJson(res, 400, { error: 'text required' }), true;
+        if (!Array.isArray(m.comments)) m.comments = [];
+        if (m.comments.length >= 200) return sendJson(res, 413, { error: 'too many comments' }), true;
+        // 대댓글은 1단까지만 — 답글에 답글을 달면 최상위 부모에 붙인다(스레드가 깊어지지 않게).
+        let parent = '';
+        if (body.parent) {
+          const pc = m.comments.find((x) => x.id === body.parent);
+          if (!pc) return sendJson(res, 404, { error: 'parent not found' }), true;
+          parent = pc.parent || pc.id;
+        }
+        m.comments.push({ id: newId('c'), text: text.slice(0, 1000), by: me, parent, at: new Date().toISOString() });
+        audit(me, parent ? 'comment.reply' : 'comment.add', m.title.slice(0, 80), text.slice(0, 60));
+      } else if (body.action === 'comment-update') {
+        const m = s2.meetings.find((x) => x.id === body.id);
+        if (!m || !Array.isArray(m.comments)) return sendJson(res, 404, { error: 'not found' }), true;
+        const c = m.comments.find((x) => x.id === body.cid);
+        if (!c) return sendJson(res, 404, { error: 'not found' }), true;
+        if (!owns(c, me)) return sendJson(res, 403, { error: '작성자만 수정할 수 있습니다' }), true;
+        const text = String(body.text || '').trim();
+        if (!text) return sendJson(res, 400, { error: 'text required' }), true;
+        c.text = text.slice(0, 1000);
+        c.editedAt = new Date().toISOString();
+        audit(me, 'comment.update', m.title.slice(0, 80), text.slice(0, 60));
+      } else if (body.action === 'comment-remove') {
+        const m = s2.meetings.find((x) => x.id === body.id);
+        if (!m || !Array.isArray(m.comments)) return sendJson(res, 404, { error: 'not found' }), true;
+        const c = m.comments.find((x) => x.id === body.cid);
+        if (!c) return sendJson(res, 404, { error: 'not found' }), true;
+        if (!owns(c, me)) return sendJson(res, 403, { error: '작성자만 삭제할 수 있습니다' }), true;
+        // 부모를 지우면 딸린 답글도 함께 사라진다(고아 답글을 남기지 않는다).
+        const gone = m.comments.filter((x) => x.id === body.cid || x.parent === body.cid).length;
+        m.comments = m.comments.filter((x) => x.id !== body.cid && x.parent !== body.cid);
+        audit(me, 'comment.remove', m.title.slice(0, 80), gone > 1 ? `답글 ${gone - 1}개 포함` : '');
+      } else if (body.action === 'thumb') {
+        // 브라우저가 만든 썸네일 연결(서버에 이미지 라이브러리가 없어 리사이즈는 클라이언트가 한다)
+        const m = s2.meetings.find((x) => x.id === body.id);
+        if (!m) return sendJson(res, 404, { error: 'not found' }), true;
+        const full = one(body.full);
+        const thumb = one(body.thumb);
+        const ph = (m.photos || []).find((x) => x && x.full === full);
+        if (!ph || !thumb) return sendJson(res, 400, { error: 'full/thumb required' }), true;
+        ph.thumb = thumb;
+      } else if (body.action === 'remove') {
+        const m = s2.meetings.find((x) => x.id === body.id);
+        if (!m) return sendJson(res, 404, { error: 'not found' }), true;
+        if (!owns(m, me)) return sendJson(res, 403, { error: '작성자만 삭제할 수 있습니다' }), true;
+        s2.meetings = s2.meetings.filter((x) => x.id !== body.id);
+        audit(me, 'meeting.remove', m.title.slice(0, 80));
+      } else return sendJson(res, 400, { error: 'action must be add|update|remove|comment|comment-update|comment-remove|thumb' }), true;
+      s2.version = (s2.version || 1) + 1; saveData(s2);
+      broadcast({ kind: 'data', version: s2.version });
+      return sendJson(res, 200, { ok: true, version: s2.version }), true;
     }
 
     // 에이전트 pull 통지 조회
@@ -268,12 +638,14 @@ function createDashboardApi(core, opts) {
 
     // 완료 토글 — 서버 저장(다기기 공유)
     if (p === '/api/done' && req.method === 'POST') {
+      // 완료 토글은 소유자 제한 없이 허용하되(팀 작업), 누가 눌렀는지는 남긴다.
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
       const body = await jsonBody(req, res); if (!body) return true;
       let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
       const it = s.items.find((x) => x.id === body.id);
       if (!it) return sendJson(res, 404, { error: 'not found' }), true;
       it.done = !!body.done;
+      touchUser(actor(req)); audit(actor(req), it.done ? 'todo.done' : 'todo.undone', String(it.title).slice(0, 80));
       s.version = (s.version || 1) + 1; saveData(s);
       broadcast({ kind: 'data', version: s.version });
       return sendJson(res, 200, { ok: true, version: s.version, id: body.id, done: it.done }), true;
@@ -291,10 +663,14 @@ function createDashboardApi(core, opts) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return sendJson(res, 400, { error: 'date must be YYYY-MM-DD' }), true;
         const time = String(body.time || '').trim();
         if (time && !/^\d{2}:\d{2}$/.test(time)) return sendJson(res, 400, { error: 'time must be HH:MM' }), true;
-        s.events.push({ id: newId('e'), title: title.slice(0, 200), date, time, done: false });
+        s.events.push({ id: newId('e'), title: title.slice(0, 200), date, time, done: false, by: actor(req) });
+        audit(actor(req), 'event.add', title.slice(0, 80));
       } else if (body.action === 'remove') {
-        const b = s.events.length; s.events = s.events.filter((e) => e.id !== body.id);
-        if (s.events.length === b) return sendJson(res, 404, { error: 'not found' }), true;
+        const ev = s.events.find((e) => e.id === body.id);
+        if (!ev) return sendJson(res, 404, { error: 'not found' }), true;
+        if (!owns(ev, actor(req))) return sendJson(res, 403, { error: '작성자만 삭제할 수 있습니다' }), true;
+        s.events = s.events.filter((e) => e.id !== body.id);
+        audit(actor(req), 'event.remove', String(ev.title).slice(0, 80));
       } else if (body.action === 'done') {
         const e = s.events.find((x) => x.id === body.id);
         if (!e) return sendJson(res, 404, { error: 'not found' }), true;
@@ -312,9 +688,10 @@ function createDashboardApi(core, opts) {
       const title = String(body.title || '').trim();
       if (!title) return sendJson(res, 400, { error: 'title required' }), true;
       let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
-      const it = { id: newId('a'), title: title.slice(0, 200), done: false };
+      const it = { id: newId('a'), title: title.slice(0, 200), done: false, by: actor(req) };
       if (body.due && /^\d{4}-\d{2}-\d{2}$/.test(String(body.due))) it.due = String(body.due);
       s.items.push(it);
+      touchUser(actor(req)); audit(actor(req), 'todo.add', title.slice(0, 80));
       s.version = (s.version || 1) + 1; saveData(s);
       broadcast({ kind: 'data', version: s.version });
       return sendJson(res, 200, { ok: true, version: s.version, id: it.id }), true;
@@ -325,8 +702,11 @@ function createDashboardApi(core, opts) {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
       const body = await jsonBody(req, res); if (!body) return true;
       let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
-      const b = s.items.length; s.items = s.items.filter((x) => x.id !== body.id);
-      if (s.items.length === b) return sendJson(res, 404, { error: 'not found' }), true;
+      const it = s.items.find((x) => x.id === body.id);
+      if (!it) return sendJson(res, 404, { error: 'not found' }), true;
+      if (!owns(it, actor(req))) return sendJson(res, 403, { error: '작성자만 삭제할 수 있습니다' }), true;
+      s.items = s.items.filter((x) => x.id !== body.id);
+      audit(actor(req), 'todo.remove', String(it.title).slice(0, 80));
       s.version = (s.version || 1) + 1; saveData(s);
       broadcast({ kind: 'data', version: s.version });
       return sendJson(res, 200, { ok: true, version: s.version }), true;
@@ -339,17 +719,22 @@ function createDashboardApi(core, opts) {
       let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
       let noteId;
       if (body.action === 'add') {
-        const n = { id: newId('n'), title: String(body.title || '').slice(0, 200), text: String(body.text || '').slice(0, 20000), updatedAt: new Date().toISOString() };
+        const n = { id: newId('n'), title: String(body.title || '').slice(0, 200), text: String(body.text || '').slice(0, 20000), by: actor(req), updatedAt: new Date().toISOString() };
         s.notes.push(n); noteId = n.id;
+        touchUser(actor(req)); audit(actor(req), 'note.add', n.title.slice(0, 80) || '(제목 없음)');
       } else if (body.action === 'update') {
         const n = s.notes.find((x) => x.id === body.id);
         if (!n) return sendJson(res, 404, { error: 'not found' }), true;
+        if (!owns(n, actor(req))) return sendJson(res, 403, { error: '작성자만 수정할 수 있습니다' }), true;
         if (body.title !== undefined) n.title = String(body.title).slice(0, 200);
         if (body.text !== undefined) n.text = String(body.text).slice(0, 20000);
         n.updatedAt = new Date().toISOString(); noteId = n.id;
       } else if (body.action === 'remove') {
-        const b = s.notes.length; s.notes = s.notes.filter((x) => x.id !== body.id);
-        if (s.notes.length === b) return sendJson(res, 404, { error: 'not found' }), true;
+        const n = s.notes.find((x) => x.id === body.id);
+        if (!n) return sendJson(res, 404, { error: 'not found' }), true;
+        if (!owns(n, actor(req))) return sendJson(res, 403, { error: '작성자만 삭제할 수 있습니다' }), true;
+        s.notes = s.notes.filter((x) => x.id !== body.id);
+        audit(actor(req), 'note.remove', String(n.title).slice(0, 80) || '(제목 없음)');
       } else return sendJson(res, 400, { error: 'action must be add|update|remove' }), true;
       s.version = (s.version || 1) + 1; saveData(s);
       broadcast({ kind: 'data', version: s.version });
@@ -411,9 +796,17 @@ function createDashboardApi(core, opts) {
   }
 
   const snapshotExtra = () => { try { return { version: dataVersion() }; } catch { return { version: 1 }; } };
+  // 채팅 주입 시 채널 코어가 부르는 훅
+  const identify = (req) => {
+    const e = who(req);
+    if (!e) return null;
+    const pr = profileOf(e);
+    return { email: e, label: `${pr.name}·${e}` };
+  };
+  const onChat = (req, text) => { const me = actor(req); touchUser(me); audit(me, 'chat.send', String(text).replace(/\s+/g, ' ').slice(0, 80)); };
 
   return {
-    extraApi, snapshotExtra, bootstrap,
+    extraApi, snapshotExtra, bootstrap, identify, onChat,
     // 테스트 export
     applyDiff, hasDiff, validateDiff, loadData, saveData, loadProposals, saveProposals, loadEvolve, saveEvolve, nextPid,
   };

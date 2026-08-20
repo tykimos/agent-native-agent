@@ -32,6 +32,9 @@ const apiOpts = {
   EVOLVE_FILE: env.EVOLVE_FILE || path.join(DATA_DIR, 'evolve.json'),
   NOTIFY_AGENT: env.NOTIFY_AGENT !== '0',
   MAX_TEXT: Number(env.MAX_TEXT || 8000),
+  // 신원은 앞단(리버스 프록시·SSO 게이트웨이)이 헤더로 실어 줄 때만 잡힌다. 미지정이면 단일 사용자.
+  IDENTITY_HEADER: env.ANA_IDENTITY_HEADER || '',
+  LOGOUT_URL: env.ANA_LOGOUT_URL || '',
 };
 const opts = {
   ROOT, PORT, BIND, SESSION, SOCKET, TARGET,
@@ -41,7 +44,7 @@ const opts = {
   FEED_FILE: env.TRANSCRIPT_FILE || path.join(DATA_DIR, 'transcript.jsonl'),
   readyGuard: env.ANA_READY_GUARD !== '0',
   autoConfigPane: env.ANA_AUTOCONFIG !== '0',         // apply alternate-screen off + fixed size on connect
-  SERVABLE: new Set(['dashboard.html', 'ana-logo.png']),
+  SERVABLE: new Set(['dashboard.html', 'share.html', 'ana-logo.png']),
   defaultDoc: 'dashboard.html',
   testMode: !!env.ANA_TEST,
 };
@@ -62,7 +65,10 @@ if (env.ANA_TEST) {
   };
 } else {
   const api = createDashboardApi(core, apiOpts);
-  const app = core.createChannelServer({ ...opts, extraApi: api.extraApi, snapshotExtra: api.snapshotExtra });
+  const app = core.createChannelServer({
+    ...opts, extraApi: api.extraApi, snapshotExtra: api.snapshotExtra,
+    identify: api.identify, onChat: api.onChat,
+  });
   api.bootstrap(app.ch.feed);
   app.listen(() => {
     const host = BIND === '0.0.0.0' ? 'localhost' : BIND;

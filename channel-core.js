@@ -398,6 +398,9 @@ function createChannelServer(opts) {
   const {
     PORT, BIND, SESSION, MAX_TEXT = 8000, POLL_MS = 300, ROOT,
     SERVABLE, defaultDoc, readyGuard = true, extraApi, snapshotExtra,
+    // 선택 훅. identify(req) → {label} 이면 보낸 사람을 프롬프트 첫머리에 싣는다(여러 명이 한 세션을
+    // 공유할 때 에이전트가 누구의 요청인지 알 수 있게). onChat(req, text)은 전송 사실을 기록용으로 받는다.
+    identify, onChat,
     autoConfigPane = true,
     READY_TIMEOUT = Number(process.env.ANA_READY_TIMEOUT || 5000),
   } = opts;
@@ -643,7 +646,12 @@ function createChannelServer(opts) {
         if (!(await agentAlive())) return sendJson(res, 409, { error: `에이전트가 실행 중이 아닙니다(셸 상태) — tmux 세션 '${getTarget()}'에서 코딩 에이전트(claude 등)를 다시 실행하세요` });
         if (lastDraft && !force) return sendJson(res, 409, { error: '터미널 입력창에 작성 중인 내용이 있습니다 — 비운 뒤 다시 시도하세요', recoverable: 'ctrl-u' });
         if (!(await waitInputReady())) return sendJson(res, 409, { error: '에이전트 입력창이 준비되지 않았습니다(기동 중이거나 다이얼로그 대기 중) — 터미널을 확인하세요' });
-        await enqueue(() => injectText(text, submit, force)); // force면 주입 전 Ctrl-u로 입력창 비움
+        // 보낸 사람을 첫머리에 붙인다 — 접두어까지 포함한 길이로 상한을 다시 확인한다.
+        const idn = typeof identify === 'function' ? identify(req) : null;
+        const outText = idn && idn.label ? `[${idn.label}] ${text}` : text;
+        if (Buffer.byteLength(outText) > MAX_TEXT) return sendJson(res, 413, { error: `text too long (>${MAX_TEXT} bytes)` });
+        await enqueue(() => injectText(outText, submit, force)); // force면 주입 전 Ctrl-u로 입력창 비움
+        try { if (typeof onChat === 'function') onChat(req, text); } catch {}
         return sendJson(res, 200, { ok: true });
       }
 

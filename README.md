@@ -99,6 +99,20 @@ Open **http://localhost:8809**, flip on **ANA mode**, and talk. There is **no la
 
 The reference dashboard ships **ANA mode** (click any element to pin it as a context chip), a docked chat you resize, and an **evolution tab** — ask for a change, approve it, the running agent rewrites the app.
 
+### Sharing it with other people (optional)
+
+ANA has **no login of its own**. For single-user self-hosting that is the point — bind to loopback and it is yours. If several people need the same board, put ANA behind something that authenticates (a reverse proxy, an SSO gateway, a Zero Trust tunnel) and have it forward the user identifier as a request header:
+
+```bash
+ANA_IDENTITY_HEADER=x-forwarded-email \
+ANA_LOGOUT_URL=/your-gateway/logout \
+node server.js
+```
+
+With the header set, items carry an author, only the author can edit or delete their own, and the member/activity tabs come alive. Unset (the default) everything runs as one local user.
+
+> The header is trusted as-is, so it only means anything when a gateway in front actually sets it. Keep the server on loopback or behind that proxy — exposing it on `0.0.0.0` with this option on lets anyone forge the header.
+
 ---
 
 ## Attach ANA to your own service (very simple)

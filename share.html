@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>회의록 — ANA</title>
+<style>
+/* 공유 회의록 — 읽기 전용 단일 페이지.
+   이 페이지에는 자체 접근 통제가 없다 — 공개 배포라면 앞단 게이트웨이에서 인증을 걸어야 한다. */
+:root {
+  --bg: #F2F4F6; --surface: #FFFFFF; --surface-2: #F9FAFB;
+  --text: #191F28; --text-sub: #4E5968; --text-weak: #6B7684;
+  --line: #E5E8EB; --line-2: #EDF0F2;
+  --acc: #3182F6; --acc-strong: #1B64DA; --acc-weak: #E8F1FE;
+  --warm-bg: #FFF2E5; --warm-fg: #E8731C;
+  --r: 16px; --r-sm: 12px; --r-xs: 10px;
+  --sh-card: 0 1px 3px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.04);
+  --safe-b: env(safe-area-inset-bottom, 0px); --safe-t: env(safe-area-inset-top, 0px);
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", system-ui, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #17181C; --surface: #1F2126; --surface-2: #25272E;
+    --text: #F2F4F6; --text-sub: #C2C7CE; --text-weak: #97A1AD;
+    --line: #2E3138; --line-2: #292C32; --acc: #5C9DFF; --acc-strong: #9CC2FF; --acc-weak: #16335C;
+    --warm-bg: #4A3115; --warm-fg: #FFC489; --sh-card: 0 1px 3px rgba(0,0,0,.4); }
+}
+* { box-sizing: border-box; margin: 0; -webkit-tap-highlight-color: transparent; }
+body { background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.5; letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+.top { display: flex; align-items: center; gap: 9px; padding: calc(12px + var(--safe-t)) 16px 12px;
+  border-bottom: 1px solid var(--line-2); background: var(--bg); position: sticky; top: 0; z-index: 5; }
+.top img { width: 26px; height: 26px; border-radius: 7px; }
+.top .bn { font-size: 15px; font-weight: 800; letter-spacing: -0.03em; }
+.top .sp { flex: 1; }
+.top a { font-size: 12.5px; font-weight: 800; color: var(--acc-strong); text-decoration: none;
+  background: var(--acc-weak); border-radius: 999px; padding: 5px 12px; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 18px clamp(14px, 4vw, 24px) calc(48px + var(--safe-b)); }
+.card { background: var(--surface); border-radius: var(--r); box-shadow: var(--sh-card); padding: 18px 20px; }
+h1 { font-size: 21px; font-weight: 800; letter-spacing: -0.03em; overflow-wrap: anywhere; }
+dl.meta { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 12px 0 0; font-size: 13.5px; }
+dl.meta dt { color: var(--text-weak); font-weight: 800; white-space: nowrap; }
+dl.meta dd { margin: 0; min-width: 0; color: var(--text-sub); font-weight: 600; overflow-wrap: anywhere; }
+.sec { margin-top: 18px; }
+.h { display: inline-block; font-size: 12px; font-weight: 800; color: var(--acc-strong);
+  background: var(--acc-weak); border-radius: 999px; padding: 2px 9px; margin-bottom: 7px; }
+ul.notes { margin: 4px 0 0; padding-left: 18px; }
+ul.notes li { font-size: 14.5px; line-height: 1.65; color: var(--text-sub); margin-bottom: 4px; overflow-wrap: anywhere; }
+ul.notes li::marker { color: var(--acc); }
+ul.notes.decide li { color: var(--text); font-weight: 600; }
+a { color: var(--acc-strong); font-weight: 700; }
+ul.acts { list-style: none; margin: 4px 0 0; padding: 0; }
+ul.acts li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 11px; margin-bottom: 6px;
+  border-radius: var(--r-xs); background: var(--surface-2); font-size: 13.5px; }
+ul.acts .at { flex: 1 1 140px; min-width: 0; color: var(--text); font-weight: 700; overflow-wrap: anywhere; }
+ul.acts .ao { font-size: 11.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--acc-weak); color: var(--acc-strong); }
+ul.acts .ad { font-size: 11.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--warm-bg); color: var(--warm-fg); }
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 6px; }
+.photos img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-sm); background: var(--surface-2); cursor: zoom-in; display: block; }
+.cmts { list-style: none; margin: 4px 0 0; padding: 0; }
+.cmts li { padding: 9px 12px; margin-bottom: 6px; border-radius: var(--r-xs); background: var(--surface-2); }
+.cmts .ct { font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cmts .cw { display: block; margin-top: 3px; font-size: 11px; font-weight: 700; color: var(--text-weak); }
+.state { padding: 60px 20px; text-align: center; color: var(--text-weak); font-weight: 600; }
+.lightbox { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.9); display: none; place-items: center; padding: 16px; cursor: zoom-out; }
+.lightbox.on { display: grid; }
+.lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--r-sm); }
+</style>
+</head>
+<body>
+<div class="top">
+  <img src="/ana-logo.png" alt=""><span class="bn">ANA</span><span class="sp"></span>
+  <a href="/">대시보드 열기</a>
+</div>
+<div class="wrap"><div id="root" class="state">불러오는 중…</div></div>
+<div class="lightbox" id="lb"><img id="lbImg" alt=""></div>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const linkify = (e) => e.replace(/https?:\/\/[^\s<>"']+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+const fmtWhen = (iso) => { try { return new Date(iso).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
+
+(async () => {
+  const id = location.pathname.split('/').filter(Boolean).pop();
+  let m;
+  try {
+    const r = await fetch(`/api/meeting?id=${encodeURIComponent(id)}`);
+    if (r.status === 404) { $('root').textContent = '이 회의록을 찾을 수 없습니다 — 삭제되었을 수 있습니다.'; return; }
+    if (!r.ok) throw new Error(r.status);
+    m = (await r.json()).meeting;
+  } catch { $('root').textContent = '불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'; return; }
+
+  document.title = `${m.title} — 회의록`;
+  const sec = (label, arr, cls) => (arr && arr.length
+    ? `<div class="sec"><div class="h">${label}</div><ul class="notes ${cls || ''}">${
+        arr.map((n) => `<li>${linkify(esc(n))}</li>`).join('')}</ul></div>` : '');
+  const when = `${m.date}${m.time ? ' ' + m.time : ''}${m.endTime ? '–' + m.endTime : ''}`;
+  const meta = [['일시', when], ['장소', m.place || ''], ['참석자', (m.attendees || []).join(', ')]].filter(([, v]) => v);
+
+  $('root').className = 'card';
+  $('root').innerHTML = `
+    <h1>${esc(m.title)}</h1>
+    <dl class="meta">${meta.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+    ${sec('주요 내용', m.notes)}
+    ${sec('결정 사항', m.decisions, 'decide')}
+    ${(m.actions && m.actions.length) ? `<div class="sec"><div class="h">액션 아이템</div><ul class="acts">${
+      m.actions.map((a) => `<li><span class="at">${linkify(esc(a.task))}</span>${
+        a.owner ? `<span class="ao">${esc(a.owner)}</span>` : ''}${
+        a.due ? `<span class="ad">~${esc(a.due)}</span>` : ''}</li>`).join('')}</ul></div>` : ''}
+    ${(m.photos && m.photos.length) ? `<div class="sec"><div class="h">사진</div><div class="photos">${
+      m.photos.map((f) => `<img src="/uploads/${encodeURIComponent(f.thumb || f.full)}" data-full="/uploads/${encodeURIComponent(f.full)}" alt="${esc(m.title)} 사진" loading="lazy">`).join('')}</div></div>` : ''}
+    ${(m.comments && m.comments.length) ? `<div class="sec"><div class="h">댓글 ${m.comments.length}</div><ul class="cmts">${
+      m.comments.map((c) => `<li><div class="ct">${linkify(esc(c.text))}</div><span class="cw">${esc(fmtWhen(c.at))}</span></li>`).join('')}</ul></div>` : ''}`;
+
+  $('root').querySelectorAll('.photos img').forEach((img) => img.onclick = () => {
+    $('lbImg').src = img.dataset.full || img.src; $('lb').classList.add('on');
+  });
+  $('lb').onclick = () => { $('lb').classList.remove('on'); $('lbImg').src = ''; };
+})();
+</script>
+</body>
+</html>
