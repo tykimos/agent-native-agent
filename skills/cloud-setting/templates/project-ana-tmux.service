@@ -1,0 +1,17 @@
+[Unit]
+Description=ANA agent tmux session {{SESSION}} (runs claude)
+After=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User={{USER}}
+Environment=HOME={{HOME}}
+Environment=PATH={{HOME}}/.local/bin:/usr/local/bin:/usr/bin:/bin
+WorkingDirectory={{APP_DIR}}
+# no-op if the session already exists — never kills a working agent
+ExecStart=/bin/sh -c "tmux has-session -t {{SESSION}} 2>/dev/null || tmux new-session -d -s {{SESSION}} -c {{APP_DIR}} -x 200 -y 50 \"claude --continue || claude\""
+ExecStop=/bin/sh -c "tmux kill-session -t {{SESSION}} 2>/dev/null || true"
+
+[Install]
+WantedBy=multi-user.target

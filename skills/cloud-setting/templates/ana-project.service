@@ -1,0 +1,19 @@
+[Unit]
+Description=ANA server for {{PROJECT}} (node server.js on 127.0.0.1:{{PORT}})
+After=network-online.target {{PROJECT}}-ana-tmux.service
+Wants={{PROJECT}}-ana-tmux.service
+
+[Service]
+Type=simple
+User={{USER}}
+Environment=HOME={{HOME}}
+Environment=TMUX_SESSION={{SESSION}}
+Environment=PORT={{PORT}}
+Environment=BIND=127.0.0.1
+WorkingDirectory={{APP_DIR}}
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
