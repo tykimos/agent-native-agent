@@ -384,6 +384,43 @@ t('D9 inputBoxReady / dialogOpen 판정 (CR4)', () => {
   assert.equal(srv.dialogOpen(box), false);
 });
 
+t('D10 parseDialog: AskUserQuestion(단일·다중·Submit 커서·검토·직접 입력)·권한 메뉴 구조화', () => {
+  const S = (a) => a.join('\n');
+  const bar = '────────────────────────────────────────';
+  // 단일 선택 + 질문 탭 2개
+  const one = srv.parseDialog(S([bar, '←  ☐ Color  ☐ Fruits  ✔ Submit  →', '', 'Pick a color', '',
+    '❯ 1. Red', '     Warm accent.', '  2. Green', '     Calm tone.', '  3. Type something.', bar, '  4. Chat about this', '',
+    'Enter to select · Tab/Arrow keys to navigate · Esc to cancel']));
+  assert.equal(one.kind, 'question'); assert.equal(one.title, 'Pick a color'); assert.equal(one.multi, false);
+  assert.deepEqual(one.tabs, [{ label: 'Color', done: false }, { label: 'Fruits', done: false }]);
+  assert.deepEqual(one.options.map((o) => [o.n, o.label, o.cur]), [[1, 'Red', true], [2, 'Green', false], [3, 'Type something.', false], [4, 'Chat about this', false]]);
+  assert.equal(one.options[0].desc, 'Warm accent.');
+  assert.equal(one.options[2].other, true); assert.equal(one.options[3].chat, true);
+  // 다중 선택 — 커서가 Submit 행에 있고 푸터가 좁은 폭에서 줄바꿈된 경우(실측 회귀)
+  const multiScreen = S([bar, '←  ☒ Color  ☒ Fruits  ✔ Submit  →', '', 'Pick fruits', '',
+    '  1. [✔] Apple', '  Crisp.', '  2. [ ] Banana', '  Soft.', '  3. [ ] Type something', '❯    Submit', bar, '  4. Chat about this',
+    'Enter to select · Tab/Arrow keys to navigate · ctrl+g to edit in VS Code · Esc', 'to cancel']);
+  const multi = srv.parseDialog(multiScreen);
+  assert.equal(multi.multi, true); assert.deepEqual(multi.submit, { cur: true });
+  assert.deepEqual(multi.options.map((o) => o.checked), [true, false, false, null]);
+  assert.match(multi.footer, /Esc to cancel$/);
+  assert.equal(srv.dialogOpen(multiScreen), true, '줄바꿈된 푸터여도 다이얼로그로 판정');
+  // 검토 화면
+  const rev = srv.parseDialog(S([bar, '←  ☒ Color  ☒ Fruits  ✔ Submit  →', '', 'Review your answers', '', ' ● Pick a color', '   → Green',
+    '', 'Ready to submit your answers?', '', '❯ 1. Submit answers', '  2. Cancel']));
+  assert.deepEqual(rev.review, [{ q: 'Pick a color', a: 'Green' }]);
+  assert.equal(rev.title, 'Ready to submit your answers?');
+  // 질문 1개 + 직접 입력에 글자를 친 상태(라벨이 입력값으로 바뀜) → Chat 앞 옵션이 직접 입력
+  const typed = srv.parseDialog(S([bar, ' ☐ Size', '', 'Pick a size', '', '  1. Small', '  2. Large', '❯ 3. Medium', bar, '  4. Chat about this']));
+  assert.equal(typed.options[2].other, true); assert.equal(typed.options[2].label, 'Medium');
+  // 권한 메뉴(박스 테두리 제거)
+  const perm = srv.parseDialog(S(['╭────╮', '│ Bash command │', '  rm -rf build', '', 'Do you want to proceed?', '❯ 1. Yes', '  2. No']));
+  assert.equal(perm.kind, 'menu'); assert.equal(perm.title, 'Do you want to proceed?');
+  assert.deepEqual(perm.options.map((o) => o.label), ['Yes', 'No']);
+  assert.ok(!/[│╭]/.test(perm.intro));
+  assert.equal(srv.parseDialog('⏺ plain answer\n' + bar + '\n❯ \n' + bar), null);
+});
+
 t('D3 앵커 정렬은 화면 유래 항목만 사용 (src:api 리치 항목이 앵커를 깨지 않음)', () => {
   srv.feed.length = 0;
   srv.feed.push(
@@ -411,6 +448,7 @@ async function integration() {
     USERS_FILE: path.join(SCRATCH, 'int-users.json'),
     AUDIT_FILE: path.join(SCRATCH, 'int-audit.jsonl'),
     UPLOAD_DIR: path.join(SCRATCH, 'int-uploads'),
+    TARGETS_FILE: path.join(SCRATCH, 'int-targets.json'),   // 사람별 최근 세션 — 실전 .ana/targets.json 오염 방지
     NOTIFY_AGENT: '0', ANA_READY_GUARD: '0', // 승인 알림 주입이 mock 에이전트 에코를 유발해 total 계산을 흔들지 않도록
   };
   delete childEnv.ANA_TEST;
@@ -676,6 +714,29 @@ async function integration() {
       assert.equal(new Set(ids).size, ids.length, '알림 id는 유일해야 함(카운터 접미)');
       const bogus = await (await fetch(`${api}/api/notifications?since=does-not-exist-000`)).json();
       assert.equal(bogus.notifications.length, 0, '무효 커서 → 빈 목록(큐 재생 금지)');
+    });
+
+    await ta('I15 세션별 원장·사람별 최근 세션: 전환하면 그 세션 이력만, 헤더로 명시하면 그 세션, 되돌리면 원래 이력', async () => {
+      const orig = (await (await fetch(`${api}/api/health`)).json()).target;
+      const before = (await (await fetch(`${api}/api/feed`)).json()).total;
+      assert.ok(before > 0, '기본 세션에 이력이 있어야 한다');
+      const other = `${TEST_SESSION}-none`;             // 존재하지 않는 세션 — 원장이 비어 있어야 한다
+      let r = await post('/api/config', { target: other });
+      let j = await r.json();
+      assert.equal(r.status, 200); assert.equal(j.connected, false);
+      const f2 = await (await fetch(`${api}/api/feed`)).json();
+      assert.equal(f2.target, other); assert.equal(f2.total, 0, '다른 세션으로 바꾸면 그 세션의 원장(비어 있음)만 보인다');
+      // 명시 헤더(에이전트 curl용)는 최근 세션보다 우선
+      const f3 = await (await fetch(`${api}/api/feed`, { headers: { 'x-ana-target': orig } })).json();
+      assert.equal(f3.target, orig); assert.equal(f3.total, before);
+      // 최근 세션은 파일에 기억된다(재접속에도 유지)
+      const saved = JSON.parse(fs.readFileSync(path.join(SCRATCH, 'int-targets.json'), 'utf8'));
+      assert.equal(saved.users.local.target, other);
+      r = await post('/api/config', { target: orig }); j = await r.json();
+      assert.equal(j.connected, true);
+      const f4 = await (await fetch(`${api}/api/feed`)).json();
+      assert.equal(f4.target, orig); assert.equal(f4.total, before, '되돌리면 원래 세션 이력이 그대로');
+      assert.equal((await post('/api/config', { target: 'bad target!' })).status, 400);
     });
 
     await ta('I13 draft 가드: 터미널 입력창에 미제출 텍스트 있으면 /api/chat 409 (맨 마지막 — 입력 박스가 화면에 남음)', async () => {

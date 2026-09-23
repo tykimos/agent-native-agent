@@ -945,10 +945,12 @@ function createDashboardApi(core, opts) {
     const safe = String(pr.name || '').replace(/[[\]·\r\n]/g, ' ').replace(/\s+/g, ' ').trim() || e.split('@')[0];
     return { email: e, label: `${safe}·${e}` };
   };
+  // 채널 코어가 '사람별 최근 세션'을 기억할 때 쓰는 키 — 신원이 없으면 빈 값(단일 사용자)
+  const userKey = (req) => who(req);
   const onChat = (req, text) => { const me = actor(req); touchUser(me); audit(me, 'chat.send', String(text).replace(/\s+/g, ' ').slice(0, 80)); };
 
   return {
-    extraApi, snapshotExtra, bootstrap, identify, onChat,
+    extraApi, snapshotExtra, bootstrap, identify, onChat, userKey,
     // 테스트 export
     applyDiff, hasDiff, validateDiff, loadData, saveData, loadProposals, saveProposals, loadEvolve, saveEvolve, nextPid,
     loadWorkspaces,

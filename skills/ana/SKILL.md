@@ -65,11 +65,14 @@ That's it — type in the page, the agent answers in the page.
 |---|---|
 | `POST /api/chat` `{text, force?}` | inject a message into the tmux agent (use `force:true` from the web — it clears the input line first, avoiding false "draft" blocks) |
 | `POST /api/keys` `{key}` | send a control key (`enter`/`esc`/`up`/`down`/`1`..`9`/`ctrl-c` …) — used to answer TUI dialogs |
-| `GET /api/stream` (SSE) | snapshot + incremental `commit`/`pending`/`status`/`screen`/`draft` events |
-| `GET /api/feed?since=<seq>` | conversation ledger (cursor pagination) — survives restarts |
-| `GET /api/health` | `{session, target, command, ready, dialog, busy}` — connection + terminal-dialog state |
-| `GET /api/config` / `POST /api/config {target}` | list tmux sessions / switch the connected session live (no restart) |
+| `GET /api/stream` (SSE) | snapshot + incremental `commit`/`pending`/`status`/`screen`/`draft`/`dialog`/`target` events for **the caller's session** |
+| `GET /api/feed?since=<seq>` | that session's conversation ledger (cursor pagination) — survives restarts |
+| `GET /api/health` | `{session, target, you, command, ready, dialog, dialogInfo, busy}` — connection + terminal-dialog state |
+| `GET /api/config` / `POST /api/config {target}` | list tmux sessions (message count, who picked it, who is watching) / switch **your** session live — remembered per person |
+| `GET /api/dialog` / `POST /api/dialog {action, n?, text?}` | structured terminal dialog (AskUserQuestion, permission menus) / answer it: `pick` n (+`text` for "Type something"), `submit` (multi-select), `next`/`prev` (question tabs), `esc` |
 | `GET /api/screen` | raw pane snapshot (for a terminal view / dialog card) |
+
+**Sessions.** Every tmux session (target) gets its own ledger (`.ana/transcripts/<target>.jsonl`; the default session keeps `.ana/transcript.jsonl`), poll loop, SSE subscribers and injection queue. A request's session is: `x-ana-target` header or `?target=` (explicit, e.g. for the agent's own `curl`) → the person's most recent pick (`.ana/targets.json`, keyed by the `userKey(req)` hook — the identity header in the ANA base) → the default `TARGET`. Switching sessions swaps the whole chat history, and each signed-in person lands on the session they used last.
 
 ## Rich responses (optional)
 

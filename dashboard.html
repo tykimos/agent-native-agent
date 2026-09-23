@@ -624,6 +624,41 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 .dlgcard-keys button { min-height: 34px; padding: 4px 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); color: var(--text-sub); font-size: 12.5px; font-weight: 700; }
 .dlgcard-keys button:hover { border-color: var(--blue); color: var(--text); }
 .dlgcard-keys button.primary { margin-left: auto; background: var(--blue); border-color: var(--blue); color: var(--white); }
+/* 구조화된 다이얼로그(AskUserQuestion·권한 메뉴) — 선택지를 버튼으로 */
+.dq { display: flex; flex-direction: column; gap: 8px; }
+.dq[hidden] { display: none; }
+.dq-tabs { display: flex; flex-wrap: wrap; gap: 5px; }
+.dq-tab { padding: 2px 9px; border-radius: 999px; background: var(--surface); color: var(--text-weak); font-size: 11.5px; font-weight: 800; }
+.dq-tab.done { color: var(--success); }
+.dq-intro { padding: 6px 8px; border-radius: 6px; background: var(--surface); font: 12px/1.45 ui-monospace, Menlo, monospace; color: var(--text-sub); white-space: pre-wrap; word-break: break-word; max-height: 90px; overflow: auto; }
+.dq-review { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: 13px; }
+.dq-review b { font-weight: 800; }
+.dq-title { font-size: 14px; font-weight: 800; color: var(--text); }
+.dq-opts { display: grid; gap: 6px; }
+.dq-opt { display: flex; align-items: flex-start; gap: 9px; width: 100%; padding: 9px 11px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); text-align: left; color: var(--text); }
+.dq-opt:hover:not(:disabled) { border-color: var(--blue); }
+.dq-opt.cur { border-color: color-mix(in srgb, var(--blue) 55%, var(--line)); }
+.dq-opt:disabled { opacity: .6; cursor: default; }
+.dq-opt .no { flex: 0 0 auto; min-width: 20px; height: 20px; border-radius: 6px; background: var(--surface-2); color: var(--text-weak); font-size: 11.5px; font-weight: 800; display: grid; place-items: center; }
+.dq-opt .cb { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 1px; border-radius: 5px; border: 2px solid var(--line); display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 900; }
+.dq-opt.on .cb { background: var(--blue); border-color: var(--blue); }
+.dq-opt .tx { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.dq-opt .l { font-size: 13.5px; font-weight: 700; }
+.dq-opt .d { font-size: 12px; color: var(--text-weak); }
+.dq-other { display: flex; gap: 6px; }
+.dq-other input { flex: 1; min-width: 0; height: 38px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-size: 13.5px; }
+.dq-other button { flex: 0 0 auto; height: 38px; padding: 0 12px; border-radius: 10px; background: var(--blue); color: #fff; font-size: 13px; font-weight: 800; }
+.dq-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dq-acts button { min-height: 34px; padding: 4px 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); color: var(--text-sub); font-size: 12.5px; font-weight: 700; }
+.dq-acts button:hover { border-color: var(--blue); color: var(--text); }
+.dq-acts button.primary { background: var(--blue); border-color: var(--blue); color: var(--white); }
+.dq-acts .sp { flex: 1; }
+.dq-acts .ghost { background: none; border-color: transparent; }
+.dlgcard details.dq-raw summary { cursor: pointer; font-size: 11.5px; font-weight: 700; color: var(--text-weak); margin-top: 6px; }
+.dlgcard details.dq-raw[open] summary { margin-bottom: 6px; }
+/* 세션 목록: 원장 크기·연결된 사람 */
+.tmux-cfg-list .who { display: block; margin-top: 2px; font-size: 11px; color: var(--text-weak); }
+.tmux-cfg-list .who b { color: var(--blue-700); font-weight: 800; }
 .keys { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 8px; }
 .keys button { min-height: 34px; padding: 4px 11px; border-radius: 999px; background: var(--surface-2); box-shadow: var(--sh-card); color: var(--text-sub); font-size: 12px; font-weight: 700; flex-shrink: 0; }
 .keys .sp { flex: 1; box-shadow: none; background: none; min-height: 0; }
@@ -964,7 +999,9 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
   </div>
   <div class="errbar" id="errbar" role="alert"><span id="errtext"></span><button id="errclose" aria-label="Close">✕</button></div>
   <div class="dlgcard" id="dlgcard" role="alert">
-    <div class="dlgcard-h">The terminal is showing a dialog that needs your input</div>
+    <div class="dlgcard-h" id="dlgcardH">The terminal is showing a dialog that needs your input</div>
+    <div class="dq" id="dlgQ" hidden></div>
+    <details class="dq-raw" id="dlgRaw" open><summary>Terminal view &amp; keys</summary>
     <pre class="dlgcard-body" id="dlgcardBody"></pre>
     <div class="dlgcard-keys">
       <button data-key="up" aria-label="Up">↑</button>
@@ -974,6 +1011,7 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
       <button data-key="esc">Esc Cancel</button>
       <button data-key="enter" class="primary">⏎ Select</button>
     </div>
+    </details>
   </div>
   <div class="chips" id="chips" aria-label="Context chips"></div>
   <div class="keys" id="keysRow">
@@ -2056,7 +2094,7 @@ function renderStatus() {
   const pill = $('connPill');
   pill.className = 'conn ' + (agentOk ? 'ok' : 'bad');
   // ANA(코딩 에이전트) 연결 여부를 영문으로 표시
-  $('connLabel').textContent = agentOk ? 'ANA connected' : 'ANA disconnected';
+  $('connLabel').textContent = agentOk ? `ANA · ${health.target || health.name}` : 'ANA disconnected';
   pill.title = agentOk ? `Connected to ${health.target || health.name}${health.size ? ' · ' + health.size : ''} — click to switch`
     : !srvConnected ? 'Server unreachable — reconnecting'
     : !ses ? 'No agent — click to select'
@@ -2065,22 +2103,79 @@ function renderStatus() {
   $('typing').classList.toggle('on', busy);
   $('fab').classList.toggle('busy', ses && busy);
   updateSendMode();
-  updateDialog(!!(health && health.dialog) && ses);   // 터미널에 확인 창이 열렸는지
+  updateDialog((!!dialogInfo || !!(health && health.dialog)) && ses);   // 터미널에 확인 창(질문·권한 메뉴)이 열렸는지
 }
 // 터미널 다이얼로그(권한 프롬프트·/remote-control 등)가 열리면 채팅에 안내 카드 표시.
 // TUI 다이얼로그는 채팅 말풍선으로 렌더되지 않으므로, 열려 있음을 알리고 내용을 보여준다.
-let dialogShown = false;
+let dialogShown = false, dialogInfo = null, dialogBusy = false;
 async function updateDialog(open) {
   const card = $('dlgcard');
   if (!open) { card.classList.remove('on'); dialogShown = false; return; }
-  // 다이얼로그 내용을 화면 캡처에서 추출해 표시(마지막 구분선 이후 영역)
-  try {
-    const s = await (await fetch('/api/screen')).json();
-    $('dlgcardBody').textContent = extractDialog(s.screen || '') || '(check the terminal)';
-  } catch { $('dlgcardBody').textContent = '(check the terminal)'; }
+  // 구조화에 성공하면 선택지 버튼으로, 아니면(알 수 없는 다이얼로그) 화면 캡처 텍스트 + 키 버튼으로
+  renderDialog();
+  if (!dialogInfo) {
+    try {
+      const s = await (await fetch('/api/screen')).json();
+      $('dlgcardBody').textContent = extractDialog(s.screen || '') || '(check the terminal)';
+    } catch { $('dlgcardBody').textContent = '(check the terminal)'; }
+  }
   card.classList.add('on');
   if (!dialogShown) { dialogShown = true; if (!document.body.classList.contains('chatting')) openChat(); pinChat(); }
 }
+// 구조화된 다이얼로그 렌더 — 질문·탭 진행·선택지(단일/다중)·직접 입력·검토 화면
+function renderDialog() {
+  const q = $('dlgQ'), d = dialogInfo;
+  $('dlgRaw').open = !d;                      // 구조화되면 원시 화면·키는 접어 둔다(필요할 때 펼침)
+  if (!d) { q.hidden = true; q.innerHTML = ''; $('dlgcardH').textContent = 'The terminal is showing a dialog that needs your input'; return; }
+  $('dlgcardH').textContent = d.kind === 'question' ? 'Claude is asking you' : 'The terminal needs your choice';
+  // 직접 입력 중이면 값·포커스를 보존한다(폴링 재렌더로 입력이 날아가지 않게)
+  const ae = document.activeElement, typing = ae && q.contains(ae) && ae.tagName === 'INPUT' ? ae.value : null;
+  const dis = dialogBusy ? 'disabled' : '';
+  const opts = d.options.filter((o) => !o.chat).map((o) => {
+    if (o.other) {
+      const typed = /^Type something\.?$/i.test(o.label) ? '' : o.label;
+      return `<form class="dq-other" data-n="${o.n}"><input placeholder="Type your own answer…" value="${escapeHtml(typed)}" aria-label="Your own answer" autocomplete="off" ${dis}><button type="submit" ${dis}>${d.multi ? 'Add' : 'Send'}</button></form>`;
+    }
+    const mark = d.multi ? `<span class="cb">${o.checked ? '✓' : ''}</span>` : `<span class="no">${o.n}</span>`;
+    return `<button class="dq-opt ${o.cur ? 'cur' : ''} ${o.checked ? 'on' : ''}" data-n="${o.n}" ${dis} aria-pressed="${d.multi ? !!o.checked : 'false'}">
+      ${mark}<span class="tx"><span class="l">${escapeHtml(o.label)}</span>${o.desc ? `<span class="d">${escapeHtml(o.desc)}</span>` : ''}</span></button>`;
+  }).join('');
+  const chat = d.options.find((o) => o.chat);
+  q.innerHTML = `
+    ${d.tabs.length > 1 ? `<div class="dq-tabs">${d.tabs.map((t) => `<span class="dq-tab ${t.done ? 'done' : ''}">${t.done ? '✓' : '○'} ${escapeHtml(t.label)}</span>`).join('')}</div>` : ''}
+    ${d.intro && !d.review.length ? `<div class="dq-intro">${escapeHtml(d.intro)}</div>` : ''}
+    ${d.review.length ? `<ul class="dq-review">${d.review.map((x) => `<li><b>${escapeHtml(x.q)}</b> → ${escapeHtml(x.a)}</li>`).join('')}</ul>` : ''}
+    ${d.title ? `<div class="dq-title">${escapeHtml(d.title)}</div>` : ''}
+    <div class="dq-opts">${opts}</div>
+    <div class="dq-acts">
+      ${d.multi ? `<button class="primary" data-act="submit" ${dis}>Submit selection</button>` : ''}
+      ${d.tabs.length > 1 ? `<button data-act="prev" ${dis} aria-label="Previous question">←</button><button data-act="next" ${dis} aria-label="Next question">→</button>` : ''}
+      ${chat ? `<button class="ghost" data-n="${chat.n}" ${dis}>Chat about this</button>` : ''}
+      <span class="sp"></span><button data-act="esc" ${dis}>Esc Cancel</button>
+    </div>`;
+  q.hidden = false;
+  if (typing !== null) { const inp = q.querySelector('.dq-other input'); if (inp) { inp.value = typing; inp.focus(); } }
+}
+async function dialogDo(body) {
+  if (dialogBusy) return;
+  dialogBusy = true; renderDialog();
+  let r, j; try { r = await post('/api/dialog', body); j = await r.json(); } catch { j = { error: 'Could not reach the server' }; }
+  dialogBusy = false;
+  if (!r || !r.ok) showErr(j.error || 'Dialog action failed');
+  else if ('dialog' in j) dialogInfo = j.dialog;
+  renderDialog(); renderStatus();
+}
+$('dlgQ').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b || b.disabled || b.closest('form')) return;   // 직접 입력 폼의 전송 버튼은 submit 핸들러가 처리
+  if (b.dataset.act) return dialogDo({ action: b.dataset.act });
+  if (b.dataset.n) return dialogDo({ action: 'pick', n: Number(b.dataset.n) });
+});
+$('dlgQ').addEventListener('submit', (e) => {
+  const f = e.target.closest('.dq-other'); if (!f) return;
+  e.preventDefault();
+  const text = f.querySelector('input').value.trim(); if (!text) return;
+  dialogDo({ action: 'pick', n: Number(f.dataset.n), text });
+});
 // 화면에서 다이얼로그 본문 추출: 마지막 긴 구분선(▔/─ 연속) 이후의 비어있지 않은 줄들
 function extractDialog(screen) {
   const lines = screen.split('\n');
@@ -2093,6 +2188,9 @@ function extractDialog(screen) {
 let bootBuild = null;
 async function pollHealth() {
   try { health = await (await fetch('/api/health')).json(); } catch { health = null; }
+  // 서버가 기억한 내 세션이 지금 보는 원장과 다르면(다른 탭·기기에서 바꿈) 그 세션으로 갈아탄다
+  if (health && health.target && streamTarget && health.target !== streamTarget) { switchStream(); return; }
+  if (health && 'dialogInfo' in health && !dialogBusy) dialogInfo = health.dialogInfo;
   if (health && health.build) {
     if (!bootBuild) bootBuild = health.build;
     else if (health.build !== bootBuild) $('newver').classList.add('on');
@@ -2109,11 +2207,17 @@ async function refreshTmuxCfg() {
   let d; try { d = await (await fetch('/api/config')).json(); } catch { list.innerHTML = '<div class="none">Load failed</div>'; return; }
   const cur = d.target;
   if (!d.sessions || !d.sessions.length) { list.innerHTML = '<div class="none">No running agents — start one in a terminal first</div>'; return; }
+  // 사람 키 → 표시 이름('local'·내 키는 You)
+  const who = (k) => (k === d.you ? 'You' : k === 'local' ? 'Local' : displayName(k));
   list.innerHTML = d.sessions.map((s) => {
     const isCur = s.name === cur;
     const shell = /^-?(zsh|bash|sh|fish|dash|ksh)$/.test(s.command || '');
     const tag = shell ? 'shell' : (s.command || '');
-    return `<button data-t="${s.name}" class="${isCur ? 'cur' : ''}"><span>${s.name}${isCur ? ' ✓' : ''}</span><small>${tag}${s.attached ? ' · attached' : ''}</small></button>`;
+    const msgs = s.messages != null ? ` · ${s.messages} msgs` : '';
+    // 이 세션을 최근 세션으로 고른 사람(지금 보고 있으면 ●)
+    const people = [...new Set([...(s.users || []), ...(s.online || [])])];
+    const whoLine = people.length ? `<span class="who">${people.map((k) => `${(s.online || []).includes(k) ? '● ' : ''}${k === d.you ? '<b>You</b>' : escapeHtml(who(k))}`).join(', ')}</span>` : '';
+    return `<button data-t="${escapeHtml(s.name)}" class="${isCur ? 'cur' : ''}"><span>${escapeHtml(s.name)}${isCur ? ' ✓' : ''}</span><small>${escapeHtml(tag)}${s.attached ? ' · attached' : ''}${msgs}${whoLine}</small></button>`;
   }).join('');
   list.querySelectorAll('button').forEach((b) => b.onclick = () => applyTmuxTarget(b.dataset.t));
 }
@@ -2121,7 +2225,10 @@ async function applyTmuxTarget(t) {
   if (!t || !t.trim()) return;
   let r; try { r = await post('/api/config', { target: t.trim() }); } catch { return; }
   const d = await r.json().catch(() => ({}));
-  if (!r.ok) { alert(d.error || 'Connection failed'); return; }
+  if (!r.ok) { showErr(d.error || 'Connection failed'); return; }
+  // 고른 세션의 원장을 처음부터 다시 받는다 — 대화창이 그 세션의 이력으로 통째로 바뀐다(다음 접속에도 유지)
+  switchStream();
+  toast(d.connected ? `Switched to ${t.trim()}${d.messages ? ` · ${d.messages} messages` : ''}` : `${t.trim()} isn't running yet — it connects once you start it in tmux`);
   await pollHealth();       // 즉시 상태 반영
   await refreshTmuxCfg();   // 현재 타깃 표시 갱신
   if (d.connected) cfgPanel.hidden = true;
@@ -2217,14 +2324,28 @@ function updateGhost() { const g = $('ghost'); if (!ghostActive()) { g.innerHTML
 function renderDraft(t) { draftNow = t || ''; updateGhost(); }
 
 /* ================= SSE + 폴링 ================= */
-let es = null, backoff = 1000, lastSeq = 0;
+let es = null, backoff = 1000, lastSeq = 0, streamTarget = '', streamGen = 0, youKey = '', reconnectT = null;
+// 세션을 갈아탈 때: 스트림을 닫고 대화창을 비운 뒤 처음(since 없음)부터 그 세션의 원장을 다시 받는다
+function switchStream() {
+  streamGen++; clearTimeout(reconnectT); reconnectT = null;
+  try { if (es) es.close(); } catch {}
+  es = null; streamTarget = ''; lastSeq = 0; dialogInfo = null;
+  $('msgs').innerHTML = ''; renderPending([]); renderDraft(''); clearChips(); renderDialog(); updateEmpty();
+  connect(); pollHealth();
+}
 function connect() {
-  es = new EventSource('/api/stream' + (lastSeq ? `?since=${lastSeq}` : ''));
-  es.onopen = () => { backoff = 1000; srvConnected = true; renderStatus(); };
-  es.onmessage = (e) => {
+  const gen = streamGen;
+  const stream = es = new EventSource('/api/stream' + (lastSeq ? `?since=${lastSeq}` : ''));
+  stream.onopen = () => { if (gen !== streamGen) return; backoff = 1000; srvConnected = true; renderStatus(); };
+  stream.onmessage = (e) => {
+    if (gen !== streamGen) return;            // 갈아탄 뒤 도착한 옛 스트림 이벤트는 버린다
     const d = JSON.parse(e.data);
     switch (d.kind) {
       case 'snapshot':
+        if (streamTarget && d.target && d.target !== streamTarget) { switchStream(); return; }
+        streamTarget = d.target || ''; youKey = d.you || youKey;
+        if ('dialogInfo' in d) dialogInfo = d.dialogInfo;
+        if (health && 'dialog' in d) health.dialog = d.dialog;
         (d.proposals || []).forEach((p) => proposals.set(p.id, p));
         if (lastSeq && d.messages.length) $('msgs').insertAdjacentHTML('beforeend', d.messages.map(msgHtml).join('')); else if (!lastSeq) $('msgs').innerHTML = d.messages.map(msgHtml).join('');
         if (d.messages.length) lastSeq = d.messages[d.messages.length - 1].seq;
@@ -2239,15 +2360,25 @@ function connect() {
         if (d.messages.length) lastSeq = d.messages[d.messages.length - 1].seq;
         updateEmpty(); markClip(); reconcile(); pinChat(); notifyNew(); break;
       case 'pending': renderPending(d.pending); reconcile(); updateEmpty(); pinChat(); break;
-      case 'status': sessionAlive = d.session; busy = d.busy; $('typTx').textContent = d.spin || 'Working…'; if (d.resync !== undefined) $('resync').style.display = d.resync ? 'block' : 'none'; renderStatus(); updateEmpty(); break;
+      case 'status': if ('dialog' in d && health) health.dialog = d.dialog; sessionAlive = d.session; busy = d.busy; $('typTx').textContent = d.spin || 'Working…'; if (d.resync !== undefined) $('resync').style.display = d.resync ? 'block' : 'none'; renderStatus(); updateEmpty(); break;
       case 'draft': renderDraft(d.draft); break;
       case 'proposal': proposals.set(d.proposal.id, d.proposal); refreshPropCards(); break;
       case 'data': if (d.version !== dataVersion) refreshData(); break;
       case 'workspaces': loadWorkspaces(); break;
+      // 다이얼로그 열림/닫힘은 스트림으로 즉시 반영(health 폴은 백그라운드 탭에서 멈춘다)
+      case 'dialog': if (health) health.dialog = !!d.dialog; if (!dialogBusy) { dialogInfo = d.dialog; renderStatus(); } break;
+      // 같은 사람이 다른 탭·기기에서 세션을 바꿨다 → 이 탭도 따라간다
+      case 'target': if (d.user === youKey && d.target !== streamTarget) switchStream(); break;
       case 'evolve': if ($('evolveView').classList.contains('on')) refreshEvolve(); else refreshEvolve(); break;
     }
   };
-  es.onerror = () => { if (es.readyState === EventSource.CLOSED || es.readyState === EventSource.CONNECTING) { try { es.close(); } catch {} srvConnected = false; renderStatus(); setTimeout(connect, backoff); backoff = Math.min(backoff * 2, 15000); } };
+  stream.onerror = () => {
+    if (gen !== streamGen) return;
+    if (stream.readyState === EventSource.CLOSED || stream.readyState === EventSource.CONNECTING) {
+      try { stream.close(); } catch {} srvConnected = false; renderStatus();
+      clearTimeout(reconnectT); reconnectT = setTimeout(() => { if (gen === streamGen) connect(); }, backoff); backoff = Math.min(backoff * 2, 15000);
+    }
+  };
 }
 /* ================= 워크스페이스 ================= */
 const wsById = (id) => workspaces.find((w) => w.id === id);
@@ -2392,7 +2523,10 @@ loadWorkspaces().finally(() => { refreshData(); });
 refreshEvolve();
 setInterval(async () => {
   if (document.hidden) return;
+  const gen = streamGen;
   let d; try { d = await (await fetch(`/api/feed?since=${lastSeq}`)).json(); } catch { return; }
+  if (gen !== streamGen) return;
+  if (d.target && streamTarget && d.target !== streamTarget) { switchStream(); return; }
   if (!srvConnected) { srvConnected = true; renderStatus(); }
   if (d.pending) renderPending(d.pending);
   if (d.version !== dataVersion) refreshData();

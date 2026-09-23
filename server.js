@@ -60,7 +60,7 @@ if (env.ANA_TEST) {
   api.bootstrap(ch.feed);
   module.exports = {
     parseTranscript: core.parseTranscript, stripBottomUI: core.stripBottomUI, displayWidth: core.displayWidth,
-    extractDraft: core.extractDraft, detectBusy: core.detectBusy, inputBoxReady: core.inputBoxReady, dialogOpen: core.dialogOpen,
+    extractDraft: core.extractDraft, detectBusy: core.detectBusy, inputBoxReady: core.inputBoxReady, dialogOpen: core.dialogOpen, parseDialog: core.parseDialog,
     norm: core.norm, strip: core.strip, csrfOk: core.csrfOk,
     same: ch.same, sameOrGrown: ch.sameOrGrown, anchorIndex: ch.anchorIndex, matchesRunInFeed: ch.matchesRunInFeed,
     nextSeq: ch.nextSeq, feed: ch.feed, commit: ch.commit,
@@ -72,7 +72,8 @@ if (env.ANA_TEST) {
   const api = createDashboardApi(core, apiOpts);
   const app = core.createChannelServer({
     ...opts, extraApi: api.extraApi, snapshotExtra: api.snapshotExtra,
-    identify: api.identify, onChat: api.onChat,
+    identify: api.identify, onChat: api.onChat, userKey: api.userKey,
+    TARGETS_FILE: env.TARGETS_FILE || path.join(DATA_DIR, 'targets.json'),  // 사람별 최근 코딩 에이전트 세션
   });
   api.bootstrap(app.ch.feed);
   app.listen(() => {

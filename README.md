@@ -139,6 +139,10 @@ node server.js
 
 With the header set, items carry an author, only the author can edit or delete their own, and the member/activity tabs come alive. Unset (the default) everything runs as one local user.
 
+**Coding-agent sessions per person.** Click the connection pill (`ANA · <session>`) in the chat header to pick a tmux session. Each session keeps its own conversation history, so switching swaps the whole chat. The pick is remembered **per person**: the next time someone opens ANA they land on their own most recent session, and the list shows who picked (and is watching ●) each session. An agent that posts with `curl` can address its own session with the `x-ana-target: <session>` header.
+
+**Questions from the agent.** When Claude asks through AskUserQuestion (or shows a permission menu), the chat renders it as a card: question tabs, option buttons with descriptions, checkboxes for multi-select, a free-text field for "Type something", and Submit / Cancel. The server turns each click into the right keystrokes.
+
 > The header is trusted as-is, so it only means anything when a gateway in front actually sets it. Keep the server on loopback or behind that proxy — exposing it on `0.0.0.0` with this option on lets anyone forge the header.
 
 ---
