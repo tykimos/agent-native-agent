@@ -289,7 +289,7 @@ function createDashboardApi(core, opts) {
     const p = url.pathname;
     const { commit, broadcast, csrfOk, jsonBody } = ctx;
 
-    // ---- 워크스페이스 목록/추가/선택/이름 변경/삭제 ----
+    // ---- 워크스페이스 목록/추가/선택/이름 변경/삭제/순서 변경 ----
     if (p === '/api/workspaces' && req.method === 'GET') {
       const w = loadWorkspaces();
       return sendJson(res, 200, { active: w.active, current: curWs(), workspaces: w.workspaces }), true;
@@ -336,7 +336,17 @@ function createDashboardApi(core, opts) {
         w.workspaces = w.workspaces.filter((x) => x.id !== target.id);
         if (w.active === target.id) w.active = DEFAULT_WS;
         audit(me, 'workspace.remove', target.name);
-      } else return sendJson(res, 400, { error: 'action must be add|select|rename|remove' }), true;
+      } else if (body.action === 'reorder') {
+        // ids = 원하는 순서. 모르는 id는 무시하고, 빠진 워크스페이스는 기존 순서대로 뒤에 붙인다(누락 방지).
+        if (!Array.isArray(body.ids)) return sendJson(res, 400, { error: 'ids must be an array' }), true;
+        const byId = new Map(w.workspaces.map((x) => [x.id, x]));
+        const seen = new Set();
+        const next = [];
+        for (const id of body.ids) if (byId.has(id) && !seen.has(id)) { seen.add(id); next.push(byId.get(id)); }
+        for (const x of w.workspaces) if (!seen.has(x.id)) next.push(x);
+        w.workspaces = next;
+        target = null;
+      } else return sendJson(res, 400, { error: 'action must be add|select|rename|remove|reorder' }), true;
       saveWorkspaces(w);
       broadcast({ kind: 'workspaces', active: w.active });
       return sendJson(res, 200, { ok: true, active: w.active, workspace: target, workspaces: w.workspaces }), true;
