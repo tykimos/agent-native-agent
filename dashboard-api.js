@@ -289,7 +289,7 @@ function createDashboardApi(core, opts) {
     const p = url.pathname;
     const { commit, broadcast, csrfOk, jsonBody } = ctx;
 
-    // ---- 워크스페이스 목록/추가/선택/이름 변경 ----
+    // ---- 워크스페이스 목록/추가/선택/이름 변경/삭제 ----
     if (p === '/api/workspaces' && req.method === 'GET') {
       const w = loadWorkspaces();
       return sendJson(res, 200, { active: w.active, current: curWs(), workspaces: w.workspaces }), true;
@@ -321,7 +321,22 @@ function createDashboardApi(core, opts) {
         if (w.workspaces.some((x) => x.id !== target.id && x.name === name)) return sendJson(res, 409, { error: 'A workspace with that name already exists' }), true;
         audit(me, 'workspace.rename', name, target.name);
         target.name = name;
-      } else return sendJson(res, 400, { error: 'action must be add|select|rename' }), true;
+      } else if (body.action === 'remove') {
+        // 기본 워크스페이스는 지울 수 없다(기존 state.json의 주인). 나머지는 목록에서 빼고,
+        // 데이터 폴더는 바로 지우지 않고 workspaces/.deleted/로 옮겨 둔다(실수 복구용).
+        if (body.id === DEFAULT_WS) return sendJson(res, 400, { error: 'The base workspace cannot be deleted' }), true;
+        target = w.workspaces.find((x) => x.id === body.id);
+        if (!target) return sendJson(res, 404, { error: 'not found' }), true;
+        const dir = path.join(WS_DIR, target.id);
+        const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
+        try {
+          await fsp.mkdir(path.join(WS_DIR, '.deleted'), { recursive: true });
+          await fsp.rename(dir, path.join(WS_DIR, '.deleted', `${target.id}-${stamp}`));
+        } catch (e) { if (e.code !== 'ENOENT') return sendJson(res, 500, { error: `Delete failed: ${e.message}` }), true; }
+        w.workspaces = w.workspaces.filter((x) => x.id !== target.id);
+        if (w.active === target.id) w.active = DEFAULT_WS;
+        audit(me, 'workspace.remove', target.name);
+      } else return sendJson(res, 400, { error: 'action must be add|select|rename|remove' }), true;
       saveWorkspaces(w);
       broadcast({ kind: 'workspaces', active: w.active });
       return sendJson(res, 200, { ok: true, active: w.active, workspace: target, workspaces: w.workspaces }), true;
@@ -712,6 +727,8 @@ function createDashboardApi(core, opts) {
       const pr = ps.proposals.find((x) => x.id === body.pid);
       if (!pr || pr.status !== 'pending') return sendJson(res, 400, { error: 'invalid or already-decided proposal' }), true;
       if (body.decision === 'approve') {
+        // 제안이 만들어진 워크스페이스가 그새 삭제됐으면 적용하지 않는다(빈 폴더가 되살아나지 않게)
+        if (!wsExists(pr.ws || DEFAULT_WS)) return sendJson(res, 409, { error: 'The workspace for this proposal was deleted' }), true;
         // 상태를 먼저 마킹·저장(부분 실패 시 이중 적용 방지 — QA/BE-M8), 그다음 적용
         pr.status = 'applying'; saveProposals(ps);
         let result;

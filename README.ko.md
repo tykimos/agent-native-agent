@@ -84,7 +84,33 @@ flowchart TB
 
 **사전 요구사항:** Node ≥ 20, tmux, 그리고 코딩 에이전트 CLI(예: [Claude Code](https://claude.com/claude-code)). `npm install` 불필요 — 의존성이 없습니다.
 
-> **가장 쉬운 방법:** `bash skills/install/scripts/check-env.sh` → `install.sh` → `run.sh`. [`install` 스킬](skills/install/SKILL.md)이 환경을 분석해 빠진 것만 설치하고 ANA를 실행합니다. **Windows:** tmux는 WSL에서만 동작하므로 PowerShell에서 `skills\install\scripts\install-wsl.ps1`을 실행하세요.
+### `install` 스킬로 설치·실행 (권장)
+
+**[`install` 스킬](skills/install/SKILL.md)** 하나로 빈 머신에서 대시보드가 뜨는 데까지 갑니다. 먼저 환경을 분석하고, 빠진 것(Node ≥ 20, tmux, git, curl, Claude Code)만 설치한 뒤, 에이전트와 서버를 tmux로 띄우고 응답을 확인합니다. 모든 스크립트는 여러 번 실행해도 안전합니다.
+
+```bash
+git clone https://github.com/tykimos/agent-native-agent && cd agent-native-agent
+bash skills/install/scripts/check-env.sh   # 1) 환경 분석 — 보고만 하고 아무것도 바꾸지 않음
+bash skills/install/scripts/install.sh     # 2) 빠진 것만 설치 (brew / apt / dnf / pacman …)
+bash skills/install/scripts/run.sh         # 3) tmux "ana"(에이전트) + "ana-server"(서버) → URL 출력
+bash skills/install/scripts/run.sh status  #    이후: status | stop | restart
+```
+
+| 스크립트 | 역할 |
+|---|---|
+| `check-env.sh` | macOS / Linux / WSL / Git Bash를 판별하고 node·tmux·git·curl·claude·저장소 위치·포트를 점검. 마지막 줄에 `ANA_ENV … ready=yes\|no` |
+| `install.sh` | 빠진 것만 설치(macOS는 Homebrew, Linux/WSL은 시스템 패키지 관리자 + NodeSource)하고 Claude Code CLI 설치, 저장소 밖에서 실행하면 clone까지 |
+| `run.sh` | tmux 세션을 띄우거나 재사용, 8809가 사용 중이면 빈 포트를 고르고 응답 확인. `TMUX_SESSION`·`PORT`·`AGENT_CMD`로 변경 가능 |
+| `install-wsl.ps1` | **Windows:** tmux는 WSL 안에서만 동작합니다. WSL + Ubuntu를 설치(재부팅 후 다시 실행)한 뒤 WSL 안에서 ANA를 설치·실행. Windows 브라우저에서 `http://localhost:8809`로 접속 |
+
+```powershell
+# Windows (PowerShell, 첫 실행만 관리자 권한)
+powershell -ExecutionPolicy Bypass -File skills\install\scripts\install-wsl.ps1
+```
+
+Claude Code에 스킬이 설치돼 있으면(이 저장소는 플러그인입니다) *"ANA 설치해줘"* 라고만 하면 됩니다. 에이전트가 같은 단계를 수행하고, 최초 1회 Claude 로그인(`tmux attach -t ana` → `Ctrl-b d`로 빠져나오기)이 필요할 때 알려 줍니다.
+
+### 수동 실행
 
 ```bash
 git clone https://github.com/tykimos/agent-native-agent
@@ -97,9 +123,9 @@ tmux new -s ana          # 세션 안에서 실행:  claude   (또는 아무 에
 node server.js           # → http://localhost:8809
 ```
 
-**http://localhost:8809**을 열고 **ANA 모드**를 켠 뒤 대화하세요. **실행 스크립트가 따로 없습니다** — 서버가 연결 시 tmux 페인을 자동 설정(스크롤백 보존)합니다. 런타임 상태는 `.ana/`에 저장됩니다(git 제외).
+**http://localhost:8809**을 열고 우측 하단 채팅을 열어 대화하세요. 우측 상단 **Chip**을 켜면 화면 요소를 클릭해 대화 컨텍스트로 넣을 수 있습니다. 서버 자체는 **별도 실행 스크립트가 필요 없습니다**(`run.sh`는 편의용) — 서버가 연결 시 tmux 페인을 자동 설정(스크롤백 보존)합니다. 런타임 상태는 `.ana/`에 저장됩니다(git 제외).
 
-레퍼런스 대시보드에는 **ANA 모드**(요소를 클릭해 컨텍스트 칩으로 고정), 크기 조절 가능한 도킹 채팅, **진화 탭**(변경을 요청 → 승인하면 실행 중인 에이전트가 앱을 직접 수정)이 들어 있습니다.
+레퍼런스 대시보드에는 **워크스페이스**, **Chip 모드**(요소를 클릭해 컨텍스트 칩으로 고정, ⟳로 새로 생긴 요소 등록), 크기 조절 가능한 도킹 채팅, **진화 탭**(변경을 요청 → 승인하면 실행 중인 에이전트가 앱을 직접 수정)이 들어 있습니다.
 
 ### 여러 사람과 함께 쓰기 (선택)
 
@@ -151,11 +177,12 @@ cp -r skills/ana ~/.claude/skills/           # 그런 다음: "내 앱에 ANA �
 ```
 channel-core.js     ★ ANA 런타임 전부 — tmux 주입 / capture-pane 미러 / 원장 (의존성 0)
 server.js             베이스 앱: channel-core + dashboard-api 마운트, dashboard.html 제공
-dashboard-api.js      리치 응답 API 예시 (할일 · 일정 · 메모 · 진화, diff→승인)
-dashboard.html        레퍼런스 UI: ANA 모드, 컨텍스트 칩, 도킹 채팅, 진화 탭
-test.cjs              57개 테스트 (단위 + mock_agent.py 대상 통합)
+dashboard-api.js      리치 응답 API 예시 (워크스페이스 · 할일 · 일정 · 메모 · 진화, diff→승인)
+dashboard.html        레퍼런스 UI: 워크스페이스, Chip 모드, 컨텍스트 칩, 도킹 채팅, 진화 탭
+test.cjs              62개 테스트 (단위 + mock_agent.py 대상 통합)
 mock_agent.py         테스트용 결정적 TUI 스탠드인
 skills/ana/SKILL.md   "서비스에 ANA 붙이기" — 위 간단 레시피
+skills/install/       "ANA 설치·실행" — 환경 분석, 설치, tmux 실행, Windows WSL 부트스트랩
 .claude-plugin/       Claude Code 플러그인 매니페스트
 ```
 

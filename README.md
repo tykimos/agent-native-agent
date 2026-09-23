@@ -84,7 +84,33 @@ There is **no bridge and no MCP**. The browser posts to the server, the server i
 
 **Prerequisites:** Node ≥ 20, tmux, and a coding-agent CLI (e.g. [Claude Code](https://claude.com/claude-code)). No `npm install` — zero dependencies.
 
-> **Easiest path:** `bash skills/install/scripts/check-env.sh` → `install.sh` → `run.sh`. The [`install` skill](skills/install/SKILL.md) analyzes your machine, installs only what's missing, and starts ANA. **Windows:** tmux needs WSL — run `skills\install\scripts\install-wsl.ps1` from PowerShell.
+### Install & run with the `install` skill (recommended)
+
+The **[`install` skill](skills/install/SKILL.md)** takes a fresh machine to a running dashboard. It checks the environment first, installs only what's missing (Node ≥ 20, tmux, git, curl, Claude Code), then starts the agent and the server in tmux and health-checks them. Every script is safe to re-run.
+
+```bash
+git clone https://github.com/tykimos/agent-native-agent && cd agent-native-agent
+bash skills/install/scripts/check-env.sh   # 1) analyze — reports only, changes nothing
+bash skills/install/scripts/install.sh     # 2) install what's missing (brew / apt / dnf / pacman …)
+bash skills/install/scripts/run.sh         # 3) tmux "ana" (agent) + "ana-server" (server) → URL printed
+bash skills/install/scripts/run.sh status  #    later: status | stop | restart
+```
+
+| Script | What it does |
+|---|---|
+| `check-env.sh` | Detects macOS / Linux / WSL / Git Bash and checks node, tmux, git, curl, claude, repo location and port. Ends with `ANA_ENV … ready=yes\|no` |
+| `install.sh` | Installs only what's missing (Homebrew on macOS, the system package manager + NodeSource on Linux/WSL) plus the Claude Code CLI, and clones the repo if run outside it |
+| `run.sh` | Starts or reuses the tmux sessions, picks a free port when 8809 is taken, runs a health check. `TMUX_SESSION`, `PORT` and `AGENT_CMD` override the defaults |
+| `install-wsl.ps1` | **Windows:** tmux only runs inside WSL. This installs WSL + Ubuntu (reboot, run again), then installs and starts ANA inside WSL. Open `http://localhost:8809` from the Windows browser |
+
+```powershell
+# Windows (PowerShell; Administrator for the first run only)
+powershell -ExecutionPolicy Bypass -File skills\install\scripts\install-wsl.ps1
+```
+
+With the skill installed in Claude Code (this repo is a plugin), just ask: *"install ANA"* / *"ANA 설치해줘"*. The agent runs the same steps and tells you when to finish the one-time Claude login (`tmux attach -t ana`, detach with `Ctrl-b d`).
+
+### Manual run
 
 ```bash
 git clone https://github.com/tykimos/agent-native-agent
@@ -97,9 +123,9 @@ tmux new -s ana          # inside the session, run:  claude   (or any agent CLI)
 node server.js           # → http://localhost:8809
 ```
 
-Open **http://localhost:8809**, flip on **ANA mode**, and talk. There is **no launcher script** — the server auto-configures the tmux pane (scrollback-safe) on connect. Runtime state lives in `.ana/` (git-ignored).
+Open **http://localhost:8809**, open the chat (bottom-right), and talk. Turn on **Chip** (top-right) to click any element into the conversation as context. The server itself needs **no launcher** (`run.sh` is only a convenience) — it auto-configures the tmux pane (scrollback-safe) on connect. Runtime state lives in `.ana/` (git-ignored).
 
-The reference dashboard ships **ANA mode** (click any element to pin it as a context chip), a docked chat you resize, and an **evolution tab** — ask for a change, approve it, the running agent rewrites the app.
+The reference dashboard ships **workspaces**, **Chip mode** (click any element to pin it as a context chip; ⟳ registers newly added elements), a docked chat you resize, and an **evolution tab** — ask for a change, approve it, the running agent rewrites the app.
 
 ### Sharing it with other people (optional)
 
@@ -151,11 +177,12 @@ cp -r skills/ana ~/.claude/skills/           # then: "attach ANA to my app"
 ```
 channel-core.js     ★ the whole ANA runtime — tmux inject / capture-pane mirror / ledger (0 deps)
 server.js             base app: mounts channel-core + dashboard-api, serves dashboard.html
-dashboard-api.js      example rich-response API (todo · schedule · memo · evolve, diff→approve)
-dashboard.html        reference UI: ANA mode, context chips, docked chat, evolution tab
-test.cjs              57 tests (unit + integration against mock_agent.py)
+dashboard-api.js      example rich-response API (workspaces · todo · schedule · memo · evolve, diff→approve)
+dashboard.html        reference UI: workspaces, Chip mode, context chips, docked chat, evolution tab
+test.cjs              62 tests (unit + integration against mock_agent.py)
 mock_agent.py         deterministic TUI stand-in for tests
 skills/ana/SKILL.md   "attach ANA to your service" — the simple recipe above
+skills/install/       "install & run ANA" — env check, installer, tmux runner, Windows WSL bootstrap
 .claude-plugin/       Claude Code plugin manifest
 ```
 
