@@ -84,6 +84,8 @@ flowchart TB
 
 **사전 요구사항:** Node ≥ 20, tmux, 그리고 코딩 에이전트 CLI(예: [Claude Code](https://claude.com/claude-code)). `npm install` 불필요 — 의존성이 없습니다.
 
+> **가장 쉬운 방법:** `bash skills/install/scripts/check-env.sh` → `install.sh` → `run.sh`. [`install` 스킬](skills/install/SKILL.md)이 환경을 분석해 빠진 것만 설치하고 ANA를 실행합니다. **Windows:** tmux는 WSL에서만 동작하므로 PowerShell에서 `skills\install\scripts\install-wsl.ps1`을 실행하세요.
+
 ```bash
 git clone https://github.com/tykimos/agent-native-agent
 cd agent-native-agent

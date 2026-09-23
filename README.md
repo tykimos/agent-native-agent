@@ -84,6 +84,8 @@ There is **no bridge and no MCP**. The browser posts to the server, the server i
 
 **Prerequisites:** Node ≥ 20, tmux, and a coding-agent CLI (e.g. [Claude Code](https://claude.com/claude-code)). No `npm install` — zero dependencies.
 
+> **Easiest path:** `bash skills/install/scripts/check-env.sh` → `install.sh` → `run.sh`. The [`install` skill](skills/install/SKILL.md) analyzes your machine, installs only what's missing, and starts ANA. **Windows:** tmux needs WSL — run `skills\install\scripts\install-wsl.ps1` from PowerShell.
+
 ```bash
 git clone https://github.com/tykimos/agent-native-agent
 cd agent-native-agent
