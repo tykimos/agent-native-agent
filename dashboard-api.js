@@ -16,6 +16,7 @@ const crypto = require('node:crypto');
 const os = require('node:os');
 const fsp = require('node:fs/promises');
 const { execFile } = require('node:child_process');
+const { AsyncLocalStorage } = require('node:async_hooks');
 
 function createDashboardApi(core, opts) {
   const { ROOT } = opts;
@@ -87,11 +88,44 @@ function createDashboardApi(core, opts) {
     return clean || 'file';
   };
 
+  // ---- 워크스페이스 ----
+  // 워크스페이스마다 상태 파일이 따로 있다. 기본 워크스페이스는 기존 DATA_FILE을 그대로 쓴다(기존 데이터 보존),
+  // 나머지는 DATA_FILE 옆 workspaces/<id>/state.json. 요청 범위는 x-ana-workspace 헤더(또는 ?ws=)로 정하고,
+  // 헤더 없는 호출(에이전트 curl·공유 페이지)은 UI에서 마지막으로 고른 active 워크스페이스를 따른다.
+  // 채팅·제안 원장·진화·사용자·감사 로그는 에이전트가 하나이므로 워크스페이스 간에 공유된다.
+  const DEFAULT_WS = 'default';
+  const DEFAULT_WS_NAME = 'Base Workspace';
+  const WS_FILE = opts.WORKSPACES_FILE || path.join(path.dirname(DATA_FILE), 'workspaces.json');
+  const WS_DIR = path.join(path.dirname(WS_FILE), 'workspaces');
+  const MAX_WS = 50;
+  function loadWorkspaces() {
+    let w; try { w = readJsonStrict(WS_FILE, () => null); } catch { w = null; }
+    if (!w || typeof w !== 'object' || !Array.isArray(w.workspaces)) w = { active: DEFAULT_WS, workspaces: [] };
+    w.workspaces = w.workspaces.filter((x) => x && typeof x.id === 'string' && /^[\w-]{1,40}$/.test(x.id));
+    if (!w.workspaces.some((x) => x.id === DEFAULT_WS)) w.workspaces.unshift({ id: DEFAULT_WS, name: DEFAULT_WS_NAME, at: '' });
+    // 예전 기본 이름('기본 워크스페이스')으로 저장된 경우 새 기본 이름으로 맞춘다(사용자가 바꾼 이름은 유지)
+    const def = w.workspaces.find((x) => x.id === DEFAULT_WS);
+    if (def.name === '기본 워크스페이스' || !def.name) def.name = DEFAULT_WS_NAME;
+    if (!w.workspaces.some((x) => x.id === w.active)) w.active = DEFAULT_WS;
+    return w;
+  }
+  const saveWorkspaces = (w) => writeJsonAtomic(WS_FILE, w);
+  const wsExists = (id) => loadWorkspaces().workspaces.some((x) => x.id === id);
+  const wsStore = new AsyncLocalStorage();
+  const curWs = () => wsStore.getStore() || loadWorkspaces().active;
+  const dataFileOf = (ws) => (ws === DEFAULT_WS ? DATA_FILE : path.join(WS_DIR, ws, 'state.json'));
+  function resolveWs(req, url) {
+    const want = String((req.headers || {})['x-ana-workspace'] || (url && url.searchParams.get('ws')) || '').trim();
+    return want && wsExists(want) ? want : loadWorkspaces().active;
+  }
+  const cleanWsName = (v) => String(v || '').replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+
   // ---- 상태 파일 (원자적 + shape 검증) ----
-  function loadData() {
-    const s = readJsonStrict(DATA_FILE, () => ({ version: 1, items: [], events: [], notes: [] }));
+  function loadData(ws) {
+    const file = dataFileOf(ws || curWs());
+    const s = readJsonStrict(file, () => ({ version: 1, items: [], events: [], notes: [] }));
     if (!s || typeof s !== 'object' || Array.isArray(s) || !Array.isArray(s.items))
-      throw new Error(`state.json shape invalid (${DATA_FILE})`);
+      throw new Error(`state.json shape invalid (${file})`);
     if (!Array.isArray(s.events)) s.events = []; // 일정(달력) — 할일(items)과 별도
     if (!Array.isArray(s.notes)) s.notes = []; // 메모 — {id, title, text, updatedAt}
     // 미팅(회의록) — {id, title, date, time, endTime, place, attendees[], notes[], decisions[], actions[], photos[], at}
@@ -100,7 +134,7 @@ function createDashboardApi(core, opts) {
     return s;
   }
   const newId = (p) => p + Date.now().toString(36) + crypto.randomBytes(2).toString('hex');
-  const saveData = (s) => writeJsonAtomic(DATA_FILE, s);
+  const saveData = (s, ws) => writeJsonAtomic(dataFileOf(ws || curWs()), s);
 
   function loadProposals() {
     const s = readJsonStrict(PROPOSALS_FILE, () => ({ proposals: [] }));
@@ -159,17 +193,17 @@ function createDashboardApi(core, opts) {
     }
   }
   // 방어적 적용: caller id 무시(QA-M5), 키 화이트리스트(QA-m3), done 불리언, 실제 변경 0이면 version 미증가(QA-m2)
-  function applyDiff(diff) {
-    const s = loadData();
+  function applyDiff(diff, ws) {
+    const s = loadData(ws);
     const summary = { added: 0, updated: 0, removed: 0 };
     (diff.remove || []).forEach((id) => { const b = s.items.length; s.items = s.items.filter((it) => it.id !== id); if (s.items.length < b) summary.removed++; });
     (diff.update || []).forEach((u) => { const it = s.items.find((x) => x.id === u.id); if (it) { assignFields(it, u); summary.updated++; } });
     (diff.add || []).forEach((a) => { const it = { id: 'a' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex'), done: false }; assignFields(it, a); s.items.push(it); summary.added++; });
     const changed = summary.added || summary.updated || summary.removed;
-    if (changed) { s.version = (s.version || 1) + 1; saveData(s); }
+    if (changed) { s.version = (s.version || 1) + 1; saveData(s, ws); }
     return { summary, version: s.version, changed };
   }
-  const dataVersion = () => { try { return loadData().version || 1; } catch { return 1; } };
+  const dataVersion = (ws) => { try { return loadData(ws).version || 1; } catch { return 1; } };
 
   // ---- 통지 push→pull (CR11) ----
   const pendingNotifs = []; // {id, kind, text, at, delivered}
@@ -249,9 +283,49 @@ function createDashboardApi(core, opts) {
   }
 
   // ---- 라우트 ----
-  async function extraApi(req, res, url, ctx) {
+  // 모든 라우트를 요청의 워크스페이스 범위 안에서 실행한다(await를 건너도 범위가 유지되도록 AsyncLocalStorage).
+  const extraApi = (req, res, url, ctx) => wsStore.run(resolveWs(req, url), () => routes(req, res, url, ctx));
+  async function routes(req, res, url, ctx) {
     const p = url.pathname;
     const { commit, broadcast, csrfOk, jsonBody } = ctx;
+
+    // ---- 워크스페이스 목록/추가/선택/이름 변경 ----
+    if (p === '/api/workspaces' && req.method === 'GET') {
+      const w = loadWorkspaces();
+      return sendJson(res, 200, { active: w.active, current: curWs(), workspaces: w.workspaces }), true;
+    }
+    if (p === '/api/workspaces' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      const w = loadWorkspaces();
+      const me = actor(req);
+      let target;
+      if (body.action === 'add') {
+        const name = cleanWsName(body.name);
+        if (!name) return sendJson(res, 400, { error: 'name required' }), true;
+        if (w.workspaces.length >= MAX_WS) return sendJson(res, 413, { error: `too many workspaces (>${MAX_WS})` }), true;
+        if (w.workspaces.some((x) => x.name === name)) return sendJson(res, 409, { error: 'A workspace with that name already exists' }), true;
+        target = { id: newId('w'), name, by: me, at: new Date().toISOString() };
+        w.workspaces.push(target);
+        w.active = target.id;                    // 만든 워크스페이스로 바로 전환
+        audit(me, 'workspace.add', name);
+      } else if (body.action === 'select') {
+        target = w.workspaces.find((x) => x.id === body.id);
+        if (!target) return sendJson(res, 404, { error: 'not found' }), true;
+        w.active = target.id;
+      } else if (body.action === 'rename') {
+        target = w.workspaces.find((x) => x.id === body.id);
+        if (!target) return sendJson(res, 404, { error: 'not found' }), true;
+        const name = cleanWsName(body.name);
+        if (!name) return sendJson(res, 400, { error: 'name required' }), true;
+        if (w.workspaces.some((x) => x.id !== target.id && x.name === name)) return sendJson(res, 409, { error: 'A workspace with that name already exists' }), true;
+        audit(me, 'workspace.rename', name, target.name);
+        target.name = name;
+      } else return sendJson(res, 400, { error: 'action must be add|select|rename' }), true;
+      saveWorkspaces(w);
+      broadcast({ kind: 'workspaces', active: w.active });
+      return sendJson(res, 200, { ok: true, active: w.active, workspace: target, workspaces: w.workspaces }), true;
+    }
 
     // ---- 내 계정 ----
     if (p === '/api/me' && req.method === 'GET') {
@@ -396,7 +470,9 @@ function createDashboardApi(core, opts) {
     if (p === '/api/state' && req.method === 'GET') {
       let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
       const ps = loadProposals();
-      return sendJson(res, 200, { ...s, proposals: ps.proposals.filter((x) => x.status === 'pending').slice(-50) }), true;
+      const ws = curWs();
+      return sendJson(res, 200, { ...s, workspace: ws,
+        proposals: ps.proposals.filter((x) => x.status === 'pending' && (x.ws || DEFAULT_WS) === ws).slice(-50) }), true;
     }
 
     // 채팅 첨부 업로드(base64 JSON — csrfOk가 JSON content-type을 요구하므로 multipart 대신 사용)
@@ -448,7 +524,13 @@ function createDashboardApi(core, opts) {
     // 미팅 단건 조회(공유 페이지용)
     if (p === '/api/meeting' && req.method === 'GET') {
       let s3; try { s3 = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
-      const m = s3.meetings.find((x) => x.id === url.searchParams.get('id'));
+      const mid = url.searchParams.get('id');
+      let m = s3.meetings.find((x) => x.id === mid);
+      // 공유 링크(/m/<id>)는 워크스페이스를 모른다 — 현재 범위에 없으면 다른 워크스페이스에서 찾는다.
+      for (const w of loadWorkspaces().workspaces) {
+        if (m) break;
+        try { m = loadData(w.id).meetings.find((x) => x.id === mid); } catch {}
+      }
       if (!m) return sendJson(res, 404, { error: 'not found' }), true;
       return sendJson(res, 200, { meeting: m }), true;
     }
@@ -609,7 +691,7 @@ function createDashboardApi(core, opts) {
       if (!text && !hasDiff(body.diff)) return sendJson(res, 400, { error: 'text or diff required' }), true;
       if (hasDiff(body.diff)) {
         const ps = loadProposals();
-        const pr = { id: nextPid(ps), text: text || 'Change proposal', diff: body.diff, status: 'pending', at: new Date().toISOString() };
+        const pr = { id: nextPid(ps), text: text || 'Change proposal', diff: body.diff, status: 'pending', ws: curWs(), at: new Date().toISOString() };
         ps.proposals.push(pr); saveProposals(ps);
         const entry = commit({ role: 'proposal', text: pr.text, src: 'api', pid: pr.id });
         broadcast({ kind: 'commit', messages: [entry] });
@@ -633,7 +715,7 @@ function createDashboardApi(core, opts) {
         // 상태를 먼저 마킹·저장(부분 실패 시 이중 적용 방지 — QA/BE-M8), 그다음 적용
         pr.status = 'applying'; saveProposals(ps);
         let result;
-        try { result = applyDiff(pr.diff); }
+        try { result = applyDiff(pr.diff, pr.ws || DEFAULT_WS); }
         catch (e) { pr.status = 'pending'; saveProposals(ps); return sendJson(res, 500, { error: 'apply failed', detail: e.message }), true; }
         pr.status = 'applied'; saveProposals(ps);
         const entry = commit({ role: 'system', text: `Changes applied (+${result.summary.added} ~${result.summary.updated} -${result.summary.removed}, v${result.version})`, src: 'api' });
@@ -648,7 +730,7 @@ function createDashboardApi(core, opts) {
       const entry = commit({ role: 'system', text: `Proposal #${pr.id} was rejected.`, src: 'api' });
       broadcast({ kind: 'commit', messages: [entry] });
       broadcast({ kind: 'proposal', proposal: pr });
-      broadcast({ kind: 'data', version: dataVersion() }); // 거절도 version 노출 갱신(remote: 폴링 스테일 방지)
+      broadcast({ kind: 'data', version: dataVersion(pr.ws || DEFAULT_WS) }); // 거절도 version 노출 갱신(remote: 폴링 스테일 방지)
       const n = queueNotify('proposal.rejected', `Proposal #${pr.id} rejected${body.reason ? ' — reason: ' + String(body.reason).replace(/[\r\n]+/g, ' ').slice(0, 200) : ''}.`);
       const notified = await tryDeliver(ctx);
       return sendJson(res, 200, { ok: true, applied: false, notified, notifyId: n.id }), true;
@@ -842,6 +924,7 @@ function createDashboardApi(core, opts) {
     extraApi, snapshotExtra, bootstrap, identify, onChat,
     // 테스트 export
     applyDiff, hasDiff, validateDiff, loadData, saveData, loadProposals, saveProposals, loadEvolve, saveEvolve, nextPid,
+    loadWorkspaces,
   };
 }
 

@@ -84,8 +84,17 @@ input { font-family: inherit; }
 body.ana-mode .mode-toggle { background: var(--blue-weak); color: var(--blue-700); }
 body.ana-mode .mode-toggle .knob { background: var(--blue); }
 body.ana-mode .mode-toggle .knob::after { transform: translateX(18px); }
-/* 진화 탭은 ANA 모드에서만 표시 */
-body:not(.ana-mode) .tab[data-view="evolve"] { display: none; }
+/* Chip 토글 옆 새로고침 — 칩으로 못 고르는 새 요소를 찾아 등록(Chip 모드에서만 보임) */
+.chip-scan { flex: 0 0 auto; align-self: center; display: none; place-items: center; width: 34px; height: 34px; margin: 0 8px 0 -6px;
+  border-radius: 999px; background: var(--blue-weak); color: var(--blue-700); }
+body.ana-mode .chip-scan { display: grid; }
+body.ana-mode .mode-toggle:has(+ .chip-scan) { margin-right: 0; }
+.chip-scan:hover { background: color-mix(in srgb, var(--blue) 22%, var(--blue-weak)); }
+.chip-scan svg { width: 16px; height: 16px; }
+.chip-scan.spin svg { animation: chipspin .6s linear; }
+@keyframes chipspin { to { transform: rotate(360deg); } }
+/* 스캔으로 새로 등록된 요소를 잠깐 표시 */
+body.ana-mode .chip-new { outline: 2px dashed var(--blue); outline-offset: 2px; border-radius: 10px; }
 /* ANA 모드: 캡처 가능한 요소에 클릭 어포던스(클릭 시 컨텍스트 칩으로 추가) */
 body.ana-mode .item, body.ana-mode .kpi, body.ana-mode .up-item, body.ana-mode .ev-item,
 body.ana-mode .memo-item, body.ana-mode .evo-card { cursor: copy; }
@@ -343,6 +352,38 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
   font-size: 13.5px; font-weight: 700; color: var(--text); text-align: left; }
 .me-menu button:hover { background: var(--surface-2); }
 .me-menu button svg { width: 16px; height: 16px; color: var(--text-weak); flex: 0 0 auto; }
+.me-menu .mm-sep { height: 1px; margin: 4px 6px; background: var(--line-2); }
+.me-menu #menuLogout { color: var(--danger); }
+.me-menu #menuLogout svg { color: var(--danger); }
+.me-menu #menuLogout:disabled { color: var(--text-weak); cursor: default; }
+.me-menu #menuLogout:disabled:hover { background: none; }
+.me-menu #menuLogout:disabled svg { color: var(--text-weak); }
+.me-menu .mm-hint { display: block; margin-top: 1px; font-size: 11.5px; font-weight: 600; color: var(--text-weak); }
+.me-menu .mm-hint[hidden] { display: none; }
+/* 워크스페이스 콤보 — 브랜드 옆 알약 버튼 + 드롭다운(선택·추가) */
+.ws-combo { flex: 0 1 auto; min-width: 0; align-self: center; position: relative; margin: 0 6px 0 2px; }
+.ws-btn { display: flex; align-items: center; gap: 8px; max-width: 260px; height: 36px; padding: 0 12px 0 14px; border-radius: 999px;
+  background: var(--surface-2); color: var(--text); font-size: 13.5px; font-weight: 800; letter-spacing: -0.02em; }
+.ws-btn:hover, .ws-btn[aria-expanded="true"] { background: var(--acc-weak); }
+.ws-btn .wsn { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-btn .caret { flex: 0 0 auto; font-size: 9px; color: var(--text-weak); }
+.ws-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 80; width: max-content; min-width: 240px; max-width: min(360px, calc(100vw - 24px));
+  padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--sh-sheet); }
+.ws-menu .ws-label { padding: 6px 12px 6px; font-size: 12px; font-weight: 800; color: var(--text-weak); }
+.ws-list { max-height: 50vh; overflow-y: auto; }
+.ws-menu .ws-item, .ws-menu .ws-add { display: block; width: 100%; padding: 10px 12px; border-radius: var(--r-sm); text-align: left;
+  font-size: 14px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-menu .ws-item:hover { background: var(--surface-2); }
+.ws-menu .ws-item.on { background: var(--acc-weak); color: var(--acc-strong); font-weight: 800; }
+.ws-menu .ws-add { color: var(--acc-strong); font-weight: 800; }
+.ws-menu .ws-add:hover { background: var(--surface-2); }
+.ws-new { display: flex; gap: 6px; padding: 4px; }
+.ws-new input { flex: 1; min-width: 0; height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--r-xs);
+  background: var(--surface-2); color: var(--text); font-size: 14px; }
+.ws-new button { flex: 0 0 auto; height: 36px; padding: 0 12px; border-radius: var(--r-xs); background: var(--acc); color: #fff; font-size: 13px; font-weight: 800; }
+.ws-menu [hidden] { display: none; }
+.ws-err { padding: 2px 8px 4px; font-size: 12px; color: var(--danger); }
+@media (max-width: 768px) { .ws-btn { max-width: 140px; padding: 0 10px 0 12px; } .ws-combo { margin: 0 4px 0 0; } }
 /* 설정 모달 — 강조색 스와치 */
 .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .swatch { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 64px; padding: 9px 4px;
@@ -598,7 +639,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 /* 우하단 채팅 FAB — ANA 모드에서만 표시(일반 모드엔 채팅 버튼 없음), 클릭 시 채팅 도킹 열림 */
 .fab { display: none; position: fixed; right: 18px; bottom: calc(20px + var(--safe-b)); width: 56px; height: 56px; border-radius: 999px; background: var(--blue); color: var(--white); box-shadow: var(--sh-fab); z-index: 38; place-items: center; }
 .fab svg { width: 24px; height: 24px; }
-body.ana-mode:not(.chatting) .fab { display: grid; }     /* ANA 모드 + 채팅 닫힘일 때만 */
+body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 항상 — 채팅이 열려 있을 때만 숨김 */
 .fab.busy::after { content: ""; position: absolute; inset: -3px; border-radius: 999px; border: 2px solid var(--green); animation: pulse 1.4s infinite; }
 .fab .badge { position: absolute; top: -3px; right: -3px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--c-1); color: #fff; font-size: 11px; font-weight: 800; line-height: 20px; text-align: center; display: none; }
 .fab.unread .badge { display: block; }
@@ -743,6 +784,20 @@ body.ana-mode:not(.chatting) .fab { display: grid; }     /* ANA 모드 + 채팅 
 <div id="main">
   <nav class="topnav" aria-label="Main menu" role="tablist">
     <div class="topnav-brand"><img src="/ana-logo.png" alt="ANA logo"><span class="bname">ANA</span></div>
+    <div class="ws-combo" id="wsCombo">
+      <button class="ws-btn" id="wsBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Workspace">
+        <span class="wsn" id="wsName">Base Workspace</span><span class="caret">▼</span></button>
+      <div class="ws-menu" id="wsMenu" hidden>
+        <div class="ws-label">Workspace</div>
+        <div class="ws-list" id="wsList" role="listbox" aria-label="Workspaces"></div>
+        <button class="ws-add" id="wsAddBtn">＋ Add workspace</button>
+        <form class="ws-new" id="wsNew" hidden>
+          <input id="wsNewName" maxlength="60" placeholder="Workspace name" autocomplete="off" aria-label="New workspace name">
+          <button type="submit">Add</button>
+        </form>
+        <div class="ws-err" id="wsErr" hidden></div>
+      </div>
+    </div>
     <div class="tabstrip">
       <button class="tab on" data-view="todo" role="tab" aria-selected="true">Tasks</button>
       <button class="tab" data-view="schedule" role="tab" aria-selected="false">Calendar</button>
@@ -752,8 +807,11 @@ body.ana-mode:not(.chatting) .fab { display: grid; }     /* ANA 모드 + 채팅 
       <button class="tab" data-view="stats" role="tab" aria-selected="false">Stats</button>
       <button class="tab" data-view="evolve" role="tab" aria-selected="false">Evolve<span class="tbadge" id="evoBadge">0</span></button>
     </div>
-    <button id="modeToggle" class="mode-toggle" role="switch" aria-checked="false" aria-label="ANA mode">
-      <span class="knob"></span>ANA
+    <button id="modeToggle" class="mode-toggle" role="switch" aria-checked="false" aria-label="Chip mode">
+      <span class="knob"></span>Chip
+    </button>
+    <button id="chipScanBtn" class="chip-scan" aria-label="Find and register elements that can't be picked as chips yet" title="Register unpickable elements as chips">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
     </button>
     <button id="meBtn" class="avatar-btn" aria-label="My profile" aria-haspopup="menu"><span class="av">?</span></button>
   </nav>
@@ -764,6 +822,10 @@ body.ana-mode:not(.chatting) .fab { display: grid; }     /* ANA 모드 + 채팅 
     <button id="menuSettings" role="menuitem">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       Settings</button>
+    <div class="mm-sep" role="separator"></div>
+    <button id="menuLogout" role="menuitem">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <span>Log out<span class="mm-hint" id="menuLogoutHint" hidden></span></span></button>
   </div>
 
   <!-- 할일 -->
@@ -915,7 +977,8 @@ body.ana-mode:not(.chatting) .fab { display: grid; }     /* ANA 모드 + 채팅 
 <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer"><img id="lightboxImg" alt=""></div>
 <div class="chat-scrim" id="chatScrim"></div>
 <button class="fab" id="fab" aria-label="Open chat"><span class="badge" id="fabBadge">0</span>
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+  <!-- 말풍선 안에 콘솔 프롬프트(>_) — 채팅 너머가 터미널 에이전트임을 보여 준다 -->
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-7l-5 3.5V18H5a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3z"/><polyline points="7 8 10 10.5 7 13"/><line x1="12.5" y1="13" x2="16.5" y2="13"/></svg>
 </button>
 
 <!-- 모달: 할일 추가 -->
@@ -1005,6 +1068,19 @@ body.ana-mode:not(.chatting) .fab { display: grid; }     /* ANA 모드 + 채팅 
 const $ = (id) => document.getElementById(id);
 const escapeHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const post = (p, body) => fetch(p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+// 워크스페이스 범위: 이 탭의 모든 /api 호출에 x-ana-workspace 헤더를 싣는다(서버가 상태 파일을 고른다).
+let currentWs = '', workspaces = [];
+{
+  const nativeFetch = window.fetch.bind(window);
+  window.fetch = (input, init = {}) => {
+    const u = typeof input === 'string' ? input : (input && input.url) || '';
+    if (currentWs && /^\/api\//.test(u)) {
+      const h = new Headers(init.headers || {}); h.set('x-ana-workspace', currentWs);
+      init = { ...init, headers: h };
+    }
+    return nativeFetch(input, init);
+  };
+}
 let sessionAlive = false, busy = false, atBottom = true;
 // 칩·첨부 상태는 부트스트랩(setMode 등)보다 먼저 초기화돼야 한다 — let은 호이스팅돼도 TDZ라
 // 선언줄 이전에 읽으면 던지고, 그러면 이후 스크립트 전체가 중단된다(실제로 그런 사고가 있었다).
@@ -1694,6 +1770,10 @@ async function loadMe() {
   $('meBtn').title = signedIn ? `${me.name} · ${me.email}`
     : (meVia === 'missing' ? 'Identity header missing from the request — check the front proxy' : 'Single-user mode');
   $('meLogout').style.display = logoutUrl ? '' : 'none';   // 로그아웃 경로는 앞단이 정한다
+  // 프로필 메뉴의 로그아웃: 앞단 로그아웃 경로가 있을 때만 활성. 없으면 이유를 보여 주고 비활성.
+  $('menuLogout').disabled = !logoutUrl;
+  $('menuLogoutHint').hidden = !!logoutUrl;
+  $('menuLogoutHint').textContent = signedIn ? 'Set ANA_LOGOUT_URL to enable' : 'Single-user mode — no sign-in';
   renderTodos(); renderMeetings(); renderMemos(); renderUpcoming();
 }
 /* 아바타 클릭 → 드롭다운 메뉴(Edit My Info / Settings) */
@@ -1778,6 +1858,7 @@ $('meSave').onclick = async () => {
 };
 // 로그아웃은 앞단 게이트웨이의 몫 — ANA_LOGOUT_URL이 설정된 배포에서만 버튼이 보인다.
 $('meLogout').onclick = () => { if (logoutUrl) location.href = logoutUrl; };
+$('menuLogout').onclick = () => { if (!logoutUrl) return; $('meMenu').hidden = true; location.href = logoutUrl; };
 
 /* ================= 멤버 ================= */
 async function renderMembers() {
@@ -2142,12 +2223,60 @@ function connect() {
       case 'draft': renderDraft(d.draft); break;
       case 'proposal': proposals.set(d.proposal.id, d.proposal); refreshPropCards(); break;
       case 'data': if (d.version !== dataVersion) refreshData(); break;
+      case 'workspaces': loadWorkspaces(); break;
       case 'evolve': if ($('evolveView').classList.contains('on')) refreshEvolve(); else refreshEvolve(); break;
     }
   };
   es.onerror = () => { if (es.readyState === EventSource.CLOSED || es.readyState === EventSource.CONNECTING) { try { es.close(); } catch {} srvConnected = false; renderStatus(); setTimeout(connect, backoff); backoff = Math.min(backoff * 2, 15000); } };
 }
-initCal(); connect(); refreshData(); refreshEvolve();
+/* ================= 워크스페이스 ================= */
+const wsById = (id) => workspaces.find((w) => w.id === id);
+function renderWorkspaces() {
+  const cur = wsById(currentWs);
+  $('wsName').textContent = cur ? cur.name : 'Base Workspace';
+  $('wsBtn').title = cur ? cur.name : '';
+  $('wsList').innerHTML = workspaces.map((w) => `<button class="ws-item ${w.id === currentWs ? 'on' : ''}" role="option"
+    aria-selected="${w.id === currentWs}" data-ws="${escapeHtml(w.id)}" title="${escapeHtml(w.name)}">${escapeHtml(w.name)}</button>`).join('');
+}
+async function loadWorkspaces() {
+  let d; try { d = await (await fetch('/api/workspaces')).json(); } catch { return; }
+  workspaces = d.workspaces || [];
+  if (!currentWs || !wsById(currentWs)) currentWs = d.active;   // 첫 로드: 서버 active(마지막 선택)를 따른다
+  renderWorkspaces();
+}
+function closeWsMenu() { $('wsMenu').hidden = true; $('wsBtn').setAttribute('aria-expanded', 'false'); $('wsNew').hidden = true; $('wsAddBtn').hidden = false; $('wsErr').hidden = true; }
+async function switchWorkspace(id) {
+  if (id === currentWs) return closeWsMenu();
+  currentWs = id; memoSel = null; renderWorkspaces(); closeWsMenu();
+  // 서버 active도 옮긴다 — 헤더 없이 호출하는 에이전트(curl)가 같은 워크스페이스를 보도록.
+  post('/api/workspaces', { action: 'select', id }).catch(() => {});
+  await refreshData();
+  if ($('memberView') && $('memberView').classList.contains('on')) renderMembers();
+  if ($('statsView') && $('statsView').classList.contains('on')) renderStats();
+}
+$('wsBtn').onclick = (e) => {
+  e.stopPropagation();
+  const open = $('wsMenu').hidden;
+  if (!open) return closeWsMenu();
+  $('wsMenu').hidden = false; $('wsBtn').setAttribute('aria-expanded', 'true'); loadWorkspaces();
+};
+$('wsList').onclick = (e) => { const b = e.target.closest('[data-ws]'); if (b) switchWorkspace(b.dataset.ws); };
+$('wsAddBtn').onclick = () => { $('wsAddBtn').hidden = true; $('wsNew').hidden = false; $('wsNewName').value = ''; $('wsNewName').focus(); };
+$('wsNew').onsubmit = async (e) => {
+  e.preventDefault();
+  const name = $('wsNewName').value.trim(); if (!name) return;
+  let r, j; try { r = await post('/api/workspaces', { action: 'add', name }); j = await r.json(); } catch { j = { error: 'Failed to add the workspace' }; }
+  if (!r || !r.ok) { $('wsErr').textContent = j.error || 'Failed to add the workspace'; $('wsErr').hidden = false; return; }
+  workspaces = j.workspaces || workspaces;
+  await switchWorkspace(j.workspace.id);
+};
+$('wsNewName').addEventListener('keydown', (e) => { if (e.key === 'Escape') closeWsMenu(); });
+document.addEventListener('click', (e) => { if (!$('wsMenu').hidden && !e.target.closest('#wsCombo')) closeWsMenu(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('wsMenu').hidden) closeWsMenu(); });
+
+initCal(); connect();
+loadWorkspaces().finally(() => { refreshData(); });
+refreshEvolve();
 setInterval(async () => {
   if (document.hidden) return;
   let d; try { d = await (await fetch(`/api/feed?since=${lastSeq}`)).json(); } catch { return; }
@@ -2292,9 +2421,8 @@ function setMode(m) {
   document.body.classList.toggle('ana-mode', ana);
   $('modeToggle').setAttribute('aria-checked', ana);
   if (!ana) {
-    closeChat(); clearChips();                              // 일반 모드: 채팅 버튼 없음 → 닫고 칩 비움
-    if ($('evolveView').classList.contains('on')) document.querySelector('.tab[data-view="todo"]').click(); // 진화 탭 숨김 → 할일로
-  } else refreshEvolve();                                   // ANA 모드 진입 시 이미 분석된 제안 리스트 갱신
+    clearChips();                                           // Chip 모드 해제: 칩만 비운다(채팅·진화 탭은 항상 쓸 수 있으므로 그대로)
+  }
   try { localStorage.setItem('ana-mode', ana ? '1' : '0'); } catch {}
 }
 $('modeToggle').onclick = () => setMode(document.body.classList.contains('ana-mode') ? 'normal' : 'ana');
@@ -2390,6 +2518,100 @@ const CAP = [
   ['.evo-card', 'Proposal', (el) => el.querySelector('.evo-t')?.textContent || el.textContent],
   ['.memo-item', 'Note', (el) => el.querySelector('.mt')?.textContent || el.textContent],
 ];
+
+/* ---- 칩 스캔: 새로 생긴 기능의 요소를 칩 대상(CAP)에 등록 ----
+   CAP은 손으로 적은 목록이라, 나중에 추가된 화면 요소는 클릭해도 칩이 되지 않는다.
+   새로고침 버튼이 #main의 각 뷰를 훑어 '한 단위로 보이는' 요소 중 아직 CAP에 안 잡히는 것을 찾아
+   클래스 기반 셀렉터로 등록한다(요소가 아닌 셀렉터라 다시 렌더링돼도 유지). 등록분은 localStorage에 남는다. */
+const CHIP_EXTRA_KEY = 'ana-chip-extra';
+// 컨트롤(버튼·입력)을 뺀 순수 텍스트 — '✕', 'Delete' 같은 버튼 글자가 칩에 섞이지 않게
+function plainText(el) {
+  const c = el.cloneNode(true);
+  c.querySelectorAll('button, input, textarea, select, .chk, svg').forEach((x) => x.remove());
+  return (c.textContent || '').replace(/\s+/g, ' ').trim();
+}
+const chipText = (el) => {
+  const head = el.querySelector('.title, .mt, .evo-t, [class$="-t"], h3, h4, strong, [class*="title"], [class*="name"]');
+  const t = (head && plainText(head)) || plainText(el);
+  return el.dataset.date && !t.includes(el.dataset.date) ? `${el.dataset.date} ${t}`.trim() : t;
+};
+const STATE_CLS = /^(on|off|done|open|active|sel|selected|today|has|show|hidden|up|new|chip-new|dragging|empty|mine|past|unread|blank|card)$/;
+const CAND = '.card, [role="button"], [tabindex], li, tr, [data-id], [data-date], [class*="item"], [class*="card"], [class*="row"], [class*="cell"], [class*="tile"]';
+let chipExtra = [];   // [{sel, k}]
+const capSelectors = () => CAP.map((c) => c[0]);
+function coveredByCap(el) { return capSelectors().some((sel) => { try { return !!el.closest(sel); } catch { return false; } }); }
+// 요소의 이름이 되는 셀렉터: 상태 클래스를 뺀 클래스 조합 → 없으면 가장 가까운 id/클래스 조상 > 태그
+function selectorFor(el) {
+  // 대표 클래스 하나만 쓴다 — sat/sun 같은 변형 클래스로 같은 종류가 쪼개지지 않게
+  const cls = [...el.classList].filter((c) => !STATE_CLS.test(c) && /^[\w-]+$/.test(c));
+  if (cls.length) return el.tagName.toLowerCase() + '.' + cls[0];
+  const anc = el.parentElement && el.parentElement.closest('[id], [class]');
+  if (!anc || anc.id === 'main') return '';
+  const aSel = anc.id ? '#' + CSS.escape(anc.id) : '.' + [...anc.classList].filter((c) => !STATE_CLS.test(c))[0];
+  return aSel && aSel !== '.undefined' ? `${aSel} ${el.tagName.toLowerCase()}` : '';
+}
+const viewLabel = (el) => {
+  const v = el.closest('section.view'); if (!v) return 'Element';
+  const tab = document.querySelector(`.tab[data-view="${v.id.replace(/View$/, '')}"]`);
+  return (tab ? tab.childNodes[0].textContent : v.id.replace(/View$/, '')).trim() || 'Element';
+};
+function isControlOnly(el) {
+  if (el.matches('button, input, textarea, select, label, a, option, form')) return true;
+  if (el.closest('button, .chk, form, .empty, .sec-head, .modal, .sheet')) return true;
+  return !plainText(el);
+}
+function scanChipTargets() {
+  const found = new Map();   // sel → {sel, k, els[]}
+  const views = document.querySelectorAll('#main section.view');
+  for (const v of views) {
+    const cands = [...v.querySelectorAll(CAND)].filter((el) => !isControlOnly(el) && !coveredByCap(el));
+    for (const el of cands) {
+      // 컨테이너(다른 후보·등록 요소를 둘 이상 품은 것)는 건너뛰고 단위 요소만 등록
+      // 컨테이너는 건너뛴다: 이미 칩 대상을 품었거나 다른 후보를 둘 이상 품은 요소
+      if (capSelectors().some((sel) => { try { return !!el.querySelector(sel); } catch { return false; } })) continue;
+      if (cands.filter((o) => o !== el && el.contains(o)).length >= 2) continue;
+      const sel = selectorFor(el); if (!sel) continue;
+      try { if (!el.matches(sel)) continue; } catch { continue; }
+      if (capSelectors().includes(sel)) continue;
+      if (!found.has(sel)) found.set(sel, { sel, k: viewLabel(el), els: [] });
+      found.get(sel).els.push(el);
+    }
+  }
+  // 한 후보가 다른 후보 안에 들어 있으면 바깥 것만 남긴다(행 안의 셀 같은 중복 방지)
+  const list = [...found.values()];
+  return list.filter((a) => !list.some((b) => b !== a && b.els.some((be) => a.els.every((ae) => be !== ae && be.contains(ae)))));
+}
+function registerChipTarget(sel, k) {
+  if (capSelectors().includes(sel)) return false;
+  CAP.push([sel, k, chipText]);
+  return true;
+}
+function applyChipAffordance() {
+  // 등록된 모든 셀렉터에 칩 어포던스(커서·호버 외곽선)를 동적으로 입힌다
+  let st = $('chipAffordance');
+  if (!st) { st = document.createElement('style'); st.id = 'chipAffordance'; document.head.appendChild(st); }
+  const sels = chipExtra.map((x) => x.sel);
+  st.textContent = sels.length ? `body.ana-mode :is(${sels.join(', ')}) { cursor: copy; }
+body.ana-mode :is(${sels.join(', ')}):hover { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 10px; }` : '';
+}
+function loadChipExtra() {
+  try { chipExtra = JSON.parse(localStorage.getItem(CHIP_EXTRA_KEY) || '[]').filter((x) => x && typeof x.sel === 'string' && typeof x.k === 'string'); } catch { chipExtra = []; }
+  chipExtra = chipExtra.filter((x) => { try { document.querySelector(x.sel); return true; } catch { return false; } });
+  chipExtra.forEach((x) => registerChipTarget(x.sel, x.k));
+  applyChipAffordance();
+}
+$('chipScanBtn').onclick = () => {
+  const btn = $('chipScanBtn');
+  btn.classList.remove('spin'); void btn.offsetWidth; btn.classList.add('spin');
+  const hits = scanChipTargets();
+  let added = 0, els = 0;
+  for (const h of hits) if (registerChipTarget(h.sel, h.k)) { chipExtra.push({ sel: h.sel, k: h.k }); added++; els += h.els.length; h.els.forEach((el) => el.classList.add('chip-new')); }
+  try { localStorage.setItem(CHIP_EXTRA_KEY, JSON.stringify(chipExtra)); } catch {}
+  applyChipAffordance();
+  setTimeout(() => document.querySelectorAll('.chip-new').forEach((el) => el.classList.remove('chip-new')), 2400);
+  toast(added ? `Registered ${added} new chip target${added > 1 ? 's' : ''} (${els} element${els > 1 ? 's' : ''})` : 'Every element can already be picked as a chip');
+};
+loadChipExtra();
 // 현재 선택된 텍스트(일반 DOM + textarea/input 모두 대응)
 function selectedText() {
   const ae = document.activeElement;
@@ -2401,13 +2623,15 @@ $('main').addEventListener('click', (e) => {
   if (!document.body.classList.contains('ana-mode')) return;
   if (e.target.closest('button, .chk')) return;    // 삭제/추가 버튼·체크박스는 컨트롤(칩 아님)
   if (selectedText().trim()) return;               // 드래그로 텍스트를 선택한 경우는 mouseup(선택)이 처리
+  // 여러 셀렉터가 겹치면 가장 안쪽 요소를 고른다(스캔으로 등록된 바깥 요소가 안쪽 대상을 가리지 않게)
+  let best = null;
   for (const [sel, k, get] of CAP) {
-    const el = e.target.closest(sel);
-    if (el) {
-      addChip(k, get(el));                          // 칩만 추가 — 기존 동작은 그대로 진행되게 가로채지 않음
-      if (!document.body.classList.contains('chatting')) openChat();
-      return; // 한 클릭 = 칩 하나
-    }
+    let el; try { el = e.target.closest(sel); } catch { continue; }
+    if (el && (!best || best.el.contains(el) && best.el !== el)) best = { el, k, get };
+  }
+  if (best) {
+    addChip(best.k, best.get(best.el));             // 칩만 추가 — 기존 동작은 그대로 진행되게 가로채지 않음
+    if (!document.body.classList.contains('chatting')) openChat();
   }
 }, true); // capture phase — 칩을 먼저 등록하되 이벤트는 계속 전파(기존 핸들러 동작)
 // ANA 모드: 어디서든 텍스트를 드래그 선택하고 마우스를 떼면 그 선택 텍스트를 칩으로 등록.
