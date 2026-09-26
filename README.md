@@ -9,7 +9,7 @@
 [![Stars](https://img.shields.io/github/stars/tykimos/agent-native-agent?style=for-the-badge&logo=github&color=CC785C)](https://github.com/tykimos/agent-native-agent/stargazers)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-1f6feb?style=for-the-badge)](LICENSE)
 [![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-CC785C?style=for-the-badge)](https://claude.com/claude-code)
-[![Zero dependencies](https://img.shields.io/badge/dependencies-0-111?style=for-the-badge)](channel-core.js)
+[![Zero-dependency runtime](https://img.shields.io/badge/runtime_dependencies-0-111?style=for-the-badge)](channel-core.js)
 [![Last commit](https://img.shields.io/github/last-commit/tykimos/agent-native-agent?style=for-the-badge&color=64748b)](https://github.com/tykimos/agent-native-agent/commits/main)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-22c55e?style=for-the-badge)](#contributing)
 
@@ -82,11 +82,11 @@ There is **no bridge and no MCP**. The browser posts to the server, the server i
 
 ## Quickstart — run the base (2 min)
 
-**Prerequisites:** Node ≥ 20, tmux, and a coding-agent CLI (e.g. [Claude Code](https://claude.com/claude-code)). No `npm install` — zero dependencies.
+**Prerequisites:** Node ≥ 24, tmux, and a coding-agent CLI (e.g. [Claude Code](https://claude.com/claude-code)). The runtime (`channel-core.js`) has zero dependencies; the base app has one, [NodeRel](https://github.com/tykimos/NodeRel), installed from GitHub with `npm install`.
 
 ### Install & run with the `install` skill (recommended)
 
-The **[`install` skill](skills/install/SKILL.md)** takes a fresh machine to a running dashboard. It checks the environment first, installs only what's missing (Node ≥ 20, tmux, git, curl, Claude Code), then starts the agent and the server in tmux and health-checks them. Every script is safe to re-run.
+The **[`install` skill](skills/install/SKILL.md)** takes a fresh machine to a running dashboard. It checks the environment first, installs only what's missing (Node ≥ 24, tmux, git, curl, Claude Code) plus the npm dependency, then starts the agent and the server in tmux and health-checks them. Every script is safe to re-run.
 
 ```bash
 git clone https://github.com/tykimos/agent-native-agent && cd agent-native-agent
@@ -127,6 +127,32 @@ Open **http://localhost:8809**, open the chat (bottom-right), and talk. Turn on 
 
 The reference dashboard ships **workspaces**, **Chip mode** (click any element to pin it as a context chip; ⟳ registers newly added elements), a docked chat you resize, and an **evolution tab** — ask for a change, approve it, the running agent rewrites the app.
 
+### Notes · Tasks · Calendar as one graph (NodeRel)
+
+The board has six tabs — **Tasks, Calendar, Notes, Stats, Requests, Evolve** — and the first three are linked through a relation graph built with [NodeRel](https://github.com/tykimos/NodeRel). `state.json` stays the source of truth (it holds the items plus an explicit `links[]` list); `graph.js` rebuilds a SQLite index (`graph.sqlite`, one per workspace) from it whenever its signature changes, so any write path — the UI, an agent diff, a hand edit — shows up in the graph.
+
+```
+Note ─SPAWNED──────▶ Task | Event     where a task or event came from      (explicit)
+Task ─SCHEDULED_AS─▶ Event            the time blocked to work on the task (explicit)
+Note|Task|Event ─REFERS_TO─▶ Note|Task|Event   manual reference            (explicit)
+Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           derived from due / date     (automatic)
+```
+
+In the UI: select a line in a note and press **→ Task** or **→ Event**, press the calendar button on a task to block time for it, or **＋ Link** any two items. Links show as chips; clicking one jumps to that item in its tab. **Stats → Connections** counts the links and lists where the flow breaks: notes nothing came from, open tasks without a due date, open tasks with no time scheduled.
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/state` → `graph.links` | every relation in the workspace (from NodeRel) |
+| `POST /api/todo {title, due?, from?}` · `POST /api/event {action:'add', …, from?}` | create and link to its source in one call (`from` = note → `SPAWNED`, task → `SCHEDULED_AS`) |
+| `POST /api/link {action:'add'\|'remove', from, to, type}` | add/remove `SPAWNED`, `SCHEDULED_AS`, `REFERS_TO` (direction is validated) |
+| `GET /api/graph/neighbors?id=` · `GET /api/graph/trace?id=&depth=&direction=&types=` | incident links / everything reachable |
+| `GET /api/graph/schema` | NodeRel's AI-readable schema plus this app's relation meanings — hand it to the agent |
+| `GET /api/stats` → `graph` | counts per kind/type and the three `gaps` lists |
+
+**Requests vs Evolve.** Two tabs carry traffic between you and the agent. **Evolve** is the agent proposing changes *to the app* — approve one and it builds it. **Requests** is the agent asking *you* for what it needs to run the system better: information, a decision (with option buttons), something only you can do, or access. The agent registers them with `POST /api/requests {requests:[{kind, title, desc?, options?, ref?}]}` (`kind` = `info|decision|action|access`, `ref` = a task/event/note id shown as a link). Your answer goes straight to the agent in chat; *I did it* / *Not now* notify it (`POST /api/request-act {id, action: answer|done|dismiss|reopen}`).
+
+**Draw on the screen.** In Chip mode the pen button (next to ⟳) lays a canvas over the board. Circle what you mean in red, magenta or blue — colors the UI never uses — and press *Add to chat*: the annotated screenshot is attached and a chip records where you are (workspace, tab, selected day/note, scroll) plus which item each mark sits on (`magenta mark on Task "book venue"`). Screenshots use [modern-screenshot](https://github.com/qq15725/modern-screenshot), served locally from `/vendor/`.
+
 ### Sharing it with other people (optional)
 
 ANA has **no login of its own**. For single-user self-hosting that is the point — bind to loopback and it is yours. If several people need the same board, put ANA behind something that authenticates (a reverse proxy, an SSO gateway, a Zero Trust tunnel) and have it forward the user identifier as a request header:
@@ -137,7 +163,7 @@ ANA_LOGOUT_URL=/your-gateway/logout \
 node server.js
 ```
 
-With the header set, items carry an author, only the author can edit or delete their own, and the member/activity tabs come alive. Unset (the default) everything runs as one local user.
+With the header set, items carry an author, only the author can edit or delete their own, and the per-person stats and activity come alive. Unset (the default) everything runs as one local user.
 
 **Coding-agent sessions per person.** Click the connection pill (`ANA · <session>`) in the chat header to pick a tmux session. Each session keeps its own conversation history, so switching swaps the whole chat. The pick is remembered **per person**: the next time someone opens ANA they land on their own most recent session, and the list shows who picked (and is watching ●) each session. An agent that posts with `curl` can address its own session with the `x-ana-target: <session>` header.
 
@@ -181,9 +207,11 @@ cp -r skills/ana ~/.claude/skills/           # then: "attach ANA to my app"
 ```
 channel-core.js     ★ the whole ANA runtime — tmux inject / capture-pane mirror / ledger (0 deps)
 server.js             base app: mounts channel-core + dashboard-api, serves dashboard.html
-dashboard-api.js      example rich-response API (workspaces · todo · schedule · memo · evolve, diff→approve)
-dashboard.html        reference UI: workspaces, Chip mode, context chips, docked chat, evolution tab
-test.cjs              62 tests (unit + integration against mock_agent.py)
+dashboard-api.js      example rich-response API (workspaces · todo · schedule · memo · links · evolve, diff→approve)
+graph.js              Notes·Tasks·Calendar relation graph on NodeRel (derived graph.sqlite per workspace)
+dashboard.html        reference UI: workspaces, Chip mode, context chips, docked chat, relation chips, evolution tab
+package.json          dependencies: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot
+test.cjs              70 tests (unit + integration against mock_agent.py)
 mock_agent.py         deterministic TUI stand-in for tests
 skills/ana/SKILL.md   "attach ANA to your service" — the simple recipe above
 skills/install/       "install & run ANA" — env check, installer, tmux runner, Windows WSL bootstrap

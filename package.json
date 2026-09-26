@@ -1,0 +1,16 @@
+{
+  "name": "ana-base",
+  "private": true,
+  "description": "ANA base — Notes, Tasks and Calendar linked through a NodeRel relation graph",
+  "engines": {
+    "node": ">=24.13.1"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.cjs"
+  },
+  "dependencies": {
+    "@tykimos/noderel": "github:tykimos/NodeRel#2a1e84987449c0dde5fb7506bacf08cb4fa63372",
+    "modern-screenshot": "^4.7.0"
+  }
+}

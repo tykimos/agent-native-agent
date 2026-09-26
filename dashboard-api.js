@@ -1,6 +1,6 @@
 'use strict';
 // dashboard-api.js — 대시보드 상태 API (채널 코어 위에 얹힌 계층).
-// 담당: /api/state · /api/agent(제안) · /api/approve · /api/apply · /api/done · /api/note · /api/evolve · /api/evolve-act
+// 담당: /api/state · /api/agent(제안) · /api/approve · /api/apply · /api/done · /api/note · /api/link · /api/graph/* · /api/evolve · /api/evolve-act · /api/requests · /api/request-act
 //       + /api/notifications(pull 통지 조회)
 //
 // 검증 하네스 반영(2026-08-19):
@@ -17,14 +17,20 @@ const os = require('node:os');
 const fsp = require('node:fs/promises');
 const { execFile } = require('node:child_process');
 const { AsyncLocalStorage } = require('node:async_hooks');
+const relgraph = require('./graph.js');
+const { createAgentLog } = require('./agent-log.js');
 
 function createDashboardApi(core, opts) {
   const { ROOT } = opts;
   const DATA_FILE = opts.DATA_FILE || path.join(ROOT, 'data', 'state.json');
   const PROPOSALS_FILE = opts.PROPOSALS_FILE || path.join(ROOT, 'data', 'proposals.json');
   const EVOLVE_FILE = opts.EVOLVE_FILE || path.join(ROOT, 'data', 'evolve.json');
+  const REQUESTS_FILE = opts.REQUESTS_FILE || path.join(path.dirname(EVOLVE_FILE), 'requests.json');
   const NOTIFY_AGENT = opts.NOTIFY_AGENT !== false;
   const MAX_TEXT = opts.MAX_TEXT || 8000;
+  const SEED = !!opts.SEED;
+  // Claude Code 세션의 구조화된 대화 기록(읽기 전용) — 채팅을 Claude 앱과 같은 모양으로 그린다
+  const agentLog = createAgentLog({ socket: opts.TMUX_SOCKET || '' });
   const { writeJsonAtomic, readJsonStrict, sendJson } = core;
 
   // ---------- 신원 ----------
@@ -123,18 +129,21 @@ function createDashboardApi(core, opts) {
   // ---- 상태 파일 (원자적 + shape 검증) ----
   function loadData(ws) {
     const file = dataFileOf(ws || curWs());
+    // 처음 뜬 기본 워크스페이스에는 관계를 바로 볼 수 있는 예제 두 개를 넣는다(opts.SEED, 파일이 없을 때 한 번만).
+    if (SEED && (ws || curWs()) === DEFAULT_WS && !require('node:fs').existsSync(file)) writeJsonAtomic(file, require('./seed.js').seedState());
     const s = readJsonStrict(file, () => ({ version: 1, items: [], events: [], notes: [] }));
     if (!s || typeof s !== 'object' || Array.isArray(s) || !Array.isArray(s.items))
       throw new Error(`state.json shape invalid (${file})`);
     if (!Array.isArray(s.events)) s.events = []; // 일정(달력) — 할일(items)과 별도
     if (!Array.isArray(s.notes)) s.notes = []; // 메모 — {id, title, text, updatedAt}
-    // 미팅(회의록) — {id, title, date, time, endTime, place, attendees[], notes[], decisions[], actions[], photos[], at}
-    if (!Array.isArray(s.meetings)) s.meetings = [];
+    if (!Array.isArray(s.links)) s.links = []; // 명시적 관계 — {from, to, type, at, by} (graph.js 참고)
     if (typeof s.version !== 'number' || !Number.isFinite(s.version)) s.version = 1;
     return s;
   }
   const newId = (p) => p + Date.now().toString(36) + crypto.randomBytes(2).toString('hex');
-  const saveData = (s, ws) => writeJsonAtomic(dataFileOf(ws || curWs()), s);
+  const saveData = (s, ws) => { relgraph.pruneLinks(s); writeJsonAtomic(dataFileOf(ws || curWs()), s); };
+  // 관계 그래프 — state.json에서 파생되는 NodeRel 인덱스(워크스페이스마다 graph.sqlite)
+  const graph = relgraph.createGraph({ loadData, dataFileOf });
 
   function loadProposals() {
     const s = readJsonStrict(PROPOSALS_FILE, () => ({ proposals: [] }));
@@ -157,6 +166,19 @@ function createDashboardApi(core, opts) {
     return s;
   }
   const saveEvolve = (s) => writeJsonAtomic(EVOLVE_FILE, s);
+
+  // ---- 요청(Requests) ----
+  // Evolve가 '에이전트가 앱을 바꾸자고 제안'이라면, Requests는 '에이전트가 이 시스템을 더 잘 운용하려고
+  // 사용자에게 부탁'하는 것(정보·결정·행동·권한). 에이전트가 curl로 등록하고, 사용자가 답하거나 처리한다.
+  // {id, kind, title, desc, options[], ref, ws, status: open|answered|done|dismissed, answer, at, closedAt}
+  const REQ_KINDS = ['info', 'decision', 'action', 'access'];
+  function loadRequests() {
+    const s = readJsonStrict(REQUESTS_FILE, () => ({ next: 1, requests: [] }));
+    if (!s || typeof s !== 'object' || !Array.isArray(s.requests)) return { next: 1, requests: [] };
+    if (typeof s.next !== 'number') s.next = 1;
+    return s;
+  }
+  const saveRequests = (s) => writeJsonAtomic(REQUESTS_FILE, s);
 
   // feed 참조(bootstrap에서 주입) — nextPid가 원장 pid를 보게
   let _feedRef = [];
@@ -202,6 +224,13 @@ function createDashboardApi(core, opts) {
     const changed = summary.added || summary.updated || summary.removed;
     if (changed) { s.version = (s.version || 1) + 1; saveData(s, ws); }
     return { summary, version: s.version, changed };
+  }
+  // 새 항목을 만들면서 출처와 잇는다. from이 없으면 아무것도 안 한다. 오류면 문자열(저장 전이라 되돌릴 것도 없다).
+  function linkFrom(s, from, to, typeByKind) {
+    if (from === undefined || from === null || from === '') return null;
+    const type = typeByKind[relgraph.kindOf(s, String(from))];
+    if (!type) return `from must be a ${Object.keys(typeByKind).join(' or ')} id`;
+    return relgraph.addLink(s, { from: String(from), to, type });
   }
   const dataVersion = (ws) => { try { return loadData(ws).version || 1; } catch { return 1; } };
 
@@ -328,6 +357,7 @@ function createDashboardApi(core, opts) {
         target = w.workspaces.find((x) => x.id === body.id);
         if (!target) return sendJson(res, 404, { error: 'not found' }), true;
         const dir = path.join(WS_DIR, target.id);
+        graph.close(target.id);   // graph.sqlite 핸들을 닫고 폴더를 옮긴다
         const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
         try {
           await fsp.mkdir(path.join(WS_DIR, '.deleted'), { recursive: true });
@@ -397,46 +427,6 @@ function createDashboardApi(core, opts) {
     if (p === '/api/users' && req.method === 'GET') {
       return sendJson(res, 200, { users: Object.values(loadUsers().users) }), true;
     }
-    // ---- 멤버 카드 ----
-    // 계정 기록 + 감사 로그 + 실제 콘텐츠를 합쳐 한 번에 내려준다(클라이언트에서 조인하지 않도록).
-    if (p === '/api/members' && req.method === 'GET') {
-      const users = loadUsers().users;
-      const log = readAudit(0);
-      let st = null; try { st = loadData(); } catch {}
-      const seen = new Map();
-      const slot = (email) => {
-        if (!seen.has(email)) {
-          const u = users[email] || {};
-          seen.set(email, {
-            email, name: u.name || (email === 'ana' ? 'ANA' : email.split('@')[0]), avatar: u.avatar || '',
-            firstSeen: u.firstSeen || '', lastSeen: u.lastSeen || '',
-            registered: !!users[email],
-            // 표시 이름을 바꿨거나 사진을 올렸으면 '프로필을 손본 사람'
-            customized: !!(u.avatar || (u.name && u.name !== email.split('@')[0])),
-            profileUpdatedAt: '', activity: 0, lastAt: '', lastAction: '',
-            counts: { todos: 0, meetings: 0, notes: 0, events: 0, comments: 0, chats: 0 },
-          });
-        }
-        return seen.get(email);
-      };
-      Object.keys(users).forEach(slot);
-      for (const a of log) {
-        const m = slot(a.by || 'ana');
-        m.activity++;
-        if (!m.lastAt || a.at > m.lastAt) { m.lastAt = a.at; m.lastAction = a.action; }
-        if (a.action === 'chat.send') m.counts.chats++;
-        if (a.action === 'comment.add') m.counts.comments++;
-        if (a.action === 'profile.update' && (!m.profileUpdatedAt || a.at > m.profileUpdatedAt)) m.profileUpdatedAt = a.at;
-      }
-      if (st) {
-        for (const it of st.items || []) if (it.by) slot(it.by).counts.todos++;
-        for (const ev of st.events || []) if (ev.by) slot(ev.by).counts.events++;
-        for (const n of st.notes || []) if (n.by) slot(n.by).counts.notes++;
-        for (const mt of st.meetings || []) if (mt.by) slot(mt.by).counts.meetings++;
-      }
-      const members = [...seen.values()].sort((a, b) => (b.activity - a.activity) || a.email.localeCompare(b.email));
-      return sendJson(res, 200, { members, me: who(req) }), true;
-    }
     // ---- 활동 이력 / 통계 ----
     if (p === '/api/activity' && req.method === 'GET') {
       const me = who(req);
@@ -468,20 +458,22 @@ function createDashboardApi(core, opts) {
         days.push({ date: d, count: daily[d] || 0 });
       }
       let s4 = null; try { s4 = loadData(); } catch {}
+      let g4 = null; try { g4 = graph.stats(curWs()); } catch (e) { g4 = { error: e.message }; }
       const mineCount = (arr) => (arr || []).filter((x) => x.by === me).length;
       return sendJson(res, 200, {
         me,
         mine: me ? {
           ...(per[me] || { total: 0, today: 0, actions: {} }),
-          todos: mineCount(s4 && s4.items), meetings: mineCount(s4 && s4.meetings),
+          todos: mineCount(s4 && s4.items),
           events: mineCount(s4 && s4.events), notes: mineCount(s4 && s4.notes),
         } : null,
         all: {
           total: log.length, actions, days,
           people: Object.values(per).sort((a, b) => b.total - a.total),
-          todos: (s4 && s4.items || []).length, meetings: (s4 && s4.meetings || []).length,
+          todos: (s4 && s4.items || []).length,
           events: (s4 && s4.events || []).length, notes: (s4 && s4.notes || []).length,
         },
+        graph: g4,
       }), true;
     }
 
@@ -496,8 +488,50 @@ function createDashboardApi(core, opts) {
       let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
       const ps = loadProposals();
       const ws = curWs();
-      return sendJson(res, 200, { ...s, workspace: ws,
+      let g; try { g = graph.view(ws, s); } catch (e) { g = { links: [], error: e.message }; }
+      return sendJson(res, 200, { ...s, workspace: ws, graph: g,
         proposals: ps.proposals.filter((x) => x.status === 'pending' && (x.ws || DEFAULT_WS) === ws).slice(-50) }), true;
+    }
+
+    // ---- 관계 그래프(NodeRel) ----
+    // 읽기: 이웃·추적·AI 스키마. 쓰기는 /api/link 하나 — 원천(state.links)을 고치면 다음 읽기에서 인덱스가 다시 만들어진다.
+    if (p.startsWith('/api/graph') && req.method === 'GET') {
+      const ws = curWs();
+      try {
+        if (p === '/api/graph') return sendJson(res, 200, { scope: ws, ...graph.view(ws) }), true;
+        if (p === '/api/graph/neighbors') {
+          const r = graph.neighbors(ws, String(url.searchParams.get('id') || ''));
+          return r ? (sendJson(res, 200, r), true) : (sendJson(res, 404, { error: 'not found' }), true);
+        }
+        if (p === '/api/graph/trace') {
+          const depth = Number(url.searchParams.get('depth') || 2);
+          const types = String(url.searchParams.get('types') || '').split(',').map((x) => x.trim()).filter(Boolean);
+          return sendJson(res, 200, { nodes: graph.trace(ws, { id: String(url.searchParams.get('id') || ''),
+            direction: url.searchParams.get('direction') || 'both', maxDepth: depth, types }) }), true;
+        }
+        if (p === '/api/graph/schema') return sendJson(res, 200, graph.describe(ws)), true;
+      } catch (e) { return sendJson(res, 400, { error: e.message }), true; }
+      return sendJson(res, 404, { error: 'not found' }), true;
+    }
+    // 관계 추가·삭제 — {action:'add'|'remove', from, to, type}
+    if (p === '/api/link' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
+      const link = { from: body.from, to: body.to, type: body.type };
+      const nameOf = (id) => { const x = [...s.items, ...s.events, ...s.notes].find((y) => y.id === id); return x ? String(x.title || x.text || '(untitled)').split('\n')[0].slice(0, 30) : id; };
+      const label = () => `${link.type} ${nameOf(link.from)} → ${nameOf(link.to)}`;
+      if (body.action === 'add') {
+        const err = relgraph.addLink(s, link, actor(req));
+        if (err) return sendJson(res, 400, { error: err }), true;
+        audit(actor(req), 'link.add', label());
+      } else if (body.action === 'remove') {
+        if (!relgraph.removeLink(s, link)) return sendJson(res, 404, { error: 'not found' }), true;
+        audit(actor(req), 'link.remove', label());
+      } else return sendJson(res, 400, { error: 'action must be add|remove' }), true;
+      s.version = (s.version || 1) + 1; saveData(s);
+      broadcast({ kind: 'data', version: s.version });
+      return sendJson(res, 200, { ok: true, version: s.version }), true;
     }
 
     // 채팅 첨부 업로드(base64 JSON — csrfOk가 JSON content-type을 요구하므로 multipart 대신 사용)
@@ -520,6 +554,14 @@ function createDashboardApi(core, opts) {
       return sendJson(res, 200, { ok: true, path: file, name, size: buf.length }), true;
     }
 
+    // 화면 캡처 라이브러리(그리기 → 컨텍스트 칩). npm 의존성을 그대로 내려줘 CDN 없이 오프라인에서도 동작한다.
+    if (p === '/vendor/modern-screenshot.mjs' && (req.method === 'GET' || req.method === 'HEAD')) {
+      let body; try { body = await fsp.readFile(path.join(path.dirname(require.resolve('modern-screenshot/package.json')), 'dist', 'index.mjs')); }
+      catch { return sendJson(res, 404, { error: 'modern-screenshot not installed — run npm install' }), true; }
+      res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'public, max-age=86400' });
+      return res.end(req.method === 'HEAD' ? undefined : body), true;
+    }
+
     // 업로드 파일 서빙 — 파일명 성분만 받고 UPLOAD_DIR 안으로 해석되는지 재확인(경로 탈출 차단)
     if (p.startsWith('/uploads/') && (req.method === 'GET' || req.method === 'HEAD')) {
       const name = safeName(decodeURIComponent(p.slice('/uploads/'.length)));
@@ -534,161 +576,6 @@ function createDashboardApi(core, opts) {
       if (req.method === 'HEAD') return res.end(), true;
       require('node:fs').createReadStream(abs).pipe(res);
       return true;
-    }
-
-    // 공유 링크 — /m/<id> 는 읽기 전용 회의록 페이지를 그대로 내려준다.
-    // 이 경로에는 자체 접근 통제가 없다. 링크를 아는 사람은 서버에 닿을 수만 있으면 열람할 수 있으므로,
-    // 공개 배포라면 앞단(리버스 프록시·SSO 게이트웨이)에서 인증을 걸어야 한다.
-    if (/^\/m\/[\w-]+$/.test(p) && (req.method === 'GET' || req.method === 'HEAD')) {
-      const abs = path.join(ROOT, 'share.html');
-      let body; try { body = await fsp.readFile(abs); } catch { return sendJson(res, 404, { error: 'not found' }), true; }
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' });
-      return res.end(req.method === 'HEAD' ? undefined : body), true;
-    }
-
-    // 미팅 단건 조회(공유 페이지용)
-    if (p === '/api/meeting' && req.method === 'GET') {
-      let s3; try { s3 = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
-      const mid = url.searchParams.get('id');
-      let m = s3.meetings.find((x) => x.id === mid);
-      // 공유 링크(/m/<id>)는 워크스페이스를 모른다 — 현재 범위에 없으면 다른 워크스페이스에서 찾는다.
-      for (const w of loadWorkspaces().workspaces) {
-        if (m) break;
-        try { m = loadData(w.id).meetings.find((x) => x.id === mid); } catch {}
-      }
-      if (!m) return sendJson(res, 404, { error: 'not found' }), true;
-      return sendJson(res, 200, { meeting: m }), true;
-    }
-
-    // 미팅(회의록) — {action: add|remove|thumb}
-    if (p === '/api/meeting' && req.method === 'POST') {
-      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
-      const body = await jsonBody(req, res); if (!body) return true;
-      const me = actor(req); touchUser(me);
-      let s2; try { s2 = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
-      const lines = (v, max, len) => (Array.isArray(v) ? v : [])
-        .map((n) => String(n || '').trim()).filter(Boolean).slice(0, max).map((n) => n.slice(0, len));
-      // 사진은 업로드된 파일명만 신뢰한다(절대경로가 와도 파일명으로 환원). {full, thumb} 또는 문자열 모두 허용.
-      // safeName은 빈 입력에 'file'을 돌려주므로(기본값), 빈 값은 여기서 먼저 걸러야 한다.
-      const one = (v) => { const t = String(v || '').split('/').pop(); return t ? safeName(t) : ''; };
-      const photoOf = (f) => {
-        if (f && typeof f === 'object') { const full = one(f.full); return full ? { full, thumb: one(f.thumb) } : null; }
-        const full = one(f); return full ? { full, thumb: '' } : null;
-      };
-      if (body.action === 'add') {
-        const title = String(body.title || '').trim();
-        const date = String(body.date || '').trim();
-        if (!title) return sendJson(res, 400, { error: 'title required' }), true;
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return sendJson(res, 400, { error: 'date must be YYYY-MM-DD' }), true;
-        const hhmm = (v) => { const t = String(v || '').trim(); return /^\d{2}:\d{2}$/.test(t) ? t : ''; };
-        if (body.time && !hhmm(body.time)) return sendJson(res, 400, { error: 'time must be HH:MM' }), true;
-        if (body.endTime && !hhmm(body.endTime)) return sendJson(res, 400, { error: 'endTime must be HH:MM' }), true;
-        const actions = (Array.isArray(body.actions) ? body.actions : []).slice(0, 30).map((a) => ({
-          task: String((a && a.task) || '').trim().slice(0, 300),
-          owner: String((a && a.owner) || '').trim().slice(0, 60),
-          due: /^\d{4}-\d{2}-\d{2}$/.test(String((a && a.due) || '')) ? a.due : String((a && a.due) || '').trim().slice(0, 40),
-        })).filter((a) => a.task);
-        s2.meetings.push({
-          id: newId('m'), title: title.slice(0, 200), date,
-          time: hhmm(body.time), endTime: hhmm(body.endTime),
-          place: String(body.place || '').trim().slice(0, 200),
-          attendees: lines(body.attendees, 50, 60),
-          notes: lines(body.notes, 40, 300),
-          decisions: lines(body.decisions, 30, 300),
-          actions,
-          photos: (Array.isArray(body.photos) ? body.photos : []).map(photoOf).filter(Boolean).slice(0, 12),
-          comments: [],
-          by: me, at: new Date().toISOString(),
-        });
-        audit(me, 'meeting.add', title.slice(0, 80));
-      } else if (body.action === 'update') {
-        // 부분 수정 — 보낸 필드만 갈아끼운다(사진·썸네일은 건드리지 않는다).
-        const m = s2.meetings.find((x) => x.id === body.id);
-        if (!m) return sendJson(res, 404, { error: 'not found' }), true;
-        if (!owns(m, me)) return sendJson(res, 403, { error: 'Only the author can edit this' }), true;
-        const hhmm = (v) => { const t = String(v || '').trim(); return /^\d{2}:\d{2}$/.test(t) ? t : ''; };
-        if (body.title !== undefined) {
-          const t = String(body.title).trim();
-          if (!t) return sendJson(res, 400, { error: 'title required' }), true;
-          m.title = t.slice(0, 200);
-        }
-        if (body.date !== undefined) {
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.date))) return sendJson(res, 400, { error: 'date must be YYYY-MM-DD' }), true;
-          m.date = body.date;
-        }
-        if (body.time !== undefined) m.time = hhmm(body.time);
-        if (body.endTime !== undefined) m.endTime = hhmm(body.endTime);
-        if (body.place !== undefined) m.place = String(body.place).trim().slice(0, 200);
-        if (body.attendees !== undefined) m.attendees = lines(body.attendees, 50, 60);
-        if (body.notes !== undefined) m.notes = lines(body.notes, 40, 300);
-        if (body.decisions !== undefined) m.decisions = lines(body.decisions, 30, 300);
-        if (body.photos !== undefined) {
-          m.photos = (Array.isArray(body.photos) ? body.photos : []).map(photoOf).filter(Boolean).slice(0, 12);
-        }
-        if (body.actions !== undefined) {
-          m.actions = (Array.isArray(body.actions) ? body.actions : []).slice(0, 30).map((a) => ({
-            task: String((a && a.task) || '').trim().slice(0, 300),
-            owner: String((a && a.owner) || '').trim().slice(0, 60),
-            due: String((a && a.due) || '').trim().slice(0, 40),
-          })).filter((a) => a.task);
-        }
-        audit(me, 'meeting.update', m.title.slice(0, 80));
-      } else if (body.action === 'comment') {
-        const m = s2.meetings.find((x) => x.id === body.id);
-        if (!m) return sendJson(res, 404, { error: 'not found' }), true;
-        const text = String(body.text || '').trim();
-        if (!text) return sendJson(res, 400, { error: 'text required' }), true;
-        if (!Array.isArray(m.comments)) m.comments = [];
-        if (m.comments.length >= 200) return sendJson(res, 413, { error: 'too many comments' }), true;
-        // 대댓글은 1단까지만 — 답글에 답글을 달면 최상위 부모에 붙인다(스레드가 깊어지지 않게).
-        let parent = '';
-        if (body.parent) {
-          const pc = m.comments.find((x) => x.id === body.parent);
-          if (!pc) return sendJson(res, 404, { error: 'parent not found' }), true;
-          parent = pc.parent || pc.id;
-        }
-        m.comments.push({ id: newId('c'), text: text.slice(0, 1000), by: me, parent, at: new Date().toISOString() });
-        audit(me, parent ? 'comment.reply' : 'comment.add', m.title.slice(0, 80), text.slice(0, 60));
-      } else if (body.action === 'comment-update') {
-        const m = s2.meetings.find((x) => x.id === body.id);
-        if (!m || !Array.isArray(m.comments)) return sendJson(res, 404, { error: 'not found' }), true;
-        const c = m.comments.find((x) => x.id === body.cid);
-        if (!c) return sendJson(res, 404, { error: 'not found' }), true;
-        if (!owns(c, me)) return sendJson(res, 403, { error: 'Only the author can edit this' }), true;
-        const text = String(body.text || '').trim();
-        if (!text) return sendJson(res, 400, { error: 'text required' }), true;
-        c.text = text.slice(0, 1000);
-        c.editedAt = new Date().toISOString();
-        audit(me, 'comment.update', m.title.slice(0, 80), text.slice(0, 60));
-      } else if (body.action === 'comment-remove') {
-        const m = s2.meetings.find((x) => x.id === body.id);
-        if (!m || !Array.isArray(m.comments)) return sendJson(res, 404, { error: 'not found' }), true;
-        const c = m.comments.find((x) => x.id === body.cid);
-        if (!c) return sendJson(res, 404, { error: 'not found' }), true;
-        if (!owns(c, me)) return sendJson(res, 403, { error: 'Only the author can delete this' }), true;
-        // 부모를 지우면 딸린 답글도 함께 사라진다(고아 답글을 남기지 않는다).
-        const gone = m.comments.filter((x) => x.id === body.cid || x.parent === body.cid).length;
-        m.comments = m.comments.filter((x) => x.id !== body.cid && x.parent !== body.cid);
-        audit(me, 'comment.remove', m.title.slice(0, 80), gone > 1 ? `incl. ${gone - 1} replies` : '');
-      } else if (body.action === 'thumb') {
-        // 브라우저가 만든 썸네일 연결(서버에 이미지 라이브러리가 없어 리사이즈는 클라이언트가 한다)
-        const m = s2.meetings.find((x) => x.id === body.id);
-        if (!m) return sendJson(res, 404, { error: 'not found' }), true;
-        const full = one(body.full);
-        const thumb = one(body.thumb);
-        const ph = (m.photos || []).find((x) => x && x.full === full);
-        if (!ph || !thumb) return sendJson(res, 400, { error: 'full/thumb required' }), true;
-        ph.thumb = thumb;
-      } else if (body.action === 'remove') {
-        const m = s2.meetings.find((x) => x.id === body.id);
-        if (!m) return sendJson(res, 404, { error: 'not found' }), true;
-        if (!owns(m, me)) return sendJson(res, 403, { error: 'Only the author can delete this' }), true;
-        s2.meetings = s2.meetings.filter((x) => x.id !== body.id);
-        audit(me, 'meeting.remove', m.title.slice(0, 80));
-      } else return sendJson(res, 400, { error: 'action must be add|update|remove|comment|comment-update|comment-remove|thumb' }), true;
-      s2.version = (s2.version || 1) + 1; saveData(s2);
-      broadcast({ kind: 'data', version: s2.version });
-      return sendJson(res, 200, { ok: true, version: s2.version }), true;
     }
 
     // 에이전트 pull 통지 조회
@@ -795,6 +682,7 @@ function createDashboardApi(core, opts) {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
       const body = await jsonBody(req, res); if (!body) return true;
       let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
+      let createdId;
       if (body.action === 'add') {
         const title = String(body.title || '').trim();
         const date = String(body.date || '').trim();
@@ -802,8 +690,13 @@ function createDashboardApi(core, opts) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return sendJson(res, 400, { error: 'date must be YYYY-MM-DD' }), true;
         const time = String(body.time || '').trim();
         if (time && !/^\d{2}:\d{2}$/.test(time)) return sendJson(res, 400, { error: 'time must be HH:MM' }), true;
-        s.events.push({ id: newId('e'), title: title.slice(0, 200), date, time, done: false, by: actor(req) });
+        const ev = { id: newId('e'), title: title.slice(0, 200), date, time, done: false, by: actor(req) };
+        s.events.push(ev);
+        // from: 메모면 SPAWNED(메모에서 나온 일정), 할일이면 SCHEDULED_AS(그 할일을 할 시간)
+        const err = linkFrom(s, body.from, ev.id, { Note: 'SPAWNED', Task: 'SCHEDULED_AS' });
+        if (err) return sendJson(res, 400, { error: err }), true;
         audit(actor(req), 'event.add', title.slice(0, 80));
+        createdId = ev.id;
       } else if (body.action === 'remove') {
         const ev = s.events.find((e) => e.id === body.id);
         if (!ev) return sendJson(res, 404, { error: 'not found' }), true;
@@ -817,7 +710,7 @@ function createDashboardApi(core, opts) {
       } else return sendJson(res, 400, { error: 'action must be add|remove|done' }), true;
       s.version = (s.version || 1) + 1; saveData(s);
       broadcast({ kind: 'data', version: s.version });
-      return sendJson(res, 200, { ok: true, version: s.version }), true;
+      return sendJson(res, 200, { ok: true, version: s.version, id: createdId }), true;
     }
 
     // 할일 수동 추가 — {title, due?}
@@ -830,6 +723,8 @@ function createDashboardApi(core, opts) {
       const it = { id: newId('a'), title: title.slice(0, 200), done: false, by: actor(req) };
       if (body.due && /^\d{4}-\d{2}-\d{2}$/.test(String(body.due))) it.due = String(body.due);
       s.items.push(it);
+      const err = linkFrom(s, body.from, it.id, { Note: 'SPAWNED' });   // from: 이 할일이 나온 메모
+      if (err) return sendJson(res, 400, { error: err }), true;
       touchUser(actor(req)); audit(actor(req), 'todo.add', title.slice(0, 80));
       s.version = (s.version || 1) + 1; saveData(s);
       broadcast({ kind: 'data', version: s.version });
@@ -878,6 +773,80 @@ function createDashboardApi(core, opts) {
       s.version = (s.version || 1) + 1; saveData(s);
       broadcast({ kind: 'data', version: s.version });
       return sendJson(res, 200, { ok: true, version: s.version, id: noteId }), true;
+    }
+
+    // 에이전트 대화 기록(Claude Code JSONL) — {available, title, rev, items}. 없으면 화면은 채널 원장으로 그린다.
+    if ((p === '/api/agentlog' || p === '/api/agentlog/img') && req.method === 'GET') {
+      const target = String(url.searchParams.get('target') || '');
+      if (!/^[\w.:@%+-]{1,100}$/.test(target)) return sendJson(res, 400, { error: 'target required' }), true;
+      if (p === '/api/agentlog') {
+        try { return sendJson(res, 200, await agentLog.read(target, Number(url.searchParams.get('since')) || 0)), true; }
+        catch (e) { return sendJson(res, 200, { available: false, error: e.message }), true; }
+      }
+      const img = await agentLog.image(target, url.searchParams.get('ref'));
+      if (!img) return sendJson(res, 404, { error: 'not found' }), true;
+      res.writeHead(200, { 'content-type': img.type, 'content-length': img.data.length, 'cache-control': 'private, max-age=86400' });
+      return res.end(img.data), true;
+    }
+
+    // 요청 조회 — 현재 워크스페이스 것 + 워크스페이스와 무관한 것(ws 없음)
+    if (p === '/api/requests' && req.method === 'GET') {
+      const ws = curWs(), rq = loadRequests();
+      return sendJson(res, 200, { version: rq.version || 1, requests: rq.requests.filter((x) => !x.ws || x.ws === ws) }), true;
+    }
+    // 요청 등록(에이전트 curl) — {requests:[{kind, title, desc?, options?, ref?, workspace?:true}]} 또는 단건
+    if (p === '/api/requests' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      const incoming = Array.isArray(body.requests) ? body.requests : (body.title ? [body] : []);
+      const rq = loadRequests(), ws = curWs();
+      const openTitles = new Set(rq.requests.filter((x) => x.status === 'open').map((x) => x.title.trim()));
+      const added = [];
+      for (const x of incoming) {
+        if (!x || typeof x !== 'object' || typeof x.title !== 'string' || !x.title.trim()) continue;
+        if (x.kind !== undefined && !REQ_KINDS.includes(x.kind)) return sendJson(res, 400, { error: `invalid kind: ${x.kind} (${REQ_KINDS.join('|')})` }), true;
+        const title = x.title.trim().slice(0, 200);
+        if (openTitles.has(title)) continue;   // 같은 요청이 열려 있으면 다시 만들지 않는다
+        openTitles.add(title);
+        const r2 = { id: rq.next++, kind: x.kind || 'info', title, desc: String(x.desc || '').slice(0, 2000),
+          options: (Array.isArray(x.options) ? x.options : []).map((o) => String(o).trim().slice(0, 80)).filter(Boolean).slice(0, 6),
+          ref: typeof x.ref === 'string' ? x.ref.slice(0, 60) : '', ws: x.workspace === false ? '' : ws,
+          status: 'open', answer: '', at: new Date().toISOString() };
+        rq.requests.push(r2); added.push(r2);
+      }
+      if (!added.length && !incoming.length) return sendJson(res, 400, { error: 'requests[] with title required' }), true;
+      // 닫힌 것부터 덜어 100개 안쪽으로 유지
+      while (rq.requests.length > 100) { const i = rq.requests.findIndex((x) => x.status !== 'open'); rq.requests.splice(i < 0 ? 0 : i, 1); }
+      rq.version = (rq.version || 1) + 1; saveRequests(rq);
+      broadcast({ kind: 'requests', version: rq.version });
+      return sendJson(res, 200, { ok: true, ids: added.map((x) => x.id), added: added.length, version: rq.version }), true;
+    }
+    // 요청 처리 — {id, action: answer|done|dismiss|reopen, answer?}
+    //  answer: 답을 기록(에이전트에게는 화면이 채팅으로 보낸다) → answered
+    //  done:   사용자가 직접 처리함(또는 에이전트가 처리 완료) → done, 에이전트에게 통지
+    //  dismiss: 지금은 안 함 → dismissed, 에이전트에게 통지   reopen: 다시 open
+    if (p === '/api/request-act' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      if (!['answer', 'done', 'dismiss', 'reopen'].includes(body.action)) return sendJson(res, 400, { error: 'action must be answer|done|dismiss|reopen' }), true;
+      const rq = loadRequests();
+      const r2 = rq.requests.find((x) => x.id === body.id);
+      if (!r2) return sendJson(res, 404, { error: 'not found' }), true;
+      if (body.action === 'answer') {
+        const answer = String(body.answer || '').trim();
+        if (!answer) return sendJson(res, 400, { error: 'answer required' }), true;
+        r2.answer = answer.slice(0, 4000); r2.status = 'answered'; r2.answeredAt = new Date().toISOString();
+      } else if (body.action === 'reopen') { r2.status = 'open'; r2.closedAt = ''; }
+      else { r2.status = body.action === 'done' ? 'done' : 'dismissed'; r2.closedAt = new Date().toISOString(); }
+      audit(actor(req), `request.${body.action}`, r2.title.slice(0, 80));
+      rq.version = (rq.version || 1) + 1; saveRequests(rq);
+      broadcast({ kind: 'requests', version: rq.version });
+      let notified;
+      if (body.action === 'done' || body.action === 'dismiss') {
+        queueNotify(`request.${body.action}`, `Request #${r2.id} "${r2.title.replace(/[\r\n]+/g, ' ')}" was ${body.action === 'done' ? 'marked done by the user' : 'dismissed by the user (not now)'}.`);
+        notified = await tryDeliver(ctx);
+      }
+      return sendJson(res, 200, { ok: true, status: r2.status, version: rq.version, notified }), true;
     }
 
     // 진화 제안 조회
@@ -952,7 +921,7 @@ function createDashboardApi(core, opts) {
   return {
     extraApi, snapshotExtra, bootstrap, identify, onChat, userKey,
     // 테스트 export
-    applyDiff, hasDiff, validateDiff, loadData, saveData, loadProposals, saveProposals, loadEvolve, saveEvolve, nextPid,
+    applyDiff, hasDiff, validateDiff, loadData, saveData, loadProposals, saveProposals, loadEvolve, saveEvolve, loadRequests, nextPid,
     loadWorkspaces,
   };
 }

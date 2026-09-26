@@ -14,6 +14,7 @@ busy() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
 alive() { tmux has-session -t "$1" 2>/dev/null; }
 command -v tmux >/dev/null && command -v node >/dev/null || { echo "tmux/node missing — run: bash $ROOT/skills/install/scripts/install.sh" >&2; exit 1; }
 [ -f "$ROOT/server.js" ] || { echo "server.js not found under $ROOT" >&2; exit 1; }
+[ -d "$ROOT/node_modules/@tykimos/noderel" ] || { say "Installing npm dependencies"; (cd "$ROOT" && npm install --no-audit --no-fund --silent); }
 
 # run.sh가 띄운 세션은 ANA_PORT를 기록해 둔다. 손으로 띄운 세션이면 서버 시작 로그(ANA → http://host:port)에서 읽는다.
 port_of() {

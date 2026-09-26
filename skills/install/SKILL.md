@@ -1,11 +1,11 @@
 ---
 name: install
-description: Install and run ANA (Agent-Native Agent) from scratch on macOS, Linux, or Windows (via WSL) — analyze the environment, install exactly what is missing (Node ≥ 20, tmux, git, curl, Claude Code CLI), clone the repo if needed, then start the agent and the ANA server in tmux and verify the dashboard answers. tmux is mandatory and only runs natively on macOS/Linux, so on Windows everything is installed inside WSL (Ubuntu). Use whenever the user says "ANA 설치", "ana 설치해줘", "install ana", "set up ANA", "ANA 실행 환경", "tmux 설치", "윈도우에서 ANA", "WSL 설치", "run ANA locally", "처음부터 띄워줘", or ANA fails to start because node/tmux/claude is missing.
+description: Install and run ANA (Agent-Native Agent) from scratch on macOS, Linux, or Windows (via WSL) — analyze the environment, install exactly what is missing (Node ≥ 24, tmux, git, curl, Claude Code CLI), clone the repo if needed, then start the agent and the ANA server in tmux and verify the dashboard answers. tmux is mandatory and only runs natively on macOS/Linux, so on Windows everything is installed inside WSL (Ubuntu). Use whenever the user says "ANA 설치", "ana 설치해줘", "install ana", "set up ANA", "ANA 실행 환경", "tmux 설치", "윈도우에서 ANA", "WSL 설치", "run ANA locally", "처음부터 띄워줘", or ANA fails to start because node/tmux/claude is missing.
 ---
 
 # install — ANA from zero to a running dashboard
 
-ANA needs only three things at runtime: **Node ≥ 20**, **tmux**, and a **coding-agent CLI** (Claude Code by default). No `npm install`: the repo has zero dependencies. This skill checks the machine, installs what's missing, and starts ANA.
+ANA needs three things at runtime: **Node ≥ 24**, **tmux**, and a **coding-agent CLI** (Claude Code by default). Its one npm dependency, [NodeRel](https://github.com/tykimos/NodeRel), is installed from GitHub by `install.sh` (and by `run.sh` if it is missing). This skill checks the machine, installs what's missing, and starts ANA.
 
 ```
 check-env.sh ──► install.sh ──► run.sh start ──► http://localhost:8809
@@ -53,7 +53,7 @@ bash skills/install/scripts/install.sh
 | Platform | How |
 |---|---|
 | macOS | Homebrew (installs it if absent) → `brew install node tmux git` for the missing ones |
-| Debian/Ubuntu/WSL | `apt-get install tmux git curl` + Node 22 from NodeSource |
+| Debian/Ubuntu/WSL | `apt-get install tmux git curl` + Node 24 from NodeSource |
 | Fedora/RHEL | `dnf`/`yum` + NodeSource RPM |
 | Arch / openSUSE / Alpine | `pacman` / `zypper` / `apk` |
 | All | Claude Code via `curl -fsSL https://claude.ai/install.sh \| bash` (skip with `SKIP_CLAUDE=1` if you use another agent CLI) |
@@ -114,7 +114,7 @@ WSL notes:
 | Symptom | Cause → fix |
 |---|---|
 | `tmux: command not found` | Run `install.sh`. On Windows you must be inside WSL. |
-| `node` too old (< 20) | `install.sh` upgrades via NodeSource/brew. With nvm: `nvm install 22`. |
+| `node` too old (< 24) | `install.sh` upgrades via NodeSource/brew. With nvm: `nvm install 24`. |
 | `claude: command not found` right after install | New PATH not loaded: `export PATH="$HOME/.local/bin:$PATH"` or open a new shell. |
 | Dashboard loads but the agent never replies | Agent not logged in or stuck on the trust prompt: `tmux attach -t ana`. |
 | Port already in use | Another ANA or app. `run.sh` picks the next port. Read it from `run.sh status`. |

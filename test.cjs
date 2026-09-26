@@ -4,7 +4,7 @@
 // Part A: 순수 로직 유닛 테스트 (파서·폭 계산·anchor·junk 필터·draft 추출 + 대시보드 diff)
 // Part B: 통합 테스트 — 별도 tmux 세션(ana-selftest)에서 mock_agent.py를 상대로
 //         입력 주입 → 캡처 → 원장 확정 전 과정을 검증. 라이브 세션(ana-agent)은 건드리지 않음.
-// Part C: 대시보드 API 통합 — /api/state·/api/agent(제안)·/api/approve·/api/done
+// Part C: 대시보드 API 통합 — /api/state·/api/agent(제안)·/api/approve·/api/done·/api/link·/api/graph
 
 const assert = require('node:assert');
 const path = require('node:path');
@@ -421,6 +421,61 @@ t('D10 parseDialog: AskUserQuestion(단일·다중·Submit 커서·검토·직�
   assert.equal(srv.parseDialog('⏺ plain answer\n' + bar + '\n❯ \n' + bar), null);
 });
 
+// ---- 관계 그래프(graph.js / NodeRel) ----
+{
+  const rg = require('./graph.js');
+  const st = () => ({ items: [{ id: 'a1', title: 'T', due: '2026-10-01' }, { id: 'a2', title: 'T2' }],
+    events: [{ id: 'e1', title: 'E', date: '2026-10-01', time: '10:00' }], notes: [{ id: 'n1', title: '', text: 'first line\nsecond' }], links: [] });
+  t('G1 snapshot: 날짜 필드에서 Day 노드·DUE_ON/ON 파생, 같은 날은 Day 하나', () => {
+    const [snap] = rg.snapshot(st(), 'default');
+    assert.deepEqual(snap.nodes.filter((n) => n.kind === 'Day').map((n) => n.id), ['day:2026-10-01']);
+    assert.deepEqual(snap.edges.map((e) => `${e.from}-${e.type}-${e.to}`).sort(), ['a1-DUE_ON-day:2026-10-01', 'e1-ON-day:2026-10-01']);
+    assert.equal(snap.nodes.find((n) => n.id === 'n1').title, 'first line', '제목 없는 메모는 첫 줄이 제목');
+  });
+  t('G2 addLink 규칙: 흐름 방향만 허용, 중복은 하나로', () => {
+    const s = st();
+    assert.equal(rg.addLink(s, { from: 'n1', to: 'a1', type: 'SPAWNED' }), null);
+    assert.equal(rg.addLink(s, { from: 'n1', to: 'a1', type: 'SPAWNED' }), null);
+    assert.equal(s.links.length, 1, '같은 관계는 한 번만 저장');
+    assert.match(rg.addLink(s, { from: 'a1', to: 'n1', type: 'SPAWNED' }), /Note → Task\|Event/);
+    assert.equal(rg.addLink(s, { from: 'a1', to: 'e1', type: 'SCHEDULED_AS' }), null);
+    assert.match(rg.addLink(s, { from: 'a1', to: 'a1', type: 'REFERS_TO' }), /itself/);
+    assert.match(rg.addLink(s, { from: 'a1', to: 'day:2026-10-01', type: 'REFERS_TO' }), /not found/, 'Day는 파생 노드라 수동 연결 불가');
+    assert.match(rg.addLink(s, { from: 'a1', to: 'e1', type: 'DUE_ON' }), /type must be/, '파생 관계는 직접 만들 수 없다');
+  });
+  t('G3 pruneLinks: 끝점이 사라진 관계는 저장 전에 걷힌다', () => {
+    const s = st(); rg.addLink(s, { from: 'n1', to: 'a1', type: 'SPAWNED' }); rg.addLink(s, { from: 'n1', to: 'a2', type: 'SPAWNED' });
+    s.items = s.items.filter((x) => x.id !== 'a1'); rg.pruneLinks(s);
+    assert.deepEqual(s.links.map((l) => l.to), ['a2']);
+  });
+  t('G4 NodeRel 인덱스: 서명이 같으면 재빌드 안 함, 원천이 바뀌면 다시 만든다', () => {
+    const dir = fs.mkdtempSync(path.join(SCRATCH, 'g-'));
+    let s = st(); rg.addLink(s, { from: 'n1', to: 'a1', type: 'SPAWNED' });
+    const g = rg.createGraph({ loadData: () => s, dataFileOf: () => path.join(dir, 'state.json') });
+    const h = g.ensure('default'); const at1 = h.db.prepare("SELECT value FROM sync_meta WHERE key='syncedAt'").get().value;
+    g.ensure('default'); assert.equal(h.db.prepare("SELECT value FROM sync_meta WHERE key='syncedAt'").get().value, at1, '변화 없으면 재빌드 없음');
+    assert.deepEqual(g.trace('default', { id: 'n1', maxDepth: 2, direction: 'out' }).map((x) => x.id), ['a1', 'day:2026-10-01']);
+    s = { ...s, links: [] };
+    assert.deepEqual(g.trace('default', { id: 'n1', maxDepth: 2, direction: 'out' }), [], '원천에서 관계를 지우면 인덱스에도 없다');
+    const gaps = g.stats('default').gaps;
+    assert.deepEqual(gaps.tasksNoDue.map((x) => x.id), ['a2']);
+    assert.deepEqual(gaps.notesUnused.map((x) => x.id), ['n1']);
+    g.close('default');
+  });
+}
+
+t('L1 agent-log: 도구 라벨(설명 우선·파일명) · 사용자 입력 정리(리마인더·슬래시 명령·명령 출력)', () => {
+  const { toolLabel, cleanUser } = require('./agent-log.js');
+  assert.deepEqual(toolLabel('Bash', { command: 'npm test', description: 'Run the tests' }), { verb: 'Ran', arg: 'Run the tests' });
+  assert.deepEqual(toolLabel('Bash', { command: 'ls -la\necho hi' }), { verb: 'Ran', arg: 'ls -la' });
+  assert.deepEqual(toolLabel('Read', { file_path: '/a/b/graph.js' }), { verb: 'Read', arg: 'graph.js' });
+  assert.equal(cleanUser('hi<system-reminder>secret</system-reminder> there'), 'hi there');
+  assert.equal(cleanUser('<command-name>/clear</command-name><command-args></command-args>'), '/clear');
+  assert.equal(cleanUser('<local-command-stdout>x</local-command-stdout>'), '');
+  const { modelName } = require('./agent-log.js');
+  assert.equal(modelName('claude-opus-5-5'), 'Opus 5.5'); assert.equal(modelName('claude-haiku-4-5-20251001'), 'Haiku 4.5'); assert.equal(modelName('claude-sonnet-5'), 'Sonnet 5');
+});
+
 t('D3 앵커 정렬은 화면 유래 항목만 사용 (src:api 리치 항목이 앵커를 깨지 않음)', () => {
   srv.feed.length = 0;
   srv.feed.push(
@@ -444,6 +499,8 @@ async function integration() {
     TRANSCRIPT_FILE: FEED_FILE, POLL_MS: '150',
     DATA_FILE: path.join(SCRATCH, 'int-state.json'), PROPOSALS_FILE: path.join(SCRATCH, 'int-proposals.json'),
     EVOLVE_FILE: path.join(SCRATCH, 'int-evolve.json'),
+    REQUESTS_FILE: path.join(SCRATCH, 'int-requests.json'),
+    ANA_SEED: '0',   // 예제 없이 빈 보드에서 시작해야 개수 검증이 맞는다
     // 사용자·감사·업로드도 스크래치로 격리 — 통합 실행이 실전 .ana/audit.jsonl 등을 오염시키지 않도록.
     USERS_FILE: path.join(SCRATCH, 'int-users.json'),
     AUDIT_FILE: path.join(SCRATCH, 'int-audit.jsonl'),
@@ -714,6 +771,50 @@ async function integration() {
       assert.equal(new Set(ids).size, ids.length, '알림 id는 유일해야 함(카운터 접미)');
       const bogus = await (await fetch(`${api}/api/notifications?since=does-not-exist-000`)).json();
       assert.equal(bogus.notifications.length, 0, '무효 커서 → 빈 목록(큐 재생 금지)');
+    });
+
+    await ta('C14 관계: 메모→할일(from)·할일→일정(from)·참조 추가, 그래프·이웃·스키마 조회, 삭제 시 관계 정리', async () => {
+      const n = (await (await post('/api/note', { action: 'add', title: 'Plan', text: 'x' })).json()).id;
+      const a = (await (await post('/api/todo', { title: 'Do it', due: '2026-10-05', from: n })).json()).id;
+      const e = (await (await post('/api/event', { action: 'add', title: 'Block', date: '2026-10-04', time: '09:00', from: a })).json()).id;
+      assert.ok(n && a && e, '생성 응답에 id');
+      let r = await post('/api/todo', { title: 'bad', from: e });
+      assert.equal(r.status, 400, '할일의 출처는 메모만');
+      r = await post('/api/link', { action: 'add', from: e, to: n, type: 'REFERS_TO' }); assert.equal(r.status, 200);
+      r = await post('/api/link', { action: 'add', from: a, to: n, type: 'SPAWNED' }); assert.equal(r.status, 400, '방향이 틀린 관계 거부');
+      const st2 = await (await fetch(`${api}/api/state`)).json();
+      const has = (f, t2, ty) => st2.graph.links.some((l) => l.from === f && l.to === t2 && l.type === ty);
+      assert.ok(has(n, a, 'SPAWNED') && has(a, e, 'SCHEDULED_AS') && has(e, n, 'REFERS_TO') && has(a, 'day:2026-10-05', 'DUE_ON'), '/api/state.graph에 관계가 보인다');
+      const nb = await (await fetch(`${api}/api/graph/neighbors?id=${a}`)).json();
+      assert.deepEqual(nb.links.map((l) => `${l.direction}:${l.type}`).sort(), ['in:SPAWNED', 'out:DUE_ON', 'out:SCHEDULED_AS']);
+      const tr = await (await fetch(`${api}/api/graph/trace?id=${n}&depth=2&direction=out&types=SPAWNED,SCHEDULED_AS`)).json();
+      assert.deepEqual(tr.nodes.map((x) => x.id), [a, e]);
+      const sc = await (await fetch(`${api}/api/graph/schema`)).json();
+      assert.ok(sc.vocabulary.SPAWNED.editable && !sc.vocabulary.DUE_ON.editable, '스키마에 편집 가능 여부');
+      await post('/api/todo-remove', { id: a });
+      const st3 = await (await fetch(`${api}/api/state`)).json();
+      assert.ok(!st3.links.some((l) => l.from === a || l.to === a), '할일을 지우면 원천 관계도 사라진다');
+      assert.ok(!st3.graph.links.some((l) => l.from === a || l.to === a), '그래프에서도 사라진다');
+      r = await post('/api/link', { action: 'remove', from: e, to: n, type: 'REFERS_TO' }); assert.equal(r.status, 200);
+      const stats = await (await fetch(`${api}/api/stats`)).json();
+      assert.ok(stats.graph.gaps.notesUnused.some((x) => x.id === n), '출처 관계가 없어진 메모는 미처리로 잡힌다');
+    });
+
+    await ta('C15 요청(Requests): 에이전트 등록·중복 방지·kind 검증, 답변→answered, 완료/보류/재개', async () => {
+      let r = await post('/api/requests', { requests: [{ kind: 'decision', title: 'Pick one', options: ['A', 'B'] }, { kind: 'access', title: 'Share calendar' }] });
+      let j = await r.json(); assert.equal(j.added, 2);
+      j = await (await post('/api/requests', { kind: 'decision', title: 'Pick one' })).json(); assert.equal(j.added, 0, '열린 같은 요청은 다시 만들지 않는다');
+      r = await post('/api/requests', { kind: 'nope', title: 'x' }); assert.equal(r.status, 400);
+      const list = (await (await fetch(`${api}/api/requests`)).json()).requests;
+      const pick = list.find((x) => x.title === 'Pick one'), share = list.find((x) => x.title === 'Share calendar');
+      assert.deepEqual(pick.options, ['A', 'B']);
+      r = await post('/api/request-act', { id: pick.id, action: 'answer' }); assert.equal(r.status, 400, '답 없이 answer 불가');
+      j = await (await post('/api/request-act', { id: pick.id, action: 'answer', answer: 'B' })).json(); assert.equal(j.status, 'answered');
+      j = await (await post('/api/request-act', { id: share.id, action: 'dismiss' })).json(); assert.equal(j.status, 'dismissed');
+      j = await (await post('/api/request-act', { id: share.id, action: 'reopen' })).json(); assert.equal(j.status, 'open');
+      j = await (await post('/api/request-act', { id: pick.id, action: 'done' })).json(); assert.equal(j.status, 'done');
+      const after = (await (await fetch(`${api}/api/requests`)).json()).requests;
+      assert.equal(after.find((x) => x.id === pick.id).answer, 'B');
     });
 
     await ta('I15 세션별 원장·사람별 최근 세션: 전환하면 그 세션 이력만, 헤더로 명시하면 그 세션, 되돌리면 원래 이력', async () => {

@@ -9,7 +9,7 @@
 [![Stars](https://img.shields.io/github/stars/tykimos/agent-native-agent?style=for-the-badge&logo=github&color=CC785C)](https://github.com/tykimos/agent-native-agent/stargazers)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-1f6feb?style=for-the-badge)](LICENSE)
 [![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-CC785C?style=for-the-badge)](https://claude.com/claude-code)
-[![Zero dependencies](https://img.shields.io/badge/dependencies-0-111?style=for-the-badge)](channel-core.js)
+[![Zero-dependency runtime](https://img.shields.io/badge/runtime_dependencies-0-111?style=for-the-badge)](channel-core.js)
 [![Last commit](https://img.shields.io/github/last-commit/tykimos/agent-native-agent?style=for-the-badge&color=64748b)](https://github.com/tykimos/agent-native-agent/commits/main)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-22c55e?style=for-the-badge)](#contributing)
 
@@ -82,11 +82,11 @@ flowchart TB
 
 ## 빠른 시작 — 베이스 실행 (2분)
 
-**사전 요구사항:** Node ≥ 20, tmux, 그리고 코딩 에이전트 CLI(예: [Claude Code](https://claude.com/claude-code)). `npm install` 불필요 — 의존성이 없습니다.
+**사전 요구사항:** Node ≥ 24, tmux, 그리고 코딩 에이전트 CLI(예: [Claude Code](https://claude.com/claude-code)). 런타임(`channel-core.js`)은 의존성이 없고, 베이스 앱은 [NodeRel](https://github.com/tykimos/NodeRel) 하나를 `npm install`로 GitHub에서 받습니다.
 
 ### `install` 스킬로 설치·실행 (권장)
 
-**[`install` 스킬](skills/install/SKILL.md)** 하나로 빈 머신에서 대시보드가 뜨는 데까지 갑니다. 먼저 환경을 분석하고, 빠진 것(Node ≥ 20, tmux, git, curl, Claude Code)만 설치한 뒤, 에이전트와 서버를 tmux로 띄우고 응답을 확인합니다. 모든 스크립트는 여러 번 실행해도 안전합니다.
+**[`install` 스킬](skills/install/SKILL.md)** 하나로 빈 머신에서 대시보드가 뜨는 데까지 갑니다. 먼저 환경을 분석하고, 빠진 것(Node ≥ 24, tmux, git, curl, Claude Code)과 npm 의존성만 설치한 뒤, 에이전트와 서버를 tmux로 띄우고 응답을 확인합니다. 모든 스크립트는 여러 번 실행해도 안전합니다.
 
 ```bash
 git clone https://github.com/tykimos/agent-native-agent && cd agent-native-agent
@@ -127,6 +127,32 @@ node server.js           # → http://localhost:8809
 
 레퍼런스 대시보드에는 **워크스페이스**, **Chip 모드**(요소를 클릭해 컨텍스트 칩으로 고정, ⟳로 새로 생긴 요소 등록), 크기 조절 가능한 도킹 채팅, **진화 탭**(변경을 요청 → 승인하면 실행 중인 에이전트가 앱을 직접 수정)이 들어 있습니다.
 
+### 메모 · 할일 · 일정을 하나의 그래프로 (NodeRel)
+
+보드에는 **Tasks, Calendar, Notes, Stats, Requests, Evolve** 여섯 탭이 있고, 앞의 세 탭은 [NodeRel](https://github.com/tykimos/NodeRel)로 만든 관계 그래프로 이어집니다. 진실원천은 여전히 `state.json`입니다(항목들 + 명시적 관계 목록 `links[]`). `graph.js`는 서명이 바뀔 때마다 여기서 SQLite 인덱스(`graph.sqlite`, 워크스페이스마다 하나)를 다시 만듭니다. 그래서 UI, 에이전트 diff, 파일 직접 수정 등 어느 경로로 바꿔도 그래프에 반영됩니다.
+
+```
+Note ─SPAWNED──────▶ Task | Event     이 할일·일정이 나온 메모             (명시)
+Task ─SCHEDULED_AS─▶ Event            그 할일을 하기로 잡은 시간           (명시)
+Note|Task|Event ─REFERS_TO─▶ Note|Task|Event   수동 참조                  (명시)
+Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           due / date에서 파생         (자동)
+```
+
+화면에서는 메모의 한 줄을 선택하고 **→ Task** / **→ Event**를 누르면 할일·일정이 만들어집니다. 할일의 달력 버튼으로 시간을 잡고, **＋ Link**로 두 항목을 잇습니다. 관계는 칩으로 보이고, 칩을 누르면 그 항목이 있는 탭으로 이동합니다. **Stats → Connections**는 관계 개수를 세고 흐름이 끊긴 곳을 보여 줍니다. 아무것도 나오지 않은 메모, 기한 없는 할일, 시간이 안 잡힌 할일입니다.
+
+| 엔드포인트 | 용도 |
+|---|---|
+| `GET /api/state` → `graph.links` | 워크스페이스의 모든 관계(NodeRel에서) |
+| `POST /api/todo {title, due?, from?}` · `POST /api/event {action:'add', …, from?}` | 만들면서 출처와 연결(`from`이 메모면 `SPAWNED`, 할일이면 `SCHEDULED_AS`) |
+| `POST /api/link {action:'add'\|'remove', from, to, type}` | `SPAWNED`·`SCHEDULED_AS`·`REFERS_TO` 추가/삭제(방향 검증) |
+| `GET /api/graph/neighbors?id=` · `GET /api/graph/trace?id=&depth=&direction=&types=` | 붙어 있는 관계 / 도달 가능한 전체 |
+| `GET /api/graph/schema` | NodeRel의 AI용 스키마 + 이 앱의 관계 의미 — 에이전트에게 건네면 됩니다 |
+| `GET /api/stats` → `graph` | 종류·관계별 개수와 `gaps` 세 목록 |
+
+**Requests와 Evolve.** 두 탭은 방향이 반대입니다. **Evolve**는 에이전트가 *앱을 바꾸자고* 제안하는 곳이고, 승인하면 에이전트가 만듭니다. **Requests**는 에이전트가 시스템을 더 잘 운용하려고 *사용자에게* 부탁하는 곳입니다. 필요한 정보, 결정(선택지 버튼), 사용자만 할 수 있는 일, 접근 권한을 요청합니다. 에이전트는 `POST /api/requests {requests:[{kind, title, desc?, options?, ref?}]}`로 등록합니다(`kind` = `info|decision|action|access`, `ref` = 링크로 보일 할일·일정·메모 id). 답을 보내면 채팅으로 에이전트에게 바로 전달되고, *I did it* / *Not now*는 알림으로 전달됩니다(`POST /api/request-act {id, action: answer|done|dismiss|reopen}`).
+
+**화면에 그리기.** Chip 모드에서 ⟳ 옆 펜 버튼을 누르면 보드 위에 캔버스가 깔립니다. UI에 쓰지 않는 빨강·마젠타·파랑으로 짚고 싶은 곳에 동그라미를 치고 *Add to chat*을 누르면, 그림이 합성된 화면 캡처가 첨부됩니다. 칩에는 현재 위치(워크스페이스, 탭, 선택한 날짜나 메모, 스크롤)와 각 표시가 가리키는 항목(`magenta mark on Task "book venue"`)이 함께 들어갑니다. 캡처는 [modern-screenshot](https://github.com/qq15725/modern-screenshot)을 `/vendor/`에서 로컬로 제공해 씁니다.
+
 ### 여러 사람과 함께 쓰기 (선택)
 
 ANA에는 **자체 로그인이 없습니다.** 혼자 자체 호스팅할 때는 그게 오히려 요점입니다 — 루프백에 묶어두면 그것으로 끝입니다. 여러 사람이 같은 보드를 봐야 한다면, 인증을 처리하는 앞단(리버스 프록시·SSO 게이트웨이·Zero Trust 터널)을 두고 사용자 식별자를 요청 헤더로 넘기게 하세요.
@@ -137,7 +163,7 @@ ANA_LOGOUT_URL=/your-gateway/logout \
 node server.js
 ```
 
-헤더가 잡히면 항목에 작성자가 남고, 자기가 만든 것만 수정·삭제할 수 있으며, 구성원·활동 탭이 동작합니다. 지정하지 않으면(기본값) 전부 단일 사용자로 동작합니다.
+헤더가 잡히면 항목에 작성자가 남고, 자기가 만든 것만 수정·삭제할 수 있으며, 개인별 통계와 활동 기록이 동작합니다. 지정하지 않으면(기본값) 전부 단일 사용자로 동작합니다.
 
 **사람별 코딩 에이전트 세션.** 채팅 상단의 연결 표시(`ANA · <세션>`)를 눌러 tmux 세션을 고릅니다. 세션마다 대화 이력이 따로 있어서 바꾸면 채팅이 그 세션의 대화로 통째로 바뀝니다. 고른 세션은 **사람별로** 기억되어, 다음에 접속하면 각자 자기가 마지막에 쓴 세션이 선택됩니다. 목록에는 세션마다 누가 골랐는지(지금 보고 있으면 ●)가 표시됩니다. 에이전트가 `curl`로 응답을 올릴 때는 `x-ana-target: <세션>` 헤더로 자기 세션을 지정할 수 있습니다.
 
@@ -181,9 +207,11 @@ cp -r skills/ana ~/.claude/skills/           # 그런 다음: "내 앱에 ANA �
 ```
 channel-core.js     ★ ANA 런타임 전부 — tmux 주입 / capture-pane 미러 / 원장 (의존성 0)
 server.js             베이스 앱: channel-core + dashboard-api 마운트, dashboard.html 제공
-dashboard-api.js      리치 응답 API 예시 (워크스페이스 · 할일 · 일정 · 메모 · 진화, diff→승인)
-dashboard.html        레퍼런스 UI: 워크스페이스, Chip 모드, 컨텍스트 칩, 도킹 채팅, 진화 탭
-test.cjs              62개 테스트 (단위 + mock_agent.py 대상 통합)
+dashboard-api.js      리치 응답 API 예시 (워크스페이스 · 할일 · 일정 · 메모 · 관계 · 진화, diff→승인)
+graph.js              메모·할일·일정 관계 그래프 — NodeRel 기반(워크스페이스마다 파생 graph.sqlite)
+dashboard.html        레퍼런스 UI: 워크스페이스, Chip 모드, 컨텍스트 칩, 도킹 채팅, 관계 칩, 진화 탭
+package.json          의존성: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot
+test.cjs              70개 테스트 (단위 + mock_agent.py 대상 통합)
 mock_agent.py         테스트용 결정적 TUI 스탠드인
 skills/ana/SKILL.md   "서비스에 ANA 붙이기" — 위 간단 레시피
 skills/install/       "ANA 설치·실행" — 환경 분석, 설치, tmux 실행, Windows WSL 부트스트랩

@@ -36,8 +36,8 @@ fi
 # ---- 필수 도구 ----
 if command -v node >/dev/null; then
   NV=$(node -p 'process.versions.node' 2>/dev/null); NM=${NV%%.*}
-  if [ "${NM:-0}" -ge 20 ]; then ok node "v$NV"; else bad node "v$NV found — need ≥ 20"; fi
-else bad node "not installed (need ≥ 20)"; fi
+  if [ "${NM:-0}" -ge 24 ]; then ok node "v$NV"; else bad node "v$NV found — need ≥ 24 (node:sqlite for the NodeRel graph)"; fi
+else bad node "not installed (need ≥ 24)"; fi
 
 if command -v tmux >/dev/null; then
   TV=$(tmux -V | awk '{print $2}'); ok tmux "$TV"

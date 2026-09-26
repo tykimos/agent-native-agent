@@ -85,10 +85,28 @@ body.ana-mode .mode-toggle { background: var(--blue-weak); color: var(--blue-700
 body.ana-mode .mode-toggle .knob { background: var(--blue); }
 body.ana-mode .mode-toggle .knob::after { transform: translateX(18px); }
 /* Chip 토글 옆 새로고침 — 칩으로 못 고르는 새 요소를 찾아 등록(Chip 모드에서만 보임) */
-.chip-scan { flex: 0 0 auto; align-self: center; display: none; place-items: center; width: 34px; height: 34px; margin: 0 8px 0 -6px;
+.chip-scan { flex: 0 0 auto; align-self: center; display: none; place-items: center; width: 34px; height: 34px; margin: 0 8px 0 0;
   border-radius: 999px; background: var(--blue-weak); color: var(--blue-700); }
 body.ana-mode .chip-scan { display: grid; }
-body.ana-mode .mode-toggle:has(+ .chip-scan) { margin-right: 0; }
+/* Chip 토글 · 그리기 · 새로고침 · 프로필 — 같은 간격(8px)으로 나란히 */
+body.ana-mode .mode-toggle { margin-right: 8px; }
+.draw-btn { margin-right: 8px; }
+.draw-btn svg { width: 17px; height: 17px; }
+/* 그리기(어노테이션) 레이어 — #main 위에 겹쳐 펜으로 표시하고, 화면+표시를 한 장으로 칩에 넣는다 */
+.draw-layer { position: fixed; z-index: 85; touch-action: none; cursor: crosshair; }
+.draw-layer[hidden] { display: none; }
+.draw-layer canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.draw-layer::before { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 0 3px var(--blue); pointer-events: none; border-radius: 4px; }
+.draw-bar { position: absolute; left: 50%; bottom: calc(18px + var(--safe-b)); transform: translateX(-50%); display: flex; align-items: center; gap: 6px;
+  padding: 6px; border-radius: 999px; background: var(--surface); box-shadow: var(--sh-sheet); cursor: default; white-space: nowrap; }
+.draw-bar .dhint { font-size: 12.5px; font-weight: 700; color: var(--text-sub); padding: 0 8px 0 10px; }
+.draw-bar button { height: 34px; padding: 0 13px; border-radius: 999px; font-size: 13px; font-weight: 800; color: var(--text-sub); background: var(--surface-2); }
+.draw-bar button:disabled { opacity: .4; cursor: default; }
+.draw-bar .dsw { width: 26px; height: 26px; padding: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px var(--surface), 0 0 0 1px var(--line); }
+.draw-bar .dsw.on { box-shadow: inset 0 0 0 2px var(--surface), 0 0 0 2.5px var(--text); }
+.draw-bar .dok { background: var(--blue); color: var(--white); }
+.draw-layer.busy .draw-bar { visibility: hidden; }
+@media (max-width: 520px) { .draw-bar .dhint { display: none; } .draw-bar button { padding: 0 10px; } }
 .chip-scan:hover { background: color-mix(in srgb, var(--blue) 22%, var(--blue-weak)); }
 .chip-scan svg { width: 16px; height: 16px; }
 .chip-scan.spin svg { animation: chipspin .6s linear; }
@@ -153,6 +171,26 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .item .due svg { width: 13px; height: 13px; opacity: .75; }
 .item .del { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 999px; color: var(--text-weak); font-size: 16px; opacity: 0; transition: .12s; }
 .item:hover .del { opacity: 1; }
+.item .sch { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 999px; color: var(--blue-700); display: grid; place-items: center; opacity: 0; transition: .12s; }
+.item .sch svg { width: 15px; height: 15px; }
+.item:hover .sch, .item .sch:focus-visible { opacity: 1; }
+@media (hover: none) { .item .sch { opacity: 1; } }
+/* 관계 칩 — NodeRel 그래프의 명시적 관계(SPAWNED·SCHEDULED_AS·REFERS_TO). 누르면 그 항목으로 이동 */
+.rels { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.rel { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; min-height: 24px; padding: 2px 9px; border-radius: 999px;
+  background: var(--surface-2); color: var(--text-sub); font-size: 11.5px; font-weight: 700; cursor: pointer; transition: background .12s; }
+.rel:hover, .rel:focus-visible { background: var(--blue-weak); outline: none; }
+.rel .rk { flex: 0 0 auto; font-weight: 800; color: var(--blue-700); }
+.rel.k-Note .rk { color: var(--warm-fg); }
+.rel.k-Event .rk { color: var(--success); }
+.rel .rt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 240px; }
+.rel .rx { flex: 0 0 auto; width: 16px; height: 16px; border-radius: 999px; color: var(--text-weak); font-size: 11px; line-height: 16px; display: none; }
+.rel:hover .rx, .rel:focus-within .rx { display: inline-block; }
+@media (hover: none) { .rel .rx { display: inline-block; } }
+.rel .rx:hover { color: var(--danger); }
+.rels-none { font-size: 12px; color: var(--text-weak); font-weight: 600; }
+@keyframes relFlash { 0% { box-shadow: 0 0 0 3px var(--blue); } 100% { box-shadow: 0 0 0 3px transparent; } }
+.flash { animation: relFlash 1.4s ease-out; }
 .empty { text-align: center; color: var(--text-weak); padding: 40px 0; font-weight: 600; font-size: 13.5px; }
 
 /* 일정 달력 — 3단: 좌(다가오는 일정) / 중앙(달력) / 우(선택일 시간 항목) */
@@ -203,6 +241,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .ev-item .etime { flex: 0 0 auto; font-size: 13px; font-weight: 800; color: var(--blue-700); min-width: 44px; }
 .ev-item .etitle { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 700; overflow-wrap: anywhere; }
 .ev-item.done .etitle { text-decoration: line-through; }
+.ev-item .etitle .rels { margin-top: 5px; }
 .ev-item .del { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 999px; color: var(--text-weak); font-size: 16px; }
 .ev-item .ebadge { flex: 0 0 auto; font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: var(--warm-bg); color: var(--warm-fg); }
 
@@ -231,111 +270,21 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .memo-ebar { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .memo-ebar .sp { flex: 1; }
 .memo-ebar .mstate { font-size: 12px; color: var(--text-weak); font-weight: 700; }
+.memo-rels { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line-2); }
+.memo-rels .rels { margin-top: 0; }
+.memo-ebar { flex-wrap: wrap; }
+.memo-ebar .mact { height: 32px; padding: 0 12px; border-radius: 999px; background: var(--blue-weak); color: var(--blue-700); font-size: 12.5px; font-weight: 800; }
 .memo-ebar .mdel { height: 32px; padding: 0 13px; border-radius: 999px; background: var(--danger-bg); color: var(--danger); font-size: 12.5px; font-weight: 800; }
 .memo-none { display: flex; align-items: center; justify-content: center; min-height: 300px; color: var(--text-weak); font-weight: 600; font-size: 13.5px; }
 @media (max-width: 899px) { .memo-layout { grid-template-columns: minmax(0, 1fr); } .memo-side { max-height: 260px; } }
 .memo-main { min-width: 0; }
 
-/* 미팅 탭 — 카드 하나에 제목·일시·주요내용·사진 */
-.meet { padding: 16px 18px; margin-bottom: 12px; }
-.meet-top { display: flex; align-items: baseline; gap: 10px; }
-.meet-t { flex: 1; min-width: 0; font-size: 16px; font-weight: 800; letter-spacing: -0.02em; overflow-wrap: anywhere; }
-.meet-when { flex: 0 0 auto; font-size: 12.5px; font-weight: 800; color: var(--blue-700); background: var(--blue-weak); border-radius: 999px; padding: 3px 10px; }
-.meet-del { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 999px; color: var(--text-weak); font-size: 15px; }
-.meet-meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 10px 0 0; font-size: 13px; }
-.meet-meta dt { color: var(--text-weak); font-weight: 800; white-space: nowrap; }
-.meet-meta dd { margin: 0; min-width: 0; color: var(--text-sub); font-weight: 600; overflow-wrap: anywhere; }
-.meet-sec { margin-top: 13px; }
-.meet-h { font-size: 12px; font-weight: 800; color: var(--blue-700); background: var(--blue-weak); display: inline-block;
-  border-radius: 999px; padding: 2px 9px; margin-bottom: 6px; }
-.meet-notes { margin: 4px 0 0; padding-left: 18px; }
-.meet-notes li { font-size: 14px; line-height: 1.65; color: var(--text-sub); margin-bottom: 3px; overflow-wrap: anywhere; }
-.meet-notes li::marker { color: var(--blue); }
-.meet-notes a { color: var(--blue-700); font-weight: 700; }
-.meet-notes.decide li { color: var(--text); font-weight: 600; }
-.meet-acts { list-style: none; margin: 4px 0 0; padding: 0; }
-.meet-acts li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 7px 10px; margin-bottom: 6px;
-  border-radius: var(--r-xs); background: var(--surface-2); font-size: 13.5px; }
-.meet-acts .at { flex: 1 1 140px; min-width: 0; color: var(--text); font-weight: 700; overflow-wrap: anywhere; }
-.meet-acts .ao { flex: 0 0 auto; font-size: 11.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--blue-weak); color: var(--blue-700); }
-.meet-acts .ad { flex: 0 0 auto; font-size: 11.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--warm-bg); color: var(--warm-fg); }
-.meet-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; margin-top: 13px; }
-.meet-photos img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-sm); background: var(--surface-2); cursor: zoom-in; display: block; }
-/* 모달 안 사진 선택 */
-.photo-pick { height: 40px; padding: 0 15px; border-radius: var(--r-sm); background: var(--surface-2); box-shadow: var(--sh-card); color: var(--blue-700); font-size: 13.5px; font-weight: 800; }
-.photo-picks { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
-.photo-picks .pp { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px 4px 10px; border-radius: 999px; background: var(--blue-weak); color: var(--blue-700); font-size: 12px; font-weight: 700; }
-.photo-picks .pp.up { opacity: .55; }
-.photo-picks .pp button { width: 16px; height: 16px; display: grid; place-items: center; color: inherit; }
-.photo-picks .pp button svg { width: 11px; height: 11px; }
-#mNotes, #mDecide, #mActions { width: 100%; border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 11px 14px; font-size: 15px; font-family: inherit;
-  line-height: 1.6; color: var(--text); background: var(--surface-2); outline: none; resize: vertical; }
-#mNotes:focus, #mDecide:focus, #mActions:focus { border-color: var(--blue); background: var(--surface); }
-/* 미팅 요약 카드 */
-.meet[data-open] { cursor: pointer; transition: transform .12s, box-shadow .12s; }
-.meet[data-open]:active { transform: scale(.995); }
-.meet-sub { margin-top: 6px; font-size: 12.5px; font-weight: 700; color: var(--text-weak); overflow-wrap: anywhere; }
-.meet-first { margin-top: 8px; font-size: 14px; line-height: 1.55; color: var(--text-sub);
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.meet-foot { display: flex; align-items: center; gap: 6px; margin-top: 11px; flex-wrap: wrap; }
-.meet-foot img { width: 44px; height: 34px; object-fit: cover; border-radius: 7px; background: var(--surface-2); }
-.meet-foot .sp { flex: 1; }
-.meet-cnt { font-size: 11.5px; font-weight: 800; color: var(--text-weak); }
 
-/* 상세 시트 — 데스크톱은 가운데 패널, 모바일은 전체화면 */
-.sheet { position: fixed; z-index: 66; left: 50%; top: 50%; transform: translate(-50%, -46%);
-  width: min(680px, calc(100vw - 32px)); max-height: 86dvh; display: flex; flex-direction: column;
-  background: var(--surface); border-radius: var(--r-xl); box-shadow: var(--sh-sheet);
-  opacity: 0; pointer-events: none; transition: .2s; }
-.sheet.on { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%); }
-.sheet-bar { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 16px 18px 12px; border-bottom: 1px solid var(--line-2); }
-.sheet-bar h3 { flex: 1; min-width: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.02em;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sheet-bar .sp { display: none; }
-.sheet-bar .medit, .sheet-bar .mdel, .sheet-bar .mshare, .sheet-bar .icon-btn { flex: 0 0 auto; }
-.sheet-body { overflow-wrap: anywhere; }
-.sheet-bar .mdel { height: 32px; padding: 0 13px; border-radius: 999px; background: var(--danger-bg); color: var(--danger); font-size: 12.5px; font-weight: 800; }
-.sheet-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 16px 18px calc(20px + var(--safe-b)); }
-@media (max-width: 640px) {
-  .sheet { left: 0; top: auto; bottom: 0; width: 100vw; max-height: 92dvh; transform: translateY(100%);
-    border-radius: var(--r-xl) var(--r-xl) 0 0; }
-  .sheet.on { transform: translateY(0); }
-}
-
-/* 회의록 수정 버튼 + 댓글 */
-.sheet-bar .medit { height: 32px; padding: 0 13px; border-radius: 999px; background: var(--blue-weak); color: var(--blue-700); font-size: 12.5px; font-weight: 800; }
-.sheet-bar .mshare { height: 32px; padding: 0 13px; border-radius: 999px; background: var(--blue); color: var(--white); font-size: 12.5px; font-weight: 800; }
-.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(70px + var(--safe-b)); z-index: 96;
-  padding: 10px 18px; border-radius: 999px; background: var(--text); color: var(--surface); font-size: 13px; font-weight: 800;
+.toast { position: fixed; left: 50%; transform: translateX(-50%); top: calc(var(--safe-t) + 74px); z-index: 96;
+  width: max-content; max-width: min(420px, calc(100vw - 32px)); text-align: center; line-height: 1.45; overflow-wrap: anywhere;
+  padding: 10px 18px; border-radius: 16px; background: var(--text); color: var(--surface); font-size: 13px; font-weight: 800;
   box-shadow: var(--sh-sheet); opacity: 0; pointer-events: none; transition: opacity .2s; }
 .toast.on { opacity: 1; }
-.cmt-write { flex: 0 0 auto; display: flex; gap: 8px; padding: 10px 18px calc(14px + var(--safe-b)); border-top: 1px solid var(--line-2); }
-.cmt-write input { flex: 1; min-width: 0; height: 42px; border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 0 14px;
-  font-size: 15px; font-family: inherit; color: var(--text); background: var(--surface-2); outline: none; }
-.cmt-write input:focus { border-color: var(--blue); background: var(--surface); }
-.cmt-write button { flex: 0 0 auto; height: 42px; padding: 0 16px; border-radius: var(--r-sm); background: var(--blue); color: var(--white); font-size: 14px; font-weight: 800; }
-.cmt-write button:disabled { opacity: .4; cursor: default; }
-.cmt-list { list-style: none; margin: 4px 0 0; padding: 0; }
-.cmt-list li { display: flex; align-items: flex-start; gap: 8px; padding: 9px 12px; margin-bottom: 6px; border-radius: var(--r-xs); background: var(--surface-2); }
-/* 답글 — 들여쓰고 왼쪽에 실선을 그어 부모와 묶어 보이게 */
-.cmt-list li.reply { margin-left: 22px; border-left: 2px solid var(--line); border-radius: 0 var(--r-xs) var(--r-xs) 0; background: transparent; }
-.cmt-list li.cmt-reply-box { margin-left: 22px; background: transparent; padding: 2px 0 8px; }
-.cmt-list .cb { flex: 1; min-width: 0; }
-.cmt-list .ct { font-size: 13.5px; line-height: 1.55; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
-.cmt-list .cw { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 4px; font-size: 11px; font-weight: 700; color: var(--text-weak); }
-.cacts { display: inline-flex; gap: 4px; margin-left: auto; }
-.cacts button { height: 24px; padding: 0 9px; border-radius: 999px; font-size: 11px; font-weight: 800; color: var(--text-weak); background: var(--surface); box-shadow: var(--sh-card); }
-.cacts button:hover { color: var(--text); }
-.cacts .cx { color: var(--danger); }
-.cacts .cr { color: var(--blue-700); }
-.cedit { width: 100%; }
-.cedit .ci { width: 100%; border: 1.5px solid var(--blue); border-radius: var(--r-xs); padding: 9px 11px;
-  font-family: inherit; font-size: 15px; line-height: 1.55; color: var(--text); background: var(--surface); outline: none; resize: vertical; }
-.cebar { display: flex; justify-content: flex-end; gap: 7px; margin-top: 7px; }
-.cebar button { height: 32px; padding: 0 14px; border-radius: 999px; font-size: 12.5px; font-weight: 800; }
-.cebar .cno { background: var(--surface); box-shadow: var(--sh-card); color: var(--text-sub); }
-.cebar .cok { background: var(--blue); color: var(--white); }
-.cmt-none { font-size: 13px; color: var(--text-weak); font-weight: 600; padding: 4px 2px; }
 
 /* 프로필 아바타 */
 .av { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 999px; background: var(--blue-weak);
@@ -343,7 +292,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .av img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .av.lg { width: 64px; height: 64px; font-size: 24px; }
 .av.sm { width: 20px; height: 20px; font-size: 9.5px; }
-.avatar-btn { flex: 0 0 auto; align-self: center; margin-left: 4px; padding: 0; border-radius: 999px; }
+.avatar-btn { flex: 0 0 auto; align-self: center; margin-left: 0; padding: 0; border-radius: 999px; }
 .avatar-btn .av { box-shadow: var(--sh-card); }
 /* 프로필 드롭다운 메뉴 — 아바타 클릭 시 열림 */
 .me-menu { position: fixed; top: calc(var(--header-h) + var(--safe-t) + 4px); right: 12px; z-index: 80; min-width: 180px; padding: 6px;
@@ -419,22 +368,6 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 /* 작성자 배지 */
 .by { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 800; color: var(--text-weak); }
 .by .av { width: 18px; height: 18px; font-size: 9px; }
-/* 멤버 */
-.mem { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; margin-bottom: 9px; }
-.mem .av { width: 44px; height: 44px; font-size: 17px; }
-.mem-b { flex: 1; min-width: 0; }
-.mem-n { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
-.mem-n b { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; overflow-wrap: anywhere; }
-.mem-mail { font-size: 12px; color: var(--text-weak); font-weight: 600; margin-top: 2px; overflow-wrap: anywhere; }
-.mem-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
-.mem-tag { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-sub); }
-.mem-tag.on { background: var(--blue-weak); color: var(--blue-700); }
-.mem-tag.me { background: var(--success-bg); color: var(--success); }
-.mem-tag.bot { background: var(--warm-bg); color: var(--warm-fg); }
-.mem-when { font-size: 11.5px; color: var(--text-weak); font-weight: 700; margin-top: 7px; }
-.mem-act { flex: 0 0 auto; text-align: right; }
-.mem-act .n { font-size: 19px; font-weight: 800; color: var(--blue); letter-spacing: -0.03em; }
-.mem-act .l { font-size: 11px; color: var(--text-weak); font-weight: 700; }
 
 /* 통계 */
 .seg { display: inline-flex; background: var(--surface-2); border-radius: 999px; padding: 3px; box-shadow: var(--sh-card); }
@@ -453,20 +386,30 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 .person .pc { flex: 0 0 auto; font-size: 12.5px; font-weight: 800; color: var(--text-weak); }
 .person .bar { flex: 0 0 84px; height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
 .person .bar span { display: block; height: 100%; background: var(--blue); border-radius: 999px; }
+.gap-sec { margin-bottom: 12px; padding: 13px 15px; }
+.gap-sec h3 { font-size: 13px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.gap-sec h3 .gn { font-size: 11.5px; font-weight: 800; padding: 1px 8px; border-radius: 999px; background: var(--warm-bg); color: var(--warm-fg); }
+.gap-sec h3 .gn.ok { background: var(--success-bg); color: var(--success); }
+.gap-sec .gd { font-size: 12px; color: var(--text-weak); font-weight: 600; margin-top: 3px; }
+.lk-list { max-height: 46vh; overflow-y: auto; margin-top: 10px; }
+.lk-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 10px; border-radius: var(--r-xs); text-align: left; font-size: 14px; font-weight: 700; color: var(--text); }
+.lk-item:hover, .lk-item:focus-visible { background: var(--blue-weak); outline: none; }
+.lk-item .rk { flex: 0 0 auto; font-size: 11px; font-weight: 800; color: var(--blue-700); min-width: 40px; }
+.lk-item.k-Note .rk { color: var(--warm-fg); }
+.lk-item.k-Event .rk { color: var(--success); }
+.lk-item .lt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fld-from { font-size: 12.5px; font-weight: 700; color: var(--text-sub); background: var(--surface-2); border-radius: var(--r-xs); padding: 8px 11px; margin-bottom: 12px; overflow-wrap: anywhere; }
 .act-row { display: flex; align-items: center; gap: 9px; padding: 9px 13px; margin-bottom: 6px; font-size: 13px; }
 .act-row .aa { flex: 0 0 auto; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-sub); }
 .act-row .at2 { flex: 1; min-width: 0; color: var(--text-sub); overflow-wrap: anywhere; }
 .act-row .aw { flex: 0 0 auto; font-size: 11px; font-weight: 700; color: var(--text-weak); }
 
 /* 새 버전 알림 — 열어 둔 탭이 옛 코드일 때만 뜬다 */
-.newver { display: none; position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + var(--safe-b)); z-index: 88;
+.newver { display: none; position: fixed; left: 50%; transform: translateX(-50%); top: calc(var(--safe-t) + 66px); z-index: 97; max-width: calc(100vw - 32px); cursor: pointer;
   padding: 10px 18px; border-radius: 999px; background: var(--text); color: var(--surface); font-size: 13px; font-weight: 800; box-shadow: var(--sh-sheet); }
 .newver.on { display: block; }
 
 /* 사진 확대 뷰어 */
-.lightbox { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.9); display: none; place-items: center; padding: 16px; cursor: zoom-out; }
-.lightbox.on { display: grid; }
-.lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--r-sm); }
 
 /* 진화 탭 */
 .evo-head { display: flex; align-items: baseline; gap: 8px; margin: 4px 2px 12px; }
@@ -483,10 +426,36 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 .evo-t { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 800; overflow-wrap: anywhere; }
 .evo-st { font-size: 11.5px; font-weight: 800; color: var(--warm-fg); background: var(--warm-bg); border-radius: 999px; padding: 2px 8px; }
 .evo-d { margin-top: 6px; font-size: 13px; color: var(--text-sub); line-height: 1.55; overflow-wrap: anywhere; }
-.evo-acts { display: flex; gap: 7px; margin-top: 10px; }
+.evo-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 10px; }
 .evo-acts button { height: 36px; padding: 0 16px; border-radius: var(--r-sm); font-weight: 800; font-size: 13px; }
 .evo-acts .talk { background: var(--blue-weak); color: var(--blue-700); }
 .evo-acts .do { background: var(--blue); color: var(--white); }
+.req-card { padding: 13px 15px; margin-bottom: 9px; }
+.req-card.answered { box-shadow: var(--sh-card), inset 3px 0 0 var(--blue); }
+.req-kind { font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; flex: 0 0 auto; background: var(--blue-weak); color: var(--blue-700); }
+.req-kind.decision { background: var(--warm-bg); color: var(--warm-fg); }
+.req-kind.action { background: var(--success-bg); color: var(--success); }
+.req-kind.access { background: var(--danger-bg); color: var(--danger); }
+.req-t { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 800; overflow-wrap: anywhere; }
+.req-when { flex: 0 0 auto; font-size: 11.5px; font-weight: 700; color: var(--text-weak); }
+.req-opts { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.req-opts button { min-height: 34px; padding: 4px 14px; border-radius: 999px; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); color: var(--text); font-size: 13px; font-weight: 700; }
+.req-opts button:hover { box-shadow: 0 0 0 1.5px var(--blue); }
+.req-reply { display: flex; gap: 7px; margin-top: 10px; align-items: flex-end; }
+.req-reply textarea { flex: 1; min-width: 0; min-height: 38px; max-height: 140px; resize: vertical; border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 8px 12px;
+  font-family: inherit; font-size: 14px; line-height: 1.45; color: var(--text); background: var(--surface-2); outline: none; }
+.req-reply textarea:focus { border-color: var(--blue); background: var(--surface); }
+.req-reply .send { flex: 0 0 auto; height: 38px; padding: 0 15px; border-radius: var(--r-sm); background: var(--blue); color: var(--white); font-size: 13px; font-weight: 800; }
+.req-ans { margin-top: 9px; padding: 8px 11px; border-radius: var(--r-xs); background: var(--surface-2); font-size: 13px; color: var(--text); overflow-wrap: anywhere; white-space: pre-wrap; }
+.req-ans b { color: var(--text-weak); font-weight: 800; margin-right: 4px; }
+.req-wait { margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--blue-700); }
+.req-card .evo-acts .reopen { background: var(--surface-2); color: var(--text-sub); box-shadow: var(--sh-card); }
+.req-card .evo-acts .done { background: var(--success-bg); color: var(--success); }
+.req-closed { margin-top: 18px; }
+.req-closed > summary { cursor: pointer; font-size: 13px; font-weight: 800; color: var(--text-weak); padding: 4px 2px; }
+.req-closed .req-card { opacity: .72; }
+.req-closed .req-st { margin-right: 4px; font-size: 11px; font-weight: 800; color: var(--text-weak); }
+.req-closed .evo-acts button { height: 30px; padding: 0 12px; font-size: 12px; }
 .evo-acts .ignore { background: var(--surface-2); color: var(--text-sub); box-shadow: var(--sh-card); }
 
 /* ---------- 우: 채팅 도킹 사이드바 ---------- */
@@ -519,7 +488,18 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
   .topnav-brand { padding: 0 6px; }
   .topnav-brand .bname { display: none; }
   .topnav .tab { padding: 0 10px; white-space: nowrap; }
-  .mode-toggle { gap: 6px; padding: 0 11px 0 5px; margin-right: 4px; }
+  .mode-toggle { gap: 6px; padding: 0 11px 0 5px; margin-right: 6px; }
+  body.ana-mode .mode-toggle, .chip-scan, .draw-btn { margin-right: 6px; }
+  /* 모바일 2단: 1단 = 로고·워크스페이스·Chip·프로필, 2단 = 탭 전체 폭 */
+  .topnav { flex-wrap: wrap; height: auto; row-gap: 0; }
+  .topnav-brand, .ws-combo, .mode-toggle, .chip-scan, .avatar-btn { height: 48px; align-self: auto; }
+  .topnav-brand img { align-self: center; }
+  .ws-combo { flex: 1 1 0; min-width: 0; display: flex; align-items: center; }
+  .ws-btn { max-width: 100%; min-width: 0; }
+  .mode-toggle, .chip-scan { align-self: center; height: 34px; }
+  .avatar-btn { display: flex; align-items: center; }
+  .tabstrip { order: 10; flex: 1 0 100%; height: 44px; border-top: 1px solid var(--line-2); }
+  .me-menu { top: calc(48px + var(--safe-t) + 4px); }
 }
 @keyframes pulse { 50% { opacity: .35; } }
 /* 채팅 헤더(간소): 제목 + 닫기 */
@@ -788,6 +768,196 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
 :root[data-mode="light"][data-daypart="evening"] { --bg: #F5F0F5; --surface: #FFFFFF; --surface-2: #F7EFF3; --line: #E8DEE6; --line-2: #F0E7ED; }
 :root[data-mode="dark"][data-daypart="evening"]  { --bg: #1B181C; --surface: #231F25; --surface-2: #2A252C; }
 :root[data-mode="dark"][data-daypart="night"]    { --bg: #121317; --surface: #1A1C21; --surface-2: #212429; }
+
+/* ================= 채팅 — Claude 앱과 같은 모양 =================
+   머리: ‹ 닫기 · 가운데 제목(세션)+부제(상태) · ⋯ 세션 선택
+   본문: 응답은 말풍선 없이 본문 글꼴, 내 메시지는 회색 말풍선, 도구 실행은 'Ran N commands ›' 한 줄로 접힘
+   작업 중: ✳ 12s · Thinking…   입력: 둥근 카드(칩·입력·＋·에이전트·전송/정지) */
+#chatSide { --chat-bg: var(--surface); --bubble: color-mix(in srgb, var(--text) 7%, var(--surface)); background: var(--chat-bg); }
+.ana-status { padding: calc(8px + var(--safe-t)) 10px 8px; border-bottom: 1px solid var(--line-2); background: color-mix(in srgb, var(--chat-bg) 92%, transparent); }
+.as-top { gap: 10px; }
+.icon-btn.round { width: 40px; height: 40px; background: var(--chat-bg); box-shadow: 0 0 0 1px var(--line), 0 1px 3px rgba(0,0,0,.06); color: var(--text); }
+.icon-btn.round svg { width: 20px; height: 20px; }
+/* 연결 상태 = 워크스페이스와 같은 콤보박스(알약 버튼 + 드롭다운 목록) */
+.conn { flex: 1; min-width: 0; height: auto; padding: 0; border: none; background: none; box-shadow: none; display: flex; justify-content: center; cursor: pointer; }
+.conn:focus { outline: none; }
+.conn .cbtn { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; height: 38px; padding: 0 13px 0 14px; border-radius: 999px;
+  font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.01em; transition: background .12s; }
+@media (hover: hover) { .conn:hover .cbtn { background: var(--acc-weak); } }
+.conn[aria-expanded="true"] .cbtn { background: var(--acc-weak); }
+.conn:focus-visible .cbtn { box-shadow: 0 0 0 2px var(--blue); }
+.conn .label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conn .caret { flex: 0 0 auto; font-size: 9px; color: var(--text-weak); }
+.conn .dot { width: 8px; height: 8px; }
+.conn > svg { display: none; }
+.conn-pop { left: 50%; right: auto; transform: translateX(-50%); width: min(360px, calc(100vw - 24px)); padding: 8px; text-align: left; cursor: default;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--sh-sheet); }
+.conn-pop .ws-label { padding: 6px 12px 6px; font-size: 12px; font-weight: 800; color: var(--text-weak); }
+.conn-pop .tmux-cfg-list { gap: 2px; max-height: 50vh; margin: 0; }
+.conn-pop .tmux-cfg-list button { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: none; border-radius: var(--r-sm); background: none; font-size: 14px; }
+.conn-pop .tmux-cfg-list button:hover { background: var(--surface-2); }
+.conn-pop .tmux-cfg-list button.cur { background: var(--acc-weak); }
+.conn-pop .sdot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 999px; background: var(--green); }
+.conn-pop button.shell .sdot { background: var(--line); }
+.conn-pop .sname { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.conn-pop .sname b { font-weight: 800; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conn-pop button.cur .sname b { color: var(--acc-strong); }
+.conn-pop .sname small { font-size: 12px; font-weight: 600; color: var(--text-weak); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conn-pop .sname small b { font-weight: 800; color: var(--blue-700); font-size: inherit; }
+.conn-pop .scheck { flex: 0 0 auto; font-weight: 800; color: var(--acc-strong); }
+.conn-pop .tmux-cfg-hint { padding: 4px 12px 6px; margin-top: 4px; font-size: 11.5px; }
+
+#feed { padding: 18px 16px 12px; gap: 14px; background: var(--chat-bg); }
+.msg { font-size: 15px; line-height: 1.7; }
+.msg.assistant { align-self: stretch; max-width: 100%; background: none; padding: 0 2px; border-radius: 0; color: var(--text); }
+.msg.user { max-width: 82%; background: var(--bubble); color: var(--text); border-radius: 20px; border-bottom-right-radius: 20px; padding: 10px 16px; }
+.msg.user .msg-by .av { background: var(--blue-weak); color: var(--blue-700); }
+/* 도구 실행 묶음 */
+.actgrp { align-self: stretch; max-width: 100%; }
+.actgrp > summary { list-style: none; display: inline-flex; align-items: center; gap: 6px; max-width: 100%; cursor: pointer;
+  font-size: 14.5px; font-weight: 500; color: var(--text-weak); padding: 2px 2px; border-radius: 8px; }
+.actgrp > summary::-webkit-details-marker { display: none; }
+.actgrp > summary .sv { font-weight: 500; } .actgrp > summary code { font-family: ui-monospace, Menlo, monospace; font-size: 13px; font-weight: 400; color: var(--text-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.actgrp > summary::after { content: ""; flex: 0 0 auto; width: 7px; height: 7px; margin-left: 4px; border-right: 1.8px solid currentColor; border-bottom: 1.8px solid currentColor; transform: rotate(-45deg); transition: transform .15s; }
+.actgrp[open] > summary::after { transform: rotate(45deg) translate(-2px, -1px); }
+.actgrp > summary:hover { color: var(--text-sub); }
+.actgrp .actlist { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 2px 3px; padding-left: 12px; border-left: 2px solid var(--line); }
+.actgrp .act { max-width: 100%; }
+#pendingWrap > .act { font-size: 13.5px; font-weight: 600; }
+/* 기록 재동기화 — 작업 표시와 같은 알약, 한 줄, 작업 문구보다 먼저 줄어들지 않는다 */
+.feedstatus .resync { flex: 0 0 auto; align-items: center; gap: 5px; margin-left: auto; white-space: nowrap; padding: 4px 10px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 700; color: var(--warm-fg); background: color-mix(in srgb, var(--chat-bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.feedstatus .resync svg { width: 13px; height: 13px; animation: sparkspin 1.2s linear infinite; }
+
+/* 작업 중 */
+.feedstatus { height: 30px; padding: 0 18px; }
+.typing { gap: 8px; font-size: 14px; font-weight: 600; color: var(--text-weak); }
+.typing .tspark { color: var(--blue); width: 17px; height: 17px; flex: 0 0 auto; display: block; animation: sparkspin 2.4s linear infinite; }
+/* 세션 콤보: ‹와 ⋯ 사이를 꽉 채우고 좌측 정렬, 한 줄 */
+.conn { flex-direction: row; align-items: stretch; justify-content: flex-start; }
+.conn .cbtn { flex: 1; width: 100%; justify-content: flex-start; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); }
+.conn .cbtn .label { flex: 1; text-align: left; }
+/* 기록 모드 항목 */
+.umsg { align-self: flex-end; max-width: 86%; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.umsg .msg.user { max-width: 100%; }
+.uctx { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.uctx .chip { font-size: 11.5px; } .uctx .chip .ct { max-width: 200px; }
+.limgs { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.limgs.left { justify-content: flex-start; margin-top: 8px; }
+.limg { display: block; width: 110px; height: 110px; border-radius: 14px; overflow: hidden; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); }
+.limg img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tgrp { align-self: stretch; max-width: 100%; }
+.act.toolresult.err { color: var(--danger); }
+.runico { width: 12px; height: 12px; border-radius: 999px; border: 2px solid currentColor; border-right-color: transparent; animation: sparkspin .9s linear infinite; flex: 0 0 auto; }
+.msg.md { white-space: normal; }
+.md p { margin: 0 0 .75em; } .md p:last-child { margin-bottom: 0; }
+.md h3, .md h4, .md h5, .md h6 { margin: 1em 0 .4em; font-size: 15.5px; font-weight: 800; letter-spacing: -0.01em; }
+.md h3 { font-size: 17px; } .md > :first-child { margin-top: 0; }
+.md ul, .md ol { margin: 0 0 .75em; padding-left: 1.35em; } .md li { margin: .2em 0; } .md li > ul, .md li > ol { margin: .2em 0; }
+.md code { font-family: ui-monospace, Menlo, monospace; font-size: .88em; padding: 1px 5px; border-radius: 5px; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line-2); overflow-wrap: anywhere; }
+.md pre { margin: 0 0 .75em; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line-2); overflow-x: auto; white-space: pre; }
+.md pre code { padding: 0; background: none; box-shadow: none; font-size: 12.5px; overflow-wrap: normal; }
+.md blockquote { margin: 0 0 .75em; padding: 2px 0 2px 12px; border-left: 3px solid var(--line); color: var(--text-sub); }
+.md hr { border: none; border-top: 1px solid var(--line); margin: 1em 0; }
+.md a { color: var(--blue-700); text-decoration: underline; text-underline-offset: 2px; }
+.md .tbl { overflow-x: auto; margin: 0 0 .75em; }
+.md table { border-collapse: collapse; font-size: 13.5px; line-height: 1.5; min-width: 100%; }
+.md th, .md td { border: 1px solid var(--line); padding: 5px 9px; text-align: left; vertical-align: top; }
+.md th { background: var(--surface-2); font-weight: 800; }
+.typing .tspark svg { width: 100%; height: 100%; display: block; }
+@keyframes sparkspin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .typing .tspark { animation: none; } }
+
+/* 입력 카드 */
+.keys { display: none; }
+.composer { flex-direction: column; align-items: stretch; gap: 6px; margin: 0 12px calc(12px + var(--safe-b)); padding: 10px 10px 10px;
+  border-radius: 28px; background: var(--chat-bg); box-shadow: 0 0 0 1px var(--line), 0 4px 18px rgba(0,0,0,.06); }
+/* 떠 있는 입력 영역(도크). #chatSide > *:not(#chatResize)의 고정 폭(명시도 2-0-0)을 이기려고 선택자를 한 단계 올린다 */
+#chatSide > .chat-dock.chat-dock:not(#chatResize) { position: absolute; right: 0; bottom: 0; z-index: 5; pointer-events: none; }
+@media (max-width: 768px) { #chatSide > .chat-dock.chat-dock:not(#chatResize) { left: 0; width: auto; } }
+.chat-dock > * { pointer-events: auto; }
+.chat-dock .feedstatus { pointer-events: none; }
+#feed { padding-bottom: calc(var(--dock-h, 150px) + 6px); }
+.chat-dock .composer { background: color-mix(in srgb, var(--chat-bg) 76%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6); backdrop-filter: blur(18px) saturate(1.6); }
+.typing.on { width: max-content; max-width: 100%; min-width: 0; flex: 0 1 auto; padding: 4px 12px 4px 8px; border-radius: 999px; background: color-mix(in srgb, var(--chat-bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.jumpdown { position: absolute; left: 50%; top: -54px; transform: translateX(-50%); width: 44px; height: 44px; border-radius: 999px; display: grid; place-items: center;
+  color: var(--text); background: color-mix(in srgb, var(--chat-bg) 85%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  box-shadow: 0 0 0 1px var(--line), 0 4px 14px rgba(0,0,0,.12); }
+.jumpdown[hidden] { display: none; }
+.jumpdown svg { width: 20px; height: 20px; }
+.jumpdown.new::after { content: ""; position: absolute; top: 3px; right: 3px; width: 10px; height: 10px; border-radius: 999px; background: var(--blue); box-shadow: 0 0 0 2px var(--chat-bg); }
+.composer .chips { padding: 0 4px; }
+.composer .inputwrap textarea { min-height: 30px; max-height: 180px; border: none; background: none; border-radius: 0; padding: 6px 8px 2px; font-size: 16px; line-height: 1.5; }
+.composer .inputwrap textarea:focus { background: none; }
+.composer #ghost { inset: 0; padding: 6px 8px 2px; font-size: 16px; line-height: 1.5; }
+.cbar { display: flex; align-items: center; gap: 8px; }
+.cbar .sp { flex: 1; }
+.cbar .attach { width: 40px; height: 40px; background: var(--surface-2); box-shadow: none; color: var(--text); }
+.cbar .attach svg { width: 20px; height: 20px; }
+.agent-pill { height: 40px; padding: 0 16px; border-radius: 999px; background: var(--surface-2); color: var(--text); font-size: 14px; font-weight: 700;
+  display: inline-flex; align-items: center; min-width: 0; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cbar #send { width: 40px; height: 40px; background: var(--blue); color: var(--white); box-shadow: none; }   /* 보내기: 테마 강조색 */
+.cbar #send.stop { background: var(--bubble); color: var(--text); }   /* 중지: 연한 원 + 검은 ■ (Claude 앱과 동일) */
+.cbar #send svg { width: 16px; height: 16px; }
+.cbar #send.stop svg { width: 18px; height: 18px; }   /* 중지 ■는 버튼의 약 1/3 — Claude 앱과 같은 비율 */
+
+/* ================= 영역: Workspace / System =================
+   PC는 로고 옆 두 칸 전환, 모바일은 하단 메뉴. System에서는 워크스페이스 콤보를 숨기고 시스템 탭만 보인다. */
+.modeseg { flex: 0 0 auto; align-self: center; margin: 0 10px 0 2px; }
+.modeseg button { position: relative; }
+.modeseg .tbadge, .bottomnav .tbadge { min-width: 17px; height: 17px; margin-left: 5px; padding: 0 5px; border-radius: 999px; background: var(--c-1); color: #fff; font-size: 10.5px; line-height: 17px; font-weight: 800; display: none; }
+.modeseg .tbadge.show, .bottomnav .tbadge.show { display: inline-block; }
+body.sys-mode .ws-combo { display: none; }
+/* 콤보가 빠진 자리 — Chip·그리기·새로고침·프로필 묶음을 Workspace일 때와 같이 오른쪽 끝에 붙인다 */
+@media (max-width: 768px) { body.sys-mode .topnav .mode-toggle { margin-left: auto; } }
+.topnav .tab[hidden] { display: none; }
+.bottomnav { display: none; }
+@media (max-width: 768px) {
+  .modeseg { display: none; }
+  .bottomnav { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; height: calc(58px + var(--safe-b)); padding-bottom: var(--safe-b);
+    background: color-mix(in srgb, var(--bg) 88%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.5); backdrop-filter: blur(16px) saturate(1.5);
+    border-top: 1px solid var(--line-2); }
+  .bottomnav button { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    font-size: 11.5px; font-weight: 700; color: var(--text-weak); }
+  .bottomnav button.on { color: var(--text); }
+  .bottomnav button.on svg { color: var(--blue); }
+  .bottomnav svg { width: 23px; height: 23px; }
+  .bottomnav .tbadge { position: absolute; top: 6px; left: calc(50% + 6px); margin: 0; }
+  .view .wrap { padding-bottom: calc(80px + var(--safe-b)); }
+  .fab { bottom: calc(74px + var(--safe-b)); }
+}
+/* 관계 흐름 그림 */
+.rel-graph { padding: 12px; overflow-x: auto; }
+.rel-graph svg { display: block; min-width: 560px; width: 100%; height: auto; }
+.rel-graph .colh { font-size: 11px; font-weight: 800; fill: var(--text-weak); letter-spacing: .02em; }
+.rel-graph .node rect { fill: var(--surface-2); stroke: var(--line); stroke-width: 1; }
+.rel-graph .node text { font-size: 11.5px; font-weight: 700; fill: var(--text); }
+.rel-graph .node.k-Note rect { fill: var(--warm-bg); stroke: color-mix(in srgb, var(--warm-fg) 40%, transparent); }
+.rel-graph .node.k-Task rect { fill: var(--blue-weak); stroke: color-mix(in srgb, var(--blue) 40%, transparent); }
+.rel-graph .node.k-Event rect { fill: var(--success-bg); stroke: color-mix(in srgb, var(--success) 40%, transparent); }
+.rel-graph .node.done text { fill: var(--text-weak); text-decoration: line-through; }
+.rel-graph .node { cursor: pointer; }
+.rel-graph .node:hover rect, .rel-graph .node:focus rect { stroke: var(--text); stroke-width: 1.5; }
+.rel-graph .node:focus { outline: none; }
+.rel-graph .edge { fill: none; stroke-width: 1.6; opacity: .75; }
+.rel-graph .edge.SPAWNED { stroke: var(--warm-fg); }
+.rel-graph .edge.SCHEDULED_AS { stroke: var(--success); }
+.rel-graph .edge.REFERS_TO { stroke: var(--text-weak); stroke-dasharray: 4 4; }
+.rel-graph .edge.DUE_ON, .rel-graph .edge.ON { stroke: var(--line); }
+.rel-graph.dim .edge { opacity: .12; } .rel-graph.dim .node { opacity: .35; }
+.rel-graph.dim .edge.hl { opacity: 1; stroke-width: 2.4; } .rel-graph.dim .node.hl { opacity: 1; }
+.rel-legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 4px 4px 10px; font-size: 12px; font-weight: 700; color: var(--text-sub); }
+.rel-legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 5px; }
+.rel-vocab { padding: 4px 0; overflow-x: auto; }
+.rel-vocab table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rel-vocab th, .rel-vocab td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line-2); vertical-align: top; }
+.rel-vocab th { font-size: 11.5px; color: var(--text-weak); font-weight: 800; }
+.rel-vocab td code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; font-weight: 700; }
+.rel-vocab tr:last-child td { border-bottom: none; }
+.rel-vocab .auto { font-size: 11px; font-weight: 800; color: var(--text-weak); }
 </style>
 <script>
 /* 계절·시간대 테마 — <style> 직후에서 돌려 첫 페인트 전에 속성을 심는다(색 깜빡임 방지).
@@ -839,6 +1009,10 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
 <div id="main">
   <nav class="topnav" aria-label="Main menu" role="tablist">
     <div class="topnav-brand"><img src="/ana-logo.png" alt="ANA logo"><span class="bname">ANA</span></div>
+    <!-- 영역 전환(PC) — 모바일에서는 하단 메뉴(.bottomnav)가 같은 일을 한다 -->
+    <div class="seg modeseg" role="tablist" aria-label="Area">
+      <button data-area="ws" class="on" role="tab">Workspace</button><button data-area="sys" role="tab">System<span class="tbadge" data-sysbadge>0</span></button>
+    </div>
     <div class="ws-combo" id="wsCombo">
       <button class="ws-btn" id="wsBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Workspace">
         <span class="wsn" id="wsName">Base Workspace</span><span class="caret">▼</span></button>
@@ -854,16 +1028,19 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
       </div>
     </div>
     <div class="tabstrip">
-      <button class="tab on" data-view="todo" role="tab" aria-selected="true">Tasks</button>
-      <button class="tab" data-view="schedule" role="tab" aria-selected="false">Calendar</button>
-      <button class="tab" data-view="meeting" role="tab" aria-selected="false">Meetings</button>
-      <button class="tab" data-view="memo" role="tab" aria-selected="false">Notes</button>
-      <button class="tab" data-view="member" role="tab" aria-selected="false">Members</button>
-      <button class="tab" data-view="stats" role="tab" aria-selected="false">Stats</button>
-      <button class="tab" data-view="evolve" role="tab" aria-selected="false">Evolve<span class="tbadge" id="evoBadge">0</span></button>
+      <button class="tab on" data-view="todo" data-group="ws" role="tab" aria-selected="true">Tasks</button>
+      <button class="tab" data-view="schedule" data-group="ws" role="tab" aria-selected="false">Calendar</button>
+      <button class="tab" data-view="memo" data-group="ws" role="tab" aria-selected="false">Notes</button>
+      <button class="tab" data-view="stats" data-group="sys" role="tab" aria-selected="false">Stats</button>
+      <button class="tab" data-view="requests" data-group="sys" role="tab" aria-selected="false">Requests<span class="tbadge" id="reqBadge">0</span></button>
+      <button class="tab" data-view="evolve" data-group="sys" role="tab" aria-selected="false">Evolve<span class="tbadge" id="evoBadge">0</span></button>
+      <button class="tab" data-view="relations" data-group="sys" role="tab" aria-selected="false">Relations</button>
     </div>
     <button id="modeToggle" class="mode-toggle" role="switch" aria-checked="false" aria-label="Chip mode">
       <span class="knob"></span>Chip
+    </button>
+    <button id="drawBtn" class="chip-scan draw-btn" aria-label="Draw on the screen and attach it to the chat" title="Draw on the screen — circle what you mean">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
     </button>
     <button id="chipScanBtn" class="chip-scan" aria-label="Find and register elements that can't be picked as chips yet" title="Register unpickable elements as chips">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
@@ -919,13 +1096,6 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
   </div></section>
 
   <!-- 메모 (좌: 목록 / 우: 편집기) -->
-  <section class="view" id="meetingView" role="tabpanel"><div class="wrap">
-    <div class="sec-head"><h2>Meetings</h2><span class="cnt" id="meetMeta"></span><span class="sp"></span>
-      <button class="add-btn" id="addMeetBtn">＋ Meeting</button></div>
-    <div id="meetList"></div>
-    <div class="empty" id="meetEmpty">No meetings yet — add one with ＋ Meeting</div>
-  </div></section>
-
   <section class="view" id="memoView" role="tabpanel"><div class="wrap">
     <div class="memo-layout">
       <aside class="memo-side card" aria-label="Note list">
@@ -937,18 +1107,16 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
         <div class="memo-editor card" id="memoEditor" style="display:none">
           <input id="mmTitle" placeholder="Title" aria-label="Note title" autocomplete="off">
           <textarea id="mmBody" placeholder="Write something…" aria-label="Note body"></textarea>
-          <div class="memo-ebar"><span class="mstate" id="mmState"></span><span class="sp"></span><button class="mdel" id="mmDel">Delete</button></div>
+          <div class="memo-rels" id="mmRels" aria-label="Links"></div>
+          <div class="memo-ebar"><span class="mstate" id="mmState"></span><span class="sp"></span>
+            <button class="mact" id="mmToTask" title="Make a task from the selected text (or the note title)">→ Task</button>
+            <button class="mact" id="mmToEvent" title="Make an event from the selected text (or the note title)">→ Event</button>
+            <button class="mact" id="mmLink" title="Link this note to a task, event or another note">＋ Link</button>
+            <button class="mdel" id="mmDel">Delete</button></div>
         </div>
         <div class="memo-none" id="memoNone">Select a note, or add one with the ＋ button in the list</div>
       </div>
     </div>
-  </div></section>
-
-  <!-- 진화 -->
-  <section class="view" id="memberView" role="tabpanel"><div class="wrap">
-    <div class="sec-head"><h2>Members</h2><span class="cnt" id="memMeta"></span></div>
-    <div id="memList"></div>
-    <div class="empty" id="memEmpty" style="display:none">No members yet</div>
   </div></section>
 
   <section class="view" id="statsView" role="tabpanel"><div class="wrap">
@@ -959,8 +1127,28 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
     <div id="actList"></div>
   </div></section>
 
+  <!-- 관계: 메모·할일·일정이 어떻게 이어져 있는지(NodeRel) — 흐름 그림 · 끊긴 곳 · 관계 어휘 -->
+  <section class="view" id="relationsView" role="tabpanel"><div class="wrap">
+    <div class="sec-head"><h2>Relations</h2><span class="cnt" id="relWs"></span><span class="sp"></span><span class="cnt">NodeRel</span></div>
+    <div class="rel-graph card" id="relGraph"></div>
+    <div class="sec-head" style="margin-top:22px"><h2>Where the flow breaks</h2></div>
+    <div id="relStats"></div>
+    <div class="sec-head" style="margin-top:22px"><h2>Vocabulary</h2></div>
+    <div class="card rel-vocab" id="relVocab"></div>
+  </div></section>
+
+  <!-- 요청: 에이전트 → 사용자 (시스템을 더 잘 운용하기 위해 필요한 것) -->
+  <section class="view" id="requestsView" role="tabpanel"><div class="wrap">
+    <div class="evo-head"><span class="evo-lead">What the agent needs from you to run this better — information, decisions, things only you can do, access</span></div>
+    <div class="evo-cta"><button id="reqAsk">Ask the agent what it needs</button></div>
+    <div id="reqList"></div>
+    <div class="empty" id="reqEmpty">No open requests — try [Ask the agent what it needs]</div>
+    <details class="req-closed" id="reqClosedBox" hidden><summary id="reqClosedSum">Closed</summary><div id="reqClosed"></div></details>
+  </div></section>
+
+  <!-- 진화 -->
   <section class="view" id="evolveView" role="tabpanel"><div class="wrap">
-    <div class="evo-head"><span class="evo-lead">This app improves itself</span></div>
+    <div class="evo-head"><span class="evo-lead">Changes the agent proposes to this app — approve one and the agent builds it</span></div>
     <div class="evo-cta"><button id="evoAnalyze">Ask the agent to analyze</button></div>
     <div id="evoList"></div>
     <div class="empty" id="evoEmpty">No proposals yet — try [Ask the agent to analyze]</div>
@@ -972,30 +1160,36 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
   <div id="chatResize" aria-hidden="true"></div>
   <div class="ana-status">
     <div class="as-top">
-      <div class="conn bad" id="connPill" role="button" tabindex="0" aria-label="ANA connection — click to choose an agent">
-        <span class="dot"></span><span class="label" id="connLabel">Connecting…</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      <button class="icon-btn round" id="chatCloseBtn" aria-label="Close chat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="conn bad" id="connPill" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false" aria-label="Agent session — choose which agent to talk to">
+        <span class="cbtn"><span class="dot"></span><span class="label" id="connLabel">Connecting…</span><span class="caret">▼</span></span>
         <div class="conn-pop" id="tmuxCfg" hidden>
-          <div class="tmux-cfg-title">Agent to connect</div>
-          <div class="tmux-cfg-list" id="tmuxCfgList">Loading…</div>
-          <div class="tmux-cfg-hint">Select the agent to connect to.</div>
+          <div class="ws-label">Agent session</div>
+          <div class="tmux-cfg-list" id="tmuxCfgList" role="listbox" aria-label="Agent sessions">Loading…</div>
+          <div class="tmux-cfg-hint">Each session keeps its own chat history. Start an agent in tmux to see it here.</div>
         </div>
       </div>
-      <button class="icon-btn" id="chatCloseBtn" aria-label="Close chat">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      <button class="icon-btn round" id="chatMoreBtn" aria-label="Choose the agent session" aria-haspopup="true">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
       </button>
     </div>
   </div>
   <div id="feed" aria-live="polite" aria-relevant="additions">
-    <div class="feed-empty" id="feedEmpty">Waiting for an agent — click the connection pill above to choose one</div>
+    <div class="feed-empty" id="feedEmpty">No agent connected — tap the title or ⋯ above to choose one</div>
     <div id="msgs" style="display:contents"></div>
     <div id="pendingWrap" style="display:contents"></div>
     <div id="optimistic" style="display:contents"></div>
-    <button class="newpill" id="newpill">New messages ↓</button>
   </div>
+  <!-- 떠 있는 입력 영역 — 대화가 이 뒤로 비쳐 흐른다. ↓는 맨 아래(최신)로 바로 간다 -->
+  <div class="chat-dock" id="chatDock">
+  <button class="jumpdown" id="jumpBtn" aria-label="Jump to the latest message" title="Jump to the latest" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="6 13 12 19 18 13"/></svg>
+  </button>
   <div class="feedstatus">
-    <div class="typing" id="typing"><span class="dots"><i></i><i></i><i></i></span><span id="typTx">Working…</span></div>
-    <span class="resync" id="resync">Resyncing history…</span>
+    <div class="typing" id="typing"><span class="tspark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/><line x1="18.4" y1="5.6" x2="5.6" y2="18.4"/></svg></span><span id="typEl">0s</span><span aria-hidden="true">·</span><span id="typTx">Working…</span></div>
+    <span class="resync" id="resync" title="Re-reading the agent's screen to line up the chat history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>Syncing…</span>
   </div>
   <div class="errbar" id="errbar" role="alert"><span id="errtext"></span><button id="errclose" aria-label="Close">✕</button></div>
   <div class="dlgcard" id="dlgcard" role="alert">
@@ -1013,70 +1207,53 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
     </div>
     </details>
   </div>
-  <div class="chips" id="chips" aria-label="Context chips"></div>
   <div class="keys" id="keysRow">
     <button data-key="ctrl-c" class="danger" id="ctrlc" title="Stop the current task">Stop</button>
   </div>
   <div class="composer">
-    <button id="attachBtn" class="attach" title="Attach files" aria-label="Attach files">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-    </button>
+    <div class="chips" id="chips" aria-label="Context chips"></div>
     <input type="file" id="fileInput" multiple hidden>
     <div class="inputwrap" id="inputwrap">
-      <textarea id="input" rows="1" placeholder="Message — Enter to send, Shift+Enter for a new line" aria-label="Message input"></textarea>
+      <textarea id="input" rows="1" placeholder="Message ANA — Enter to send" aria-label="Message input"></textarea>
       <div id="ghost"></div>
     </div>
-    <button id="send" title="Send" aria-label="Send">↑</button>
+    <div class="cbar">
+      <button id="attachBtn" class="attach" title="Attach files" aria-label="Attach files">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="agent-pill" id="agentPill" title="Choose the agent session">Agent</button>
+      <span class="sp"></span>
+      <button id="send" title="Send" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="6 11 12 5 18 11"/></svg></button>
+    </div>
+  </div>
   </div>
 </aside>
 
+<div class="draw-layer" id="drawLayer" hidden aria-label="Drawing layer">
+  <canvas id="drawCanvas"></canvas>
+  <div class="draw-bar" role="toolbar" aria-label="Drawing tools">
+    <span class="dhint">Circle what you mean</span>
+    <button class="dsw on" data-color="#FF0000" data-name="red" aria-label="Red" style="background:#FF0000"></button>
+    <button class="dsw" data-color="#FF00FF" data-name="magenta" aria-label="Magenta" style="background:#FF00FF"></button>
+    <button class="dsw" data-color="#0000FF" data-name="blue" aria-label="Blue" style="background:#0000FF"></button>
+    <button id="drawUndo" disabled>Undo</button>
+    <button id="drawCancel">Cancel</button>
+    <button id="drawDone" class="dok" disabled>Add to chat</button>
+  </div>
+</div>
+<!-- 하단 메뉴(모바일): Workspace = 할일·일정·메모 / System = 통계·요청·진화·관계 -->
+<nav class="bottomnav" aria-label="Area">
+  <button data-area="ws" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Workspace</button>
+  <button data-area="sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>System<span class="tbadge" data-sysbadge>0</span></button>
+</nav>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <button class="newver" id="newver">New version available — tap to reload</button>
-<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer"><img id="lightboxImg" alt=""></div>
 <div class="chat-scrim" id="chatScrim"></div>
 <button class="fab" id="fab" aria-label="Open chat"><span class="badge" id="fabBadge">0</span>
   <!-- 말풍선 안에 콘솔 프롬프트(>_) — 채팅 너머가 터미널 에이전트임을 보여 준다 -->
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-7l-5 3.5V18H5a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3z"/><polyline points="7 8 10 10.5 7 13"/><line x1="12.5" y1="13" x2="16.5" y2="13"/></svg>
 </button>
 
-<!-- 모달: 할일 추가 -->
-<div class="modal" id="meetModal" role="dialog" aria-modal="true" aria-label="Add meeting">
-  <h3>New meeting minutes</h3>
-  <div class="fld"><label>Title</label><input id="mTitle" placeholder="e.g. Kickoff meeting" autocomplete="off"></div>
-  <div class="frow">
-    <div class="fld"><label>Date</label><input id="mDate" type="date"></div>
-    <div class="fld"><label>Start</label><input id="mTime" type="time"></div>
-    <div class="fld"><label>End</label><input id="mEnd" type="time"></div>
-  </div>
-  <div class="fld"><label>Location</label><input id="mPlace" placeholder="e.g. HQ 3F meeting room / Zoom" autocomplete="off"></div>
-  <div class="fld"><label>Attendees — comma separated</label><input id="mAttend" placeholder="e.g. Taeyoung, Taewook, Sangmin" autocomplete="off"></div>
-  <div class="fld"><label>Notes — one per line</label><textarea id="mNotes" rows="5" placeholder="One discussion point per line"></textarea></div>
-  <div class="fld"><label>Decisions — one per line</label><textarea id="mDecide" rows="3" placeholder="What was agreed or decided"></textarea></div>
-  <div class="fld"><label>Action items — one per line (@owner ~due)</label>
-    <textarea id="mActions" rows="3" placeholder="e.g. Draft workshop schedule @taeyoung ~2026-08-25"></textarea></div>
-  <div class="fld"><label>Photos (optional)</label>
-    <button class="photo-pick" id="mPhotoBtn">＋ Choose photos</button>
-    <input type="file" id="mPhotoInput" accept="image/*" multiple hidden>
-    <div class="photo-picks" id="mPhotoList"></div>
-  </div>
-  <div class="modal-acts"><button class="cancel" data-close>Cancel</button><button class="save" id="mSave">Add</button></div>
-</div>
-<div class="sheet" id="meetSheet" role="dialog" aria-modal="true" aria-labelledby="msTitle">
-  <div class="sheet-bar">
-    <h3 id="msTitle">Minutes</h3><span class="sp"></span>
-    <button class="mshare" id="msShare" aria-label="Share minutes">Share</button>
-    <button class="medit" id="msEdit">Edit</button>
-    <button class="mdel" id="msDel">Delete</button>
-    <button class="icon-btn" id="msClose" aria-label="Close">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <div class="sheet-body" id="msBody"></div>
-  <div class="cmt-write">
-    <input id="msCmt" placeholder="Write a comment" autocomplete="off" aria-label="Comment input">
-    <button id="msCmtAdd" aria-label="Post comment">Post</button>
-  </div>
-</div>
 <div class="modal" id="meModal" role="dialog" aria-modal="true" aria-label="Edit My Info">
   <h3>Edit My Info</h3>
   <div class="me-row">
@@ -1107,13 +1284,22 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
 <div class="scrim" id="scrim"></div>
 <div class="modal" id="todoModal" role="dialog" aria-modal="true" aria-label="Add task">
   <h3>Add task</h3>
+  <div class="fld-from" id="tFrom" hidden></div>
   <div class="fld"><label>Title</label><input id="tTitle" placeholder="e.g. Review the proposal" autocomplete="off"></div>
   <div class="fld"><label>Due date (optional)</label><input id="tDue" type="date"></div>
   <div class="modal-acts"><button class="cancel" data-close>Cancel</button><button class="save" id="tSave">Add</button></div>
 </div>
+<!-- 모달: 참조 연결(REFERS_TO) -->
+<div class="modal" id="linkModal" role="dialog" aria-modal="true" aria-labelledby="lkTitle">
+  <h3 id="lkTitle">Link to…</h3>
+  <div class="fld"><input id="lkQ" placeholder="Search tasks, events and notes" autocomplete="off" aria-label="Search items to link"></div>
+  <div class="lk-list" id="lkList" role="listbox" aria-label="Items"></div>
+  <div class="modal-acts"><button class="cancel" data-close>Cancel</button></div>
+</div>
 <!-- 모달: 일정 추가 -->
 <div class="modal" id="eventModal" role="dialog" aria-modal="true" aria-label="Add event">
   <h3>Add event</h3>
+  <div class="fld-from" id="eFrom" hidden></div>
   <div class="fld"><label>Title</label><input id="eTitle" placeholder="e.g. Team meeting" autocomplete="off"></div>
   <div class="frow">
     <div class="fld"><label>Date</label><input id="eDate" type="date"></div>
@@ -1142,20 +1328,92 @@ let currentWs = '', workspaces = [], wsEditing = '', wsDrag = null;
 let sessionAlive = false, busy = false, atBottom = true;
 // 칩·첨부 상태는 부트스트랩(setMode 등)보다 먼저 초기화돼야 한다 — let은 호이스팅돼도 TDZ라
 // 선언줄 이전에 읽으면 던지고, 그러면 이후 스크립트 전체가 중단된다(실제로 그런 사고가 있었다).
-let contextChips = [], attachments = [];   // attachments: {name, size, path, pending}
+let contextChips = [], attachments = [];
+// 대화 기록 모드(Claude Code JSONL) 상태 — pollHealth가 부트스트랩 중에 부르므로 여기서 먼저 선언한다
+let logMode = false, logRev = 0, logSession = '', logTimer = null, logBusy = false, logModel = '';
+const logOpen = new Set();          // 사용자가 펼쳐 둔 도구 묶음(다시 그려도 유지)   // attachments: {name, size, path, pending}
 
 /* ================= 데이터 (할일 + 일정) ================= */
-let dataVersion = 0, items = [], events = [], notes = [], meetings = [];
+let dataVersion = 0, items = [], events = [], notes = [], graphLinks = [];
 const proposals = new Map();
 async function refreshData() {
   let s;
   try { s = await (await fetch('/api/state')).json(); } catch { return; }
   dataVersion = s.version || 1;
-  items = s.items || []; events = s.events || []; notes = s.notes || []; meetings = s.meetings || [];
+  items = s.items || []; events = s.events || []; notes = s.notes || [];
+  graphLinks = (s.graph && s.graph.links) || [];   // NodeRel이 만든 관계(파생 DUE_ON/ON 포함)
   (s.proposals || []).forEach((p) => proposals.set(p.id, p));
-  renderTodos(); renderCalendar(); renderDay(); renderUpcoming(); renderMemos(); renderMeetings();
+  renderTodos(); renderCalendar(); renderDay(); renderUpcoming(); renderMemos();
+  if ($('relationsView').classList.contains('on')) renderRelations();
   refreshPropCards();
 }
+
+/* ---- 관계 (NodeRel) ----
+   서버가 state.json에서 NodeRel 그래프를 만들어 /api/state의 graph.links로 내려준다.
+   화면에는 명시적 관계만 칩으로 보인다 — 날짜 관계(DUE_ON/ON)는 이미 기한·달력으로 보이기 때문. */
+const REL = {
+  SPAWNED: { out: 'Made', in: 'From note' },
+  SCHEDULED_AS: { out: 'Scheduled', in: 'For task' },
+  REFERS_TO: { out: 'Refers to', in: 'Referenced by' },
+};
+const noteTitle = (n) => (n.title || '').trim() || (n.text || '').trim().split('\n')[0].slice(0, 40) || 'Untitled';
+const mdDate = (d) => (d ? `${+d.slice(5, 7)}/${+d.slice(8, 10)}` : '');
+function nodeOf(id) {
+  let x = items.find((t) => t.id === id);
+  if (x) return { id, kind: 'Task', x, title: x.title || x.text || '', label: x.title || x.text || '' };
+  x = events.find((e) => e.id === id);
+  if (x) return { id, kind: 'Event', x, title: x.title, label: `${mdDate(x.date)}${x.time ? ' ' + x.time : ''} · ${x.title}` };
+  x = notes.find((n) => n.id === id);
+  if (x) return { id, kind: 'Note', x, title: noteTitle(x), label: noteTitle(x) };
+  return null;
+}
+function relsOf(id) {
+  return graphLinks.filter((l) => REL[l.type] && (l.from === id || l.to === id)).map((l) => {
+    const out = l.from === id, o = nodeOf(out ? l.to : l.from);
+    return o ? { l, out, o } : null;
+  }).filter(Boolean);
+}
+function relChips(id, emptyText) {
+  const rs = relsOf(id);
+  if (!rs.length) return emptyText ? `<div class="rels-none">${escapeHtml(emptyText)}</div>` : '';
+  return `<div class="rels">${rs.map(({ l, out, o }) => `<span class="rel k-${o.kind}" role="button" tabindex="0" data-go="${escapeHtml(o.id)}"
+      data-lf="${escapeHtml(l.from)}" data-lt="${escapeHtml(l.to)}" data-ly="${l.type}" title="${escapeHtml(`${REL[l.type][out ? 'out' : 'in']} ${o.kind.toLowerCase()}: ${o.label}`)}">
+      <span class="rk">${REL[l.type][out ? 'out' : 'in']}</span><span class="rt">${escapeHtml(o.label)}</span>
+      <button class="rx" data-unlink aria-label="Remove link">✕</button></span>`).join('')}</div>`;
+}
+function showTab(v) { const b = document.querySelector(`.topnav .tab[data-view="${v}"]`); if (b && (!b.classList.contains('on') || b.dataset.group !== appMode)) selectTab(b); }
+function flash(sel) {
+  requestAnimationFrame(() => {
+    const el = document.querySelector(sel); if (!el) return;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  });
+}
+// 관계를 따라 다른 탭의 그 항목으로 이동한다
+function gotoNode(id) {
+  const n = nodeOf(id); if (!n) return;
+  const q = (v) => (window.CSS && CSS.escape ? CSS.escape(v) : v);
+  if (n.kind === 'Task') { showTab('todo'); flash(`#todoList .item[data-id="${q(id)}"]`); }
+  else if (n.kind === 'Event') { showTab('schedule'); gotoDate(n.x.date); flash(`#dayList .ev-item[data-id="${q(id)}"]:not([data-kind])`); }
+  else { showTab('memo'); cleanupEmptyMemos(id); memoSel = id; renderMemos(); flash('#memoEditor'); }
+}
+document.addEventListener('click', (e) => {
+  const chip = e.target.closest('.rel[data-go]'); if (!chip || document.body.classList.contains('ana-mode')) return;
+  e.stopPropagation();
+  if (e.target.closest('[data-unlink]')) {
+    const { lf: from, lt: to, ly: type } = chip.dataset;
+    confirmDelete(`Link "${chip.querySelector('.rk').textContent} ${chip.querySelector('.rt').textContent}"`).then((ok) => {
+      if (ok) post('/api/link', { action: 'remove', from, to, type }).then((r) => { if (!r.ok) showErr('Failed to remove the link'); refreshData(); });
+    });
+    return;
+  }
+  gotoNode(chip.dataset.go);
+}, true);
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const chip = e.target.closest && e.target.closest('.rel[data-go]'); if (!chip || e.target.closest('[data-unlink]')) return;
+  e.preventDefault(); e.stopPropagation(); gotoNode(chip.dataset.go);
+}, true);
 
 /* ---- 할일 ---- */
 function renderTodos() {
@@ -1167,7 +1425,8 @@ function renderTodos() {
   $('todoList').innerHTML = items.map((it) => `
     <div class="item card ${it.done ? 'done' : ''}" data-id="${escapeHtml(it.id)}" role="button" tabindex="0" aria-pressed="${!!it.done}">
       <span class="chk"><svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg></span>
-      <span class="body"><span class="title">${escapeHtml(it.title || it.text || '')}</span>${it.due ? `<span class="due"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${escapeHtml(it.due)}</span>` : ''}${it.by ? `<span class="itby">${byBadge(it.by)}</span>` : ''}</span>
+      <span class="body"><span class="title">${escapeHtml(it.title || it.text || '')}</span>${it.due ? `<span class="due"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${escapeHtml(it.due)}</span>` : ''}${it.by ? `<span class="itby">${byBadge(it.by)}</span>` : ''}${relChips(it.id)}</span>
+      <button class="sch" data-sched="${escapeHtml(it.id)}" aria-label="Schedule time for this task" title="Schedule time for this task"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg></button>
       ${isMine(it) ? `<button class="del" data-del="${escapeHtml(it.id)}" aria-label="Delete">✕</button>` : ''}
     </div>`).join('');
   $('todoEmpty').style.display = items.length ? 'none' : 'block';
@@ -1178,6 +1437,8 @@ function toggleTodo(el) {
   el.classList.toggle('done', done); el.setAttribute('aria-pressed', String(done));
 }
 $('todoList').addEventListener('click', (e) => {
+  const sch = e.target.closest('[data-sched]');
+  if (sch) { openEventFrom(sch.dataset.sched); return; }
   const del = e.target.closest('[data-del]');
   if (del) {
     const t = del.closest('.item')?.querySelector('.title')?.textContent || 'this task';
@@ -1234,14 +1495,14 @@ function renderDay() {
     <div class="ev-item card ${e.done ? 'done' : ''}" data-id="${escapeHtml(e.id)}">
       <span class="chk" data-toggle><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#fff;stroke-width:3;fill:none;opacity:${e.done?1:0}"><path d="M4 12l5 5L20 6"/></svg></span>
       <span class="etime">${e.time ? escapeHtml(e.time) : 'All day'}</span>
-      <span class="etitle">${escapeHtml(e.title)}</span>
+      <span class="etitle">${escapeHtml(e.title)}${relChips(e.id)}</span>
       <button class="del" data-del aria-label="Delete">✕</button>
     </div>`).join('');
   const dueHtml = dues.map((x) => `
     <div class="ev-item card ${x.done ? 'done' : ''}" data-id="${escapeHtml(x.id)}" data-kind="todo">
       <span class="chk" data-toggle><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#fff;stroke-width:3;fill:none;opacity:${x.done?1:0}"><path d="M4 12l5 5L20 6"/></svg></span>
       <span class="ebadge">Task due</span>
-      <span class="etitle">${escapeHtml(x.title || x.text || '')}</span>
+      <span class="etitle">${escapeHtml(x.title || x.text || '')}${relChips(x.id)}</span>
     </div>`).join('');
   $('dayList').innerHTML = (evHtml + dueHtml) || `<div class="empty" style="padding:24px 0">No events on this day</div>`;
 }
@@ -1314,6 +1575,7 @@ function fillMemoEditor() {
   // 입력 중에는 서버 갱신이 편집 내용을 덮어쓰지 않게 한다
   if (!memoEditing()) { $('mmTitle').value = n.title || ''; $('mmBody').value = n.text || ''; $('mmState').textContent = ''; }
   $('memoEditor').dataset.id = n.id;
+  $('mmRels').innerHTML = relChips(n.id, 'No links yet — select a line and press → Task or → Event');
 }
 async function saveMemo(id) {
   const n = notes.find((x) => x.id === id); if (!n) return;
@@ -1362,6 +1624,21 @@ function cleanupEmptyMemos(exceptId) {
     removeMemo(n.id);
   }
 }
+// 메모 → 할일/일정: 선택한 텍스트(없으면 커서가 있는 줄, 그것도 비면 메모 제목)를 제목으로 쓴다
+function memoPick() {
+  const ta = $('mmBody'), v = ta.value;
+  let t = v.slice(ta.selectionStart, ta.selectionEnd).trim();
+  if (!t && document.activeElement === ta) {
+    const a = v.lastIndexOf('\n', ta.selectionStart - 1) + 1, b = v.indexOf('\n', ta.selectionStart);
+    t = v.slice(a, b < 0 ? v.length : b).trim();
+  }
+  return (t || $('mmTitle').value.trim() || '').split('\n')[0].replace(/^[-*•\d.)\s]+/, '').slice(0, 200);
+}
+let memoPickCache = '';
+['mmToTask', 'mmToEvent'].forEach((k) => $(k).addEventListener('pointerdown', () => { memoPickCache = memoPick(); }));   // 버튼 누르면 선택이 풀리므로 미리 읽어 둔다
+$('mmToTask').onclick = () => { const id = $('memoEditor').dataset.id; if (id) openTodoFrom(id, memoPickCache || memoPick()); memoPickCache = ''; };
+$('mmToEvent').onclick = () => { const id = $('memoEditor').dataset.id; if (id) openEventFrom(id, memoPickCache || memoPick()); memoPickCache = ''; };
+$('mmLink').onclick = () => { const id = $('memoEditor').dataset.id; if (id) openLinkModal(id); };
 $('mmDel').onclick = () => { const id = $('memoEditor').dataset.id; if (id) removeMemo(id); };
 $('memoEditor').addEventListener('focusout', (e) => {
   if ($('memoEditor').contains(e.relatedTarget)) return; // 편집기 내부 포커스 이동은 이탈이 아님
@@ -1377,12 +1654,91 @@ $('memoList').addEventListener('keydown', (e) => {
   const el = e.target.closest('.memo-item'); if (!el) return; e.preventDefault(); cleanupEmptyMemos(el.dataset.id); memoSel = el.dataset.id; renderMemos();
 });
 
+/* ---- 요청 (에이전트 → 사용자) ----
+   에이전트가 이 시스템을 더 잘 운용하려고 사용자에게 부탁하는 것. 답은 채팅으로 에이전트에게 전달된다. */
+const REQ_KIND = { info: 'Needs info', decision: 'Decision', action: 'To do', access: 'Access' };
+let requestsCache = [];
+function reqCard(r, closed) {
+  const kind = REQ_KIND[r.kind] ? r.kind : 'info';
+  const ref = r.ref ? nodeOf(r.ref) : null;
+  const refChip = ref ? `<div class="rels"><span class="rel k-${ref.kind}" role="button" tabindex="0" data-go="${escapeHtml(ref.id)}"><span class="rk">${ref.kind}</span><span class="rt">${escapeHtml(ref.label)}</span></span></div>` : '';
+  const ans = r.answer ? `<div class="req-ans"><b>You:</b>${escapeHtml(r.answer)}</div>` : '';
+  let body = '';
+  if (closed) {
+    body = `<div class="evo-acts"><span class="req-st">${r.status === 'done' ? '✓ Done' : 'Not now'}</span><button class="reopen">Reopen</button></div>`;
+  } else if (r.status === 'answered') {
+    body = `<div class="req-wait">Sent to the agent — it will act on your answer</div>
+      <div class="evo-acts"><button class="done">Mark done</button><button class="talk">Discuss</button><button class="reopen">Answer again</button></div>`;
+  } else {
+    body = `${(r.options || []).length ? `<div class="req-opts">${r.options.map((o) => `<button class="opt" data-opt="${escapeHtml(o)}">${escapeHtml(o)}</button>`).join('')}</div>` : ''}
+      <div class="req-reply"><textarea rows="1" placeholder="${r.kind === 'action' ? 'Anything the agent should know? (optional)' : 'Reply to the agent…'}" aria-label="Reply"></textarea><button class="send">Send</button></div>
+      <div class="evo-acts"><button class="done">${r.kind === 'action' || r.kind === 'access' ? 'I did it' : 'Resolved'}</button><button class="talk">Discuss</button><button class="ignore">Not now</button></div>`;
+  }
+  return `<div class="req-card card ${r.status}" data-rid="${Number(r.id) || 0}"><div class="evo-top">
+    <span class="req-kind ${kind}">${REQ_KIND[kind]}</span><span class="req-t">${escapeHtml(r.title)}</span><span class="req-when">#${Number(r.id) || 0}</span></div>
+    ${r.desc ? `<div class="evo-d">${escapeHtml(r.desc)}</div>` : ''}${refChip}${closed ? '' : ans}${body}</div>`;
+}
+async function refreshRequests() {
+  let d; try { d = await (await fetch('/api/requests')).json(); } catch { return; }
+  requestsCache = d.requests || [];
+  // 답을 쓰던 칸은 다시 그려도 지우지 않는다
+  const drafts = {}; document.querySelectorAll('#reqList .req-card').forEach((c) => { const t = c.querySelector('textarea'); if (t && t.value) drafts[c.dataset.rid] = t.value; });
+  const live = requestsCache.filter((x) => x.status === 'open' || x.status === 'answered').sort((a, b) => (a.status === b.status ? a.id - b.id : a.status === 'open' ? -1 : 1));
+  const closed = requestsCache.filter((x) => x.status === 'done' || x.status === 'dismissed').sort((a, b) => String(b.closedAt || '').localeCompare(String(a.closedAt || ''))).slice(0, 20);
+  const open = live.filter((x) => x.status === 'open').length;
+  $('reqBadge').textContent = open; $('reqBadge').classList.toggle('show', open > 0); updateSysBadge();
+  $('reqList').innerHTML = live.map((r) => reqCard(r, false)).join('');
+  Object.entries(drafts).forEach(([id, v]) => { const t = document.querySelector(`#reqList .req-card[data-rid="${id}"] textarea`); if (t) t.value = v; });
+  $('reqEmpty').style.display = live.length ? 'none' : 'block';
+  $('reqClosedBox').hidden = !closed.length;
+  $('reqClosedSum').textContent = `Closed (${closed.length})`;
+  $('reqClosed').innerHTML = closed.map((r) => reqCard(r, true)).join('');
+}
+async function reqAct(id, action, answer) {
+  let r; try { r = await post('/api/request-act', { id, action, answer }); } catch { showErr('Failed to update the request'); return false; }
+  if (!r.ok) { showErr((await r.json().catch(() => ({}))).error || 'Failed to update the request'); return false; }
+  refreshRequests(); return true;
+}
+async function reqAnswer(card, answer) {
+  answer = String(answer || '').trim(); if (!answer) { card.querySelector('textarea')?.focus(); return; }
+  const id = Number(card.dataset.rid), r = requestsCache.find((x) => x.id === id); if (!r) return;
+  if (!(await reqAct(id, 'answer', answer))) return;
+  openChat();
+  const msg = `[Request #${id}] You asked: "${r.title}"\nMy answer: ${answer}\nAct on it, then mark the request done: POST http://${location.host}/api/request-act {"id":${id},"action":"done"}`;
+  post('/api/chat', { text: msg, force: true }).then((x) => { if (!x.ok) x.json().then((e) => showErr(e.error || 'Could not send the answer to the agent')).catch(() => {}); })
+    .catch(() => showErr('Could not send the answer to the agent'));
+}
+['reqList', 'reqClosed'].forEach((box) => $(box).addEventListener('click', (e) => {
+  const card = e.target.closest('.req-card'), btn = e.target.closest('button');
+  if (!card || !btn || document.body.classList.contains('ana-mode') && !btn) return;
+  const id = Number(card.dataset.rid);
+  if (btn.classList.contains('opt')) reqAnswer(card, btn.dataset.opt);
+  else if (btn.classList.contains('send')) reqAnswer(card, card.querySelector('textarea').value);
+  else if (btn.classList.contains('done')) reqAct(id, 'done');
+  else if (btn.classList.contains('ignore')) reqAct(id, 'dismiss');
+  else if (btn.classList.contains('reopen')) reqAct(id, 'reopen');
+  else if (btn.classList.contains('talk')) { addChip('Request', `#${id} ${card.querySelector('.req-t').textContent}`); openChat(); setTimeout(() => $('input').focus(), 60); }
+}));
+$('reqList').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' || e.shiftKey || e.isComposing || !e.target.matches('.req-reply textarea')) return;
+  e.preventDefault(); reqAnswer(e.target.closest('.req-card'), e.target.value);
+});
+$('reqAsk').onclick = () => {
+  const b = $('reqAsk'); b.disabled = true; const orig = b.textContent; b.textContent = 'Requesting…';
+  const h = location.host;
+  const prompt = `[Requests] Look at how this system is being run — tasks, notes, calendar, their relations and our recent conversation — and register what you need FROM ME to run it better: missing information, decisions only I can make, actions only I can do, access you lack. Do not register changes to the app itself (those are Evolve proposals).
+Register: curl -s -X POST http://${h}/api/requests -H 'content-type: application/json' -d '{"requests":[{"kind":"decision","title":"Short question","desc":"Why it matters","options":["A","B"],"ref":"<optional task/event/note id>"}]}' (kind is info|decision|action|access; options only for decisions).
+Where the flow breaks: GET http://${h}/api/stats (graph.gaps) · relations: GET http://${h}/api/graph/schema · open requests: GET http://${h}/api/requests.`;
+  post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
+    .catch(() => showErr('Request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
+};
+
 /* ---- 진화 ---- */
 async function refreshEvolve() {
   let ev; try { ev = await (await fetch('/api/evolve')).json(); } catch { return; }
   const live = (ev.proposals || []).filter((x) => x.status !== 'dismissed');
   const nw = live.filter((x) => x.status === 'new').length;
-  $('evoBadge').textContent = nw; $('evoBadge').classList.toggle('show', nw > 0);
+  $('evoBadge').textContent = nw; $('evoBadge').classList.toggle('show', nw > 0); updateSysBadge();
   const TYPES = { improve: 'improve', add: 'add', remove: 'remove' };
   $('evoList').innerHTML = live.map((p) => {
     const type = TYPES[p.type] || 'improve'; const id = Number(p.id) || 0;
@@ -1413,7 +1769,7 @@ $('evoList').addEventListener('click', (e) => {
 });
 $('evoAnalyze').onclick = () => {
   const b = $('evoAnalyze'); b.disabled = true; const orig = b.textContent; b.textContent = 'Requesting…';
-  const prompt = `[Evolve] Analyze this app's features, data, and recent conversation, then register improve/add/remove proposals.\nRegister: curl -s -X POST http://${location.host}/api/evolve -H 'content-type: application/json' -d '{"proposals":[{"type":"improve","title":"Title","desc":"Description"}]}' (type is improve|add|remove).`;
+  const prompt = `[Evolve] Analyze this app's features, data, and recent conversation, then register improve/add/remove proposals.\nRegister: curl -s -X POST http://${location.host}/api/evolve -H 'content-type: application/json' -d '{"proposals":[{"type":"improve","title":"Title","desc":"Description"}]}' (type is improve|add|remove).\nHow notes, tasks and events relate: GET http://${location.host}/api/graph/schema (NodeRel graph) and /api/stats (graph.gaps).`;
   post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Analyze request failed')).catch(() => {}); else openChat(); })
     .catch(() => showErr('Analyze request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
 };
@@ -1441,231 +1797,16 @@ function confirmDelete(what) {
   });
 }
 
-/* ---- 미팅 ---- */
-// 주요 내용 안의 URL은 링크로 만든다(에스케이프 후 치환 — XSS 방지 순서 유지)
-function linkify(escaped) {
-  return escaped.replace(/https?:\/\/[^\s<>"']+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
-}
-function renderMeetings() {
-  const list = [...meetings].sort((a, b) => (b.date + (b.time || '')).localeCompare(a.date + (a.time || '')));
-  $('meetEmpty').style.display = list.length ? 'none' : '';
-  $('meetMeta').textContent = list.length ? String(list.length) : '';
-  // 목록은 요약만 — 전체 회의록은 카드를 눌러 상세로 본다.
-  $('meetList').innerHTML = list.map((m) => {
-    const when = `${m.date}${m.time ? ' ' + m.time : ''}${m.endTime ? '–' + m.endTime : ''}`;
-    const cnt = [
-      (m.notes || []).length ? `notes ${m.notes.length}` : '',
-      (m.decisions || []).length ? `decisions ${m.decisions.length}` : '',
-      (m.actions || []).length ? `actions ${m.actions.length}` : '',
-      (m.photos || []).length ? `photos ${m.photos.length}` : '',
-    ].filter(Boolean).join(' · ');
-    const first = (m.notes || [])[0] || '';
-    return `
-    <div class="meet card" data-open="${escapeHtml(m.id)}" role="button" tabindex="0">
-      <div class="meet-top">
-        <span class="meet-t">${escapeHtml(m.title)}</span>
-        ${isMine(m) ? `<button class="meet-del" data-del="${escapeHtml(m.id)}" aria-label="Delete meeting">✕</button>` : ''}
-      </div>
-      <div class="meet-sub">${escapeHtml(when)}${m.place ? ' · ' + escapeHtml(m.place) : ''}</div>
-      ${first ? `<div class="meet-first">${escapeHtml(first)}</div>` : ''}
-      <div class="meet-foot">
-        ${(m.photos || []).slice(0, 3).map((f) =>
-          `<img src="/uploads/${encodeURIComponent(f.thumb || f.full)}" alt="" loading="lazy">`).join('')}
-        ${byBadge(m.by)}
-        <span class="sp"></span>
-        ${cnt ? `<span class="meet-cnt">${escapeHtml(cnt)}</span>` : ''}
-      </div>
-    </div>`;
-  }).join('');
-  $('meetList').querySelectorAll('[data-open]').forEach((c) => {
-    const open = () => openMeeting(c.dataset.open);
-    c.onclick = open;
-    c.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } };
-  });
-  if (meetOpenId && meetings.some((m) => m.id === meetOpenId)) openMeeting(meetOpenId);   // 열린 상세도 최신으로
-  backfillThumbs(list);
-  $('meetList').querySelectorAll('[data-del]').forEach((b) => b.onclick = async (e) => {
-    e.stopPropagation();
-    const t = (meetings.find((m2) => m2.id === b.dataset.del) || {}).title || 'this meeting';
-    if (!(await confirmDelete(`Meeting "${t}"`))) return;
-    const r = await post('/api/meeting', { action: 'remove', id: b.dataset.del });
-    if (r.ok) refreshData(); else showErr('Failed to delete the meeting');
-  });
-
-}
-$('lightbox').onclick = () => { $('lightbox').classList.remove('on'); $('lightboxImg').src = ''; };
-$('newver').onclick = () => location.reload();
-
-/* ---- 미팅 상세(회의록 전문) ---- */
-let meetOpenId = null;
-// 댓글 한 줄 — 본인 것에만 수정·삭제, 최상위에만 답글 버튼.
-function cmtItem(c, isReply) {
-  const acts = [
-    !isReply ? `<button class="cr" data-reply="${escapeHtml(c.id)}" aria-label="Reply">Reply</button>` : '',
-    isMine(c) ? `<button class="ce" data-edit="${escapeHtml(c.id)}" aria-label="Edit comment">Edit</button>` : '',
-    isMine(c) ? `<button class="cx" data-cid="${escapeHtml(c.id)}" aria-label="Delete comment">Delete</button>` : '',
-  ].filter(Boolean).join('');
-  return `<li class="cmt${isReply ? ' reply' : ''}" data-cmt="${escapeHtml(c.id)}">
-    ${avatarHtml(c.by, 'sm')}
-    <div class="cb">
-      <div class="ct">${linkify(escapeHtml(c.text))}</div>
-      <div class="cw">${escapeHtml(displayName(c.by))} · ${escapeHtml(fmtWhen(c.at))}${c.editedAt ? ' · edited' : ''}
-        <span class="cacts">${acts}</span></div>
-    </div></li>`;
-}
-// 저장은 평면(parent 포인터) — 화면에서만 1단 스레드로 묶는다.
-function cmtTree(list) {
-  const tops = list.filter((c) => !c.parent);
-  const kids = (id) => list.filter((c) => c.parent === id);
-  return tops.map((c) => cmtItem(c, false) + kids(c.id).map((r) => cmtItem(r, true)).join('')).join('');
-}
+/* ---- 공용 ---- */
 const fmtWhen = (iso) => { try { return new Date(iso).toLocaleString('en-US', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
-let editingCmt = null;   // 인라인 편집 중인 댓글 id
-function openMeeting(id) {
-  const m = meetings.find((x) => x.id === id);
-  if (!m) return;
-  if (editingCmt && meetOpenId === id) return;   // 편집 중 재렌더는 입력을 날려 버린다
-  const keepScroll = meetOpenId === id ? $('msBody').scrollTop : 0;   // 갱신 시 보던 위치 유지
-  meetOpenId = id;
-  const sec = (label, arr, cls) => (arr && arr.length
-    ? `<div class="meet-sec"><div class="meet-h">${label}</div><ul class="meet-notes ${cls || ''}">${
-        arr.map((n) => `<li>${linkify(escapeHtml(n))}</li>`).join('')}</ul></div>` : '');
-  const when = `${m.date}${m.time ? ' ' + m.time : ''}${m.endTime ? '–' + m.endTime : ''}`;
-  const meta = [['When', when], ['Location', m.place || ''], ['Attendees', (m.attendees || []).join(', ')],
-    ['Author', m.by ? displayName(m.by) : '']].filter(([, v]) => v);
-  $('msTitle').textContent = m.title;
-  const mine = isMine(m);
-  $('msEdit').style.display = mine ? '' : 'none';
-  $('msDel').style.display = mine ? '' : 'none';
-  $('msBody').innerHTML = `
-    <dl class="meet-meta">${meta.map(([k, v]) => `<dt>${k}</dt><dd>${escapeHtml(v)}</dd>`).join('')}</dl>
-    ${sec('Notes', m.notes)}
-    ${sec('Decisions', m.decisions, 'decide')}
-    ${(m.actions && m.actions.length) ? `<div class="meet-sec"><div class="meet-h">Action items</div><ul class="meet-acts">${
-      m.actions.map((a) => `<li><span class="at">${linkify(escapeHtml(a.task))}</span>${
-        a.owner ? `<span class="ao">${escapeHtml(a.owner)}</span>` : ''}${
-        a.due ? `<span class="ad">~${escapeHtml(a.due)}</span>` : ''}</li>`).join('')}</ul></div>` : ''}
-    ${(m.photos && m.photos.length) ? `<div class="meet-sec"><div class="meet-h">Photos</div><div class="meet-photos">${
-      m.photos.map((f) => `<img src="/uploads/${encodeURIComponent(f.thumb || f.full)}" data-full="/uploads/${encodeURIComponent(f.full)}" alt="${escapeHtml(m.title)} photo" loading="lazy">`).join('')}</div></div>` : ''}
-    <div class="meet-sec"><div class="meet-h">Comments ${(m.comments || []).length}</div>
-      ${(m.comments || []).length ? `<ul class="cmt-list">${cmtTree(m.comments)}</ul>`
-        : '<div class="cmt-none">No comments yet</div>'}
-    </div>`;
-  $('msBody').querySelectorAll('.meet-photos img').forEach((img) => img.onclick = () => {
-    $('lightboxImg').src = img.dataset.full || img.src; $('lightbox').classList.add('on');   // 확대는 항상 원본
-  });
-  $('msBody').querySelectorAll('[data-cid]').forEach((b) => b.onclick = async () => {
-    const kids = (m.comments || []).filter((x) => x.parent === b.dataset.cid).length;
-    if (!(await confirmDelete(kids ? `This comment and ${kids} repl${kids === 1 ? 'y' : 'ies'}` : 'This comment'))) return;
-    const r = await post('/api/meeting', { action: 'comment-remove', id: m.id, cid: b.dataset.cid });
-    if (r.ok) refreshData(); else showErr('Failed to delete the comment');
-  });
-  // 답글 — 해당 댓글 아래에 입력창을 편다
-  $('msBody').querySelectorAll('[data-reply]').forEach((b) => b.onclick = () => {
-    const li = b.closest('[data-cmt]'); if (!li) return;
-    if (li.nextElementSibling && li.nextElementSibling.classList.contains('cmt-reply-box')) return;
-    const box = document.createElement('li');
-    box.className = 'cmt-reply-box';
-    box.innerHTML = `<div class="cedit"><textarea class="ci" rows="2" placeholder="Write a reply" aria-label="Reply input"></textarea>
-      <div class="cebar"><button class="cno">Cancel</button><button class="cok">Post</button></div></div>`;
-    li.after(box);
-    const ta = box.querySelector('.ci'); ta.focus();
-    editingCmt = `reply:${b.dataset.reply}`;
-    const done = () => { editingCmt = null; openMeeting(m.id); };
-    box.querySelector('.cno').onclick = done;
-    box.querySelector('.cok').onclick = async () => {
-      const text = ta.value.trim(); if (!text) { ta.focus(); return; }
-      const r = await post('/api/meeting', { action: 'comment', id: m.id, text, parent: b.dataset.reply });
-      if (!r.ok) { showErr((await r.json().catch(() => ({}))).error || 'Failed to post the reply'); return; }
-      editingCmt = null; await refreshData();
-    };
-    ta.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); done(); }
-      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); box.querySelector('.cok').click(); }
-    });
-  });
-  // 인라인 수정 — 항목 자리에서 바로 고친다(모달을 또 띄우지 않는다)
-  $('msBody').querySelectorAll('[data-edit]').forEach((b) => b.onclick = () => {
-    const li = b.closest('[data-cmt]'); if (!li || li.querySelector('.cedit')) return;
-    const cur = (m.comments || []).find((x) => x.id === b.dataset.edit); if (!cur) return;
-    editingCmt = cur.id;                       // 갱신이 와도 편집 중인 항목은 다시 그리지 않는다
-    li.innerHTML = `<div class="cedit" style="width:100%">
-      <textarea class="ci" rows="2" aria-label="Edit comment"></textarea>
-      <div class="cebar"><button class="cno">Cancel</button><button class="cok">Save</button></div></div>`;
-    const ta = li.querySelector('.ci');
-    ta.value = cur.text; ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
-    const done = () => { editingCmt = null; openMeeting(m.id); };
-    li.querySelector('.cno').onclick = done;
-    li.querySelector('.cok').onclick = async () => {
-      const text = ta.value.trim();
-      if (!text) { ta.focus(); return; }
-      const r = await post('/api/meeting', { action: 'comment-update', id: m.id, cid: cur.id, text });
-      if (!r.ok) { showErr((await r.json().catch(() => ({}))).error || 'Failed to update the comment'); return; }
-      editingCmt = null; await refreshData();
-    };
-    ta.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); done(); }
-      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); li.querySelector('.cok').click(); }
-    });
-  });
-  shareData = {
-    title: `${m.title} — Minutes`,
-    text: `${m.title} · ${m.date}${m.time ? ' ' + m.time : ''}`,
-    url: `${location.origin}/m/${m.id}`,
-  };
-  $('scrim').classList.add('on'); $('meetSheet').classList.add('on');
-  $('msBody').scrollTop = keepScroll;
-}
-async function addComment() {
-  const text = $('msCmt').value.trim();
-  if (!text || !meetOpenId) return;
-  $('msCmtAdd').disabled = true;
-  const r = await post('/api/meeting', { action: 'comment', id: meetOpenId, text });
-  $('msCmtAdd').disabled = false;
-  if (!r.ok) { const e = await r.json().catch(() => ({})); showErr(e.error || 'Failed to post the comment'); return; }
-  $('msCmt').value = '';
-  await refreshData();
-  $('msBody').scrollTop = $('msBody').scrollHeight;   // 방금 쓴 댓글이 보이게
-}
-$('msCmtAdd').onclick = addComment;
-$('msCmt').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); addComment(); } });
-$('msEdit').onclick = () => { if (meetOpenId) editMeeting(meetOpenId); };
-/* 공유 — /m/<id> 읽기 전용 페이지 링크. 이 경로에 자체 인증은 없으므로,
-   공개 배포라면 앞단 게이트웨이가 접근을 통제해야 한다. */
 let toastT = null;
 function toast(msg) {
   $('toast').textContent = msg; $('toast').classList.add('on');
   clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), 2200);
 }
-// 공유 데이터는 상세를 열 때 미리 만들어 둔다 — 클릭 핸들러가 첫 줄에서 바로 share()를 부르도록
-// 해서 사용자 제스처(transient activation)를 잃지 않게 하기 위함이다.
-let shareData = null;
-async function copyLink(url, why) {
-  try { await navigator.clipboard.writeText(url); toast(why ? `${why} — link copied` : 'Link copied'); }
-  catch { showErr(`Share link: ${url}`); }
-}
-$('msShare').onclick = () => {
-  const d = shareData; if (!d) return;
-  if (!navigator.share) { copyLink(d.url, 'Share sheet not supported here'); return; }
-  // 일부 환경은 title+text+url 조합을 거부한다 → 동기적으로 payload를 고른다(비동기 재시도는 제스처가 끊긴다).
-  const payload = (navigator.canShare && !navigator.canShare(d)) ? { url: d.url } : d;
-  navigator.share(payload).catch((e) => {
-    if (e && e.name === 'AbortError') return;                 // 사용자가 시트를 닫음 — 오류 아님
-    copyLink(d.url, `Share sheet failed (${(e && e.name) || 'unknown'})`);
-  });
-};
-function closeMeeting() { meetOpenId = null; shareData = null; $('meetSheet').classList.remove('on'); if (!modalCur) $('scrim').classList.remove('on'); }
-$('msClose').onclick = closeMeeting;
-$('msDel').onclick = async () => {
-  const m = meetings.find((x) => x.id === meetOpenId); if (!m) return;
-  if (!(await confirmDelete(`Meeting "${m.title}"`))) return;
-  const r = await post('/api/meeting', { action: 'remove', id: m.id });
-  if (r.ok) { closeMeeting(); refreshData(); } else showErr('Failed to delete the meeting');
-};
 
-/* ---- 썸네일 ----
-   서버에 이미지 라이브러리가 없어(무의존성 유지) 리사이즈는 브라우저 canvas가 맡는다.
-   카드에는 썸네일, 확대할 때만 원본을 받는다. */
+/* ---- 이미지 축소 ----
+   서버에 이미지 라이브러리가 없어 리사이즈는 브라우저 canvas가 맡는다(프로필 사진). */
 const THUMB_MAX = 640;
 function makeThumb(blob) {
   return new Promise((resolve) => {
@@ -1684,120 +1825,9 @@ function makeThumb(blob) {
     img.src = url;   // EXIF 회전은 브라우저가 알아서 반영한다
   });
 }
-const blobToBase64 = (b) => new Promise((ok, no) => {
-  const r = new FileReader();
-  r.onload = () => ok(String(r.result).replace(/^data:[^,]*,/, ''));
-  r.onerror = () => no(new Error('Thumbnail encode failed'));
-  r.readAsDataURL(b);
-});
-async function uploadThumb(blob, baseName) {
-  const data = await blobToBase64(blob);
-  const r = await post('/api/upload', { name: `thumb-${baseName.replace(/\.[^.]+$/, '')}.jpg`, type: 'image/jpeg', data });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.error || 'Thumbnail upload failed');
-  return String(j.path).split('/').pop();
-}
-// 썸네일 없이 등록된 사진(예: 에이전트가 직접 넣은 것)을 화면이 한 번 보정해 준다.
-const thumbTried = new Set();
-async function backfillThumbs(list) {
-  for (const m of list) {
-    for (const ph of m.photos || []) {
-      if (!ph || ph.thumb || thumbTried.has(ph.full)) continue;
-      thumbTried.add(ph.full);
-      try {
-        const blob = await (await fetch(`/uploads/${encodeURIComponent(ph.full)}`)).blob();
-        if (!blob.type.startsWith('image/')) continue;
-        const th = await makeThumb(blob);
-        if (!th) continue;
-        const name = await uploadThumb(th, ph.full);
-        await post('/api/meeting', { action: 'thumb', id: m.id, full: ph.full, thumb: name });
-        refreshData();
-      } catch { /* 실패하면 원본으로 계속 보여 준다 */ }
-    }
-  }
-}
 
-/* ---- 회의록 작성 모달 ---- */
-let meetPhotos = [];   // {name, full, thumb, pending}
-function renderMeetPhotos() {
-  $('mPhotoList').innerHTML = meetPhotos.map((p2, i) =>
-    `<span class="pp${p2.pending ? ' up' : ''}">${escapeHtml(p2.name)}<button data-i="${i}" aria-label="Remove photo">${XSVG}</button></span>`).join('');
-  $('mPhotoList').querySelectorAll('button').forEach((b) => b.onclick = () => { meetPhotos.splice(+b.dataset.i, 1); renderMeetPhotos(); });
-}
-$('mPhotoBtn').onclick = () => $('mPhotoInput').click();
-$('mPhotoInput').addEventListener('change', async () => {
-  const files = Array.from($('mPhotoInput').files || []); $('mPhotoInput').value = '';
-  for (const f of files) {
-    if (f.size > MAX_UPLOAD) { showErr(`${f.name}: ${fmtSize(f.size)} — over the 10MB limit`); continue; }
-    const item = { name: f.name, full: '', thumb: '', pending: true };
-    meetPhotos.push(item); renderMeetPhotos();
-    try {
-      const r = await post('/api/upload', { name: f.name, type: f.type || '', data: await readAsBase64(f) });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(j.error || 'Upload failed');
-      item.full = String(j.path).split('/').pop();
-      const th = await makeThumb(f);                       // 카드용 축소본
-      if (th) { try { item.thumb = await uploadThumb(th, item.full); } catch {} }
-      item.pending = false;
-    } catch (e) { meetPhotos = meetPhotos.filter((x) => x !== item); showErr(`Photo upload failed — ${e.message}`); }
-    renderMeetPhotos();
-  }
-});
-let meetEditId = null;   // null이면 새 회의록, 아니면 수정 중인 미팅 id
-$('addMeetBtn').onclick = () => {
-  meetEditId = null; meetPhotos = []; renderMeetPhotos();
-  ['mTitle', 'mTime', 'mEnd', 'mPlace', 'mAttend', 'mNotes', 'mDecide', 'mActions'].forEach((k) => { $(k).value = ''; });
-  $('mDate').value = new Date().toLocaleDateString('sv-SE');   // 로컬 기준 YYYY-MM-DD
-  $('meetModal').querySelector('h3').textContent = 'New meeting minutes';
-  $('mSave').textContent = 'Add';
-  openModal('meetModal'); $('mTitle').focus();
-};
-// 액션 아이템을 다시 편집 가능한 한 줄 표기로 되돌린다(파싱의 역방향)
-const actionToLine = (a) => [a.task, a.owner ? '@' + a.owner : '', a.due ? '~' + a.due : ''].filter(Boolean).join(' ');
-function editMeeting(id) {
-  const m = meetings.find((x) => x.id === id);
-  if (!m) return;
-  meetEditId = id;
-  meetPhotos = (m.photos || []).map((f) => ({ name: f.full.replace(/^\d{14}-[0-9a-f]{6}-/, ''), full: f.full, thumb: f.thumb || '', pending: false }));
-  renderMeetPhotos();
-  $('mTitle').value = m.title || ''; $('mDate').value = m.date || '';
-  $('mTime').value = m.time || ''; $('mEnd').value = m.endTime || '';
-  $('mPlace').value = m.place || ''; $('mAttend').value = (m.attendees || []).join(', ');
-  $('mNotes').value = (m.notes || []).join('\n');
-  $('mDecide').value = (m.decisions || []).join('\n');
-  $('mActions').value = (m.actions || []).map(actionToLine).join('\n');
-  $('meetModal').querySelector('h3').textContent = 'Edit meeting minutes';
-  $('mSave').textContent = 'Save';
-  openModal('meetModal'); $('mTitle').focus();
-}
-// "작업 @담당자 ~기한" 한 줄을 액션 아이템으로 쪼갠다. 표기가 없으면 전체가 작업이 된다.
-function parseAction(line) {
-  let task = line, owner = '', due = '';
-  task = task.replace(/~(\S+)/, (_, d) => { due = d; return ''; });
-  task = task.replace(/@(\S+)/, (_, o) => { owner = o; return ''; });
-  return { task: task.replace(/\s+/g, ' ').trim(), owner, due };
-}
-$('mSave').onclick = async () => {
-  const title = $('mTitle').value.trim(); const date = $('mDate').value;
-  if (!title) { $('mTitle').focus(); return; } if (!date) { $('mDate').focus(); return; }
-  if (meetPhotos.some((p2) => p2.pending)) { showErr('Waiting for photo uploads to finish — one moment'); return; }
-  const rows = (id) => $(id).value.split('\n').map((x) => x.trim()).filter(Boolean);
-  const body = {
-    action: 'add', title, date,
-    place: $('mPlace').value.trim(),
-    attendees: $('mAttend').value.split(',').map((x) => x.trim()).filter(Boolean),
-    notes: rows('mNotes'),
-    decisions: rows('mDecide'),
-    actions: rows('mActions').map(parseAction).filter((a) => a.task),
-    photos: meetPhotos.filter((p2) => p2.full).map((p2) => ({ full: p2.full, thumb: p2.thumb })),
-  };
-  if ($('mTime').value) body.time = $('mTime').value;
-  if ($('mEnd').value) body.endTime = $('mEnd').value;
-  if (meetEditId) { body.action = 'update'; body.id = meetEditId; }
-  const r = await post('/api/meeting', body);
-  if (r.ok) { const edited = meetEditId; meetEditId = null; closeModal(); await refreshData(); if (edited) openMeeting(edited); }
-  else { const e = await r.json().catch(() => ({})); showErr(e.error || (meetEditId ? 'Failed to save the minutes' : 'Failed to add the meeting')); }
-};
+// 새 버전 알림 — 서버 빌드가 바뀌면 뜬다. 누르면 새로 불러온다(캐시 우회용 쿼리 없이도 서버가 no-cache로 준다)
+$('newver').onclick = () => location.reload();
 
 /* ================= 계정 =================
    신원은 서버가 앞단 프록시 헤더에서 읽어 /api/me로 알려준다(ANA_IDENTITY_HEADER).
@@ -1832,7 +1862,7 @@ async function loadMe() {
   $('menuLogout').disabled = !logoutUrl;
   $('menuLogoutHint').hidden = !!logoutUrl;
   $('menuLogoutHint').textContent = signedIn ? 'Set ANA_LOGOUT_URL to enable' : 'Single-user mode — no sign-in';
-  renderTodos(); renderMeetings(); renderMemos(); renderUpcoming();
+  renderTodos(); renderMemos(); renderUpcoming();
 }
 /* 아바타 클릭 → 드롭다운 메뉴(Edit My Info / Settings) */
 function openMyInfo() {
@@ -1912,42 +1942,10 @@ $('meSave').onclick = async () => {
   const r = await post('/api/me', { name: $('meName').value.trim() });
   if (!r.ok) { showErr((await r.json().catch(() => ({}))).error || 'Save failed'); return; }
   closeModal(); await loadMe();
-  if ($('memberView').classList.contains('on')) renderMembers();
 };
 // 로그아웃은 앞단 게이트웨이의 몫 — ANA_LOGOUT_URL이 설정된 배포에서만 버튼이 보인다.
 $('meLogout').onclick = () => { if (logoutUrl) location.href = logoutUrl; };
 $('menuLogout').onclick = () => { if (!logoutUrl) return; $('meMenu').hidden = true; location.href = logoutUrl; };
-
-/* ================= 멤버 ================= */
-async function renderMembers() {
-  let d;
-  try { d = await (await fetch('/api/members')).json(); }
-  catch { $('memList').innerHTML = '<div class="empty">Failed to load members</div>'; return; }
-  const list = d.members || [];
-  list.forEach((m2) => { userMap[m2.email] = { email: m2.email, name: m2.name, avatar: m2.avatar }; });
-  $('memMeta').textContent = list.length ? String(list.length) : '';
-  $('memEmpty').style.display = list.length ? 'none' : '';
-  const KO = { 'chat.send': 'chat', 'todo.add': 'task added', 'meeting.add': 'meeting added', 'meeting.update': 'meeting updated',
-    'comment.add': 'comment', 'note.add': 'note added', 'profile.update': 'profile updated' };
-  const c = (n, l) => (n ? `<span class="mem-tag">${l} ${n}</span>` : '');
-  $('memList').innerHTML = list.map((m2) => `
-    <div class="mem card">
-      ${avatarHtml(m2.email)}
-      <div class="mem-b">
-        <div class="mem-n"><b>${escapeHtml(m2.name)}</b>
-          ${m2.email === d.me ? '<span class="mem-tag me">Me</span>' : ''}
-          ${m2.email === 'ana' ? '<span class="mem-tag bot">Agent</span>' : ''}
-          ${m2.customized ? '<span class="mem-tag on">Profile set</span>' : (m2.registered ? '<span class="mem-tag">Default profile</span>' : '')}
-        </div>
-        ${m2.email !== 'ana' ? `<div class="mem-mail">${escapeHtml(m2.email)}</div>` : ''}
-        <div class="mem-tags">${c(m2.counts.todos, 'Tasks')}${c(m2.counts.meetings, 'Meetings')}${c(m2.counts.notes, 'Notes')}${
-          c(m2.counts.events, 'Events')}${c(m2.counts.comments, 'Comments')}${c(m2.counts.chats, 'Chats')}</div>
-        <div class="mem-when">${m2.lastAt ? `Last active ${escapeHtml(fmtWhen(m2.lastAt))} · ${escapeHtml(KO[m2.lastAction] || m2.lastAction)}` : 'No activity'}${
-          m2.profileUpdatedAt ? ` · profile updated ${escapeHtml(fmtWhen(m2.profileUpdatedAt))}` : ''}</div>
-      </div>
-      <div class="mem-act"><div class="n">${m2.activity}</div><div class="l">Activity</div></div>
-    </div>`).join('');
-}
 
 /* ================= 통계 ================= */
 let statSeg = 'mine';
@@ -1967,13 +1965,13 @@ async function renderStats() {
     $('statBody').innerHTML = !m
       ? '<div class="empty">No account info — personal stats unavailable</div>'
       : `<div class="stat-grid">${tile(m.total || 0, 'Total activity')}${tile(m.today || 0, 'Today')}${
-          tile(m.todos || 0, 'My tasks')}${tile(m.meetings || 0, 'My meetings')}${tile(m.notes || 0, 'My notes')}${
+          tile(m.todos || 0, 'My tasks')}${tile(m.events || 0, 'My events')}${tile(m.notes || 0, 'My notes')}${
           tile((m.actions && m.actions['chat.send']) || 0, 'My chats')}</div>`;
   } else {
     const a = d.all, max = Math.max(1, ...a.days.map((x) => x.count));
     $('statBody').innerHTML = `
       <div class="stat-grid">${tile(a.total, 'Total activity')}${tile(a.people.length, 'People')}${
-        tile(a.todos, 'Tasks')}${tile(a.meetings, 'Meetings')}${tile(a.notes, 'Notes')}${tile(a.actions['chat.send'] || 0, 'Chats')}</div>
+        tile(a.todos, 'Tasks')}${tile(a.events, 'Events')}${tile(a.notes, 'Notes')}${tile(a.actions['chat.send'] || 0, 'Chats')}</div>
       <div class="card spark" title="Last 14 days">${a.days.map((x) =>
         `<i class="${x.count === max && max > 0 ? 'hi' : ''}" style="height:${Math.round((x.count / max) * 100)}%" title="${x.date} · ${x.count}"></i>`).join('')}</div>
       <div class="people">${a.people.map((pp) => `
@@ -1983,25 +1981,124 @@ async function renderStats() {
   }
   const ACT_KO = { 'todo.add': 'task added', 'todo.remove': 'task deleted', 'todo.done': 'task done', 'todo.undone': 'task reopened',
     'note.add': 'note added', 'note.remove': 'note deleted', 'event.add': 'event added', 'event.remove': 'event deleted',
-    'meeting.add': 'meeting added', 'meeting.update': 'meeting updated', 'meeting.remove': 'meeting deleted',
-    'comment.add': 'comment', 'comment.remove': 'comment deleted', 'chat.send': 'chat', 'profile.update': 'profile' };
+    'link.add': 'linked', 'link.remove': 'unlinked', 'chat.send': 'chat', 'profile.update': 'profile' };
   $('actList').innerHTML = (act.activity || []).slice(0, 60).map((a) => `
     <div class="act-row card">${avatarHtml(a.by, 'sm')}<span class="aa">${escapeHtml(ACT_KO[a.action] || a.action)}</span>
       <span class="at2">${escapeHtml(a.target || '')}</span><span class="aw">${escapeHtml(fmtWhen(a.at))}</span></div>`).join('')
     || '<div class="empty">No activity yet</div>';
 }
 
+/* ---- 관계(Relations) ----
+   메모 → 할일 → 일정 → 날짜를 네 칸으로 늘어놓고 NodeRel 관계를 선으로 잇는다. 항목을 누르면 그 항목으로 간다. */
+const REL_INFO = [
+  ['SPAWNED', 'Note', 'Task · Event', 'Where a task or event came from', true],
+  ['SCHEDULED_AS', 'Task', 'Event', 'Time blocked to work on the task', true],
+  ['REFERS_TO', 'Note · Task · Event', 'Note · Task · Event', 'Manual reference between two items', true],
+  ['DUE_ON', 'Task', 'Day', 'The task is due that day (from its due date)', false],
+  ['ON', 'Event', 'Day', 'The event happens that day (from its date)', false],
+];
+async function renderRelations() {
+  $('relWs').textContent = (workspaces.find((w) => w.id === currentWs) || {}).name || '';
+  let d; try { d = await (await fetch('/api/stats')).json(); } catch { $('relGraph').innerHTML = '<div class="empty">Failed to load</div>'; return; }
+  renderRelStats(d.graph);
+  const cnt = (t) => ((d.graph && d.graph.types) || []).find((x) => x.type === t)?.count || 0;
+  $('relVocab').innerHTML = `<table><thead><tr><th>Relation</th><th>From → To</th><th>Meaning</th><th>Count</th></tr></thead><tbody>${
+    REL_INFO.map(([t, f, to, m, ed]) => `<tr><td><code>${t}</code>${ed ? '' : ' <span class="auto">auto</span>'}</td><td>${f} → ${to}</td><td>${m}</td><td>${cnt(t)}</td></tr>`).join('')}</tbody></table>`;
+  drawRelGraph();
+}
+function drawRelGraph() {
+  const days = [...new Set(graphLinks.filter((l) => l.type === 'DUE_ON' || l.type === 'ON').map((l) => l.to))].sort();
+  const cols = [
+    ['Notes', notes.map((n) => ({ id: n.id, kind: 'Note', title: noteTitle(n) }))],
+    ['Tasks', items.map((t) => ({ id: t.id, kind: 'Task', title: t.title || t.text || '', done: t.done }))],
+    ['Events', events.map((e) => ({ id: e.id, kind: 'Event', title: `${mdDate(e.date)} ${e.title}`, done: e.done }))],
+    ['Days', days.map((dd) => ({ id: dd, kind: 'Day', title: mdDate(dd.slice(4)) }))],
+  ];
+  const W = Math.max(560, $('relGraph').clientWidth - 24), gap = 26, nw = (W - gap * 3) / 4, nh = 28, vg = 8, top = 26;
+  const pos = new Map();
+  cols.forEach(([, list], c) => list.forEach((n, i) => pos.set(n.id, { x: c * (nw + gap), y: top + i * (nh + vg), n })));
+  const H = top + Math.max(1, ...cols.map(([, l]) => l.length)) * (nh + vg);
+  const clip = (t) => { const max = Math.floor(nw / 7.2); return t.length > max ? t.slice(0, max - 1) + '…' : t; };
+  const edges = graphLinks.map((l) => {
+    const a = pos.get(l.from), b = pos.get(l.to); if (!a || !b) return '';
+    const back = b.x < a.x || (b.x === a.x);
+    const x1 = back ? a.x : a.x + nw, x2 = back ? b.x + (b.x === a.x ? 0 : nw) : b.x, y1 = a.y + nh / 2, y2 = b.y + nh / 2;
+    const bend = b.x === a.x ? -40 : (x2 - x1) / 2;
+    return `<path class="edge ${l.type}" data-f="${escapeHtml(l.from)}" data-t="${escapeHtml(l.to)}" d="M${x1},${y1} C${x1 + bend},${y1} ${x2 - bend},${y2} ${x2},${y2}"/>`;
+  }).join('');
+  const heads = cols.map(([h], c) => `<text class="colh" x="${c * (nw + gap) + 2}" y="14">${h.toUpperCase()} · ${cols[c][1].length}</text>`).join('');
+  const nodes = [...pos.values()].map(({ x, y, n }) => `<g class="node k-${n.kind}${n.done ? ' done' : ''}" data-id="${escapeHtml(n.id)}" tabindex="0" role="button"><title>${escapeHtml(n.title)}</title>
+    <rect x="${x}" y="${y}" width="${nw}" height="${nh}" rx="8"/><text x="${x + 9}" y="${y + nh / 2 + 4}">${escapeHtml(clip(n.title))}</text></g>`).join('');
+  $('relGraph').innerHTML = `<div class="rel-legend"><span><i style="border-color:var(--warm-fg)"></i>SPAWNED</span><span><i style="border-color:var(--success)"></i>SCHEDULED_AS</span><span><i style="border-color:var(--text-weak);border-top-style:dashed"></i>REFERS_TO</span><span><i style="border-color:var(--line)"></i>due / on day</span></div>
+    <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Relation graph of notes, tasks, events and days">${edges}${heads}${nodes}</svg>`;
+  // 항목에 올리면 이어진 것만 밝게, 누르면 그 항목으로 이동
+  const box = $('relGraph');
+  const hl = (id) => { box.classList.toggle('dim', !!id); box.querySelectorAll('.hl').forEach((x) => x.classList.remove('hl')); if (!id) return;
+    box.querySelectorAll(`.node[data-id="${CSS.escape(id)}"]`).forEach((x) => x.classList.add('hl'));
+    box.querySelectorAll('.edge').forEach((e) => { if (e.dataset.f === id || e.dataset.t === id) { e.classList.add('hl'); [e.dataset.f, e.dataset.t].forEach((k) => box.querySelectorAll(`.node[data-id="${CSS.escape(k)}"]`).forEach((x) => x.classList.add('hl'))); } }); };
+  box.querySelectorAll('.node').forEach((g) => {
+    g.onmouseenter = () => hl(g.dataset.id); g.onmouseleave = () => hl(''); g.onfocus = () => hl(g.dataset.id); g.onblur = () => hl('');
+    const go = () => { const id = g.dataset.id; if (id.startsWith('day:')) { setAppMode('ws', 'schedule'); gotoDate(id.slice(4)); } else gotoNode(id); };
+    g.onclick = go; g.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } };
+  });
+}
+
+// 연결 — 관계 종류별 개수와, 메모→할일→일정 흐름이 끊긴 곳(NodeRel orphans)
+function renderRelStats(g) {
+  if (!g || g.error) { $('relStats').innerHTML = `<div class="empty">Graph unavailable${g && g.error ? ' — ' + escapeHtml(g.error) : ''}</div>`; return; }
+  const tile = (n, l) => `<div class="stat card"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+  const cnt = (t) => (g.types.find((x) => x.type === t) || {}).count || 0;
+  const chipsFor = (list) => list.length ? `<div class="rels">${list.slice(0, 30).map((x) => { const n = nodeOf(x.id);
+    return n ? `<span class="rel k-${n.kind}" role="button" tabindex="0" data-go="${escapeHtml(n.id)}"><span class="rt">${escapeHtml(n.label)}</span></span>` : ''; }).join('')}</div>` : '';
+  const gap = (title, desc, list) => `<div class="gap-sec card"><h3>${title}<span class="gn ${list.length ? '' : 'ok'}">${list.length || '✓'}</span></h3>
+    <div class="gd">${desc}</div>${chipsFor(list)}</div>`;
+  $('relStats').innerHTML = `<div class="stat-grid">${tile(cnt('SPAWNED'), 'Note → task/event')}${tile(cnt('SCHEDULED_AS'), 'Task → scheduled')}${
+    tile(cnt('REFERS_TO'), 'References')}</div>
+    ${gap('Notes not acted on', 'No task or event was made from these notes yet', g.gaps.notesUnused)}
+    ${gap('Open tasks without a due date', 'They never show up on the calendar', g.gaps.tasksNoDue)}
+    ${gap('Open tasks with no time scheduled', 'Use the calendar button on a task to block time for it', g.gaps.tasksUnscheduled)}`;
+}
+
 /* ================= 탭 전환 ================= */
-document.querySelectorAll('.topnav .tab').forEach((b) => {
-  b.onclick = () => {
+// 영역(Workspace / System)마다 마지막으로 본 탭을 기억한다
+let appMode = 'ws';
+const lastTab = { ws: 'todo', sys: 'stats' };
+try { const m = localStorage.getItem('ana-area'); if (m === 'sys') appMode = 'sys'; const t = JSON.parse(localStorage.getItem('ana-area-tabs') || '{}'); Object.assign(lastTab, t); } catch {}
+// 탭 선택은 click()이 아니라 이 함수로 — 클릭 처리 중인 버튼에 다시 click()을 부르면 브라우저가 무시한다
+function selectTab(b) {
+    if (b.dataset.group && b.dataset.group !== appMode) applyArea(b.dataset.group);
     if ($('memoView').classList.contains('on') && b.dataset.view !== 'memo') cleanupEmptyMemos(); // 메모 탭 이탈 시 빈 메모 정리(진화 #3)
     document.querySelectorAll('.topnav .tab').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
-    ['todo', 'schedule', 'meeting', 'memo', 'member', 'stats', 'evolve'].forEach((v) => $(v + 'View').classList.toggle('on', b.dataset.view === v));
+    ['todo', 'schedule', 'memo', 'stats', 'requests', 'evolve', 'relations'].forEach((v) => $(v + 'View').classList.toggle('on', b.dataset.view === v));
+    lastTab[appMode] = b.dataset.view;
+    try { localStorage.setItem('ana-area-tabs', JSON.stringify(lastTab)); } catch {}
     if (b.dataset.view === 'evolve') refreshEvolve();
+    if (b.dataset.view === 'requests') refreshRequests();
     if (b.dataset.view === 'stats') renderStats();
-    if (b.dataset.view === 'member') renderMembers();
-  };
-});
+    if (b.dataset.view === 'relations') renderRelations();
+}
+document.querySelectorAll('.topnav .tab').forEach((b) => { b.onclick = () => selectTab(b); });
+function applyArea(mode) {
+  appMode = mode === 'sys' ? 'sys' : 'ws';
+  document.body.classList.toggle('sys-mode', appMode === 'sys');
+  document.querySelectorAll('[data-area]').forEach((x) => { const on = x.dataset.area === appMode; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
+  document.querySelectorAll('.topnav .tab[data-group]').forEach((t) => { t.hidden = t.dataset.group !== appMode; });
+  try { localStorage.setItem('ana-area', appMode); } catch {}
+}
+function setAppMode(mode, view) {
+  applyArea(mode);
+  const b = document.querySelector(`.topnav .tab[data-group="${appMode}"][data-view="${view || lastTab[appMode]}"]`) || document.querySelector(`.topnav .tab[data-group="${appMode}"]`);
+  if (b) selectTab(b);
+}
+document.querySelectorAll('[data-area]').forEach((b) => b.onclick = () => setAppMode(b.dataset.area));
+// System 배지 = 열린 요청 + 새 진화 제안
+function updateSysBadge() {
+  const n = (Number($('reqBadge').textContent) || 0) * $('reqBadge').classList.contains('show') + (Number($('evoBadge').textContent) || 0) * $('evoBadge').classList.contains('show');
+  document.querySelectorAll('[data-sysbadge]').forEach((x) => { x.textContent = n > 9 ? '9+' : String(n); x.classList.toggle('show', n > 0); });
+}
+// 영역 적용은 스크립트가 다 읽힌 뒤에 — 탭 클릭이 아래쪽에서 선언되는 상태 변수를 건드려도 TDZ에 걸리지 않게
+document.querySelectorAll('.topnav .tab[data-group]').forEach((t) => { t.hidden = t.dataset.group !== appMode; });
+setTimeout(() => setAppMode(appMode), 0);
 
 /* ================= 모달 (수동 추가) ================= */
 let modalCur = null;
@@ -2009,36 +2106,66 @@ function openModal(id) { modalCur = id; $('scrim').classList.add('on'); $(id).cl
 function closeModal() {
   if (!modalCur) return;
   $(modalCur).classList.remove('on'); modalCur = null;
-  if (!$('meetSheet').classList.contains('on')) $('scrim').classList.remove('on');   // 상세 시트가 남아 있으면 스크림 유지
+  $('scrim').classList.remove('on');
 }
 $('scrim').onclick = () => {
   if ($('confirmModal').classList.contains('on')) return;   // 확인 창이 떠 있으면 뒤쪽을 건드리지 않는다
-  if ($('meetSheet').classList.contains('on')) closeMeeting();
   closeModal();
 };
-document.addEventListener('keydown', (e) => {
-  if (e.key !== 'Escape') return;
-  if ($('lightbox').classList.contains('on')) { $('lightbox').classList.remove('on'); $('lightboxImg').src = ''; return; }
-  if ($('confirmModal').classList.contains('on')) return;   // 확인 창은 자체 핸들러가 처리
-  if ($('meetSheet').classList.contains('on')) closeMeeting();
-});
 document.querySelectorAll('[data-close]').forEach((b) => b.onclick = closeModal);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalCur) closeModal(); });
-$('addTodoBtn').onclick = () => { $('tTitle').value = ''; $('tDue').value = weekLater(); openModal('todoModal'); };
-$('addEventBtn').onclick = () => { $('eTitle').value = ''; $('eDate').value = selDate || today(); $('eTime').value = ''; openModal('eventModal'); };
+// from: 새 항목이 나온 곳(메모·할일). 저장할 때 서버가 SPAWNED / SCHEDULED_AS 관계를 함께 만든다.
+let tFromId = '', eFromId = '';
+function setFrom(el, id) {
+  const n = id ? nodeOf(id) : null;
+  el.hidden = !n; el.textContent = n ? `${n.kind === 'Note' ? 'From note' : 'For task'}: ${n.title}` : '';
+}
+function openTodoFrom(fromId, title) {
+  tFromId = fromId || ''; setFrom($('tFrom'), tFromId);
+  $('tTitle').value = title || ''; $('tDue').value = weekLater(); openModal('todoModal');
+}
+function openEventFrom(fromId, title) {
+  eFromId = fromId || ''; setFrom($('eFrom'), eFromId);
+  const n = fromId ? nodeOf(fromId) : null;
+  $('eTitle').value = title || (n && n.kind === 'Task' ? n.title : '');
+  $('eDate').value = (n && n.kind === 'Task' && n.x.due) || selDate || today(); $('eTime').value = '';
+  openModal('eventModal');
+}
+$('addTodoBtn').onclick = () => openTodoFrom('');
+$('addEventBtn').onclick = () => openEventFrom('');
 $('tSave').onclick = async () => {
   const title = $('tTitle').value.trim(); if (!title) { $('tTitle').focus(); return; }
-  const body = { title }; if ($('tDue').value) body.due = $('tDue').value;
+  const body = { title }; if ($('tDue').value) body.due = $('tDue').value; if (tFromId) body.from = tFromId;
   const r = await post('/api/todo', body);
   if (r.ok) { closeModal(); refreshData(); } else { const e = await r.json().catch(() => ({})); showErr(e.error || 'Failed to add the task'); }
 };
 $('eSave').onclick = async () => {
   const title = $('eTitle').value.trim(); const date = $('eDate').value;
   if (!title) { $('eTitle').focus(); return; } if (!date) { $('eDate').focus(); return; }
-  const body = { action: 'add', title, date }; if ($('eTime').value) body.time = $('eTime').value;
+  const body = { action: 'add', title, date }; if ($('eTime').value) body.time = $('eTime').value; if (eFromId) body.from = eFromId;
   const r = await post('/api/event', body);
   if (r.ok) { closeModal(); selDate = date; const d = date.split('-'); calY = +d[0]; calM = +d[1] - 1; refreshData(); } else { const e = await r.json().catch(() => ({})); showErr(e.error || 'Failed to add the event'); }
 };
+
+/* ---- 참조 연결 모달 (REFERS_TO) ---- */
+let linkSrc = '';
+function renderLinkList() {
+  const q = $('lkQ').value.trim().toLowerCase();
+  const linked = new Set(relsOf(linkSrc).map((r) => r.o.id));
+  const all = [...items.map((x) => x.id), ...events.map((x) => x.id), ...notes.map((x) => x.id)]
+    .filter((id) => id !== linkSrc && !linked.has(id)).map(nodeOf).filter(Boolean)
+    .filter((n) => !q || n.label.toLowerCase().includes(q)).slice(0, 60);
+  $('lkList').innerHTML = all.map((n) => `<button class="lk-item k-${n.kind}" role="option" data-to="${escapeHtml(n.id)}">
+    <span class="rk">${n.kind}</span><span class="lt">${escapeHtml(n.label)}</span></button>`).join('')
+    || '<div class="empty" style="padding:18px 0">Nothing to link</div>';
+}
+function openLinkModal(src) { linkSrc = src; $('lkQ').value = ''; renderLinkList(); openModal('linkModal'); }
+$('lkQ').addEventListener('input', renderLinkList);
+$('lkList').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-to]'); if (!b) return;
+  const r = await post('/api/link', { action: 'add', from: linkSrc, to: b.dataset.to, type: 'REFERS_TO' });
+  if (r.ok) { closeModal(); refreshData(); } else showErr((await r.json().catch(() => ({}))).error || 'Failed to link');
+});
 
 /* ================= 채팅 접기/펼치기 + 폭 조절 ================= */
 (() => {
@@ -2086,6 +2213,25 @@ $('eSave').onclick = async () => {
 let srvConnected = false, health = null;
 // 세션 생존 판정 단일 소스 — health가 오기 전에는 SSE의 sessionAlive를 쓴다.
 function sesAlive() { return health ? health.session : sessionAlive; }
+// 작업 중 경과 시간(✳ 12s · Thinking…) — busy가 켜진 순간부터 센다
+let busySince = 0, busyTimer = null;
+function tickBusy() {
+  clearInterval(busyTimer);
+  const put = () => { if (!busySince) { clearInterval(busyTimer); return; } const t = Math.floor((Date.now() - busySince) / 1000);
+    $('typEl').textContent = t < 60 ? `${t}s` : `${Math.floor(t / 60)}m ${t % 60}s`; };
+  put(); busyTimer = setInterval(put, 1000);
+}
+// tmux가 알려 주는 건 프로세스 이름이다. Claude Code npm 패키지는 macOS에서도 실행 파일을 bin/claude.exe로 배포하므로
+// '.exe'를 떼고 사람이 아는 이름으로 바꾼다.
+// Codex·Gemini CLI처럼 node 위에서 도는 에이전트는 프로세스 이름이 'node'라, 그때는 세션 이름에서 짐작한다.
+const AGENTS = { claude: 'Claude Code', codex: 'Codex', gemini: 'Gemini CLI', aider: 'Aider' };
+const agentName = (cmd, session) => {
+  const c = String(cmd || '').replace(/\.exe$/i, '').toLowerCase();
+  if (AGENTS[c]) return AGENTS[c];
+  const hint = Object.keys(AGENTS).find((k) => String(session || '').toLowerCase().includes(k));
+  if (hint && /^(node|python3?|bun|deno)?$/.test(c)) return AGENTS[hint];
+  return c || 'Agent';
+};
 function renderStatus() {
   const ses = sesAlive();
   const shell = /^-?(zsh|bash|sh|fish|dash|ksh|tcsh|csh|login)$/.test((health && health.command) || '');
@@ -2094,13 +2240,15 @@ function renderStatus() {
   const pill = $('connPill');
   pill.className = 'conn ' + (agentOk ? 'ok' : 'bad');
   // ANA(코딩 에이전트) 연결 여부를 영문으로 표시
-  $('connLabel').textContent = agentOk ? `ANA · ${health.target || health.name}` : 'ANA disconnected';
+  $('connLabel').textContent = agentOk ? (health.target || health.name) : 'Not connected';
+  $('agentPill').textContent = agentOk ? (logModel || agentName(health.command, health.target)) : 'No agent';
   pill.title = agentOk ? `Connected to ${health.target || health.name}${health.size ? ' · ' + health.size : ''} — click to switch`
     : !srvConnected ? 'Server unreachable — reconnecting'
     : !ses ? 'No agent — click to select'
     : shell ? 'Shell only (agent not running) — click to select'
     : 'Connecting…';
   $('typing').classList.toggle('on', busy);
+  if (busy && !busySince) { busySince = Date.now(); tickBusy(); } else if (!busy) busySince = 0;
   $('fab').classList.toggle('busy', ses && busy);
   updateSendMode();
   updateDialog((!!dialogInfo || !!(health && health.dialog)) && ses);   // 터미널에 확인 창(질문·권한 메뉴)이 열렸는지
@@ -2187,13 +2335,14 @@ function extractDialog(screen) {
 // 이 페이지가 로드된 시점의 빌드. 서버 값이 달라지면 열어 둔 탭이 옛 코드라는 뜻이다.
 let bootBuild = null;
 async function pollHealth() {
+  if (!logTimer) pollLogSoon();
   try { health = await (await fetch('/api/health')).json(); } catch { health = null; }
   // 서버가 기억한 내 세션이 지금 보는 원장과 다르면(다른 탭·기기에서 바꿈) 그 세션으로 갈아탄다
   if (health && health.target && streamTarget && health.target !== streamTarget) { switchStream(); return; }
   if (health && 'dialogInfo' in health && !dialogBusy) dialogInfo = health.dialogInfo;
   if (health && health.build) {
     if (!bootBuild) bootBuild = health.build;
-    else if (health.build !== bootBuild) $('newver').classList.add('on');
+    else if (health.build !== bootBuild) $('newver').classList.add('on');   // 누르면 새로고침(아래 onclick)
   }
   renderStatus();
 }
@@ -2212,12 +2361,16 @@ async function refreshTmuxCfg() {
   list.innerHTML = d.sessions.map((s) => {
     const isCur = s.name === cur;
     const shell = /^-?(zsh|bash|sh|fish|dash|ksh)$/.test(s.command || '');
-    const tag = shell ? 'shell' : (s.command || '');
-    const msgs = s.messages != null ? ` · ${s.messages} msgs` : '';
+    const tag = shell ? 'Shell only — no agent running' : agentName(s.command, s.name);
+    const msgs = s.messages != null ? ` · ${s.messages} msg${s.messages === 1 ? '' : 's'}` : '';
     // 이 세션을 최근 세션으로 고른 사람(지금 보고 있으면 ●)
     const people = [...new Set([...(s.users || []), ...(s.online || [])])];
-    const whoLine = people.length ? `<span class="who">${people.map((k) => `${(s.online || []).includes(k) ? '● ' : ''}${k === d.you ? '<b>You</b>' : escapeHtml(who(k))}`).join(', ')}</span>` : '';
-    return `<button data-t="${escapeHtml(s.name)}" class="${isCur ? 'cur' : ''}"><span>${escapeHtml(s.name)}${isCur ? ' ✓' : ''}</span><small>${escapeHtml(tag)}${s.attached ? ' · attached' : ''}${msgs}${whoLine}</small></button>`;
+    // 로그인이 없으면 모든 브라우저가 같은 사람(local)이다. 지금 이 화면이 보는 세션에만 You를 붙이고,
+    // 다른 세션에 내 키가 있으면 그건 다른 탭·기기에서 열어 둔 것이다.
+    const label = (k) => (k !== d.you ? escapeHtml(who(k)) : isCur ? '<b>You</b>' : ((s.online || []).includes(k) ? 'Open in another tab' : 'Your last pick'));
+    const whoTxt = people.length ? ` · ${people.map((k) => `${label(k)}${(s.online || []).includes(k) && (k !== d.you || isCur) ? ' ●' : ''}`).join(', ')}` : '';
+    return `<button role="option" aria-selected="${isCur}" data-t="${escapeHtml(s.name)}" class="${isCur ? 'cur' : ''}${shell ? ' shell' : ''}">
+      <span class="sdot"></span><span class="sname"><b>${escapeHtml(s.name)}</b><small>${escapeHtml(tag)}${msgs}${whoTxt}</small></span>${isCur ? '<span class="scheck">✓</span>' : ''}</button>`;
   }).join('');
   list.querySelectorAll('button').forEach((b) => b.onclick = () => applyTmuxTarget(b.dataset.t));
 }
@@ -2237,8 +2390,11 @@ async function applyTmuxTarget(t) {
 $('connPill').addEventListener('click', (e) => {
   if (e.target.closest('.conn-pop')) return; // 드롭다운 내부 클릭은 무시
   cfgPanel.hidden = !cfgPanel.hidden;
+  $('connPill').setAttribute('aria-expanded', String(!cfgPanel.hidden));
   if (!cfgPanel.hidden) refreshTmuxCfg();
 });
+// ⋯ 버튼과 입력창의 에이전트 표시도 같은 세션 선택 창을 연다
+['chatMoreBtn', 'agentPill'].forEach((id) => $(id).addEventListener('click', (e) => { e.stopPropagation(); $('connPill').click(); }));
 $('connPill').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('connPill').click(); } });
 // 바깥 클릭 시 드롭다운 닫기
 document.addEventListener('click', (e) => { if (!e.target.closest('#connPill') && !cfgPanel.hidden) cfgPanel.hidden = true; });
@@ -2259,6 +2415,151 @@ function propCard(pid, text) {
     <div class="state">${st === 'applied' ? '✓ Applied' : 'Rejected'}</div></div>`;
 }
 function refreshPropCards() { document.querySelectorAll('[data-prop]').forEach((el) => { const pid = Number(el.dataset.prop); const pt = el.querySelector('.pt'); el.innerHTML = propCard(pid, pt ? pt.textContent : 'Change proposal'); }); }
+/* ================= 대화 기록 모드 (Claude Code JSONL) =================
+   대상 세션이 Claude Code면 서버가 그 세션의 구조화된 기록(agent-log.js)을 내려준다. 화면 미러 대신 이걸로
+   Claude 앱과 같은 모양으로 그린다: 사용자 말풍선 · 마크다운 응답 · 'Ran 3 commands, read 1 file ›' 도구 묶음 · 이미지.
+   기록이 없는 세션(Codex 등)은 예전처럼 채널 원장(화면 미러)으로 그린다. */
+// logMode·logRev 등 상태 변수는 부트스트랩보다 먼저 쓰이므로 스크립트 맨 앞(contextChips 옆)에 선언한다.
+// 원장 메시지: 기록 모드에서는 승인 카드처럼 원장에만 있는 것만 그린다
+const ledgerHtml = (msgs) => (logMode ? msgs.filter((m) => m.role === 'proposal') : msgs).map(msgHtml).join('');
+function logReset() { logRev = 0; logSession = ''; logModel = ''; if (logMode) { logMode = false; } }
+function pollLogSoon() { clearTimeout(logTimer); logTimer = setTimeout(pollLog, 250); }
+async function pollLog() {
+  clearTimeout(logTimer);
+  const target = health && health.session && health.target;
+  const next = () => { logTimer = setTimeout(pollLog, busy ? 900 : chatHidden() ? 5000 : 2000); };
+  if (!target || logBusy) return next();
+  logBusy = true;
+  let d; try { d = await (await fetch(`/api/agentlog?target=${encodeURIComponent(target)}&since=${logSession ? logRev : 0}`)).json(); } catch { d = null; }
+  logBusy = false;
+  if (!d || target !== (health && health.target)) return next();
+  if (!d.available) {
+    if (logMode) { logMode = false; logModel = ''; renderStatus(); switchStream(); }        // 기록이 없어졌다 → 원장으로 다시 그린다
+    return next();
+  }
+  const fresh = !logMode || d.session !== logSession || d.reset;
+  if (fresh && logSession && (d.session !== logSession || d.reset)) { logRev = 0; logSession = ''; return pollLog(); }
+  if (!logMode) { logMode = true; $('msgs').innerHTML = ''; renderPending([]); }
+  logSession = d.session; logRev = d.rev;
+  if ((d.modelName || '') !== logModel) { logModel = d.modelName || ''; renderStatus(); }   // 입력창 하단에 실제 모델명
+  if (d.items.length) {
+    const stick = atBottom;
+    for (const it of d.items) {
+      const html = logItemHtml(it); const old = $('msgs').querySelector(`[data-lid="${CSS.escape(it.id)}"]`);
+      if (old) old.outerHTML = html; else $('msgs').insertAdjacentHTML('beforeend', html);
+    }
+    $('msgs').querySelectorAll('details.actgrp[data-lid]').forEach((g) => { g.ontoggle = () => { g.open ? logOpen.add(g.dataset.lid) : logOpen.delete(g.dataset.lid); markClip(); }; });
+    updateEmpty(); markClip(); reconcile();
+    if (stick) { atBottom = true; pinChat(); } else notifyNew();
+  }
+  next();
+}
+// 도구 묶음 요약 — 하나면 '동사 대상', 여럿이면 종류별 개수, 실행 중이면 'Running …'
+const TOOL_NOUN = { Ran: ['command', 'commands'], Read: ['file', 'files'], Edited: ['file', 'files'], Wrote: ['file', 'files'],
+  Searched: ['search', 'searches'], Fetched: ['page', 'pages'], 'Searched the web': ['search', 'searches'], Updated: ['todo list', 'todo lists'] };
+function toolSummary(tools) {
+  const running = tools.find((t) => !t.done);
+  if (running) return `<span class="runico" aria-hidden="true"></span><span class="sv">Running</span><code>${escapeHtml(running.arg || running.name)}</code>`;
+  if (tools.length === 1) return `<span class="sv">${escapeHtml(tools[0].verb)}</span><code>${escapeHtml(tools[0].arg || tools[0].name)}</code>`;
+  const count = new Map();
+  for (const t of tools) { const k = TOOL_NOUN[t.verb] ? t.verb : t.name; count.set(k, (count.get(k) || 0) + 1); }
+  const parts = [...count].map(([k, n]) => (TOOL_NOUN[k] ? `${k === 'Ran' && n > 1 ? 'Ran' : k} ${n} ${TOOL_NOUN[k][n === 1 ? 0 : 1]}` : `${k} ×${n}`));
+  const txt = parts.map((x, i) => (i ? x.charAt(0).toLowerCase() + x.slice(1) : x)).join(', ');
+  return `<span class="sv">${escapeHtml(txt)}</span>`;
+}
+const logImg = (ref) => `/api/agentlog/img?target=${encodeURIComponent((health && health.target) || '')}&ref=${encodeURIComponent(ref)}`;
+const imgTile = (src) => `<a class="limg" href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="" loading="lazy"></a>`;
+// 대시보드가 보낸 메시지의 부가물(붙여넣기 태그·첨부 경로·컨텍스트 칩)을 떼어 그림·칩으로 보여 준다
+function splitUserText(t) {
+  let text = String(t).replace(/<\/?pasted_content[^>]*>/g, '').trim();
+  const files = [], ctx = [];
+  text = text.replace(/\d+ attached file\(s\) — read and check these paths:\n((?:- .+(?:\n|$))+)/, (_, list) => {
+    list.split('\n').map((x) => x.replace(/^- /, '').trim()).filter(Boolean).forEach((f) => files.push(f)); return ''; });
+  text = text.replace(/^Context:\n((?:- \[[^\]]+\] .+(?:\n|$))+)/, (_, list) => {
+    list.split('\n').filter(Boolean).forEach((l) => { const m = /^- \[([^\]]+)\] (.+)$/.exec(l); if (m) ctx.push({ k: m[1], t: m[2] }); }); return ''; });
+  return { text: text.trim(), files, ctx };
+}
+function logItemHtml(it) {
+  const id = escapeHtml(it.id);
+  if (it.kind === 'user') {
+    const { text, files, ctx } = splitUserText(it.text);
+    const imgs = [...(it.images || []).map(logImg), ...files.filter((f) => /\.ana\/uploads\/[^/]+\.(png|jpe?g|gif|webp)$/i.test(f)).map((f) => `/uploads/${encodeURIComponent(f.split('/').pop())}`)];
+    const other = files.filter((f) => !/\.ana\/uploads\/[^/]+\.(png|jpe?g|gif|webp)$/i.test(f));
+    return `<div class="umsg" data-lid="${id}">${imgs.length ? `<div class="limgs">${imgs.map(imgTile).join('')}</div>` : ''}${
+      ctx.length || other.length ? `<div class="uctx">${ctx.map((c) => `<span class="chip"><span class="k">${escapeHtml(c.k)}</span><span class="ct">${escapeHtml(c.t)}</span></span>`).join('')}${
+        other.map((f) => `<span class="chip file"><span class="k">File</span><span class="ct">${escapeHtml(f.split('/').pop())}</span></span>`).join('')}</div>` : ''}${
+      text ? `<div class="msg user" data-seq="${it.rev}">${escapeHtml(text)}</div>` : ''}</div>`;
+  }
+  if (it.kind === 'assistant') return `<div class="msg assistant md" data-lid="${id}">${mdHtml(it.text)}</div>`;
+  if (it.kind === 'tools') {
+    const imgs = it.tools.flatMap((t) => t.images || []);
+    const list = it.tools.map((t) => `<div class="act tool">${escapeHtml(t.verb)} ${escapeHtml(t.arg || t.name)}</div>${
+      t.result ? `<div class="act toolresult${t.isError ? ' err' : ''}">${escapeHtml(t.result)}</div>` : ''}`).join('');
+    return `<div class="tgrp" data-lid="${id}"><details class="actgrp"${logOpen.has(it.id) ? ' open' : ''} data-lid="${id}"><summary>${toolSummary(it.tools)}</summary><div class="actlist">${list}</div></details>${
+      imgs.length ? `<div class="limgs left">${imgs.map((r) => imgTile(logImg(r))).join('')}</div>` : ''}</div>`;
+  }
+  return `<div class="msg system" data-lid="${id}">${escapeHtml(it.text || '')}</div>`;
+}
+// 가벼운 마크다운 — 제목·굵게·기울임·인라인 코드·코드 블록·목록·인용·표·링크·구분선. 먼저 이스케이프하고 태그만 입힌다.
+function mdHtml(src) {
+  const inline = (raw) => {
+    const codes = [];
+    let t = String(raw).replace(/`([^`\n]+)`/g, (_, c) => { codes.push(c); return `\u0000${codes.length - 1}\u0000`; });
+    t = escapeHtml(t)
+      .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/(^|[^*\w])\*([^*\n]+?)\*(?!\w)/g, '$1<em>$2</em>')
+      .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+      .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>');
+    return t.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${escapeHtml(codes[i])}</code>`);
+  };
+  const lines = String(src).replace(/\r/g, '').split('\n'), out = [];
+  let i = 0, para = [];
+  const flush = () => { if (para.length) { out.push(`<p>${para.map(inline).join('<br>')}</p>`); para = []; } };
+  const cells = (l) => l.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+  while (i < lines.length) {
+    const l = lines[i];
+    if (/^\s*```/.test(l)) {
+      flush(); const code = []; i++;
+      while (i < lines.length && !/^\s*```/.test(lines[i])) code.push(lines[i++]);
+      i++; out.push(`<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`); continue;
+    }
+    if (/^\s*\|.*\|\s*$/.test(l) && i + 1 < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1])) {
+      flush(); const head = cells(l); i += 2; const rows = [];
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) rows.push(cells(lines[i++]));
+      out.push(`<div class="tbl"><table><thead><tr>${head.map((c) => `<th>${inline(c)}</th>`).join('')}</tr></thead><tbody>${
+        rows.map((r) => `<tr>${r.map((c) => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`); continue;
+    }
+    let m;
+    if ((m = /^(#{1,4})\s+(.*)$/.exec(l))) { flush(); out.push(`<h${m[1].length + 2}>${inline(m[2])}</h${m[1].length + 2}>`); i++; continue; }
+    if (/^\s*(-{3,}|\*{3,})\s*$/.test(l)) { flush(); out.push('<hr>'); i++; continue; }
+    if (/^\s*>/.test(l)) {
+      flush(); const q = [];
+      while (i < lines.length && /^\s*>/.test(lines[i])) q.push(lines[i++].replace(/^\s*>\s?/, ''));
+      out.push(`<blockquote>${mdHtml(q.join('\n'))}</blockquote>`); continue;
+    }
+    if (/^\s*([-*+]|\d+[.)])\s+/.test(l)) {
+      flush();
+      const list = (indent) => {
+        const ordered = /^\s*\d+[.)]/.test(lines[i]); let h = ordered ? '<ol>' : '<ul>';
+        while (i < lines.length) {
+          const mm = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/.exec(lines[i]);
+          if (!mm || mm[1].length < indent) break;
+          if (mm[1].length > indent) { h = h.replace(/<\/li>$/, '') + list(mm[1].length) + '</li>'; continue; }
+          i++; let body = mm[3];
+          while (i < lines.length && lines[i].trim() && !/^\s*([-*+]|\d+[.)])\s+/.test(lines[i]) && /^\s{2,}/.test(lines[i])) body += '<br>' + lines[i++].trim();
+          h += `<li>${inline(body).replace(/&lt;br&gt;/g, '<br>')}</li>`;
+        }
+        return h + (ordered ? '</ol>' : '</ul>');
+      };
+      out.push(list((/^(\s*)/.exec(l) || ['', ''])[1].length)); continue;
+    }
+    if (!l.trim()) { flush(); i++; continue; }
+    para.push(l); i++;
+  }
+  flush();
+  return out.join('');
+}
+
 // 서버가 주입 시 붙이는 보낸사람 표기 — 화면에서는 떼고 작은 배지로 보여 준다.
 const ID_PREFIX = /^\[([^\]·]{1,40})·([^\]\s]{3,80})\]\s*/;
 const stripSender = (t) => String(t).replace(ID_PREFIX, '');
@@ -2283,6 +2584,39 @@ $('feed').addEventListener('click', (e) => {
     post('/api/approve', { pid, decision }).then((r) => { if (!r.ok) r.json().then((x) => showErr(x.error || 'Approval failed')).catch(() => {}); }).catch(() => showErr('Approval failed')); return; }
   const tr = e.target.closest('.act.toolresult.clip'); if (tr) { tr.classList.add('expanded'); tr.classList.remove('clip'); }
 });
+/* 도구 실행 묶음 — 연속된 도구 호출·결과를 'Ran N commands ›' 한 줄로 접는다(누르면 펼침). */
+const TOOL_VERB = { Bash: 'Ran', Read: 'Read', Edit: 'Edited', Update: 'Edited', MultiEdit: 'Edited', Write: 'Wrote', Grep: 'Searched', Glob: 'Searched', Search: 'Searched', WebFetch: 'Fetched', WebSearch: 'Searched', Task: 'Ran agent', Agent: 'Ran agent' };
+function toolParts(t) {
+  const m = /^\s*([A-Za-z][\w-]*)\s*\(([\s\S]*?)\)?\s*$/.exec(String(t).split('\n')[0]);
+  return m ? { name: m[1], arg: m[2] || '' } : { name: '', arg: String(t).split('\n')[0] };
+}
+function grpSummary(g) {
+  const tools = [...g.querySelectorAll('.actlist > .act.tool')].map((el) => toolParts(el.textContent));
+  let html;
+  if (tools.length === 1) {
+    const { name, arg } = tools[0];
+    html = `<span class="sv">${escapeHtml(TOOL_VERB[name] || name || 'Ran')}</span><code>${escapeHtml(arg.slice(0, 120))}</code>`;
+  } else {
+    const allBash = tools.length && tools.every((x) => x.name === 'Bash');
+    html = `<span class="sv">${tools.length ? (allBash ? `Ran ${tools.length} commands` : `Used ${tools.length} tools`) : 'Tool output'}</span>`;
+  }
+  g.querySelector('summary').innerHTML = html;
+}
+function groupActs() {
+  const root = $('msgs'); let grp = null; const dirty = new Set();
+  for (const el of [...root.children]) {
+    if (el.classList.contains('actgrp')) { grp = el; continue; }
+    if (el.classList.contains('act')) {
+      if (!grp) {
+        grp = document.createElement('details'); grp.className = 'actgrp';
+        grp.innerHTML = '<summary></summary><div class="actlist"></div>'; el.before(grp);
+        grp.addEventListener('toggle', markClip);
+      }
+      grp.querySelector('.actlist').appendChild(el); dirty.add(grp);
+    } else grp = null;
+  }
+  dirty.forEach(grpSummary);
+}
 function markClip() { document.querySelectorAll('.act.toolresult:not(.expanded)').forEach((el) => { el.classList.toggle('clip', el.scrollHeight > el.clientHeight + 2); }); }
 function renderPending(list) {
   const box = $('pendingWrap');
@@ -2307,13 +2641,19 @@ function dropPendingDup(msgs) {
   }
 }
 function updateEmpty() { const has = $('msgs').children.length || $('pendingWrap').children.length; $('feedEmpty').style.display = has ? 'none' : 'block';
-  $('feedEmpty').innerHTML = sessionAlive ? 'Start a conversation' : 'Waiting for an agent — click the connection pill above to choose one'; }
+  $('feedEmpty').innerHTML = sessionAlive ? 'Start a conversation' : 'No agent connected — tap the title or ⋯ above to choose one'; }
 function pinChat() { if (atBottom) $('feed').scrollTop = $('feed').scrollHeight; }
-$('feed').addEventListener('scroll', () => { const v = $('feed'); atBottom = v.scrollHeight - v.scrollTop - v.clientHeight < 40; if (atBottom) $('newpill').style.display = 'none'; });
-$('newpill').onclick = () => { atBottom = true; pinChat(); $('newpill').style.display = 'none'; };
+// ↓ 버튼: 맨 아래가 아니면 보이고, 그사이 새 메시지가 오면 점이 붙는다
+function updateJump() { const b = $('jumpBtn'); b.hidden = atBottom; if (atBottom) b.classList.remove('new'); }
+$('feed').addEventListener('scroll', () => { const v = $('feed'); atBottom = v.scrollHeight - v.scrollTop - v.clientHeight < 40; updateJump(); });
+$('jumpBtn').onclick = () => { atBottom = true; $('feed').scrollTo({ top: $('feed').scrollHeight, behavior: 'smooth' }); updateJump(); };
+// 떠 있는 입력 영역의 높이만큼 대화 아래에 여백을 둔다(칩·오류·다이얼로그로 높이가 변해도 따라간다)
+if (window.ResizeObserver) new ResizeObserver(() => {
+  $('feed').style.setProperty('--dock-h', $('chatDock').offsetHeight + 'px'); pinChat();
+}).observe($('chatDock'));
 let unread = 0;
 const chatHidden = () => !document.body.classList.contains('chatting');
-function notifyNew() { if (!atBottom) $('newpill').style.display = 'block'; if (chatHidden()) { unread++; $('fabBadge').textContent = unread > 9 ? '9+' : String(unread); $('fab').classList.add('unread'); } }
+function notifyNew() { if (!atBottom) { $('jumpBtn').hidden = false; $('jumpBtn').classList.add('new'); } if (chatHidden()) { unread++; $('fabBadge').textContent = unread > 9 ? '9+' : String(unread); $('fab').classList.add('unread'); } }
 
 /* 고스트 draft */
 let draftNow = '';
@@ -2329,7 +2669,7 @@ let es = null, backoff = 1000, lastSeq = 0, streamTarget = '', streamGen = 0, yo
 function switchStream() {
   streamGen++; clearTimeout(reconnectT); reconnectT = null;
   try { if (es) es.close(); } catch {}
-  es = null; streamTarget = ''; lastSeq = 0; dialogInfo = null;
+  es = null; streamTarget = ''; lastSeq = 0; dialogInfo = null; logReset();
   $('msgs').innerHTML = ''; renderPending([]); renderDraft(''); clearChips(); renderDialog(); updateEmpty();
   connect(); pollHealth();
 }
@@ -2347,20 +2687,21 @@ function connect() {
         if ('dialogInfo' in d) dialogInfo = d.dialogInfo;
         if (health && 'dialog' in d) health.dialog = d.dialog;
         (d.proposals || []).forEach((p) => proposals.set(p.id, p));
-        if (lastSeq && d.messages.length) $('msgs').insertAdjacentHTML('beforeend', d.messages.map(msgHtml).join('')); else if (!lastSeq) $('msgs').innerHTML = d.messages.map(msgHtml).join('');
+        if (lastSeq && d.messages.length) $('msgs').insertAdjacentHTML('beforeend', ledgerHtml(d.messages)); else if (!lastSeq && !logMode) $('msgs').innerHTML = ledgerHtml(d.messages);
+        groupActs();
         if (d.messages.length) lastSeq = d.messages[d.messages.length - 1].seq;
-        renderPending(d.pending); sessionAlive = d.session; busy = d.busy; $('typTx').textContent = d.spin || 'Working…'; renderDraft(d.draft || '');
+        renderPending(logMode ? [] : d.pending); sessionAlive = d.session; busy = d.busy; $('typTx').textContent = d.spin || 'Working…'; renderDraft(d.draft || '');
         srvConnected = true; renderStatus();
         if (d.version !== dataVersion) refreshData(); else refreshPropCards();
         updateEmpty(); markClip(); pinChat();
         break;
       case 'commit':
         dropPendingDup(d.messages);
-        $('msgs').insertAdjacentHTML('beforeend', d.messages.map(msgHtml).join(''));
+        $('msgs').insertAdjacentHTML('beforeend', ledgerHtml(d.messages)); groupActs();
         if (d.messages.length) lastSeq = d.messages[d.messages.length - 1].seq;
-        updateEmpty(); markClip(); reconcile(); pinChat(); notifyNew(); break;
-      case 'pending': renderPending(d.pending); reconcile(); updateEmpty(); pinChat(); break;
-      case 'status': if ('dialog' in d && health) health.dialog = d.dialog; sessionAlive = d.session; busy = d.busy; $('typTx').textContent = d.spin || 'Working…'; if (d.resync !== undefined) $('resync').style.display = d.resync ? 'block' : 'none'; renderStatus(); updateEmpty(); break;
+        updateEmpty(); markClip(); reconcile(); pinChat(); if (!logMode) notifyNew(); pollLogSoon(); break;
+      case 'pending': renderPending(logMode ? [] : d.pending); reconcile(); updateEmpty(); pinChat(); break;
+      case 'status': if ('dialog' in d && health) health.dialog = d.dialog; sessionAlive = d.session; busy = d.busy; $('typTx').textContent = d.spin || 'Working…'; if (d.resync !== undefined) $('resync').style.display = d.resync ? 'inline-flex' : 'none'; renderStatus(); updateEmpty(); reconcile(); break;
       case 'draft': renderDraft(d.draft); break;
       case 'proposal': proposals.set(d.proposal.id, d.proposal); refreshPropCards(); break;
       case 'data': if (d.version !== dataVersion) refreshData(); break;
@@ -2370,6 +2711,7 @@ function connect() {
       // 같은 사람이 다른 탭·기기에서 세션을 바꿨다 → 이 탭도 따라간다
       case 'target': if (d.user === youKey && d.target !== streamTarget) switchStream(); break;
       case 'evolve': if ($('evolveView').classList.contains('on')) refreshEvolve(); else refreshEvolve(); break;
+      case 'requests': refreshRequests(); break;
     }
   };
   stream.onerror = () => {
@@ -2424,7 +2766,6 @@ async function switchWorkspace(id) {
   // 서버 active도 옮긴다 — 헤더 없이 호출하는 에이전트(curl)가 같은 워크스페이스를 보도록.
   post('/api/workspaces', { action: 'select', id }).catch(() => {});
   await refreshData();
-  if ($('memberView') && $('memberView').classList.contains('on')) renderMembers();
   if ($('statsView') && $('statsView').classList.contains('on')) renderStats();
 }
 $('wsBtn').onclick = (e) => {
@@ -2441,7 +2782,7 @@ $('wsList').onclick = async (e) => {
     e.stopPropagation();
     const w = wsById(rm.dataset.wsRemove); if (!w) return;
     closeWsMenu();
-    if (!(await confirmDelete(`Workspace "${w.name}" and all of its tasks, events, meetings and notes`))) return;
+    if (!(await confirmDelete(`Workspace "${w.name}" and all of its tasks, events, notes and links`))) return;
     let r, j; try { r = await post('/api/workspaces', { action: 'remove', id: w.id }); j = await r.json(); } catch { j = {}; }
     if (!r || !r.ok) { showErr(j.error || 'Failed to delete the workspace'); return; }
     workspaces = j.workspaces || workspaces.filter((x) => x.id !== w.id);
@@ -2521,6 +2862,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('wsMe
 initCal(); connect();
 loadWorkspaces().finally(() => { refreshData(); });
 refreshEvolve();
+refreshRequests();
 setInterval(async () => {
   if (document.hidden) return;
   const gen = streamGen;
@@ -2528,10 +2870,10 @@ setInterval(async () => {
   if (gen !== streamGen) return;
   if (d.target && streamTarget && d.target !== streamTarget) { switchStream(); return; }
   if (!srvConnected) { srvConnected = true; renderStatus(); }
-  if (d.pending) renderPending(d.pending);
+  if (d.pending) renderPending(logMode ? [] : d.pending);
   if (d.version !== dataVersion) refreshData();
   const fresh = (d.items || []).filter((m) => m.seq > lastSeq && !document.querySelector(`[data-seq="${m.seq}"]`));
-  if (fresh.length) { dropPendingDup(fresh); $('msgs').insertAdjacentHTML('beforeend', fresh.map(msgHtml).join('')); lastSeq = fresh[fresh.length - 1].seq; updateEmpty(); markClip(); reconcile(); pinChat(); notifyNew(); }
+  if (fresh.length) { dropPendingDup(fresh); $('msgs').insertAdjacentHTML('beforeend', ledgerHtml(fresh)); groupActs(); lastSeq = fresh[fresh.length - 1].seq; updateEmpty(); markClip(); reconcile(); pinChat(); notifyNew(); }
 }, 2500);
 
 /* ================= 입력 / 낙관적 에코 / force ================= */
@@ -2549,7 +2891,7 @@ function addOptimistic(display, sendText) {
   const div = document.createElement('div'); div.className = 'msg user'; div.textContent = display;
   const badge = document.createElement('div'); badge.className = 'sstat';
   wrap.append(div, badge); $('optimistic').appendChild(wrap);
-  const o = { sendText, el: wrap, badge, state: 'sending', t: Date.now() };
+  const o = { sendText, display, el: wrap, badge, state: 'sending', t: Date.now(), seq0: logMode ? logRev : lastSeq, busyAtSend: busy };
   optim.push(o); setOptimState(o, 'sending'); pinChat(); reconcile();
   return o;
 }
@@ -2559,6 +2901,7 @@ function setOptimState(o, state, detail) {
   b.className = 'sstat' + (state === 'sent' ? ' ok' : state === 'sending' ? '' : ' err');
   if (state === 'sending') { b.textContent = 'Sending…'; return; }
   if (state === 'sent') { b.textContent = 'Delivered ✓'; return; }
+  if (state === 'acked') { b.textContent = ''; return; }   // 에이전트가 받아서 일하기 시작함 — 표시할 것 없음
   b.textContent = '';
   const t = document.createElement('span');
   t.textContent = state === 'failed' ? (detail ? `Send failed — ${String(detail).slice(0, 60)}` : 'Send failed') : 'Unconfirmed';
@@ -2574,18 +2917,30 @@ async function postChat(o) {
   catch { setOptimState(o, 'failed', 'Server unreachable'); showErr('Send failed — cannot reach the server.'); return; }
   if (!r.ok) { const e = await r.json().catch(() => ({}));
     setOptimState(o, 'failed', e.error || `HTTP ${r.status}`); showErr(e.error || `Send failed (${r.status})`); return; }
-  o.t = Date.now(); setOptimState(o, 'sent'); // 200 = 에이전트 입력창까지 주입 완료
+  o.t = Date.now(); o.busyAtSend = busy; setOptimState(o, 'sent'); // 200 = 에이전트 입력창까지 주입 완료
+}
+// 보낸 말풍선이 에이전트에게 닿았는지 판정한다.
+// ① 원장 에코: 보낸 뒤 새로 기록된 사용자 줄과 맞춰 본다. Claude Code는 여러 줄·긴 붙여넣기를 화면에
+//    '[Pasted text #1 +3 lines]'로 줄여 보여 주고, 캡처된 줄 끝에 화면 찌꺼기가 붙기도 하므로 앞부분만 비교한다.
+// ② 작업 시작: 보낼 때 쉬고 있던 에이전트가 그 뒤 일하기 시작했다면 받은 것이다(에코가 없어도).
+// 받았는데 원장에 에코가 없으면 말풍선을 대화 흐름(#msgs) 안으로 옮겨, 이후 응답이 그 아래에 이어지게 한다.
+function echoOf(o, t) {
+  const w = normWs(o.sendText), d = normWs(o.display || ''), head = (x) => x.slice(0, 30);
+  if (t === w || t === d || /^\[pasted text/i.test(t)) return true;
+  return t.length >= 6 && (w.startsWith(head(t)) || t.startsWith(head(w)) || (d.length >= 6 && t.startsWith(head(d))));
 }
 function reconcile() {
-  const server = [];
-  $('pendingWrap').querySelectorAll('.msg.user').forEach((e) => server.push(normWs(e.textContent)));
-  const recent = $('msgs').querySelectorAll('.msg.user');
-  for (let i = Math.max(0, recent.length - 6); i < recent.length; i++) server.push(normWs(recent[i].textContent));
+  const pend = [...$('pendingWrap').querySelectorAll('.msg.user')].map((e) => normWs(stripSender(e.textContent)));
+  const logged = [...$('msgs').querySelectorAll('.msg.user[data-seq]')];
   optim = optim.filter((o) => {
-    // 서버가 [이름·이메일]을 앞에 붙여 주입하므로 그 표기를 떼고 비교해야 에코가 매칭된다.
-    const want = normWs(o.sendText);
-    if (server.some((t) => t === want || normWs(stripSender(t)) === want)) { o.el.remove(); return false; }
-    if (o.state === 'sent' && Date.now() - o.t > 12000) setOptimState(o, 'unconfirmed');
+    const texts = pend.concat(logged.filter((e) => Number(e.dataset.seq) > (o.seq0 || 0)).map((e) => normWs(stripSender(e.textContent))));
+    if (o.state !== 'sending' && texts.some((t) => echoOf(o, t))) { o.el.remove(); return false; }
+    const age = Date.now() - o.t;
+    if ((o.state === 'sent' || o.state === 'unconfirmed') && ((!o.busyAtSend && busy) || (o.state === 'sent' && o.busyAtSend && age > 12000))) {
+      setOptimState(o, 'acked'); $('msgs').appendChild(o.el); pinChat();
+    }
+    if (o.state === 'acked') return age < 120000;             // 2분 동안만 늦은 에코를 기다렸다가 추적을 멈춘다(말풍선은 남긴다)
+    if (o.state === 'sent' && age > 12000) setOptimState(o, 'unconfirmed');
     return true;
   });
 }
@@ -2608,8 +2963,8 @@ async function send() {
 // 전송 버튼은 상황에 따라 정지 버튼이 된다(클로드 동작):
 //   작업 중 + 입력창이 비어 있음 → ■ 정지(ctrl-c). 그 외 → ↑ 전송.
 // 입력 중에는 전송이 우선이므로, 그때만 별도 '중단' pill을 남겨 인터럽트 경로를 유지한다.
-const SEND_GLYPH = '↑';
-const STOP_GLYPH = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>';
+const SEND_GLYPH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="6 11 12 5 18 11"/></svg>';
+const STOP_GLYPH = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>';
 function stopMode() {
   return sesAlive() && busy && !$('input').value.trim() && !contextChips.length && !attachments.length;
 }
@@ -2645,9 +3000,8 @@ document.querySelectorAll('[data-key]').forEach((b) => {
 /* ================= 모드 (일반 / ANA) ================= */
 // 화면을 덮는 레이어를 한 번에 걷어낸다. 모드 전환처럼 맥락이 바뀔 때 호출한다.
 function closeOverlays() {
-  if (typeof closeMeeting === 'function') closeMeeting();
+  if (typeof closeDraw === 'function') closeDraw();
   closeModal();
-  $('lightbox').classList.remove('on'); $('lightboxImg').src = '';
   $('confirmModal').classList.remove('on');
   $('scrim').classList.remove('on', 'hard');
 }
@@ -2656,7 +3010,7 @@ function closeOverlays() {
 function scrimWatchdog() {
   const scrim = $('scrim');
   if (!scrim.classList.contains('on')) return;
-  const owner = modalCur || $('meetSheet').classList.contains('on') || $('confirmModal').classList.contains('on');
+  const owner = modalCur || $('confirmModal').classList.contains('on');
   if (!owner) scrim.classList.remove('on', 'hard');
 }
 setInterval(scrimWatchdog, 1000);
@@ -2757,11 +3111,144 @@ $('input').addEventListener('paste', (e) => {
 })();
 // ANA 모드에서 캡처 가능한 요소 클릭 → 칩만 '추가로' 등록한다. 기존 동작(완료 토글·열림·날짜
 // 선택 등)은 그대로 동작하도록 이벤트를 가로채지 않는다(preventDefault/stopPropagation 없음).
+/* ---- 그리기(어노테이션) ----
+   Chip 모드의 펜 버튼 → #main 위에 투명 캔버스를 깔고 자유롭게 그린다(주로 동그라미).
+   'Add to chat'을 누르면 ① 화면 캡처(modern-screenshot, 서버의 /vendor에서 불러옴) 위에 그림을 합성한 PNG를
+   첨부로 올리고 ② 현재 위치(워크스페이스·탭·선택 상태·스크롤)와 동그라미 안의 항목을 컨텍스트 칩으로 넣는다. */
+// 펜 색은 UI에 쓰지 않는 원색(빨강·마젠타·파랑)만 — 에이전트가 캡처에서 표시를 UI와 헷갈리지 않고,
+// 칩에도 색 이름을 적어 "빨간 동그라미"처럼 말로 짚을 수 있게 한다. 흰 테두리를 둘러 어떤 배경에서도 보인다.
+let drawStrokes = [], drawCur = null, drawColor = '#FF0000', drawColorName = 'red', drawRect = null;
+const drawCtx = () => $('drawCanvas').getContext('2d');
+function drawRepaint() {
+  const c = $('drawCanvas'), g = drawCtx(), dpr = window.devicePixelRatio || 1;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, c.width, c.height);
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  for (const st of drawStrokes) {
+    const path = () => { g.beginPath(); st.pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+      if (st.pts.length === 1) g.lineTo(st.pts[0][0] + 0.1, st.pts[0][1]); };
+    g.strokeStyle = 'rgba(255,255,255,.95)'; g.lineWidth = 9; path(); g.stroke();   // 흰 테두리
+    g.strokeStyle = st.color; g.lineWidth = 5; path(); g.stroke();
+  }
+  $('drawUndo').disabled = !drawStrokes.length; $('drawDone').disabled = !drawStrokes.length;
+}
+function openDraw() {
+  closeModal();
+  const r = $('main').getBoundingClientRect(), L = $('drawLayer'), c = $('drawCanvas'), dpr = window.devicePixelRatio || 1;
+  drawRect = { left: r.left, top: r.top, width: r.width, height: r.height };
+  Object.assign(L.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+  c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr);
+  drawStrokes = []; drawCur = null; L.hidden = false; L.classList.remove('busy'); drawRepaint();
+}
+function closeDraw() { const L = $('drawLayer'); if (!L) return; L.hidden = true; drawStrokes = []; drawCur = null; }
+$('drawBtn').onclick = () => ($('drawLayer').hidden ? openDraw() : closeDraw());
+$('drawCancel').onclick = closeDraw;
+$('drawUndo').onclick = () => { drawStrokes.pop(); drawRepaint(); };
+document.querySelectorAll('.draw-bar .dsw').forEach((b) => b.onclick = () => {
+  drawColor = b.dataset.color; drawColorName = b.dataset.name; document.querySelectorAll('.draw-bar .dsw').forEach((x) => x.classList.toggle('on', x === b));
+});
+$('drawCanvas').addEventListener('pointerdown', (e) => {
+  e.preventDefault(); $('drawCanvas').setPointerCapture(e.pointerId);
+  drawCur = { color: drawColor, name: drawColorName, pts: [[e.offsetX, e.offsetY]] }; drawStrokes.push(drawCur); drawRepaint();
+});
+$('drawCanvas').addEventListener('pointermove', (e) => { if (!drawCur) return; drawCur.pts.push([e.offsetX, e.offsetY]); drawRepaint(); });
+['pointerup', 'pointercancel'].forEach((t) => $('drawCanvas').addEventListener(t, () => { drawCur = null; }));
+document.addEventListener('keydown', (e) => {
+  if ($('drawLayer').hidden) return;
+  if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeDraw(); }
+  else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); drawStrokes.pop(); drawRepaint(); }
+}, true);
+window.addEventListener('resize', closeDraw);   // 크기가 바뀌면 그림과 화면이 어긋난다
+
+// 동그라미 안에 든 항목: 획의 외접 사각형 중심(과 네 모서리 안쪽)에서 칩 대상 요소를 찾는다
+function drawTargets() {
+  const out = [], seen = new Set(), L = $('drawLayer');
+  L.style.pointerEvents = 'none';   // elementFromPoint가 레이어 아래 실제 화면을 보도록
+  try { return drawTargetsUnder(out, seen); } finally { L.style.pointerEvents = ''; }
+}
+function drawTargetsUnder(out, seen) {
+  for (const st of drawStrokes) {
+    const xs = st.pts.map((p) => p[0]), ys = st.pts.map((p) => p[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const probes = [[(x0 + x1) / 2, (y0 + y1) / 2], [x0 + (x1 - x0) * .3, (y0 + y1) / 2], [x0 + (x1 - x0) * .7, (y0 + y1) / 2]];
+    for (const [px, py] of probes) {
+      const el = document.elementFromPoint(drawRect.left + px, drawRect.top + py);
+      const hit = el && capSelectors().map((sel) => { try { return el.closest(sel); } catch { return null; } }).find(Boolean);
+      const cap = hit && CAP.find(([sel]) => hit.matches(sel));
+      const txt = hit ? chipText(hit) : '';
+      const key = hit && (hit.dataset.id || txt);
+      if (hit && txt && !seen.has(key)) { seen.add(key); out.push(`${st.name} mark on ${cap ? cap[1] : 'Element'} "${txt.slice(0, 80)}"`); break; }
+    }
+  }
+  return out;
+}
+// 지금 보고 있는 곳 — 에이전트가 요청을 정확히 짚도록 사람 말로 적는다
+function pageLocation() {
+  const tab = document.querySelector('.topnav .tab.on'), view = document.querySelector('.view.on');
+  const ws = (workspaces.find((w) => w.id === currentWs) || {}).name || currentWs || 'default';
+  const parts = [`workspace "${ws}"`, `${(tab && tab.textContent.replace(/\d+$/, '').trim()) || '?'} tab`];
+  if (view && view.id === 'scheduleView') parts.push(`calendar ${MONTHS[calM]} ${calY}, selected day ${selDate}`);
+  if (view && view.id === 'memoView') { const n = notes.find((x) => x.id === memoSel); if (n) parts.push(`open note "${noteTitle(n)}" (${n.id})`); }
+  if (view && view.id === 'statsView') parts.push(`stats view "${statSeg}"`);
+  if (view) {
+    const max = view.scrollHeight - view.clientHeight;
+    parts.push(max > 0 ? `scrolled ${Math.round(view.scrollTop)}px of ${max}px (${Math.round((view.scrollTop / max) * 100)}%)` : 'no scroll');
+  }
+  parts.push(`view ${Math.round(drawRect.width)}×${Math.round(drawRect.height)}px`, `url ${location.pathname}${location.search}`);
+  return parts.join(' · ');
+}
+let shotLib = null;
+$('drawDone').onclick = async () => {
+  if (!drawStrokes.length) return;
+  const L = $('drawLayer'); L.classList.add('busy');
+  const targets = drawTargets(), where = pageLocation();
+  const colors = [...new Set(drawStrokes.map((x) => x.name))].join('/');
+  const marks = targets.length ? ` · ${targets.join(', ')}` : ` · ${colors} marks (nothing clickable under them)`;
+  // 채팅이 메인 위에 덮이는 경우(모바일, 또는 이미 열림)는 캡처를 기다리지 않고 바로 연다.
+  // 데스크톱에서 채팅을 새로 열면 메인 폭이 줄어 캡처가 그림과 어긋나므로 캡처 뒤에 연다.
+  const overlay = matchMedia('(max-width: 768px)').matches || document.body.classList.contains('chatting');
+  L.hidden = true;                                   // 캔버스 픽셀은 남아 있다 — 합성에 그대로 쓴다
+  addChip('Screen', `${where}${marks} · annotated screenshot attached — look for the ${colors} pen marks (white-outlined)`);
+  const ph = { name: 'annotated-screenshot.png', size: 0, path: '', pending: true };
+  attachments.push(ph); renderChips();
+  if (overlay) openChat();
+  try {
+    const dpr = window.devicePixelRatio || 1, bg = getComputedStyle(document.body).backgroundColor;
+    let shot;
+    try {
+      shotLib = shotLib || await import('/vendor/modern-screenshot.mjs');
+      shot = await shotLib.domToCanvas($('main'), { scale: dpr, backgroundColor: bg });
+    } catch (e) {
+      // 캡처 라이브러리를 못 불러오면(예: 서버가 옛 버전이라 /vendor 경로가 없음) 표시만이라도 보낸다.
+      // 칩에 위치·가리킨 항목은 이미 들어 있으므로 에이전트는 무엇을 짚었는지 알 수 있다.
+      shot = document.createElement('canvas'); shot.width = $('drawCanvas').width; shot.height = $('drawCanvas').height;
+      const g0 = shot.getContext('2d'); g0.fillStyle = bg; g0.fillRect(0, 0, shot.width, shot.height);
+      const c = contextChips[0]; if (c) c.t = c.t.replace('annotated screenshot attached', 'screen capture unavailable — the image shows only the marks');
+      toast('Screen capture unavailable — sent the marks only (restart the ANA server after npm install)');
+    }
+    const g = shot.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.drawImage($('drawCanvas'), 0, 0, shot.width, shot.height);
+    let blob = await new Promise((ok) => shot.toBlob(ok, 'image/png'));
+    if (blob && blob.size > 8 * 1024 * 1024) blob = await new Promise((ok) => shot.toBlob(ok, 'image/jpeg', 0.85));
+    if (!blob) throw new Error('capture failed');
+    const ext = blob.type === 'image/jpeg' ? 'jpg' : 'png';
+    const tabName = ((document.querySelector('.topnav .tab.on') || {}).dataset || {}).view || 'screen';
+    const file = new File([blob], `annotation-${tabName}-${Date.now()}.${ext}`, { type: blob.type });
+    attachments = attachments.filter((a) => a !== ph); renderChips();
+    if (!overlay) openChat();
+    await attachFiles([file]);
+  } catch (e) {
+    attachments = attachments.filter((a) => a !== ph); renderChips();
+    showErr(`Screen capture failed — ${e.message}`);
+  } finally { closeDraw(); }
+};
+
 const CAP = [
   ['.item', 'Task', (el) => el.querySelector('.title')?.textContent],
   ['.kpi', 'KPI', (el) => el.textContent],
   ['.up-item', 'Event', (el) => el.textContent],
   ['.ev-item', 'Event', (el) => el.textContent],                 // 날짜 선택 후 나오는 시간 일정
+  ['.req-card', 'Request', (el) => el.querySelector('.req-t')?.textContent || el.textContent],
   ['.evo-card', 'Proposal', (el) => el.querySelector('.evo-t')?.textContent || el.textContent],
   ['.memo-item', 'Note', (el) => el.querySelector('.mt')?.textContent || el.textContent],
 ];
