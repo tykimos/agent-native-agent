@@ -1,7 +1,7 @@
 {
   "name": "ana",
-  "description": "ANA — Agent-Native Agent. Attach a watch-a-dashboard + talk-to-a-coding-agent runtime to any web app, or run the standalone base. A coding agent runs inside tmux; chat is injected via paste-buffer and the session is mirrored via capture-pane — zero dependencies (no MCP, no bridge, no hooks). The whole runtime is one file, channel-core.js. Use to add ANA to an existing service or scaffold a new agent-native app.",
-  "version": "0.3.0",
+  "description": "ANA — Agent-Native Agent. Attach a watch-a-dashboard + talk-to-a-coding-agent runtime to any web app, or run the standalone base. A coding agent runs inside tmux; chat is injected via paste-buffer and the session is mirrored via capture-pane — zero dependencies (no MCP, no bridge, no hooks). The whole runtime is one file, channel-core.js. Use to add ANA to an existing service or scaffold a new agent-native app. Also ships per-feature skills (chat-window, context-chips, relations, app-shell, agent-requests) and ana-update, which diffs an existing ANA against upstream feature by feature and ports what you pick.",
+  "version": "0.4.0",
   "author": {
     "name": "tykimos",
     "url": "https://github.com/tykimos"
@@ -17,6 +17,9 @@
     "dashboard-agent",
     "tmux",
     "watch-and-converse",
-    "solopreneur"
+    "solopreneur",
+    "skills",
+    "ana-update",
+    "chat-window"
   ]
 }

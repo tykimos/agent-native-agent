@@ -476,7 +476,7 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 @media (max-width: 768px) {
   body, body.chatting { grid-template-columns: minmax(0, 1fr) 0; }
   #chatResize { display: none; }
-  #chatSide { position: fixed; inset: 0; z-index: 50; width: 100%; height: calc(100dvh - var(--kb)); border-left: none;
+  #chatSide { position: fixed; left: 0; right: 0; top: var(--vvt, 0px); bottom: auto; z-index: 50; width: 100%; height: var(--vvh, 100dvh); border-left: none;
     visibility: hidden; transform: translateX(100%);
     transition: transform .24s cubic-bezier(.32,.72,0,1), visibility 0s .24s; }
   body.chatting #chatSide { visibility: visible; transform: none;
@@ -783,9 +783,9 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
 .conn:focus { outline: none; }
 .conn .cbtn { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; height: 38px; padding: 0 13px 0 14px; border-radius: 999px;
   font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.01em; transition: background .12s; }
-@media (hover: hover) { .conn:hover .cbtn { background: var(--acc-weak); } }
-.conn[aria-expanded="true"] .cbtn { background: var(--acc-weak); }
-.conn:focus-visible .cbtn { box-shadow: 0 0 0 2px var(--blue); }
+@media (hover: hover) { .conn:hover .cbtn { background: var(--surface-2); } }
+.conn[aria-expanded="true"] .cbtn { background: var(--surface-2); }
+.conn:focus-visible .cbtn { box-shadow: 0 0 0 2px var(--text-weak); }
 .conn .label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .conn .caret { flex: 0 0 auto; font-size: 9px; color: var(--text-weak); }
 .conn .dot { width: 8px; height: 8px; }
@@ -796,15 +796,15 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
 .conn-pop .tmux-cfg-list { gap: 2px; max-height: 50vh; margin: 0; }
 .conn-pop .tmux-cfg-list button { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: none; border-radius: var(--r-sm); background: none; font-size: 14px; }
 .conn-pop .tmux-cfg-list button:hover { background: var(--surface-2); }
-.conn-pop .tmux-cfg-list button.cur { background: var(--acc-weak); }
+.conn-pop .tmux-cfg-list button.cur { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); }
 .conn-pop .sdot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 999px; background: var(--green); }
 .conn-pop button.shell .sdot { background: var(--line); }
 .conn-pop .sname { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .conn-pop .sname b { font-weight: 800; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.conn-pop button.cur .sname b { color: var(--acc-strong); }
+.conn-pop button.cur .sname b { color: var(--text); }
 .conn-pop .sname small { font-size: 12px; font-weight: 600; color: var(--text-weak); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.conn-pop .sname small b { font-weight: 800; color: var(--blue-700); font-size: inherit; }
-.conn-pop .scheck { flex: 0 0 auto; font-weight: 800; color: var(--acc-strong); }
+.conn-pop .sname small b { font-weight: 800; color: var(--text-weak); font-size: inherit; }
+.conn-pop .scheck { flex: 0 0 auto; font-weight: 800; color: var(--text); }
 .conn-pop .tmux-cfg-hint { padding: 4px 12px 6px; margin-top: 4px; font-size: 11.5px; }
 
 #feed { padding: 18px 16px 12px; gap: 14px; background: var(--chat-bg); }
@@ -838,6 +838,7 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
 .conn { flex-direction: row; align-items: stretch; justify-content: flex-start; }
 .conn .cbtn { flex: 1; width: 100%; justify-content: flex-start; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); }
 .conn .cbtn .label { flex: 1; text-align: left; }
+.conn .conn-pop { left: 0; right: 0; width: auto; transform: none; }   /* 콤보 폭 그대로 — 화면 밖으로 삐져나가지 않게 */
 /* 기록 모드 항목 */
 .umsg { align-self: flex-end; max-width: 86%; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .umsg .msg.user { max-width: 100%; }
@@ -874,6 +875,8 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
 .composer { flex-direction: column; align-items: stretch; gap: 6px; margin: 0 12px calc(12px + var(--safe-b)); padding: 10px 10px 10px;
   border-radius: 28px; background: var(--chat-bg); box-shadow: 0 0 0 1px var(--line), 0 4px 18px rgba(0,0,0,.06); }
 /* 떠 있는 입력 영역(도크). #chatSide > *:not(#chatResize)의 고정 폭(명시도 2-0-0)을 이기려고 선택자를 한 단계 올린다 */
+/* 키보드가 떠 있을 때: 홈 인디케이터 여백(safe-area)을 빼고 키보드 바로 위에 붙인다(Claude 앱과 같은 간격) */
+html.kb-open .chat-dock .composer { margin-bottom: 2px; }
 #chatSide > .chat-dock.chat-dock:not(#chatResize) { position: absolute; right: 0; bottom: 0; z-index: 5; pointer-events: none; }
 @media (max-width: 768px) { #chatSide > .chat-dock.chat-dock:not(#chatResize) { left: 0; width: auto; } }
 .chat-dock > * { pointer-events: auto; }
@@ -895,6 +898,27 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
 .composer #ghost { inset: 0; padding: 6px 8px 2px; font-size: 16px; line-height: 1.5; }
 .cbar { display: flex; align-items: center; gap: 8px; }
 .cbar .sp { flex: 1; }
+/* 한도 원형 차트 — 쓴 비율만큼 호가 찬다. 80%↑ 주황, 95%↑ 빨강 */
+.limit-ring { position: relative; width: 40px; height: 40px; border-radius: 999px; background: var(--surface-2); display: grid; place-items: center; flex: 0 0 auto; }
+.limit-ring[hidden] { display: none; }
+.limit-ring svg { width: 30px; height: 30px; transform: rotate(-90deg); }
+.limit-ring circle { fill: none; stroke-width: 4; }
+.limit-ring .trk { stroke: var(--line); }
+.limit-ring .val { stroke: var(--blue); stroke-linecap: round; stroke-dasharray: var(--pct, 0) 100; transition: stroke-dasharray .4s; }
+.limit-ring.warn .val { stroke: var(--warm-fg); } .limit-ring.hot .val { stroke: var(--danger); }
+.limit-ring .rl { position: absolute; font-size: 9px; font-weight: 800; color: var(--text-sub); letter-spacing: -.02em; }
+.cbar .mic { width: 40px; height: 40px; border-radius: 999px; background: var(--surface-2); color: var(--text); display: grid; place-items: center; flex: 0 0 auto; }
+.cbar .mic[hidden] { display: none; }
+.cbar .mic svg { width: 20px; height: 20px; }
+.cbar .mic[aria-pressed="true"] { background: var(--danger); color: #fff; animation: micpulse 1.4s ease-in-out infinite; }
+@keyframes micpulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--danger) 25%, transparent); } }
+.limit-pop { position: fixed; z-index: 92; min-width: 220px; max-width: calc(100vw - 32px); padding: 12px 14px; border-radius: 16px; background: var(--surface); box-shadow: var(--sh-sheet), 0 0 0 1px var(--line-2); font-size: 13px; }
+.limit-pop[hidden] { display: none; }
+.limit-pop .lr { display: flex; justify-content: space-between; gap: 14px; font-weight: 700; }
+.limit-pop .lr + .lbar { margin-top: 6px; }
+.limit-pop .lbar { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; } .limit-pop .lbar i { display: block; height: 100%; background: var(--blue); }
+.limit-pop .ls { margin-top: 5px; color: var(--text-weak); font-size: 12px; }
+.limit-pop .ls + .lr { margin-top: 12px; }
 .cbar .attach { width: 40px; height: 40px; background: var(--surface-2); box-shadow: none; color: var(--text); }
 .cbar .attach svg { width: 20px; height: 20px; }
 .agent-pill { height: 40px; padding: 0 16px; border-radius: 999px; background: var(--surface-2); color: var(--text); font-size: 14px; font-weight: 700;
@@ -958,6 +982,33 @@ body.sys-mode .ws-combo { display: none; }
 .rel-vocab td code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; font-weight: 700; }
 .rel-vocab tr:last-child td { border-bottom: none; }
 .rel-vocab .auto { font-size: 11px; font-weight: 800; color: var(--text-weak); }
+
+/* ===== 모델 선택 시트 ===== */
+.msheet-scrim { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.32); opacity: 0; pointer-events: none; transition: opacity .2s; }
+.msheet-scrim.on { opacity: 1; pointer-events: auto; }
+.msheet { position: fixed; z-index: 91; left: 50%; bottom: 0; width: min(520px, 100vw); transform: translate(-50%, 100%); transition: transform .26s cubic-bezier(.32,.72,0,1);
+  background: var(--bg); border-radius: 28px 28px 0 0; padding: 8px 16px calc(18px + var(--safe-b)); box-shadow: var(--sh-sheet); max-height: 88dvh; overflow-y: auto; }
+.msheet.on { transform: translate(-50%, 0); }
+.msheet[hidden] { display: block; visibility: hidden; }
+.msheet .grab { width: 40px; height: 5px; border-radius: 99px; background: var(--line); margin: 2px auto 8px; }
+.msheet .mhead { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; margin-bottom: 14px; }
+.msheet .mhead h2 { margin: 0; text-align: center; font-size: 16px; font-weight: 700; }
+.msheet .mgroup { display: block; width: 100%; background: var(--surface); border-radius: 20px; padding: 4px 0; margin-bottom: 12px; box-shadow: 0 0 0 1px var(--line-2); }
+.msheet .mgroup[hidden] { display: none; }
+.msheet .mrow { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 13px 18px; }
+.msheet .mgroup > .mrow + .mrow { border-top: 1px solid var(--line-2); }
+.msheet .mrow .mtx { flex: 1; min-width: 0; }
+.msheet .mrow .mt { display: block; font-size: 16px; font-weight: 500; color: var(--text); }
+.msheet .mrow .md { display: block; margin-top: 2px; font-size: 13px; color: var(--text-weak); }
+.msheet .mrow .ck { width: 20px; height: 20px; color: var(--blue); visibility: hidden; flex: 0 0 auto; }
+.msheet .mrow[aria-checked="true"] .ck { visibility: visible; }
+.msheet .mrow:disabled { opacity: .5; }
+.msheet .meffort { padding: 15px 18px; }
+.msheet .meffort .mt { flex: 1; }
+.msheet .meffort .mv { font-size: 14px; color: var(--text-weak); }
+.msheet .meffort .chev { width: 18px; height: 18px; color: var(--text-weak); transition: transform .2s; }
+.msheet .meffort[aria-expanded="true"] .chev { transform: rotate(90deg); }
+.msheet .mnote { margin: 2px 6px 0; font-size: 12px; color: var(--text-weak); }
 </style>
 <script>
 /* 계절·시간대 테마 — <style> 직후에서 돌려 첫 페인트 전에 속성을 심는다(색 깜빡임 방지).
@@ -1171,13 +1222,10 @@ body.sys-mode .ws-combo { display: none; }
           <div class="tmux-cfg-hint">Each session keeps its own chat history. Start an agent in tmux to see it here.</div>
         </div>
       </div>
-      <button class="icon-btn round" id="chatMoreBtn" aria-label="Choose the agent session" aria-haspopup="true">
-        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
-      </button>
     </div>
   </div>
   <div id="feed" aria-live="polite" aria-relevant="additions">
-    <div class="feed-empty" id="feedEmpty">No agent connected — tap the title or ⋯ above to choose one</div>
+    <div class="feed-empty" id="feedEmpty">No agent connected — tap the session name above to choose one</div>
     <div id="msgs" style="display:contents"></div>
     <div id="pendingWrap" style="display:contents"></div>
     <div id="optimistic" style="display:contents"></div>
@@ -1222,7 +1270,11 @@ body.sys-mode .ws-combo { display: none; }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
       <button class="agent-pill" id="agentPill" title="Choose the agent session">Agent</button>
+      <!-- 요금제 한도: 5시간 · 주간 — 원형 차트가 쓴 만큼 찬다 -->
+      <button class="limit-ring" id="ring5h" data-limit="fiveHour" hidden aria-label="5-hour limit"><svg viewBox="0 0 36 36" aria-hidden="true"><circle class="trk" cx="18" cy="18" r="14"/><circle class="val" cx="18" cy="18" r="14" pathLength="100"/></svg><span class="rl">5h</span></button>
+      <button class="limit-ring" id="ringWeek" data-limit="week" hidden aria-label="Weekly limit"><svg viewBox="0 0 36 36" aria-hidden="true"><circle class="trk" cx="18" cy="18" r="14"/><circle class="val" cx="18" cy="18" r="14" pathLength="100"/></svg><span class="rl">7d</span></button>
       <span class="sp"></span>
+      <button class="mic" id="micBtn" hidden title="Dictate" aria-label="Dictate" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="21"/></svg></button>
       <button id="send" title="Send" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="6 11 12 5 18 11"/></svg></button>
     </div>
   </div>
@@ -1246,6 +1298,17 @@ body.sys-mode .ws-combo { display: none; }
   <button data-area="ws" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Workspace</button>
   <button data-area="sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>System<span class="tbadge" data-sysbadge>0</span></button>
 </nav>
+<!-- 모델 선택 시트(Claude Code 세션) — Claude 앱과 같은 모양 -->
+<div class="limit-pop" id="limitPop" role="status" hidden></div>
+<div class="msheet-scrim" id="msheetScrim"></div>
+<div class="msheet" id="msheet" role="dialog" aria-modal="true" aria-labelledby="msheetTitle" hidden>
+  <div class="grab" aria-hidden="true"></div>
+  <div class="mhead"><button class="icon-btn round" id="msheetClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><h2 id="msheetTitle">Model</h2><span></span></div>
+  <div class="mgroup" id="mList" role="radiogroup" aria-label="Model"></div>
+  <button class="mgroup mrow meffort" id="mEffortBtn" aria-expanded="false"><span class="mt">Effort</span><span class="mv" id="mEffortVal"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+  <div class="mgroup" id="mEffortList" role="radiogroup" aria-label="Effort" hidden></div>
+  <p class="mnote">Also becomes the default for new Claude Code sessions.</p>
+</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <button class="newver" id="newver">New version available — tap to reload</button>
 <div class="chat-scrim" id="chatScrim"></div>
@@ -1330,7 +1393,7 @@ let sessionAlive = false, busy = false, atBottom = true;
 // 선언줄 이전에 읽으면 던지고, 그러면 이후 스크립트 전체가 중단된다(실제로 그런 사고가 있었다).
 let contextChips = [], attachments = [];
 // 대화 기록 모드(Claude Code JSONL) 상태 — pollHealth가 부트스트랩 중에 부르므로 여기서 먼저 선언한다
-let logMode = false, logRev = 0, logSession = '', logTimer = null, logBusy = false, logModel = '';
+let logMode = false, logRev = 0, logSession = '', logTimer = null, logBusy = false, logModel = '', logServerModel = '', logServerEffort = '', logEffort = '', msheetBusy = false, logKind = '', limits = null;
 const logOpen = new Set();          // 사용자가 펼쳐 둔 도구 묶음(다시 그려도 유지)   // attachments: {name, size, path, pending}
 
 /* ================= 데이터 (할일 + 일정) ================= */
@@ -2200,9 +2263,18 @@ $('lkList').addEventListener('click', async (e) => {
 (() => {
   const vv = window.visualViewport;
   if (!vv) return;
+  // 채팅은 '지금 눈에 보이는 영역(visual viewport)'에 그대로 맞춘다 — innerHeight가 키보드에 따라 줄든 말든 상관없이
+  // 키보드 바로 위까지만 차지한다. 키보드 여부는 이 방향에서 본 가장 큰 높이보다 크게 줄었는지로 판단한다.
+  let maxH = 0, orient = '';
   const apply = () => {
-    const hidden = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
-    document.documentElement.style.setProperty('--kb', hidden + 'px');
+    const o = innerWidth > innerHeight ? 'l' : 'p';
+    if (o !== orient) { orient = o; maxH = 0; }
+    maxH = Math.max(maxH, vv.height);
+    const root = document.documentElement.style;
+    root.setProperty('--vvh', Math.round(vv.height) + 'px');
+    root.setProperty('--vvt', Math.round(vv.offsetTop) + 'px');
+    root.setProperty('--kb', Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) + 'px');
+    document.documentElement.classList.toggle('kb-open', maxH - vv.height > 120);   // 키보드가 떠 있으면 홈 인디케이터 여백이 필요 없다
   };
   vv.addEventListener('resize', apply);
   vv.addEventListener('scroll', apply);
@@ -2210,7 +2282,11 @@ $('lkList').addEventListener('click', async (e) => {
 })();
 
 /* ================= ANA 상태 패널 ================= */
-let srvConnected = false, health = null;
+let srvConnected = false, health = null, screenResync = false;
+// 화면 원장을 표시할 때만 화면 재동기화 상태가 의미 있다.
+function renderResync() {
+  $('resync').style.display = screenResync && !logMode && srvConnected && sesAlive() ? 'inline-flex' : 'none';
+}
 // 세션 생존 판정 단일 소스 — health가 오기 전에는 SSE의 sessionAlive를 쓴다.
 function sesAlive() { return health ? health.session : sessionAlive; }
 // 작업 중 경과 시간(✳ 12s · Thinking…) — busy가 켜진 순간부터 센다
@@ -2233,6 +2309,7 @@ const agentName = (cmd, session) => {
   return c || 'Agent';
 };
 function renderStatus() {
+  renderResync();
   const ses = sesAlive();
   const shell = /^-?(zsh|bash|sh|fish|dash|ksh|tcsh|csh|login)$/.test((health && health.command) || '');
   const agentOk = ses && health && health.command && !shell;
@@ -2394,7 +2471,135 @@ $('connPill').addEventListener('click', (e) => {
   if (!cfgPanel.hidden) refreshTmuxCfg();
 });
 // ⋯ 버튼과 입력창의 에이전트 표시도 같은 세션 선택 창을 연다
-['chatMoreBtn', 'agentPill'].forEach((id) => $(id).addEventListener('click', (e) => { e.stopPropagation(); $('connPill').click(); }));
+/* ---- 요금제 한도(5시간·주간) 원형 차트 ---- Claude Code 세션일 때만 보인다. 1분마다, 화면이 보일 때만 갱신 */
+const LIMIT_NAME = { fiveHour: '5-hour limit', week: 'Weekly limit' };
+function resetText(iso) {
+  if (!iso) return '';
+  const d = new Date(iso), now = new Date(), mins = Math.round((d - now) / 60000);
+  const hm = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (mins <= 0) return 'Resets soon';
+  if (mins < 60) return `Resets in ${mins} min (${hm})`;
+  if (mins < 24 * 60) return `Resets in ${Math.floor(mins / 60)} h ${mins % 60} min (${hm})`;
+  return `Resets ${d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })} ${hm}`;
+}
+function renderLimits() {
+  const show = logMode && limits && limits.available;
+  [['ring5h', 'fiveHour'], ['ringWeek', 'week']].forEach(([id, k]) => {
+    const el = $(id), v = show && limits[k];
+    el.hidden = !v; if (!v) return;
+    el.style.setProperty('--pct', Math.min(100, v.percent));
+    el.classList.toggle('warn', v.percent >= 80 && v.percent < 95); el.classList.toggle('hot', v.percent >= 95);
+    el.setAttribute('aria-label', `${LIMIT_NAME[k]}: ${v.percent}% used. ${resetText(v.resetsAt)}`);
+    el.title = `${LIMIT_NAME[k]} ${v.percent}% used`;
+  });
+  if (!show) $('limitPop').hidden = true;
+}
+async function pollLimits() {
+  const t = health && health.target;
+  if (!document.hidden && logMode && t) { try { const d = await (await fetch(`/api/limits?target=${encodeURIComponent(t)}`)).json(); if (t === (health && health.target)) limits = d; } catch {} }
+  renderLimits();
+}
+setInterval(pollLimits, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) pollLimits(); });
+function openLimitPop(btn) {
+  if (!limits || !limits.available) return;
+  const row = (k) => limits[k] ? `<div class="lr"><span>${LIMIT_NAME[k]}</span><span>${limits[k].percent}% used</span></div><div class="lbar"><i style="width:${Math.min(100, limits[k].percent)}%"></i></div><div class="ls">${escapeHtml(resetText(limits[k].resetsAt))}</div>` : '';
+  const pop = $('limitPop'); pop.innerHTML = row('fiveHour') + row('week'); pop.hidden = false;
+  const r = btn.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+  pop.style.left = Math.max(16, Math.min(innerWidth - w - 16, r.left + r.width / 2 - w / 2)) + 'px';
+  pop.style.top = Math.max(8, r.top - h - 10) + 'px';
+}
+['ring5h', 'ringWeek'].forEach((id) => $(id).addEventListener('click', (e) => { e.stopPropagation(); $('limitPop').hidden ? openLimitPop($(id)) : ($('limitPop').hidden = true); }));
+document.addEventListener('click', (e) => { if (!$('limitPop').hidden && !e.target.closest('#limitPop')) $('limitPop').hidden = true; });
+
+/* ---- 받아쓰기(마이크) ---- 브라우저 음성 인식이 있으면 보인다. 말한 내용을 입력창 커서 위치에 이어 쓴다 */
+(() => {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  $('micBtn').hidden = false;
+  let rec = null, base = '', finalTxt = '';
+  const stop = () => { if (rec) try { rec.stop(); } catch {} };
+  $('micBtn').onclick = () => {
+    if (rec) return stop();
+    rec = new SR(); rec.lang = navigator.language || 'ko-KR'; rec.interimResults = true; rec.continuous = true;
+    const inp = $('input'); base = inp.value ? inp.value.replace(/\s*$/, ' ') : ''; finalTxt = '';
+    rec.onresult = (ev) => {
+      let interim = '';
+      for (let i = ev.resultIndex; i < ev.results.length; i++) { const t = ev.results[i][0].transcript; if (ev.results[i].isFinal) finalTxt += t; else interim += t; }
+      inp.value = base + finalTxt + interim; inp.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    rec.onerror = (ev) => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') showErr('Microphone access was blocked — allow it in the browser settings'); };
+    rec.onend = () => { rec = null; $('micBtn').setAttribute('aria-pressed', 'false'); $('micBtn').title = 'Dictate'; };
+    try { rec.start(); $('micBtn').setAttribute('aria-pressed', 'true'); $('micBtn').title = 'Stop dictation'; } catch { rec = null; }
+  };
+  $('send').addEventListener('click', stop, true);
+})();
+
+// 입력창의 모델 알약: Claude Code 세션이면 모델 선택 시트, 아니면 세션 목록
+$('agentPill').addEventListener('click', (e) => { e.stopPropagation(); if (logMode && ['claude', 'codex'].includes(logKind)) openModelSheet(); else $('connPill').click(); });
+const MODELS = [
+  ['opus', 'Opus 5.5', 'Best for ambitious work'],
+  ['fable', 'Fable 5.1', 'For the hardest problems'],
+  ['sonnet', 'Sonnet 5', 'Most efficient for everyday tasks'],
+  ['haiku', 'Haiku 4.5', 'Fastest answers'],
+];
+let codexModels = [], modelSheetTarget = '';
+const sheetModels = () => logKind === 'codex' ? codexModels.map(m => [m.id, m.name, m.description]) : MODELS;
+const sheetEfforts = () => logKind === 'codex' ? ((codexModels.find(m => m.name === logModel) || {}).efforts || []).map(e => [e, { xhigh: 'Extra high' }[e] || e[0].toUpperCase() + e.slice(1)]) : EFFORTS;
+const EFFORTS = [['low', 'Low'], ['medium', 'Medium'], ['high', 'High'], ['xhigh', 'Extra high'], ['max', 'Max']];
+const CHECK = '<svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+function renderModelSheet() {
+  const cur = (sheetModels().find(m => logKind === 'codex' ? logModel === m[1] : logModel && logModel.startsWith(m[1].split(' ')[0])) || [])[0];
+  $('mList').innerHTML = sheetModels().map(([k, n, d]) => `<button class="mrow" role="radio" data-model="${k}" aria-checked="${k === cur}"${msheetBusy ? ' disabled' : ''}><span class="mtx"><span class="mt">${escapeHtml(n)}</span><span class="md">${escapeHtml(d)}</span></span>${CHECK}</button>`).join('');
+  $('mEffortList').innerHTML = sheetEfforts().map(([k, n]) => `<button class="mrow" role="radio" data-effort="${k}" aria-checked="${k === logEffort}"${msheetBusy ? ' disabled' : ''}><span class="mtx"><span class="mt">${n}</span></span>${CHECK}</button>`).join('');
+  $('mEffortVal').textContent = (sheetEfforts().find((x) => x[0] === logEffort) || ['', ''])[1];
+}
+async function openModelSheet() {
+  const target = health && health.target;
+  if (logKind === 'codex') {
+    try {
+      const r = await fetch('/api/agent-models'); const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      if (target !== (health && health.target)) return;
+      codexModels = d.models;
+    } catch (e) { showErr(e.message || 'Could not load models'); return; }
+  }
+  modelSheetTarget = target;
+  renderModelSheet();
+  $('msheet').hidden = false; void $('msheet').offsetWidth;
+  $('msheet').classList.add('on'); $('msheetScrim').classList.add('on');
+  setTimeout(() => ($('mList').querySelector('[aria-checked="true"]') || $('msheetClose')).focus(), 60);
+}
+function closeModelSheet() {
+  $('msheet').classList.remove('on'); $('msheetScrim').classList.remove('on');
+  setTimeout(() => { if (!$('msheet').classList.contains('on')) $('msheet').hidden = true; }, 280);
+  $('agentPill').focus();
+}
+async function applyAgentSetting(body, label) {
+  if (msheetBusy) return;
+  if (modelSheetTarget !== (health && health.target)) { closeModelSheet(); return; }
+  body = { ...body, target: modelSheetTarget };
+  if (logKind === 'codex' && !body.model) body.model = (codexModels.find(m => m.name === logModel) || {}).id;
+  const target = modelSheetTarget;
+  msheetBusy = true; renderModelSheet();
+  let r; try { r = await post('/api/agent-setting', body); } catch { r = null; }
+  msheetBusy = false;
+  if (target !== (health && health.target)) return;
+  if (!r || !r.ok) { let e = {}; try { e = await r.json(); } catch {} renderModelSheet(); showErr(e.error || 'Could not change the setting'); return; }
+  const res = await r.json().catch(() => ({}));
+  if (body.model) {
+    if (res.model && res.model.changed === false) { renderModelSheet(); showErr(`Claude Code kept ${res.model.name} — it can't switch to ${label} in this conversation. Start a new session to use it.`); return; }
+    logModel = (res.model && res.model.name) || label || logModel; renderStatus();        // 다음 응답 기록이 오면 실제 값으로 다시 맞춘다
+  }
+  if (res.effort && res.effort.level) logEffort = res.effort.level; else if (body.effort) logEffort = body.effort;
+  renderModelSheet(); if (body.model) closeModelSheet();
+}
+$('mList').onclick = (e) => { const b = e.target.closest('[data-model]'); if (!b || b.getAttribute('aria-checked') === 'true') return;
+  applyAgentSetting({ model: b.dataset.model }, sheetModels().find((m) => m[0] === b.dataset.model)[1]); };
+$('mEffortList').onclick = (e) => { const b = e.target.closest('[data-effort]'); if (!b || b.getAttribute('aria-checked') === 'true') return; applyAgentSetting({ effort: b.dataset.effort }); };
+$('mEffortBtn').onclick = () => { const open = $('mEffortList').hidden; $('mEffortList').hidden = !open; $('mEffortBtn').setAttribute('aria-expanded', String(open)); };
+$('msheetClose').onclick = closeModelSheet; $('msheetScrim').onclick = closeModelSheet;
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('msheet').classList.contains('on')) closeModelSheet(); });
 $('connPill').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('connPill').click(); } });
 // 바깥 클릭 시 드롭다운 닫기
 document.addEventListener('click', (e) => { if (!e.target.closest('#connPill') && !cfgPanel.hidden) cfgPanel.hidden = true; });
@@ -2422,7 +2627,7 @@ function refreshPropCards() { document.querySelectorAll('[data-prop]').forEach((
 // logMode·logRev 등 상태 변수는 부트스트랩보다 먼저 쓰이므로 스크립트 맨 앞(contextChips 옆)에 선언한다.
 // 원장 메시지: 기록 모드에서는 승인 카드처럼 원장에만 있는 것만 그린다
 const ledgerHtml = (msgs) => (logMode ? msgs.filter((m) => m.role === 'proposal') : msgs).map(msgHtml).join('');
-function logReset() { logRev = 0; logSession = ''; logModel = ''; if (logMode) { logMode = false; } }
+function logReset() { logRev = 0; logSession = ''; logKind = ''; limits = null; renderLimits(); logModel = ''; logServerModel = ''; logServerEffort = ''; if (logMode) { logMode = false; } }
 function pollLogSoon() { clearTimeout(logTimer); logTimer = setTimeout(pollLog, 250); }
 async function pollLog() {
   clearTimeout(logTimer);
@@ -2434,14 +2639,17 @@ async function pollLog() {
   logBusy = false;
   if (!d || target !== (health && health.target)) return next();
   if (!d.available) {
-    if (logMode) { logMode = false; logModel = ''; renderStatus(); switchStream(); }        // 기록이 없어졌다 → 원장으로 다시 그린다
+    if (logMode) { logMode = false; logModel = ''; renderStatus(); renderLimits(); switchStream(); }        // 기록이 없어졌다 → 원장으로 다시 그린다
     return next();
   }
   const fresh = !logMode || d.session !== logSession || d.reset;
   if (fresh && logSession && (d.session !== logSession || d.reset)) { logRev = 0; logSession = ''; return pollLog(); }
-  if (!logMode) { logMode = true; $('msgs').innerHTML = ''; renderPending([]); }
+  if (!logMode) { logMode = true; renderResync(); $('msgs').innerHTML = ''; renderPending([]); pollLimits(); }
   logSession = d.session; logRev = d.rev;
-  if ((d.modelName || '') !== logModel) { logModel = d.modelName || ''; renderStatus(); }   // 입력창 하단에 실제 모델명
+  if (d.kind !== logKind) { logKind = d.kind || ''; pollLimits(); }
+  // 입력창 하단에 실제 모델명 — 시트에서 바꾼 값은 서버 기록이 바뀔 때까지 유지한다
+  if ((d.modelName || '') !== logServerModel) { logServerModel = d.modelName || ''; logModel = logServerModel; renderStatus(); }
+  if (d.effort && d.effort !== logServerEffort) { logServerEffort = d.effort; logEffort = d.effort; }
   if (d.items.length) {
     const stick = atBottom;
     for (const it of d.items) {
@@ -2641,7 +2849,7 @@ function dropPendingDup(msgs) {
   }
 }
 function updateEmpty() { const has = $('msgs').children.length || $('pendingWrap').children.length; $('feedEmpty').style.display = has ? 'none' : 'block';
-  $('feedEmpty').innerHTML = sessionAlive ? 'Start a conversation' : 'No agent connected — tap the title or ⋯ above to choose one'; }
+  $('feedEmpty').innerHTML = sessionAlive ? 'Start a conversation' : 'No agent connected — tap the session name above to choose one'; }
 function pinChat() { if (atBottom) $('feed').scrollTop = $('feed').scrollHeight; }
 // ↓ 버튼: 맨 아래가 아니면 보이고, 그사이 새 메시지가 오면 점이 붙는다
 function updateJump() { const b = $('jumpBtn'); b.hidden = atBottom; if (atBottom) b.classList.remove('new'); }
@@ -2669,7 +2877,7 @@ let es = null, backoff = 1000, lastSeq = 0, streamTarget = '', streamGen = 0, yo
 function switchStream() {
   streamGen++; clearTimeout(reconnectT); reconnectT = null;
   try { if (es) es.close(); } catch {}
-  es = null; streamTarget = ''; lastSeq = 0; dialogInfo = null; logReset();
+  es = null; streamTarget = ''; lastSeq = 0; dialogInfo = null; screenResync = false; logReset(); renderResync();
   $('msgs').innerHTML = ''; renderPending([]); renderDraft(''); clearChips(); renderDialog(); updateEmpty();
   connect(); pollHealth();
 }
@@ -2684,6 +2892,7 @@ function connect() {
       case 'snapshot':
         if (streamTarget && d.target && d.target !== streamTarget) { switchStream(); return; }
         streamTarget = d.target || ''; youKey = d.you || youKey;
+        screenResync = !!d.resync;
         if ('dialogInfo' in d) dialogInfo = d.dialogInfo;
         if (health && 'dialog' in d) health.dialog = d.dialog;
         (d.proposals || []).forEach((p) => proposals.set(p.id, p));
@@ -2701,7 +2910,7 @@ function connect() {
         if (d.messages.length) lastSeq = d.messages[d.messages.length - 1].seq;
         updateEmpty(); markClip(); reconcile(); pinChat(); if (!logMode) notifyNew(); pollLogSoon(); break;
       case 'pending': renderPending(logMode ? [] : d.pending); reconcile(); updateEmpty(); pinChat(); break;
-      case 'status': if ('dialog' in d && health) health.dialog = d.dialog; sessionAlive = d.session; busy = d.busy; $('typTx').textContent = d.spin || 'Working…'; if (d.resync !== undefined) $('resync').style.display = d.resync ? 'inline-flex' : 'none'; renderStatus(); updateEmpty(); reconcile(); break;
+      case 'status': if ('dialog' in d && health) health.dialog = d.dialog; sessionAlive = d.session; busy = d.busy; $('typTx').textContent = d.spin || 'Working…'; if (d.resync !== undefined) screenResync = !!d.resync; renderStatus(); updateEmpty(); reconcile(); break;
       case 'draft': renderDraft(d.draft); break;
       case 'proposal': proposals.set(d.proposal.id, d.proposal); refreshPropCards(); break;
       case 'data': if (d.version !== dataVersion) refreshData(); break;

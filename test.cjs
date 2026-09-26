@@ -476,6 +476,38 @@ t('L1 agent-log: 도구 라벨(설명 우선·파일명) · 사용자 입력 정
   assert.equal(modelName('claude-opus-5-5'), 'Opus 5.5'); assert.equal(modelName('claude-haiku-4-5-20251001'), 'Haiku 4.5'); assert.equal(modelName('claude-sonnet-5'), 'Sonnet 5');
 });
 
+t('L2 agent-log(Codex): 모델명 표기 · rate_limits 창 길이로 5시간/주간 구분', () => {
+  const { codexModelName, codexLimits } = require('./agent-log.js');
+  assert.equal(codexModelName('gpt-6-astra'), 'GPT-6 Astra'); assert.equal(codexModelName('gpt-5.6-sol'), 'GPT-5.6 Sol');
+  const l = codexLimits({ primary: { used_percent: 12.4, window_minutes: 300, resets_at: 1790000000 }, secondary: { used_percent: 2, window_minutes: 10080, resets_at: 1790500000 } });
+  assert.equal(l.fiveHour.percent, 12); assert.equal(l.week.percent, 2); assert.equal(l.week.resetsAt, new Date(1790500000 * 1000).toISOString());
+  assert.equal(codexLimits({ primary: { used_percent: 2, window_minutes: 10080 }, secondary: null }).fiveHour, null);
+  assert.equal(codexLimits({ primary: null, secondary: null }), null);
+});
+
+t('F1 features.json: 모든 기능 앵커가 이 저장소 코드에 실제로 있다(스킬·업데이트 비교의 기준)', () => {
+  const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'features.json'), 'utf8'));
+  const code = fs.readdirSync(__dirname).filter((f) => /\.(m?js|cjs|html)$/.test(f) && !/test\.|\.test\./.test(f) && f !== 'channel-core.js')
+    .map((f) => fs.readFileSync(path.join(__dirname, f), 'utf8')).join('\n');
+  const core = fs.readFileSync(path.join(__dirname, 'channel-core.js'), 'utf8');
+  const missing = [];
+  for (const f of m.features) {
+    for (const a of f.anchors) if (!code.includes(a)) missing.push(`${f.id}: ${a}`);
+    for (const c of f.copy || []) if (!fs.existsSync(path.join(__dirname, c))) missing.push(`${f.id}: copy ${c}`);
+    if (!fs.existsSync(path.join(__dirname, 'skills', f.skill, 'SKILL.md'))) missing.push(`${f.id}: skill ${f.skill}`);
+  }
+  for (const a of m.runtime.anchors) if (!core.includes(a)) missing.push(`runtime: ${a}`);
+  assert.deepEqual(missing, []);
+});
+
+t('F2 ana-diff.mjs: 자기 자신과 비교하면 전부 present·runtime same, --json 형식', () => {
+  const out = require('node:child_process').execFileSync(process.execPath, [path.join(__dirname, 'skills/ana-update/scripts/ana-diff.mjs'), '--target', __dirname, '--upstream', __dirname, '--json'], { encoding: 'utf8' });
+  const r = JSON.parse(out);
+  assert.equal(r.runtime.state, 'same');
+  assert.deepEqual(r.features.filter((f) => f.status !== 'present').map((f) => f.id), []);
+  assert.ok(r.features.every((f) => f.modules.every((x) => x.state === 'same')));
+});
+
 t('D3 앵커 정렬은 화면 유래 항목만 사용 (src:api 리치 항목이 앵커를 깨지 않음)', () => {
   srv.feed.length = 0;
   srv.feed.push(

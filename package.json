@@ -7,7 +7,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node test.cjs"
+    "test": "node --test codex-settings.test.cjs && node test.cjs"
   },
   "dependencies": {
     "@tykimos/noderel": "github:tykimos/NodeRel#2a1e84987449c0dde5fb7506bacf08cb4fa63372",

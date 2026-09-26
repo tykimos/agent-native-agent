@@ -1,0 +1,15 @@
+{
+  "name": "agent-native-agent",
+  "description": "ANA (Agent-Native Agent) — a coding agent in tmux behind a dashboard, plus skills to install it and to keep each person's ANA up to date feature by feature.",
+  "owner": {
+    "name": "tykimos",
+    "url": "https://github.com/tykimos"
+  },
+  "plugins": [
+    {
+      "name": "ana",
+      "source": "./",
+      "description": "ANA runtime + skills: install, attach, ana-update (diff & port features into an existing ANA), chat-window, context-chips, relations, app-shell, agent-requests."
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "$comment": "ANA feature manifest. Each feature lists the skill that ports it, standalone modules to copy as-is, and anchors: strings that exist in the code once the feature is in. skills/ana-update/scripts/ana-diff.mjs searches a target ANA's .js/.html files for these anchors to report present / partial / missing. test.cjs checks that every anchor exists in this repo, so keep them in sync when you rename things.",
+  "version": 1,
+  "runtime": {
+    "file": "channel-core.js",
+    "note": "Shared runtime. Never patch it per ANA. If it differs from upstream, replace the whole file (ask the user first — every ANA on the host shares it).",
+    "anchors": ["TARGETS_FILE", "transcripts", "parseDialog", "ensureNotInCopyMode"]
+  },
+  "features": [
+    {
+      "id": "chat-layout",
+      "title": "Chat window — Claude app layout",
+      "skill": "chat-window",
+      "summary": "User bubbles, markdown replies without bubbles, 'Ran 3 commands ›' tool groups, ✳ elapsed-time spinner, floating blurred composer, ↓ jump button with new-message dot, keyboard-fit on iOS.",
+      "anchors": ["chatDock", "jumpBtn", "function pinChat", "function updateJump", "function groupActs", "kb-open", "--vvh"]
+    },
+    {
+      "id": "chat-session-combo",
+      "title": "Session combo box",
+      "skill": "chat-window",
+      "summary": "Full-width, left-aligned agent-session combo in the chat header; popup matches its width; 'You' only on the session this screen views.",
+      "anchors": ["connPill", "tmuxCfg", "function refreshTmuxCfg", "function applyTmuxTarget", "Open in another tab"]
+    },
+    {
+      "id": "chat-delivery",
+      "title": "Reliable send state",
+      "skill": "chat-window",
+      "summary": "Optimistic bubble → sent → acked (agent started working) → confirmed; handles [Pasted text] echoes so delivered messages never show Unconfirmed/Resend.",
+      "anchors": ["function addOptimistic", "function reconcile", "function echoOf", "busyAtSend"]
+    },
+    {
+      "id": "chat-agent-log",
+      "title": "Structured chat log (Claude Code + Codex)",
+      "skill": "chat-window",
+      "summary": "Render the chat from the agent's own JSONL log instead of the screen mirror: ~/.claude/projects/<cwd>/*.jsonl for Claude Code, ~/.codex/sessions/**/rollout-*.jsonl for Codex. Real model name in the composer.",
+      "copy": ["agent-log.js"],
+      "anchors": ["agent-log.js", "/api/agentlog", "function pollLog", "function logItemHtml", "function mdHtml", "codexModelName"]
+    },
+    {
+      "id": "chat-model-picker",
+      "title": "Model & effort picker sheet",
+      "skill": "chat-window",
+      "summary": "Tap the model pill → bottom sheet like the Claude app. Claude Code: /model + /effort, result read back from the screen. Codex: model catalog from ~/.codex/models_cache.json, picked through Codex's own menu.",
+      "copy": ["codex-settings.js"],
+      "anchors": ["msheet", "function openModelSheet", "function applyAgentSetting", "/api/agent-setting", "/api/agent-models", "codex-settings.js"]
+    },
+    {
+      "id": "chat-limits",
+      "title": "Plan usage rings (5-hour · weekly)",
+      "skill": "chat-window",
+      "summary": "Two ring charts in the composer that fill as the plan limit is used; tap for % and reset time. Claude: api.anthropic.com/api/oauth/usage with the local login. Codex: rate_limits from its rollout log.",
+      "anchors": ["ring5h", "ringWeek", "limitPop", "function pollLimits", "/api/limits", "api/oauth/usage"]
+    },
+    {
+      "id": "chat-voice",
+      "title": "Voice dictation",
+      "skill": "chat-window",
+      "summary": "Mic button using the browser's SpeechRecognition; dictates into the input at the cursor. Hidden when unsupported.",
+      "anchors": ["micBtn", "webkitSpeechRecognition"]
+    },
+    {
+      "id": "chat-attachments",
+      "title": "File attachments",
+      "skill": "chat-window",
+      "summary": "＋ button uploads files to .ana/uploads and sends their paths with the message; images show as thumbnails in the bubble.",
+      "anchors": ["attachBtn", "fileInput", "/api/upload", "function attachFiles"]
+    },
+    {
+      "id": "context-chips",
+      "title": "Context chips (Chip mode)",
+      "skill": "context-chips",
+      "summary": "Chip toggle; tap any on-screen item to attach it to the next message as a context chip; refresh button rescans the page.",
+      "anchors": ["modeToggle", "chipScanBtn", "function scanChipTargets", "function registerChipTarget", "function applyChipAffordance", "function buildMessage"]
+    },
+    {
+      "id": "context-draw",
+      "title": "Draw on screen (annotation)",
+      "skill": "context-chips",
+      "summary": "Pen button next to refresh; draw red/magenta/blue marks, then 'Add to chat' attaches an annotated screenshot + the items under the marks. Opens the chat right away on mobile.",
+      "anchors": ["drawBtn", "drawLayer", "drawCanvas", "function openDraw", "function drawTargetsUnder", "modern-screenshot"]
+    },
+    {
+      "id": "relations",
+      "title": "Note → Task → Event relations (NodeRel)",
+      "skill": "relations",
+      "summary": "SPAWNED / SCHEDULED_AS / REFERS_TO + derived DUE_ON / ON on NodeRel; relation chips on items; Relations tab with a flow graph and 'where the flow breaks'.",
+      "copy": ["graph.js"],
+      "npm": ["@tykimos/noderel"],
+      "anchors": ["graph.js", "/api/graph", "/api/link", "function relChips", "function gotoNode", "relationsView", "function drawRelGraph"]
+    },
+    {
+      "id": "app-areas",
+      "title": "Workspace / System areas",
+      "skill": "app-shell",
+      "summary": "Mobile bottom nav (Workspace | System), desktop segmented switch next to the logo. Workspace = your data tabs + workspace combo; System = Stats · Requests · Evolve · Relations with a badge.",
+      "anchors": ["bottomnav", "modeseg", "function setAppMode", "function applyArea", "function selectTab", "data-sysbadge"]
+    },
+    {
+      "id": "workspaces",
+      "title": "Workspaces",
+      "skill": "app-shell",
+      "summary": "Workspace combo in the header: switch, add, rename, delete, reorder; state isolated per workspace.",
+      "anchors": ["wsCombo", "/api/workspaces", "function switchWorkspace", "function saveWsOrder"]
+    },
+    {
+      "id": "agent-requests",
+      "title": "Requests (agent → user)",
+      "skill": "agent-requests",
+      "summary": "The agent registers what it needs from the user (info / decision / action / access); the user answers, marks done or dismisses in the Requests tab.",
+      "anchors": ["/api/requests", "/api/request-act", "requestsView", "function refreshRequests", "function reqCard"]
+    },
+    {
+      "id": "agent-evolve",
+      "title": "Evolve (agent → app proposals)",
+      "skill": "agent-requests",
+      "summary": "The agent proposes improvements to the app itself; the user approves and the agent implements.",
+      "anchors": ["/api/evolve", "/api/evolve-act", "evolveView", "function refreshEvolve"]
+    }
+  ]
+}

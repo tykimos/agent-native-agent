@@ -211,14 +211,43 @@ dashboard-api.js      리치 응답 API 예시 (워크스페이스 · 할일 · 
 graph.js              메모·할일·일정 관계 그래프 — NodeRel 기반(워크스페이스마다 파생 graph.sqlite)
 dashboard.html        레퍼런스 UI: 워크스페이스, Chip 모드, 컨텍스트 칩, 도킹 채팅, 관계 칩, 진화 탭
 package.json          의존성: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot
-test.cjs              70개 테스트 (단위 + mock_agent.py 대상 통합)
+test.cjs              74개 테스트 (단위 + mock_agent.py 대상 통합)
+agent-log.js          에이전트 자체 JSONL 기록으로 채팅 표시(Claude Code + Codex): 응답·도구·모델·한도
+codex-settings.js     Codex 모델·추론 강도 목록, Codex 자체 메뉴로 전환
+features.json         기능 목록: 기능별 앵커 + 담당 스킬 (ana-update가 비교 기준으로 사용)
 mock_agent.py         테스트용 결정적 TUI 스탠드인
 skills/ana/SKILL.md   "서비스에 ANA 붙이기" — 위 간단 레시피
 skills/install/       "ANA 설치·실행" — 환경 분석, 설치, tmux 실행, Windows WSL 부트스트랩
-.claude-plugin/       Claude Code 플러그인 매니페스트
+skills/ana-update/    "기존 ANA 업데이트" — 기능별로 업스트림과 비교, 고른 것만 이식
+skills/chat-window/   Claude 앱 같은 채팅: 콤보, 모델 시트, 한도 링, 음성, 첨부, 세션별 기록, Codex
+skills/context-chips/ 칩 모드, ✎ 화면 그리기(주석), ⟳ 새 요소 등록
+skills/relations/     NodeRel 항목 관계, 관계 칩, Relations 탭
+skills/app-shell/     Workspace / System 영역, 하단 메뉴, 워크스페이스 콤보
+skills/agent-requests/ Requests(에이전트 → 사용자)와 Evolve(에이전트 → 앱)
+.claude-plugin/       Claude Code 플러그인 + 마켓플레이스 매니페스트 (설치: claude plugin install ana@agent-native-agent)
 ```
 
 `channel-core.js`는 재사용 가능한 코어이고, `dashboard-api.js` / `dashboard.html`은 복사해서 당신의 것으로 교체하는 **예시**입니다.
+
+### 기존 ANA 업데이트
+
+이 base는 초기 셋팅용이고, 사람마다의 ANA는 각자 도메인 코드로 자랍니다. 그래서 업데이트할 때 저장소를 통째로 덮어쓰지 않습니다. 그 ANA의 에이전트에게 이렇게 말하세요.
+
+> *"https://github.com/tykimos/agent-native-agent 최신 내용으로 업데이트해"*
+
+**[`ana-update` 스킬](skills/ana-update/SKILL.md)**이 `ana-diff.mjs`로 기능마다 ✓ 있음 · ◐ 일부 · ✗ 없음, 오래된 모듈, 공유 `channel-core.js` 차이를 보고합니다. 사용자가 고르면 기능별 스킬(chat-window, context-chips, relations, app-shell, agent-requests)로 그 ANA의 파일에 이식하고, 동기화한 커밋을 `.ana-sync.json`에 남깁니다. 다음 업데이트 때는 그 뒤에 새로 생긴 것만 보여 줍니다.
+
+스킬은 머신마다 한 번 설치해 두면 어느 ANA의 에이전트든 쓸 수 있고, 업데이트도 같은 방법으로 합니다.
+
+```bash
+claude plugin marketplace add tykimos/agent-native-agent
+claude plugin install ana@agent-native-agent          # 이후: claude plugin update ana@agent-native-agent
+```
+
+```bash
+node skills/ana-update/scripts/ana-diff.mjs --target ~/ana/my-ana            # 보고만 (읽기 전용)
+node skills/ana-update/scripts/ana-diff.mjs --target ~/ana/my-ana --record   # 이식한 뒤 기록
+```
 
 ---
 

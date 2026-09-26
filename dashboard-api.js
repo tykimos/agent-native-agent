@@ -18,6 +18,7 @@ const fsp = require('node:fs/promises');
 const { execFile } = require('node:child_process');
 const { AsyncLocalStorage } = require('node:async_hooks');
 const relgraph = require('./graph.js');
+const codexSettings = require('./codex-settings.js');
 const { createAgentLog } = require('./agent-log.js');
 
 function createDashboardApi(core, opts) {
@@ -263,6 +264,30 @@ function createDashboardApi(core, opts) {
   // 오늘 토큰 사용량: ~/.claude/projects/**/*.jsonl 중 오늘 수정된 파일만 스캔.
   // 로그인 만료: macOS keychain(Claude Code-credentials) → ~/.claude/.credentials.json 폴백. 토큰 값은 절대 노출하지 않는다.
   let usageCache = { at: 0, data: null };
+  // Claude Code 로그인 정보(macOS keychain → ~/.claude/.credentials.json). 토큰은 서버 밖으로 내보내지 않는다.
+  async function readOauth() {
+    let raw = '';
+    if (process.platform === 'darwin') {
+      raw = await new Promise((resolve) => execFile('security',
+        ['find-generic-password', '-s', 'Claude Code-credentials', '-w'],
+        { timeout: 3000 }, (e, so) => resolve(e ? '' : String(so))));
+    }
+    if (!raw) raw = await fsp.readFile(path.join(os.homedir(), '.claude', '.credentials.json'), 'utf8').catch(() => '');
+    try { return (JSON.parse(raw) || {}).claudeAiOauth || null; } catch { return null; }
+  }
+  // 요금제 한도(5시간·주간) — Claude Code의 /usage와 같은 곳(api.anthropic.com/api/oauth/usage)에서 읽는다. 1분 캐시.
+  let limitsCache = { at: 0, data: null };
+  async function collectLimits() {
+    const oa = await readOauth();
+    if (!oa || !oa.accessToken) return { available: false, error: 'Not signed in to Claude Code' };
+    const r = await fetch('https://api.anthropic.com/api/oauth/usage', {
+      headers: { Authorization: `Bearer ${oa.accessToken}`, 'anthropic-beta': 'oauth-2025-04-20' }, signal: AbortSignal.timeout(8000),
+    });
+    if (!r.ok) return { available: false, error: `Usage unavailable (HTTP ${r.status})` };
+    const j = await r.json();
+    const pick = (x) => (x && Number.isFinite(x.utilization) ? { percent: Math.round(x.utilization), resetsAt: x.resets_at || null } : null);
+    return { available: true, fiveHour: pick(j.five_hour), week: pick(j.seven_day), checkedAt: Date.now() };
+  }
   async function collectUsage() {
     const out = { checkedAt: Date.now(), today: null, login: null };
     try {
@@ -294,14 +319,7 @@ function createDashboardApi(core, opts) {
       out.today = { inputTokens: input, outputTokens: output, cacheReadTokens: cacheRead, messages: msgs };
     } catch {}
     try {
-      let raw = '';
-      if (process.platform === 'darwin') {
-        raw = await new Promise((resolve) => execFile('security',
-          ['find-generic-password', '-s', 'Claude Code-credentials', '-w'],
-          { timeout: 3000 }, (e, so) => resolve(e ? '' : String(so))));
-      }
-      if (!raw) raw = await fsp.readFile(path.join(os.homedir(), '.claude', '.credentials.json'), 'utf8').catch(() => '');
-      const oa = (JSON.parse(raw) || {}).claudeAiOauth;
+      const oa = await readOauth();
       if (oa && Number.isFinite(oa.expiresAt)) out.login = {
         expiresAt: oa.expiresAt,
         daysLeft: Math.floor((oa.expiresAt - Date.now()) / 86400000),
@@ -475,6 +493,20 @@ function createDashboardApi(core, opts) {
         },
         graph: g4,
       }), true;
+    }
+
+    if (p === '/api/limits' && req.method === 'GET') {
+      // Codex 세션이면 그 세션 기록(token_count)의 한도를, 아니면 Claude 요금제 한도를 준다
+      const target = String(url.searchParams.get('target') || '');
+      if (target && /^[\w.:@%+-]{1,100}$/.test(target)) {
+        const r = await agentLog.resolve(target);
+        if (r.kind === 'codex') { const d = await agentLog.read(target, 1e12).catch(() => null); return sendJson(res, 200, (d && d.limits) || { available: false }), true; }
+      }
+      if (!limitsCache.data || Date.now() - limitsCache.at > 60_000) {
+        let data; try { data = await collectLimits(); } catch (e) { data = { available: false, error: 'Usage unavailable' }; }
+        limitsCache = { at: Date.now(), data };
+      }
+      return sendJson(res, 200, limitsCache.data), true;
     }
 
     if (p === '/api/usage' && req.method === 'GET') {
@@ -787,6 +819,66 @@ function createDashboardApi(core, opts) {
       if (!img) return sendJson(res, 404, { error: 'not found' }), true;
       res.writeHead(200, { 'content-type': img.type, 'content-length': img.data.length, 'cache-control': 'private, max-age=86400' });
       return res.end(img.data), true;
+    }
+
+    if (p === '/api/agent-models' && req.method === 'GET') {
+      try { return sendJson(res, 200, { models: await codexSettings.models() }), true; }
+      catch { return sendJson(res, 503, { error: 'Codex model catalog is unavailable — open Codex once and retry' }), true; }
+    }
+
+    // 모델·노력 바꾸기(Claude Code 세션) — /model·/effort 슬래시 명령을 보낸사람 표기 없이 그대로 주입한다.
+    // 값은 화이트리스트만 받는다(임의 명령 주입 방지). Claude Code는 이 선택을 새 세션 기본값으로도 저장한다.
+    if (p === '/api/agent-setting' && req.method === 'POST') {
+      if (!ctx.csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await ctx.jsonBody(req, res); if (!body) return true;
+      if (body.target && body.target !== ctx.target) return sendJson(res, 409, { error: 'Agent session changed — reopen the model selector' }), true;
+      const kind = (await agentLog.resolve(ctx.target)).kind;
+      if (kind === 'codex') {
+        const out = await ctx.enqueue(async () => {
+          try {
+            const catalog = await codexSettings.models();
+            const current = await agentLog.read(ctx.target, 0);
+            const model = catalog.find(m => m.id === (body.model || current.model));
+            if (!model) return { status: 400, body: { error: 'Choose an available Codex model' } };
+            const effort = body.effort || (model.efforts.includes(current.effort) ? current.effort : model.defaultEffort);
+            if (!model.efforts.includes(effort)) return { status: 400, body: { error: 'Unsupported reasoning effort for this model' } };
+            if (!body.model && !body.effort) return { status: 400, body: { error: 'model or effort required' } };
+            if (!(await ctx.hasSession()) || !(await ctx.agentAlive())) return { status: 409, body: { error: 'Agent is not running' } };
+            return { status: 200, body: await codexSettings.change(ctx, model, effort) };
+          } catch (e) { return { status: 409, body: { error: e.message } }; }
+        });
+        return sendJson(res, out.status, out.body), true;
+      }
+      const MODELS = ['opus', 'fable', 'sonnet', 'haiku'], EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
+      const cmds = [];
+      if (body.model !== undefined) { if (!MODELS.includes(body.model)) return sendJson(res, 400, { error: `model must be ${MODELS.join('|')}` }), true; cmds.push(`/model ${body.model}`); }
+      if (body.effort !== undefined) { if (!EFFORTS.includes(body.effort)) return sendJson(res, 400, { error: `effort must be ${EFFORTS.join('|')}` }), true; cmds.push(`/effort ${body.effort}`); }
+      if (!cmds.length) return sendJson(res, 400, { error: 'model or effort required' }), true;
+      if (!(await ctx.hasSession()) || !(await ctx.agentAlive())) return sendJson(res, 409, { error: 'Agent is not running' }), true;
+      if ((await agentLog.resolve(ctx.target)).kind !== 'claude') return sendJson(res, 409, { error: 'Model switching works for Claude Code sessions only' }), true;
+      const out = await ctx.enqueue(async () => {
+        try {
+          const result = {};
+          for (const c of cmds) {
+            if (!(await ctx.waitInputReady())) return { status: 409, body: { error: 'Agent input line is not ready — check the terminal' } };
+            await ctx.injectText(c, true, true);
+            // Claude Code가 화면에 남기는 결과 줄로 실제로 바뀌었는지 확인한다('Kept model as …'면 거절된 것)
+            await ctx.ch.delay(1200);
+            let screen = ''; try { screen = await ctx.ch.captureScreen(); } catch {}
+            const tail = screen.split('\n').slice(-30).join('\n').replace(/`/g, '');
+            if (c.startsWith('/model')) {
+              const kept = [...tail.matchAll(/Kept model as ([^\n(]+)/g)].pop(), set = [...tail.matchAll(/Set model to ([^\n]+?)(?: and saved|$)/gm)].pop();
+              const k = kept ? tail.lastIndexOf(kept[0]) : -1, s = set ? tail.lastIndexOf(set[0]) : -1;
+              result.model = s > k ? { changed: true, name: set[1].trim() } : k >= 0 ? { changed: false, name: kept[1].trim() } : { changed: null };
+            } else {
+              const m = [...tail.matchAll(/Set effort level to (\w+)/g)].pop();
+              result.effort = m ? { changed: true, level: m[1] } : { changed: null };
+            }
+          }
+          return { status: 200, body: { ok: true, ...result } };
+        } catch (e) { return { status: 500, body: { error: e.message } }; }
+      });
+      return sendJson(res, out.status, out.body), true;
     }
 
     // 요청 조회 — 현재 워크스페이스 것 + 워크스페이스와 무관한 것(ws 없음)

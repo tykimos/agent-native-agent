@@ -211,14 +211,43 @@ dashboard-api.js      example rich-response API (workspaces · todo · schedule 
 graph.js              Notes·Tasks·Calendar relation graph on NodeRel (derived graph.sqlite per workspace)
 dashboard.html        reference UI: workspaces, Chip mode, context chips, docked chat, relation chips, evolution tab
 package.json          dependencies: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot
-test.cjs              70 tests (unit + integration against mock_agent.py)
+test.cjs              74 tests (unit + integration against mock_agent.py)
+agent-log.js          chat from the agent's own JSONL log (Claude Code + Codex): replies, tools, model, limits
+codex-settings.js     Codex model/effort catalog and switching through Codex's own menu
+features.json         feature manifest: anchors + skill per feature (used by ana-update)
 mock_agent.py         deterministic TUI stand-in for tests
 skills/ana/SKILL.md   "attach ANA to your service" — the simple recipe above
 skills/install/       "install & run ANA" — env check, installer, tmux runner, Windows WSL bootstrap
-.claude-plugin/       Claude Code plugin manifest
+skills/ana-update/    "update an existing ANA" — diff vs upstream by feature, port what you pick
+skills/chat-window/   Claude-app chat: combo, model sheet, usage rings, voice, attachments, per-session, Codex
+skills/context-chips/ Chip mode, ✎ draw-on-screen annotation, ⟳ rescan new elements
+skills/relations/     NodeRel item relations, relation chips, Relations tab
+skills/app-shell/     Workspace / System areas, bottom nav, workspace combo
+skills/agent-requests/ Requests (agent → user) and Evolve (agent → app)
+.claude-plugin/       Claude Code plugin + marketplace manifest (install: claude plugin install ana@agent-native-agent)
 ```
 
 `channel-core.js` is the reusable core; `dashboard-api.js` / `dashboard.html` are the **example** you copy from and replace with your own.
+
+### Updating an existing ANA
+
+This base is the starting point; each person's ANA grows its own domain code. To bring one up to date, don't copy the repo over it. Tell that ANA's agent:
+
+> *"Update to the latest from https://github.com/tykimos/agent-native-agent"*
+
+The **[`ana-update` skill](skills/ana-update/SKILL.md)** runs `ana-diff.mjs`, which reports every feature as ✓ present, ◐ partial, or ✗ missing, plus outdated modules and whether the shared `channel-core.js` differs. It lets you pick, then ports each feature with its skill (chat-window, context-chips, relations, app-shell, agent-requests) into that ANA's own files. It records the synced commit in `.ana-sync.json`, so the next update shows only what's new.
+
+Install the skills once per machine so any ANA's agent can use them, and update them the same way:
+
+```bash
+claude plugin marketplace add tykimos/agent-native-agent
+claude plugin install ana@agent-native-agent          # later: claude plugin update ana@agent-native-agent
+```
+
+```bash
+node skills/ana-update/scripts/ana-diff.mjs --target ~/ana/my-ana            # read-only report
+node skills/ana-update/scripts/ana-diff.mjs --target ~/ana/my-ana --record   # after porting
+```
 
 ---
 
