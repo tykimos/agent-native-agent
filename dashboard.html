@@ -439,11 +439,40 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 .cv-acts button.pri { background: var(--blue); color: var(--white); }
 .cv-acts button:disabled { opacity: .5; }
 .cv-cam-ic { width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); display: grid; place-items: center; font-size: 14px; }
-.cv-pat-ic { display: inline-block; transform: translate(-50%, -50%); padding: 3px 8px; border-radius: 999px; background: #0F9D58; color: #fff; font-size: 11.5px; font-weight: 800; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+/* 순찰대 이름표는 위치점 바로 위에 띄운다 — 탐방지원센터처럼 카메라와 같은 자리에 있어도 📷를 가리지 않게 */
+.cv-pat-ic { display: inline-block; transform: translate(-50%, calc(-100% - 15px)); padding: 3px 8px; border-radius: 999px; background: #0F9D58; color: #fff; font-size: 11.5px; font-weight: 800; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
 .cv-pat-ic.busy { background: #E8731C; } .cv-pat-ic.off { background: #8B95A1; }
 .cv-pulse { animation: cvPulse 1.4s ease-in-out infinite; }
 @keyframes cvPulse { 50% { stroke-width: 8px; stroke-opacity: .45; } }
 @media (prefers-reduced-motion: reduce) { .cv-pulse { animation: none; } }
+/* CCTV 뷰어 */
+.modal.cv-viewer { width: min(760px, calc(100vw - 32px)); }
+.cvv-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.cvv-head h3 { margin: 0; }
+.cvv-live { font-size: 11px; font-weight: 900; color: #fff; background: #E5484D; padding: 2px 8px; border-radius: 999px; animation: cvPulse 1.6s ease-in-out infinite; }
+.cvv-screen { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: #0B0D10; border-radius: var(--r-sm); overflow: hidden; }
+.cvv-screen video, .cvv-screen img, .cvv-screen iframe { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; border: 0; background: #0B0D10; }
+.cvv-osd { position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; gap: 10px; padding: 8px 11px; pointer-events: none;
+  font: 700 12px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #fff; text-shadow: 0 1px 2px #000, 0 0 4px #000; }
+.cvv-tag { position: absolute; left: 10px; bottom: 10px; padding: 3px 9px; border-radius: 999px; background: var(--cv); color: #fff; font-size: 12px; font-weight: 800; }
+.cvv-err { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); max-width: 90%; padding: 6px 12px; border-radius: 999px; background: rgba(0,0,0,.7); color: #fff; font-size: 12.5px; font-weight: 700; text-align: center; }
+.cvv-nosig { position: absolute; inset: 0; display: grid; place-content: center; gap: 8px; padding: 16px; text-align: center; color: #97A1AD; font-size: 12.5px; font-weight: 600;
+  background: repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 2px, transparent 2px 4px), radial-gradient(circle at 50% 45%, #1C2026, #0B0D10 70%); }
+.cvv-nosig b { font: 800 22px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .12em; color: #E6E8EB; }
+.cvv-seg { margin-top: 10px; }
+.cvv-seg[hidden] { display: none; }
+.cvv-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.cvv-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border-radius: var(--r-xs); background: var(--surface-2); text-align: left; border-left: 3px solid var(--cv); }
+.cvv-item.on { box-shadow: 0 0 0 2px var(--blue); }
+.cvv-item .cv-meta { margin: 0; }
+.cvv-set { margin-top: 12px; }
+.cvv-set summary { cursor: pointer; font-size: 13px; font-weight: 800; color: var(--text-sub); }
+.cvv-set form { display: flex; gap: 6px; margin: 9px 0 6px; }
+.cvv-set input { flex: 1; min-width: 0; height: 38px; padding: 0 12px; border: 1.5px solid var(--line); border-radius: var(--r-xs); background: var(--surface-2); color: var(--text); font: inherit; font-size: 13px; }
+.cvv-set button { flex: 0 0 auto; height: 38px; padding: 0 12px; border-radius: var(--r-xs); background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); font-size: 12.5px; font-weight: 800; color: var(--text-sub); }
+.cvv-set button[type="submit"] { background: var(--blue); color: var(--white); box-shadow: none; }
+.cv-cam-ic { cursor: pointer; }
+.cvv-open { margin-top: 7px; padding: 4px 11px; border-radius: 999px; background: var(--blue); color: var(--white); font-size: 12px; font-weight: 800; }
 /* 도로 관리 — CCTV 탭의 지도·목록 틀(.cctv-*, .cv-*)을 그대로 쓰고 점수·요인 막대만 더한다 */
 .rd-k.repave .n { color: #E5484D; } .rd-k.inspect .n { color: #E8731C; } .rd-k.ok .n { color: #16A26B; }
 .rd-info { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: -4px 2px 12px; font-size: 12px; color: var(--text-sub); font-weight: 700; }
@@ -1486,6 +1515,17 @@ body.sys-mode .ws-combo { display: none; }
   <p class="cf-body" id="cfBody"></p>
   <div class="modal-acts"><button class="cancel" id="cfNo">Cancel</button><button class="danger-act" id="cfYes">Delete</button></div>
 </div>
+<!-- CCTV 뷰어: 카메라를 누르면 실시간 영상(등록된 경우) · 탐지 스냅샷 · 이 카메라의 최근 탐지 -->
+<div class="modal cv-viewer" id="cvViewer" role="dialog" aria-modal="true" aria-labelledby="cvvTitle">
+  <div class="cvv-head"><h3 id="cvvTitle">CCTV</h3><span class="cvv-live" id="cvvLive" hidden>● LIVE</span></div>
+  <div class="cvv-screen" id="cvvScreen"></div>
+  <div class="seg cvv-seg" id="cvvSeg" hidden><button data-v="live">실시간</button><button data-v="snap">탐지 순간</button></div>
+  <div class="cvv-list" id="cvvList"></div>
+  <details class="cvv-set" id="cvvSet"><summary>영상 주소 설정</summary>
+    <form id="cvvForm"><input id="cvvUrl" placeholder="https://… .m3u8 · .mp4 · MJPEG · 이미지 · 웹 플레이어" autocomplete="off" aria-label="영상 주소"><button type="submit">저장</button><button type="button" id="cvvClear">해제</button></form>
+    <div class="me-hint">HLS(.m3u8)·MP4·MJPEG·정지 이미지는 바로 재생하고, 그 밖의 주소는 웹 플레이어 페이지로 띄웁니다.</div></details>
+  <div class="modal-acts"><button class="cancel" id="cvvSim">이 카메라로 모의 탐지</button><button class="save" data-close>닫기</button></div>
+</div>
 <div class="scrim" id="scrim"></div>
 <div class="modal" id="todoModal" role="dialog" aria-modal="true" aria-label="Add task">
   <h3>Add task</h3>
@@ -2421,6 +2461,7 @@ function renderCctv() {
       acts += '<button data-cv="false">오탐</button>';
     } else if (d.status === 'assigned') acts = '<button class="pri" data-cv="resolve">조치 완료</button><button data-cv="false">오탐</button><button data-cv="reopen">배정 취소</button>';
     else acts = '<button data-cv="reopen">다시 열기</button>';
+    acts += '<button data-cv="view" title="이 카메라 영상 보기">📷 영상</button>';
     const meta = [cvAgo(d.at), d.confidence != null ? `신뢰도 ${Math.round(d.confidence * 100)}%` : '', p ? p.name : '', d.note].filter(Boolean).map(escapeHtml).join(' · ');
     return `<div class="card cv-card ${d.id === cvSel ? 'sel' : ''}" data-id="${escapeHtml(d.id)}" style="--cv:${t.color}">
       <div class="cv-top"><span class="cv-type">${t.ic} ${escapeHtml(t.label)}</span><span class="cv-st ${d.status}">${CV_STATUS[d.status] || escapeHtml(d.status)}</span></div>
@@ -2428,6 +2469,7 @@ function renderCctv() {
       <div class="cv-acts">${acts}</div></div>`;
   }).join('');
   drawCctvMap();
+  if (modalCur === 'cvViewer' && cvvCam) renderCvvList();
 }
 async function ensureCctvMap() {
   if (cvMap) { cvMap.invalidateSize(); return; }
@@ -2439,8 +2481,10 @@ async function ensureCctvMap() {
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors' }).addTo(cvMap);
   cvLayer = L.layerGroup().addTo(cvMap);
-  // 탐지 점은 카메라·순찰대 아이콘(markerPane 600)보다 위, 팝업(700)보다 아래
+  // 겹침 순서: 순찰대(markerPane 600) < 탐지 점(650) < 카메라(660) < 팝업(700).
+  // 탐지는 기본 위치가 카메라 자리라 카메라를 덮기 쉽다 — 📷는 늘 눌려서 영상을 열 수 있어야 한다.
   cvMap.createPane('cvDet').style.zIndex = 650;
+  cvMap.createPane('cvCam').style.zIndex = 660;
   // 채팅 사이드바를 열고 닫으면 창 크기는 그대로인데 지도 칸만 바뀐다 — 칸 크기를 직접 지켜본다
   new ResizeObserver(() => cvMap.invalidateSize()).observe($('cvMap'));
   drawCctvMap();
@@ -2452,14 +2496,14 @@ function drawCctvMap() {
   if (!cvFitted && cctv.cameras.length) { cvMap.fitBounds(cctv.cameras.map((c) => [c.lat, c.lng]), { padding: [36, 36] }); cvFitted = true; }
   cctv.trails.forEach((t) => L.polyline(t.path, { color: '#16A26B', weight: 4, opacity: 0.85 }).bindTooltip(`법정 탐방로 · ${escapeHtml(t.name)}`).addTo(cvLayer));
   cctv.zones.forEach((z) => L.polygon(z.path, { color: '#E5484D', weight: 2, dashArray: '6 5', fillOpacity: 0.12 }).bindTooltip(`출입 금지 · ${escapeHtml(z.name)}`).addTo(cvLayer));
-  cctv.cameras.forEach((c) => L.marker([c.lat, c.lng], { zIndexOffset: -100,
+  cctv.cameras.forEach((c) => L.marker([c.lat, c.lng], { pane: 'cvCam',
     icon: L.divIcon({ className: '', html: '<div class="cv-cam-ic" aria-hidden="true">📷</div>', iconSize: [26, 26], iconAnchor: [13, 13] }) })
-    .bindTooltip(`CCTV · ${escapeHtml(c.name)}`).addTo(cvLayer));
+    .bindTooltip(`CCTV · ${escapeHtml(c.name)} — 눌러서 영상 보기`).on('click', () => openCvViewer(c.id, null)).addTo(cvLayer));
   cctv.detections.filter(cvShown).forEach((d) => {
     const t = CV_TYPES[d.type] || { label: d.type, color: '#8B95A1', ic: '•' }, closed = d.status === 'resolved' || d.status === 'false';
     const m = L.circleMarker([d.lat, d.lng], { radius: d.status === 'new' ? 10 : 8, color: '#fff', weight: 2, fillColor: t.color,
       fillOpacity: closed ? 0.35 : 0.95, pane: 'cvDet', className: d.status === 'new' ? 'cv-pulse' : '' })
-      .bindPopup(`<b>${t.ic} ${escapeHtml(t.label)}</b><br>${escapeHtml(cvCam(d.camera).name)}<br>${CV_STATUS[d.status] || ''} · ${cvAgo(d.at)}`)
+      .bindPopup(`<b>${t.ic} ${escapeHtml(t.label)}</b><br>${escapeHtml(cvCam(d.camera).name)}<br>${CV_STATUS[d.status] || ''} · ${cvAgo(d.at)}<br><button class="cvv-open" data-cam="${escapeHtml(d.camera)}" data-det="${escapeHtml(d.id)}">📷 영상 보기</button>`)
       .on('click', () => selectCv(d.id, false)).addTo(cvLayer);
     cvMarkers.set(d.id, m);
     const p = d.status === 'assigned' && cvPatrol(d.patrol);
@@ -2480,6 +2524,7 @@ $('cvList').onclick = async (e) => {
   const card = e.target.closest('.cv-card'); if (!card) return;
   const b = e.target.closest('[data-cv]');
   if (!b) { if (!e.target.closest('select')) selectCv(card.dataset.id, true); return; }
+  if (b.dataset.cv === 'view') { const d = cctv.detections.find((x) => x.id === card.dataset.id); if (d) openCvViewer(d.camera, d.id); return; }
   const body = { id: card.dataset.id, action: b.dataset.cv };
   const sel = card.querySelector('[data-cv-pat]'); if (body.action === 'assign' && sel) body.patrol = sel.value;
   b.disabled = true;
@@ -2499,6 +2544,112 @@ $('cvSim').onclick = async () => {
   if (!r || !r.ok) { toast('모의 탐지를 만들지 못했습니다'); return; }
   cvSel = j.id; await refreshCctv(); selectCv(j.id, true);
 };
+
+/* ---- CCTV 뷰어: 카메라(지도 📷 · 탐지 카드 · 팝업)를 누르면 연다 ----
+   등록된 영상 주소를 종류대로 재생(HLS·MP4·MJPEG·정지 이미지·웹 플레이어), 탐지 스냅샷, 이 카메라의 최근 탐지.
+   닫으면 재생을 완전히 멈춘다(closeModal → stopCvStream). */
+let cvvCam = null, cvvDet = null, cvvMode = 'live', cvvClock = null, cvvRefresh = null, cvvHls = null, hlsP = null;
+function loadHls() {
+  if (window.Hls) return Promise.resolve(window.Hls);
+  if (hlsP) return hlsP;
+  hlsP = new Promise((ok, no) => {
+    const js = Object.assign(document.createElement('script'), { src: 'https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.6.15/hls.min.js',
+      integrity: 'sha384-iZBI1/lW9u8FcBjxuQ8nPTsU7TXhZNtzkV8H3gQHSTgz+VYQoKWqGlBHqhO84alJ', crossOrigin: 'anonymous', referrerPolicy: 'no-referrer' });
+    js.onload = () => ok(window.Hls);
+    js.onerror = () => { hlsP = null; js.remove(); no(new Error('hls.js load failed')); };
+    document.head.append(js);
+  });
+  return hlsP;
+}
+function stopCvStream() {
+  clearInterval(cvvClock); clearInterval(cvvRefresh); cvvClock = cvvRefresh = null;
+  if (cvvHls) { cvvHls.destroy(); cvvHls = null; }
+  const v = $('cvvScreen').querySelector('video'); if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+  $('cvvScreen').innerHTML = '';
+}
+function openCvViewer(camId, detId) {
+  if (!cctv || !cctv.cameras.some((c) => c.id === camId)) return;
+  cvvCam = camId; cvvDet = detId || null;
+  const det = cvvDet && cctv.detections.find((d) => d.id === cvvDet);
+  cvvMode = det && det.snapshot ? 'snap' : 'live';
+  const cam = cvCam(camId);
+  $('cvvTitle').textContent = cam.name;
+  $('cvvUrl').value = (cam.stream && cam.stream.url) || '';
+  $('cvvSet').open = !cam.stream;
+  if (modalCur !== 'cvViewer') openModal('cvViewer');
+  renderCvvScreen(); renderCvvList();
+}
+function renderCvvScreen() {
+  stopCvStream();
+  const cam = cvCam(cvvCam), det = cvvDet && cctv.detections.find((d) => d.id === cvvDet), scr = $('cvvScreen');
+  const snap = cvvMode === 'snap' && det && det.snapshot;
+  $('cvvSeg').hidden = !(det && det.snapshot);
+  $('cvvSeg').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.v === cvvMode));
+  const st = cam.stream;
+  $('cvvLive').hidden = !!snap || !st;
+  let media = '';
+  if (snap) media = `<img src="${escapeHtml(det.snapshot)}" alt="탐지 순간 화면">`;
+  else if (!st) media = '<div class="cvv-nosig"><b>NO SIGNAL</b><span>이 카메라에 영상 주소가 등록되지 않았습니다 — 아래 [영상 주소 설정]에서 넣을 수 있어요</span></div>';
+  else if (st.type === 'iframe') media = `<iframe src="${escapeHtml(st.url)}" allow="autoplay; fullscreen" referrerpolicy="no-referrer" title="${escapeHtml(cam.name)} 영상"></iframe>`;
+  else if (st.type === 'image' || st.type === 'mjpeg') media = `<img src="${escapeHtml(st.url)}" alt="${escapeHtml(cam.name)} 영상">`;
+  else media = '<video muted autoplay playsinline controls></video>';
+  const t = det && CV_TYPES[det.type];
+  scr.innerHTML = `${media}<div class="cvv-osd"><span>${escapeHtml(cam.name)}</span><span id="cvvTime"></span></div>`
+    + (snap ? `<div class="cvv-tag" style="--cv:${t ? t.color : '#8B95A1'}">${t ? `${t.ic} ${escapeHtml(t.label)}` : ''} · 탐지 순간</div>` : '');
+  const img = scr.querySelector('img');
+  if (img) img.onerror = () => { scr.querySelector('.cvv-osd').insertAdjacentHTML('afterend', '<div class="cvv-err">영상을 불러오지 못했습니다 — 주소나 카메라 연결을 확인하세요</div>'); };
+  // 시각: 스냅샷이면 탐지 시각, 실시간이면 지금(1초마다)
+  const tick = () => { const el = $('cvvTime'); if (el) el.textContent = new Date(snap ? det.at : Date.now()).toLocaleString('ko-KR', { hour12: false }); };
+  tick(); if (!snap) cvvClock = setInterval(tick, 1000);
+  if (snap || !st) return;
+  // 정지 이미지 주소는 2초마다 다시 받아 준실시간으로 보여 준다(MJPEG는 브라우저가 알아서 흐른다)
+  if (st.type === 'image') cvvRefresh = setInterval(() => { const i = scr.querySelector('img'); if (i) i.src = st.url + (st.url.includes('?') ? '&' : '?') + '_t=' + Date.now(); }, 2000);
+  const v = scr.querySelector('video'); if (!v) return;
+  const fail = () => scr.querySelector('.cvv-osd').insertAdjacentHTML('afterend', '<div class="cvv-err">영상을 재생하지 못했습니다 — 주소나 카메라 연결을 확인하세요</div>');
+  v.onerror = fail;
+  if (st.type === 'video' || v.canPlayType('application/vnd.apple.mpegurl')) { v.src = st.url; return; }
+  const cam0 = cvvCam;
+  loadHls().then((Hls) => {
+    if (cvvCam !== cam0 || !scr.contains(v) || !Hls.isSupported()) return;
+    cvvHls = new Hls(); cvvHls.loadSource(st.url); cvvHls.attachMedia(v);
+    cvvHls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) { fail(); cvvHls.destroy(); cvvHls = null; } });
+  }).catch(fail);
+}
+function renderCvvList() {
+  const ds = cctv.detections.filter((d) => d.camera === cvvCam).slice(-6).reverse();
+  $('cvvList').innerHTML = ds.length ? ds.map((d) => {
+    const t = CV_TYPES[d.type] || { label: d.type, color: '#8B95A1', ic: '•' };
+    return `<button class="cvv-item ${d.id === cvvDet ? 'on' : ''}" data-det="${escapeHtml(d.id)}" style="--cv:${t.color}">
+      <span class="cv-type">${t.ic} ${escapeHtml(t.label)}</span><span class="cv-meta">${cvAgo(d.at)}${d.snapshot ? ' · 📸' : ''}</span><span class="cv-st ${d.status}">${CV_STATUS[d.status] || ''}</span></button>`;
+  }).join('') : '<div class="cv-meta">이 카메라의 탐지 기록이 없습니다</div>';
+}
+$('cvvList').onclick = (e) => {
+  const b = e.target.closest('[data-det]'); if (!b) return;
+  const d = cctv.detections.find((x) => x.id === b.dataset.det); if (!d) return;
+  cvvDet = d.id; cvvMode = d.snapshot ? 'snap' : 'live';
+  renderCvvScreen(); renderCvvList(); selectCv(d.id, true);
+};
+$('cvvSeg').onclick = (e) => { const b = e.target.closest('button[data-v]'); if (!b || b.dataset.v === cvvMode) return; cvvMode = b.dataset.v; renderCvvScreen(); };
+$('cvvForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const url = $('cvvUrl').value.trim(); if (!url) return;
+  let r, j = {}; try { r = await post('/api/cctv/camera', { id: cvvCam, stream: { url } }); j = await r.json(); } catch {}
+  if (!r || !r.ok) { toast(j.error ? `저장하지 못했습니다 — ${j.error}` : '저장하지 못했습니다'); return; }
+  cvCam(cvvCam).stream = j.stream; cvvMode = 'live'; $('cvvSet').open = false;
+  toast('영상 주소를 저장했습니다'); renderCvvScreen();
+};
+$('cvvClear').onclick = async () => {
+  let r; try { r = await post('/api/cctv/camera', { id: cvvCam, stream: null }); } catch {}
+  if (!r || !r.ok) { toast('해제하지 못했습니다'); return; }
+  delete cvCam(cvvCam).stream; $('cvvUrl').value = ''; toast('영상 주소를 해제했습니다'); renderCvvScreen();
+};
+$('cvvSim').onclick = async () => {
+  let r, j = {}; try { r = await post('/api/cctv/detect', { camera: cvvCam, type: Object.keys(CV_TYPES)[Math.floor(Math.random() * 3)], confidence: 0.8, note: '모의 탐지' }); j = await r.json(); } catch {}
+  if (!r || !r.ok) { toast('모의 탐지를 만들지 못했습니다'); return; }
+  cvvDet = j.id; await refreshCctv(); renderCvvList();
+};
+// 지도 팝업의 [영상 보기]
+document.addEventListener('click', (e) => { const b = e.target.closest('.cvv-open'); if (b) openCvViewer(b.dataset.cam, b.dataset.det || null); });
 
 /* ================= 도로 관리 (날씨 · 교통량 · 파손 이력 → 정밀검사 / 포장공사) =================
    서버(road.js)가 도로마다 점수·판정·근거를 계산해 준다. 지도는 CCTV 탭과 같은 Leaflet(loadLeaflet)을 쓴다. */
@@ -2621,6 +2772,7 @@ let modalCur = null;
 function openModal(id) { modalCur = id; $('scrim').classList.add('on'); $(id).classList.add('on'); const inp = $(id).querySelector('input'); if (inp) setTimeout(() => inp.focus(), 50); }
 function closeModal() {
   if (!modalCur) return;
+  if (modalCur === 'cvViewer') stopCvStream();
   $(modalCur).classList.remove('on'); modalCur = null;
   $('scrim').classList.remove('on');
 }

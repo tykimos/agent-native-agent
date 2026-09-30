@@ -5,7 +5,8 @@
 // 워크스페이스마다 cctv.json이 따로 있다(state.json 옆). 처음 읽을 때 북한산 예제 카메라·구역·순찰대를 채운다.
 //
 //   GET  /api/cctv                      → {cameras, trails, zones, patrols, detections, types, version}
-//   POST /api/cctv/detect   {camera, type: offtrail|fire|litter, confidence?, note?, lat?, lng?}
+//   POST /api/cctv/detect   {camera, type: offtrail|fire|litter, confidence?, note?, lat?, lng?, snapshot?}   snapshot: 탐지 순간 이미지 URL
+//   POST /api/cctv/camera   {id, stream: {url, type?: hls|video|image|mjpeg|iframe} | null}             카메라 영상 주소 등록·해제
 //   POST /api/cctv/act      {id, action: assign|resolve|false|reopen, patrol?}   assign은 patrol 없으면 가장 가까운 순찰대
 //   POST /api/cctv/patrol   {id, lat?, lng?, status?: available|busy|off}        순찰대 위치·상태(GPS 연동용)
 //   POST /api/cctv/simulate {}                                                    데모용 모의 탐지 1건
@@ -16,6 +17,18 @@ const TYPES = {
   litter: { label: '쓰레기 투기' },
 };
 const PATROL_STATUS = ['available', 'busy', 'off'];
+const STREAM_TYPES = ['hls', 'video', 'image', 'mjpeg', 'iframe'];
+// 영상·스냅샷 주소는 http(s) 절대 주소나 이 서버의 경로(/api/upload 결과 등)만 받는다 — javascript: 같은 주소 차단
+const okUrl = (u) => typeof u === 'string' && u.length <= 2000 && (/^https?:\/\/[^\s]+$/i.test(u) || /^\/[^\s/][^\s]*$/.test(u));
+// 확장자로 종류 추정 — 모르면 웹 플레이어 페이지(iframe)로 본다
+function guessStream(url) {
+  const path = url.split(/[?#]/)[0].toLowerCase();
+  if (path.endsWith('.m3u8')) return 'hls';
+  if (/\.(mp4|webm|ogv|mov)$/.test(path)) return 'video';
+  if (/\.(jpe?g|png|gif|webp)$/.test(path)) return 'image';
+  if (/mjpe?g|\.cgi$/.test(path)) return 'mjpeg';
+  return 'iframe';
+}
 const MAX_DETECTIONS = 500;
 
 // 북한산국립공원 예제 — 좌표는 주요 탐방지원센터·봉우리 근처의 근삿값
@@ -119,12 +132,14 @@ function createCctv(deps) {
       confidence = Number(body.confidence);
       if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) return { error: 'confidence must be 0..1' };
     }
+    if (body.snapshot !== undefined && body.snapshot !== null && body.snapshot !== '' && !okUrl(body.snapshot)) return { error: 'snapshot must be an http(s) URL or a /path on this server' };
     const d = {
       id: newId('d'), type: body.type, camera: cam.id,
       lat: hasPos ? body.lat : cam.lat, lng: hasPos ? body.lng : cam.lng,
       confidence, note: String(body.note || '').slice(0, 300),
       status: 'new', at: new Date().toISOString(), by: actor(req),
     };
+    if (body.snapshot) d.snapshot = body.snapshot;
     s.detections.push(d);
     if (s.detections.length > MAX_DETECTIONS) s.detections.splice(0, s.detections.length - MAX_DETECTIONS);
     return { d };
@@ -180,6 +195,19 @@ function createCctv(deps) {
         if (pid) freePatrol(s, pid);
       } else return fail(400, 'action must be assign|resolve|false|reopen');
       audit(actor(req), 'cctv.' + body.action, `${d.type}@${d.camera}`);
+    } else if (p === '/api/cctv/camera') {
+      const cam = s.cameras.find((c) => c.id === body.id);
+      if (!cam) return fail(404, 'camera not found');
+      if (body.stream === null || body.stream === '') delete cam.stream;
+      else {
+        const st = body.stream || {};
+        if (!okUrl(st.url)) return fail(400, 'stream.url must be an http(s) URL or a /path on this server');
+        const type = st.type || guessStream(st.url);
+        if (!STREAM_TYPES.includes(type)) return fail(400, 'stream.type must be hls|video|image|mjpeg|iframe');
+        cam.stream = { url: st.url, type };
+      }
+      audit(actor(req), 'cctv.camera', cam.id);
+      out = { stream: cam.stream || null };
     } else if (p === '/api/cctv/patrol') {
       const pat = s.patrols.find((x) => x.id === body.id);
       if (!pat) return fail(404, 'not found');
@@ -199,4 +227,4 @@ function createCctv(deps) {
   return { route, load };
 }
 
-module.exports = { createCctv, seedCctv, distKm, TYPES };
+module.exports = { createCctv, seedCctv, distKm, guessStream, TYPES };

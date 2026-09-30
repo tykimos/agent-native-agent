@@ -248,7 +248,7 @@
       "id": "cctv-patrol",
       "title": "CCTV illegal-activity detection → patrol dispatch (use case 13)",
       "skill": "cctv-patrol",
-      "summary": "Workspace › CCTV 감시: Leaflet + OpenStreetMap map of cameras, official trails, no-entry zones, patrols and detections (off-trail entry, cooking/smoking, littering). Detections arrive via /api/cctv/detect; assign the nearest free patrol (creates a Task), then resolve or mark false positive.",
+      "summary": "Workspace › CCTV 감시: Leaflet + OpenStreetMap map of cameras, official trails, no-entry zones, patrols and detections (off-trail entry, cooking/smoking, littering). Detections arrive via /api/cctv/detect; assign the nearest free patrol (creates a Task), then resolve or mark false positive. Click a camera to open the CCTV viewer: live feed (HLS / MP4 / MJPEG / image / web player), detection snapshot, recent detections.",
       "copy": [
         "cctv.js"
       ],
@@ -259,7 +259,10 @@
         "function loadLeaflet",
         "function renderCctv",
         "function drawCctvMap",
-        "function nearestPatrols"
+        "function nearestPatrols",
+        "/api/cctv/camera",
+        "function openCvViewer",
+        "function stopCvStream"
       ]
     },
     {

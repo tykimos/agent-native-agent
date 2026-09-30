@@ -888,6 +888,25 @@ async function integration() {
       assert.equal((await post('/api/cctv/patrol', { id: 'p-1', lat: 37.65, lng: 126.96, status: 'off' })).status, 200);
     });
 
+    await ta('C18 CCTV 영상: 주소 등록(종류 추정)·검증·해제, 탐지 스냅샷 주소 검증', async () => {
+      let j = await (await post('/api/cctv/camera', { id: 'cam-gugi', stream: { url: 'https://cams.example/gugi/live.m3u8' } })).json();
+      assert.deepEqual(j.stream, { url: 'https://cams.example/gugi/live.m3u8', type: 'hls' });
+      j = await (await post('/api/cctv/camera', { id: 'cam-gugi', stream: { url: 'http://10.0.0.5/axis-cgi/mjpg/video.cgi' } })).json();
+      assert.equal(j.stream.type, 'mjpeg');
+      assert.equal((await post('/api/cctv/camera', { id: 'cam-gugi', stream: { url: 'javascript:alert(1)' } })).status, 400, 'http(s)·서버 경로만');
+      assert.equal((await post('/api/cctv/camera', { id: 'cam-gugi', stream: { url: 'https://x/a', type: 'rtsp' } })).status, 400);
+      assert.equal((await post('/api/cctv/camera', { id: 'nope', stream: null })).status, 404);
+      let c = await (await fetch(`${api}/api/cctv`)).json();
+      assert.equal(c.cameras.find((x) => x.id === 'cam-gugi').stream.type, 'mjpeg');
+      assert.equal((await post('/api/cctv/camera', { id: 'cam-gugi', stream: null })).status, 200);
+      c = await (await fetch(`${api}/api/cctv`)).json();
+      assert.equal(c.cameras.find((x) => x.id === 'cam-gugi').stream, undefined, '해제하면 주소가 사라진다');
+      assert.equal((await post('/api/cctv/detect', { camera: 'cam-gugi', type: 'litter', snapshot: 'data:text/html,x' })).status, 400);
+      j = await (await post('/api/cctv/detect', { camera: 'cam-gugi', type: 'litter', snapshot: '/api/upload/snap-1.jpg' })).json();
+      c = await (await fetch(`${api}/api/cctv`)).json();
+      assert.equal(c.detections.find((x) => x.id === j.id).snapshot, '/api/upload/snap-1.jpg');
+    });
+
     await ta('C17 도로: 예제 시드·판정 3종, 파손 신고 검증, 정밀검사→할일, 포장공사 완료→포장일 갱신·점수 하락', async () => {
       let g = await (await fetch(`${api}/api/road`)).json();
       assert.ok(g.roads.length >= 5 && g.damages.length > 0, '서울 예제 도로·파손 이력이 채워진다');
