@@ -1451,7 +1451,7 @@ async function refreshData() {
   dataVersion = s.version || 1;
   items = s.items || []; events = s.events || []; notes = s.notes || [];
   graphLinks = (s.graph && s.graph.links) || [];   // NodeRel이 만든 관계(파생 DUE_ON/ON 포함)
-  (s.proposals || []).forEach((p) => proposals.set(p.id, p));
+  (s.proposals || []).forEach((p) => proposals.set(p.id, p)); renderApprovals();
   renderTodos(); renderCalendar(); renderDay(); renderUpcoming(); renderMemos();
   if ($('relationsView').classList.contains('on')) renderRelations();
   refreshPropCards();
@@ -2997,7 +2997,7 @@ function connect() {
         screenResync = !!d.resync;
         if ('dialogInfo' in d) dialogInfo = d.dialogInfo;
         if (health && 'dialog' in d) health.dialog = d.dialog;
-        (d.proposals || []).forEach((p) => proposals.set(p.id, p));
+        (d.proposals || []).forEach((p) => proposals.set(p.id, p)); renderApprovals();
         if (lastSeq && d.messages.length) $('msgs').insertAdjacentHTML('beforeend', ledgerHtml(d.messages)); else if (!lastSeq && !logMode) $('msgs').innerHTML = ledgerHtml(d.messages);
         groupActs();
         if (d.messages.length) lastSeq = d.messages[d.messages.length - 1].seq;

@@ -76,7 +76,7 @@ flowchart TB
   S -->|"SSE /api/stream + 제안"| D
 ```
 
-**브리지도 MCP도 없습니다.** 브라우저가 서버로 보내면, 서버가 그 텍스트를 tmux 페인에 곧바로 주입하고, 300ms `capture-pane` 루프가 세션을 append-only 원장으로 되비춰 SSE로 내보냅니다. 리치 응답의 경우 에이전트가 **제안**(전/후 + 승인 카드)을 올리고, 승인하면 서버가 diff를 적용한 뒤 `version`을 올려 모든 기기가 다시 동기화됩니다. **코딩 에이전트가 곧 백엔드입니다** — 말하는 것으로 앱을 키웁니다.
+**브리지도 MCP도 없습니다.** 브라우저가 서버로 보내면, 서버가 그 텍스트를 tmux 페인에 곧바로 주입하고, 300ms `capture-pane` 루프가 세션을 append-only 원장으로 되비춰 SSE로 내보냅니다. 리치 응답의 경우 에이전트가 **제안**(전/후 + 승인 카드)을 올리고, 승인하면 서버가 diff를 적용한 뒤 `version`을 올려 모든 기기가 다시 동기화됩니다. 에이전트가 구조화된 기록을 남기면(Claude Code, Codex) 채팅은 화면 대신 그 기록으로 그려서, 응답과 도구 실행이 정확하게 보입니다. **코딩 에이전트가 곧 백엔드입니다** — 말하는 것으로 앱을 키웁니다.
 
 ---
 
@@ -123,13 +123,37 @@ tmux new -s ana          # 세션 안에서 실행:  claude   (또는 아무 에
 node server.js           # → http://localhost:8809
 ```
 
-**http://localhost:8809**을 열고 우측 하단 채팅을 열어 대화하세요. 우측 상단 **Chip**을 켜면 화면 요소를 클릭해 대화 컨텍스트로 넣을 수 있습니다. 서버 자체는 **별도 실행 스크립트가 필요 없습니다**(`run.sh`는 편의용) — 서버가 연결 시 tmux 페인을 자동 설정(스크롤백 보존)합니다. 런타임 상태는 `.ana/`에 저장됩니다(git 제외).
+**http://localhost:8809**을 열고 채팅 버튼을 누르세요. 서버는 **별도 실행 스크립트가 필요 없습니다**(`run.sh`는 편의용). 연결할 때 tmux 페인을 스스로 설정합니다(스크롤백 보존). 런타임 상태는 `.ana/`에 저장됩니다(git 제외). 처음 실행하면 작은 예제 흐름 두 개가 들어 있습니다(`ANA_SEED=0`이면 빈 보드로 시작).
 
-레퍼런스 대시보드에는 **워크스페이스**, **Chip 모드**(요소를 클릭해 컨텍스트 칩으로 고정, ⟳로 새로 생긴 요소 등록), 크기 조절 가능한 도킹 채팅, **진화 탭**(변경을 요청 → 승인하면 실행 중인 에이전트가 앱을 직접 수정)이 들어 있습니다.
+---
+
+## base에 들어 있는 것
+
+![휴대폰에서 본 Workspace · Collaborate · System](docs/assets/areas-mobile.png)
+
+base는 혼자 쓰는 업무 운영 보드입니다. 메모, 할일, 일정을 코딩 에이전트와 함께 운영합니다. 화면은 **세 영역**으로 나뉩니다(휴대폰은 하단 메뉴, PC는 로고 옆 전환 버튼).
+
+| 영역 | 탭 | 용도 |
+|---|---|---|
+| **Workspace** | Tasks · Calendar · Notes | 내 데이터. 워크스페이스별로 관리(전환, 추가, 이름 바꾸기, 순서 변경) |
+| **Collaborate** | Evolve · Approvals · Requests | 에이전트와 함께 일하는 곳. 배지는 나를 기다리는 것의 수 |
+| **System** | Stats · Relations · Reliability · Safety · Security | 시스템이 잘 돌아가는지, 믿을 수 있는지. 배지는 위험 점검의 수 |
+
+### 채팅 — Claude 앱처럼
+
+- 화면을 긁지 않고 **에이전트 자신의 기록으로 그립니다.** Claude Code 기록(`~/.claude/projects/…`)이나 Codex 기록(`~/.codex/sessions/…`)을 씁니다. 그래서 내 말풍선, 마크다운 응답, 접히는 `Ran 3 commands ›` 묶음, 이미지 썸네일이 정확하게 나옵니다. 기록이 없는 에이전트는 화면 미러로 그립니다.
+- **세션 콤보:** tmux 세션(Claude Code 또는 Codex)을 고릅니다. 세션마다 대화가 따로 있고, 사람마다 마지막에 고른 세션을 기억합니다.
+- **입력창:** ＋ 파일 첨부, **모델 알약**(실제 모델명, 예: `Opus 5.5`, `GPT-6 Astra`), **5시간·주간 사용량 링**(누르면 %와 초기화 시각), 🎤 받아쓰기, 보내기·중지 버튼이 있습니다. 모델 알약을 누르면 모델과 추론 강도를 고르는 시트가 열립니다.
+- 입력창은 떠 있고 ↓ 버튼으로 맨 아래로 갑니다. 휴대폰 키보드 바로 위에 붙습니다.
+- **에이전트의 질문**(AskUserQuestion, 권한 메뉴)은 선택지 버튼이 있는 카드로 나오고, 서버가 클릭을 알맞은 키 입력으로 바꿔 보냅니다.
+
+### 화면을 짚어서 말하기
+
+오른쪽 위 **Chip**을 켜고 화면의 항목(할일, 카드, 지표)을 누르면, 다음 메시지에 컨텍스트 칩으로 붙습니다. ⟳는 새로 생긴 종류의 요소를 칩 대상으로 등록합니다. ✎를 누르면 보드 위에 캔버스가 깔립니다. 빨강·마젠타·파랑으로 짚고 싶은 곳에 동그라미를 치고 *Add to chat*을 누르면, 표시가 합성된 화면 캡처와 표시 아래 항목들의 칩이 함께 붙습니다. 캡처는 [modern-screenshot](https://github.com/qq15725/modern-screenshot)을 `/vendor/`에서 로컬로 제공해 씁니다.
 
 ### 메모 · 할일 · 일정을 하나의 그래프로 (NodeRel)
 
-보드에는 **Tasks, Calendar, Notes, Stats, Requests, Evolve** 여섯 탭이 있고, 앞의 세 탭은 [NodeRel](https://github.com/tykimos/NodeRel)로 만든 관계 그래프로 이어집니다. 진실원천은 여전히 `state.json`입니다(항목들 + 명시적 관계 목록 `links[]`). `graph.js`는 서명이 바뀔 때마다 여기서 SQLite 인덱스(`graph.sqlite`, 워크스페이스마다 하나)를 다시 만듭니다. 그래서 UI, 에이전트 diff, 파일 직접 수정 등 어느 경로로 바꿔도 그래프에 반영됩니다.
+메모, 할일, 일정은 [NodeRel](https://github.com/tykimos/NodeRel)로 만든 관계 그래프로 이어집니다. 진실원천은 `state.json`입니다(항목들 + 명시적 관계 목록 `links[]`). `graph.js`는 서명이 바뀔 때마다 여기서 SQLite 인덱스(`graph.sqlite`, 워크스페이스마다 하나)를 다시 만듭니다. 그래서 UI, 에이전트 diff, 파일 직접 수정 등 어느 경로로 바꿔도 그래프에 반영됩니다.
 
 ```
 Note ─SPAWNED──────▶ Task | Event     이 할일·일정이 나온 메모             (명시)
@@ -138,7 +162,12 @@ Note|Task|Event ─REFERS_TO─▶ Note|Task|Event   수동 참조              
 Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           due / date에서 파생         (자동)
 ```
 
-화면에서는 메모의 한 줄을 선택하고 **→ Task** / **→ Event**를 누르면 할일·일정이 만들어집니다. 할일의 달력 버튼으로 시간을 잡고, **＋ Link**로 두 항목을 잇습니다. 관계는 칩으로 보이고, 칩을 누르면 그 항목이 있는 탭으로 이동합니다. **Stats → Connections**는 관계 개수를 세고 흐름이 끊긴 곳을 보여 줍니다. 아무것도 나오지 않은 메모, 기한 없는 할일, 시간이 안 잡힌 할일입니다.
+화면에서 관계를 만드는 방법은 다음과 같습니다.
+- 메모의 한 줄을 선택하고 **→ Task** / **→ Event**를 누릅니다.
+- 할일의 달력 버튼으로 시간을 잡습니다.
+- **＋ Link**로 두 항목을 잇습니다.
+
+관계는 양쪽에 칩으로 보이고, 칩을 누르면 그 항목으로 이동합니다. **System › Relations**는 전체 흐름을 그림으로 보여 주고, 흐름이 끊긴 곳도 알려 줍니다. 아무것도 나오지 않은 메모, 기한 없는 할일, 시간이 안 잡힌 할일입니다.
 
 | 엔드포인트 | 용도 |
 |---|---|
@@ -146,12 +175,34 @@ Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           due / date에서 파�
 | `POST /api/todo {title, due?, from?}` · `POST /api/event {action:'add', …, from?}` | 만들면서 출처와 연결(`from`이 메모면 `SPAWNED`, 할일이면 `SCHEDULED_AS`) |
 | `POST /api/link {action:'add'\|'remove', from, to, type}` | `SPAWNED`·`SCHEDULED_AS`·`REFERS_TO` 추가/삭제(방향 검증) |
 | `GET /api/graph/neighbors?id=` · `GET /api/graph/trace?id=&depth=&direction=&types=` | 붙어 있는 관계 / 도달 가능한 전체 |
-| `GET /api/graph/schema` | NodeRel의 AI용 스키마 + 이 앱의 관계 의미 — 에이전트에게 건네면 됩니다 |
+| `GET /api/graph/schema` | NodeRel의 AI용 스키마 + 이 앱의 관계 의미. 에이전트에게 건네면 됩니다 |
 | `GET /api/stats` → `graph` | 종류·관계별 개수와 `gaps` 세 목록 |
 
-**Requests와 Evolve.** 두 탭은 방향이 반대입니다. **Evolve**는 에이전트가 *앱을 바꾸자고* 제안하는 곳이고, 승인하면 에이전트가 만듭니다. **Requests**는 에이전트가 시스템을 더 잘 운용하려고 *사용자에게* 부탁하는 곳입니다. 필요한 정보, 결정(선택지 버튼), 사용자만 할 수 있는 일, 접근 권한을 요청합니다. 에이전트는 `POST /api/requests {requests:[{kind, title, desc?, options?, ref?}]}`로 등록합니다(`kind` = `info|decision|action|access`, `ref` = 링크로 보일 할일·일정·메모 id). 답을 보내면 채팅으로 에이전트에게 바로 전달되고, *I did it* / *Not now*는 알림으로 전달됩니다(`POST /api/request-act {id, action: answer|done|dismiss|reopen}`).
+### Collaborate — 진화 제안 · 승인 요청 · 작업 요청
 
-**화면에 그리기.** Chip 모드에서 ⟳ 옆 펜 버튼을 누르면 보드 위에 캔버스가 깔립니다. UI에 쓰지 않는 빨강·마젠타·파랑으로 짚고 싶은 곳에 동그라미를 치고 *Add to chat*을 누르면, 그림이 합성된 화면 캡처가 첨부됩니다. 칩에는 현재 위치(워크스페이스, 탭, 선택한 날짜나 메모, 스크롤)와 각 표시가 가리키는 항목(`magenta mark on Task "book venue"`)이 함께 들어갑니다. 캡처는 [modern-screenshot](https://github.com/qq15725/modern-screenshot)을 `/vendor/`에서 로컬로 제공해 씁니다.
+| 탭 | 누가 누구에게 | 내용 |
+|---|---|---|
+| **Evolve** (진화 제안) | 에이전트 → 앱 | 에이전트가 현재 기능, 데이터, 사용 로그(`/api/activity`)를 보고 앱이 어떻게 진화하면 좋을지 제안합니다. 승인하면 실행 중인 에이전트가 만듭니다. |
+| **Approvals** (승인 요청) | 에이전트 → 나, 일을 진행하기 전에 | 대기 중인 **데이터 변경**(에이전트가 diff를 제안하고, 승인하기 전에는 아무것도 바뀌지 않음)과 `approval`, `decision`(선택지 버튼), `access` 요청 |
+| **Requests** (작업 요청) | 에이전트 → 나 | 나만 할 수 있는 일(`action`)과 에이전트에게 없는 정보(`info`) |
+
+탭마다 에이전트에게 채워 달라고 요청하는 버튼이 있습니다. 에이전트는 `POST /api/requests {requests:[{kind, title, desc?, options?, ref?}]}`로 등록합니다(`ref` = 링크로 보일 할일·일정·메모 id). 답을 보내면 채팅으로 에이전트에게 바로 전달되고, *I did it* / *Not now*는 알림으로 전달됩니다(`POST /api/request-act {id, action: answer|done|dismiss|reopen}`).
+
+### System — AI 신뢰성 · 안전 · 보안
+
+고정된 문구가 아니라 실제 상태로 계산한 점검입니다(`GET /api/trust`).
+
+- **Reliability(신뢰성):** 에이전트가 돌고 있는지, 채팅을 자체 기록으로 읽는지, 도구 호출 실패율, 중단된 작업, 요금제 사용량, 나를 기다리는 것
+- **Safety(안전):**
+  - 에이전트가 권한 확인 없이 도는지(`--dangerously-skip-permissions`, `--dangerously-bypass-approvals-and-sandbox`)
+  - 실제로 실행한 위험 명령(rm -rf, reset --hard, 강제 push, killall, sudo, curl | sh, DROP TABLE, 디스크 쓰기)
+  - 데이터 변경이 승인을 거치는지
+- **Security(보안):**
+  - 누가 서버에 접근할 수 있는지(바인드 주소), 로그인 여부
+  - 다른 사이트 요청 차단
+  - AI 로그인 토큰을 서버에만 두는지
+  - 인증 파일 권한
+  - 메모·할일에 붙여 넣은 비밀값(값은 보여 주지 않고 *어디에* 있는지만 알림)
 
 ### 여러 사람과 함께 쓰기 (선택)
 
@@ -165,9 +216,7 @@ node server.js
 
 헤더가 잡히면 항목에 작성자가 남고, 자기가 만든 것만 수정·삭제할 수 있으며, 개인별 통계와 활동 기록이 동작합니다. 지정하지 않으면(기본값) 전부 단일 사용자로 동작합니다.
 
-**사람별 코딩 에이전트 세션.** 채팅 상단의 연결 표시(`ANA · <세션>`)를 눌러 tmux 세션을 고릅니다. 세션마다 대화 이력이 따로 있어서 바꾸면 채팅이 그 세션의 대화로 통째로 바뀝니다. 고른 세션은 **사람별로** 기억되어, 다음에 접속하면 각자 자기가 마지막에 쓴 세션이 선택됩니다. 목록에는 세션마다 누가 골랐는지(지금 보고 있으면 ●)가 표시됩니다. 에이전트가 `curl`로 응답을 올릴 때는 `x-ana-target: <세션>` 헤더로 자기 세션을 지정할 수 있습니다.
-
-**에이전트의 질문.** Claude가 AskUserQuestion으로 묻거나 권한 메뉴를 띄우면 채팅에 카드로 렌더됩니다. 질문 탭, 설명이 붙은 선택지 버튼, 다중 선택 체크박스, "Type something"용 직접 입력칸, 제출/취소 버튼이 있고, 서버가 클릭을 알맞은 키 입력으로 바꿔 보냅니다.
+**사람별 코딩 에이전트 세션.** 채팅 상단의 세션 콤보로 tmux 세션을 고릅니다. 세션마다 대화 이력이 따로 있어서 바꾸면 채팅이 그 세션의 대화로 통째로 바뀝니다. 고른 세션은 **사람별로** 기억되어, 다음에 접속하면 각자 자기가 마지막에 쓴 세션이 선택됩니다. 목록에는 세션마다 누가 골랐는지(지금 보고 있으면 ●)가 표시됩니다. 에이전트가 `curl`로 응답을 올릴 때는 `x-ana-target: <세션>` 헤더로 자기 세션을 지정할 수 있습니다.
 
 > 이 헤더는 그대로 신뢰합니다. 따라서 앞단이 실제로 붙여줄 때만 의미가 있습니다. 서버는 루프백이나 그 프록시 뒤에 두세요. 이 옵션을 켠 채 `0.0.0.0`으로 열면 누구나 헤더를 위조해 남의 이름으로 쓸 수 있습니다.
 
@@ -193,42 +242,30 @@ const app = core.createChannelServer({
 app.listen(() => console.log('ANA → http://localhost:8809'));
 ```
 
-그리고 페이지에서: `POST /api/chat {text, force:true}` 로 보내고 `GET /api/stream`(SSE)으로 받습니다. 이게 통합의 전부입니다. 단계별 설명과 엔드포인트 레퍼런스는 **[`ana` 스킬](skills/ana/SKILL.md)** 에 있습니다 — Claude Code에 설치하면 스킬이 당신의 앱에 ANA를 대신 연결해 줍니다:
-
-```bash
-# Claude Code 플러그인/스킬로 사용
-cp -r skills/ana ~/.claude/skills/           # 그런 다음: "내 앱에 ANA 붙여줘"
-```
+그리고 페이지에서: `POST /api/chat {text, force:true}` 로 보내고 `GET /api/stream`(SSE)으로 받습니다. 이게 통합의 전부입니다. 단계별 설명과 엔드포인트 레퍼런스는 **[`ana` 스킬](skills/ana/SKILL.md)**에 있습니다. 플러그인을 설치해 두면([스킬](#스킬) 참고) Claude Code에 *"내 앱에 ANA 붙여줘"*라고만 하면 됩니다.
 
 ---
 
-## 저장소 구성
+## 스킬
 
-```
-channel-core.js     ★ ANA 런타임 전부 — tmux 주입 / capture-pane 미러 / 원장 (의존성 0)
-server.js             베이스 앱: channel-core + dashboard-api 마운트, dashboard.html 제공
-dashboard-api.js      리치 응답 API 예시 (워크스페이스 · 할일 · 일정 · 메모 · 관계 · 진화, diff→승인)
-graph.js              메모·할일·일정 관계 그래프 — NodeRel 기반(워크스페이스마다 파생 graph.sqlite)
-dashboard.html        레퍼런스 UI: 워크스페이스, Chip 모드, 컨텍스트 칩, 도킹 채팅, 관계 칩, 진화 탭
-package.json          의존성: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot
-test.cjs              74개 테스트 (단위 + mock_agent.py 대상 통합)
-agent-log.js          에이전트 자체 JSONL 기록으로 채팅 표시(Claude Code + Codex): 응답·도구·모델·한도
-codex-settings.js     Codex 모델·추론 강도 목록, Codex 자체 메뉴로 전환
-features.json         기능 목록: 기능별 앵커 + 담당 스킬 (ana-update가 비교 기준으로 사용)
-mock_agent.py         테스트용 결정적 TUI 스탠드인
-skills/ana/SKILL.md   "서비스에 ANA 붙이기" — 위 간단 레시피
-skills/install/       "ANA 설치·실행" — 환경 분석, 설치, tmux 실행, Windows WSL 부트스트랩
-skills/ana-update/    "기존 ANA 업데이트" — 기능별로 업스트림과 비교, 고른 것만 이식
-skills/chat-window/   Claude 앱 같은 채팅: 콤보, 모델 시트, 한도 링, 음성, 첨부, 세션별 기록, Codex
-skills/context-chips/ 칩 모드, ✎ 화면 그리기(주석), ⟳ 새 요소 등록
-skills/relations/     NodeRel 항목 관계, 관계 칩, Relations 탭
-skills/app-shell/     Workspace / Collaborate / System 영역, 하단 메뉴, 워크스페이스 콤보
-skills/agent-requests/ 협업: 진화 제안 · 승인 요청 · 작업 요청
-skills/trust-checks/  시스템: AI 신뢰성 · 안전 · 보안 점검(실제 상태 기반)
-.claude-plugin/       Claude Code 플러그인 + 마켓플레이스 매니페스트 (설치: claude plugin install ana@agent-native-agent)
+이 저장소는 **Claude Code 플러그인**입니다. 머신마다 한 번 설치해 두면 어느 ANA의 에이전트든 스킬을 쓸 수 있고, 업데이트도 같은 방법으로 합니다.
+
+```bash
+claude plugin marketplace add tykimos/agent-native-agent
+claude plugin install ana@agent-native-agent          # 이후: claude plugin update ana@agent-native-agent
 ```
 
-`channel-core.js`는 재사용 가능한 코어이고, `dashboard-api.js` / `dashboard.html`은 복사해서 당신의 것으로 교체하는 **예시**입니다.
+| 스킬 | 용도 |
+|---|---|
+| [`install`](skills/install/SKILL.md) | 빈 머신에서 대시보드가 뜨는 데까지(환경 분석, 설치, tmux 실행, Windows WSL) |
+| [`ana`](skills/ana/SKILL.md) | 내 서비스에 ANA 런타임 붙이기 |
+| [`ana-update`](skills/ana-update/SKILL.md) | 이미 쓰고 있는 ANA를 기능 단위로 최신화 |
+| [`chat-window`](skills/chat-window/SKILL.md) | Claude 앱 같은 채팅: 세션 콤보, 기록 기반 표시, 모델 시트, 사용량 링, 음성, 첨부, Codex |
+| [`context-chips`](skills/context-chips/SKILL.md) | 칩 모드, ✎ 화면 그리기, ⟳ 새 요소 등록 |
+| [`relations`](skills/relations/SKILL.md) | NodeRel 항목 관계, 관계 칩, Relations 탭 |
+| [`app-shell`](skills/app-shell/SKILL.md) | Workspace / Collaborate / System 영역, 하단 메뉴, 워크스페이스 콤보 |
+| [`agent-requests`](skills/agent-requests/SKILL.md) | 협업: 진화 제안, 승인 요청, 작업 요청 |
+| [`trust-checks`](skills/trust-checks/SKILL.md) | 시스템: AI 신뢰성, 안전, 보안 점검 |
 
 ### 기존 ANA 업데이트
 
@@ -236,19 +273,39 @@ skills/trust-checks/  시스템: AI 신뢰성 · 안전 · 보안 점검(실제 
 
 > *"https://github.com/tykimos/agent-native-agent 최신 내용으로 업데이트해"*
 
-**[`ana-update` 스킬](skills/ana-update/SKILL.md)**이 `ana-diff.mjs`로 기능마다 ✓ 있음 · ◐ 일부 · ✗ 없음, 오래된 모듈, 공유 `channel-core.js` 차이를 보고합니다. 사용자가 고르면 기능별 스킬(chat-window, context-chips, relations, app-shell, agent-requests, trust-checks)로 그 ANA의 파일에 이식하고, 동기화한 커밋을 `.ana-sync.json`에 남깁니다. 다음 업데이트 때는 그 뒤에 새로 생긴 것만 보여 줍니다.
+**[`ana-update` 스킬](skills/ana-update/SKILL.md)**이 `ana-diff.mjs`로 다음을 보고합니다.
+- 기능마다 ✓ 있음 · ◐ 일부 · ✗ 없음
+- 오래된 모듈
+- 공유 `channel-core.js`가 다른지
 
-스킬은 머신마다 한 번 설치해 두면 어느 ANA의 에이전트든 쓸 수 있고, 업데이트도 같은 방법으로 합니다.
-
-```bash
-claude plugin marketplace add tykimos/agent-native-agent
-claude plugin install ana@agent-native-agent          # 이후: claude plugin update ana@agent-native-agent
-```
+그중 가져올 것을 고르면, 기능별 스킬로 그 ANA의 파일에 이식합니다. 동기화한 커밋은 `.ana-sync.json`에 남기므로, 다음 업데이트 때는 그 뒤에 새로 생긴 것만 보여 줍니다. 비교 기준(기능별 앵커)은 [`features.json`](features.json)에 있습니다.
 
 ```bash
 node skills/ana-update/scripts/ana-diff.mjs --target ~/ana/my-ana            # 보고만 (읽기 전용)
 node skills/ana-update/scripts/ana-diff.mjs --target ~/ana/my-ana --record   # 이식한 뒤 기록
 ```
+
+---
+
+## 저장소 구성
+
+```
+channel-core.js     ★ ANA 런타임 전부 — tmux 주입 / capture-pane 미러 / 세션별 원장 (의존성 0)
+server.js             베이스 앱: channel-core + dashboard-api 마운트, dashboard.html 제공
+dashboard-api.js      베이스 API: 워크스페이스 · 할일 · 일정 · 메모 · 관계 · 진화 · 승인 · 요청 · 신뢰 점검
+dashboard.html        레퍼런스 UI: 세 영역, Claude 앱 같은 채팅, 칩 모드 + 그리기, 관계 칩
+agent-log.js          에이전트 자체 JSONL 기록으로 채팅 표시(Claude Code + Codex): 응답·도구·모델·한도
+codex-settings.js     Codex 모델·추론 강도 목록, Codex 자체 메뉴로 전환
+graph.js              메모·할일·일정 관계 그래프 — NodeRel 기반(워크스페이스마다 파생 graph.sqlite)
+seed.js               첫 실행용 예제 흐름 두 개
+features.json         기능 목록: 기능별 앵커 + 담당 스킬 (ana-update가 비교 기준으로 사용)
+package.json          의존성: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot
+test.cjs              단위 + 통합 테스트(npm test), mock_agent.py = 테스트용 결정적 TUI
+skills/               install · ana · ana-update · chat-window · context-chips · relations · app-shell · agent-requests · trust-checks
+.claude-plugin/       플러그인 + 마켓플레이스 매니페스트
+```
+
+`channel-core.js`는 재사용 가능한 코어이고, `dashboard-api.js` / `dashboard.html`은 복사해서 당신의 것으로 교체하는 **예시**입니다.
 
 ---
 

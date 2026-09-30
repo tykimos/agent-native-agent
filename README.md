@@ -76,7 +76,7 @@ flowchart TB
   S -->|"SSE /api/stream + proposals"| D
 ```
 
-There is **no bridge and no MCP**. The browser posts to the server, the server injects the text straight into the tmux pane, and a 300 ms `capture-pane` loop mirrors the session back as an append-only ledger over SSE. For rich replies the agent posts a **proposal** (before/after + approve card); on approval the server applies the diff and bumps a `version` so every device re-syncs. **The coding agent is the backend** — you grow the app by talking to it.
+There is **no bridge and no MCP**. The browser posts to the server, the server injects the text straight into the tmux pane, and a 300 ms `capture-pane` loop mirrors the session back as an append-only ledger over SSE. For rich replies the agent posts a **proposal** (before/after + approve card); on approval the server applies the diff and bumps a `version` so every device re-syncs. When the agent keeps a structured log (Claude Code, Codex), the chat is rendered from that log instead of the screen, so replies and tool calls come through exactly. **The coding agent is the backend** — you grow the app by talking to it.
 
 ---
 
@@ -123,13 +123,37 @@ tmux new -s ana          # inside the session, run:  claude   (or any agent CLI)
 node server.js           # → http://localhost:8809
 ```
 
-Open **http://localhost:8809**, open the chat (bottom-right), and talk. Turn on **Chip** (top-right) to click any element into the conversation as context. The server itself needs **no launcher** (`run.sh` is only a convenience) — it auto-configures the tmux pane (scrollback-safe) on connect. Runtime state lives in `.ana/` (git-ignored).
+Open **http://localhost:8809** and tap the chat button. The server needs **no launcher** (`run.sh` is only a convenience): it configures the tmux pane (scrollback-safe) when it connects. Runtime state lives in `.ana/` (git-ignored). On first run the board is seeded with two small example flows (`ANA_SEED=0` to start empty).
 
-The reference dashboard ships **workspaces**, **Chip mode** (click any element to pin it as a context chip; ⟳ registers newly added elements), a docked chat you resize, and an **evolution tab** — ask for a change, approve it, the running agent rewrites the app.
+---
+
+## What's in the base
+
+![Workspace · Collaborate · System on a phone](docs/assets/areas-mobile.png)
+
+The base is a solo operations board: notes, tasks and a calendar you run together with a coding agent. It is split into **three areas** (a bottom menu on phones, a switch next to the logo on desktop):
+
+| Area | Tabs | For |
+|---|---|---|
+| **Workspace** | Tasks · Calendar · Notes | your own data, per workspace (switch, add, rename, reorder) |
+| **Collaborate** | Evolve · Approvals · Requests | the agent and you working together. The badge counts what is waiting on you |
+| **System** | Stats · Relations · Reliability · Safety · Security | how the system is doing and whether you can trust it. The badge counts checks at risk |
+
+### Chat — like the Claude app
+
+- **Rendered from the agent's own log**, not the screen: Claude Code's transcript (`~/.claude/projects/…`) or Codex's rollout (`~/.codex/sessions/…`). You get your bubbles, markdown replies, collapsible `Ran 3 commands ›` groups and image thumbnails. Agents without a log fall back to the screen mirror.
+- **Session combo:** pick the tmux session (Claude Code or Codex). Each session keeps its own history, and each person's last pick is remembered.
+- **Composer:** ＋ attach files · **model pill** (the real model, e.g. `Opus 5.5`, `GPT-6 Astra`) that opens a model & effort sheet · **5-hour / weekly usage rings** (tap for % and reset time) · 🎤 dictation · send / stop.
+- Floating input with a ↓ jump button. It sits right on top of the phone keyboard.
+- **Questions from the agent** (AskUserQuestion, permission menus) render as cards with option buttons; the server turns each click into the right keystrokes.
+
+### Point at the screen
+
+Turn on **Chip** (top right) and tap anything (a task, a card, a KPI) to attach it to the next message as a context chip. ⟳ registers newly added kinds of elements. ✎ lays a canvas over the board: circle what you mean in red, magenta or blue and press *Add to chat*. The annotated screenshot is attached, with chips for the items under your marks. Screenshots use [modern-screenshot](https://github.com/qq15725/modern-screenshot), served locally from `/vendor/`.
 
 ### Notes · Tasks · Calendar as one graph (NodeRel)
 
-The board has six tabs — **Tasks, Calendar, Notes, Stats, Requests, Evolve** — and the first three are linked through a relation graph built with [NodeRel](https://github.com/tykimos/NodeRel). `state.json` stays the source of truth (it holds the items plus an explicit `links[]` list); `graph.js` rebuilds a SQLite index (`graph.sqlite`, one per workspace) from it whenever its signature changes, so any write path — the UI, an agent diff, a hand edit — shows up in the graph.
+Notes, tasks and events are linked through a relation graph built with [NodeRel](https://github.com/tykimos/NodeRel). `state.json` stays the source of truth (the items plus an explicit `links[]` list). `graph.js` rebuilds a SQLite index (`graph.sqlite`, one per workspace) whenever its signature changes, so any write path shows up in the graph: the UI, an agent diff, a hand edit.
 
 ```
 Note ─SPAWNED──────▶ Task | Event     where a task or event came from      (explicit)
@@ -138,7 +162,12 @@ Note|Task|Event ─REFERS_TO─▶ Note|Task|Event   manual reference           
 Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           derived from due / date     (automatic)
 ```
 
-In the UI: select a line in a note and press **→ Task** or **→ Event**, press the calendar button on a task to block time for it, or **＋ Link** any two items. Links show as chips; clicking one jumps to that item in its tab. **Stats → Connections** counts the links and lists where the flow breaks: notes nothing came from, open tasks without a due date, open tasks with no time scheduled.
+To make links in the UI:
+- Select a line in a note and press **→ Task** or **→ Event**.
+- Press the calendar button on a task to block time for it.
+- **＋ Link** connects any two items.
+
+Links show as chips on both ends; clicking one jumps to that item. **System › Relations** draws the whole flow and lists where it breaks: notes nothing came from, open tasks without a due date, open tasks with no time scheduled.
 
 | Endpoint | Purpose |
 |---|---|
@@ -146,12 +175,31 @@ In the UI: select a line in a note and press **→ Task** or **→ Event**, pres
 | `POST /api/todo {title, due?, from?}` · `POST /api/event {action:'add', …, from?}` | create and link to its source in one call (`from` = note → `SPAWNED`, task → `SCHEDULED_AS`) |
 | `POST /api/link {action:'add'\|'remove', from, to, type}` | add/remove `SPAWNED`, `SCHEDULED_AS`, `REFERS_TO` (direction is validated) |
 | `GET /api/graph/neighbors?id=` · `GET /api/graph/trace?id=&depth=&direction=&types=` | incident links / everything reachable |
-| `GET /api/graph/schema` | NodeRel's AI-readable schema plus this app's relation meanings — hand it to the agent |
+| `GET /api/graph/schema` | NodeRel's AI-readable schema plus this app's relation meanings. Hand it to the agent |
 | `GET /api/stats` → `graph` | counts per kind/type and the three `gaps` lists |
 
-**Requests vs Evolve.** Two tabs carry traffic between you and the agent. **Evolve** is the agent proposing changes *to the app* — approve one and it builds it. **Requests** is the agent asking *you* for what it needs to run the system better: information, a decision (with option buttons), something only you can do, or access. The agent registers them with `POST /api/requests {requests:[{kind, title, desc?, options?, ref?}]}` (`kind` = `info|decision|action|access`, `ref` = a task/event/note id shown as a link). Your answer goes straight to the agent in chat; *I did it* / *Not now* notify it (`POST /api/request-act {id, action: answer|done|dismiss|reopen}`).
+### Collaborate — Evolve · Approvals · Requests
 
-**Draw on the screen.** In Chip mode the pen button (next to ⟳) lays a canvas over the board. Circle what you mean in red, magenta or blue — colors the UI never uses — and press *Add to chat*: the annotated screenshot is attached and a chip records where you are (workspace, tab, selected day/note, scroll) plus which item each mark sits on (`magenta mark on Task "book venue"`). Screenshots use [modern-screenshot](https://github.com/qq15725/modern-screenshot), served locally from `/vendor/`.
+| Tab | Who asks | What |
+|---|---|---|
+| **Evolve** | agent → the app | The agent looks at the app's features, your data and the usage log (`/api/activity`) and proposes how the app should evolve. Approve one and the running agent builds it. |
+| **Approvals** | agent → you, before it goes on | Pending **data changes** (the agent proposes a diff; nothing changes until you approve) plus requests of kind `approval`, `decision` (option buttons), `access`. |
+| **Requests** | agent → you | Work only you can do (`action`) and information it is missing (`info`). |
+
+Each tab has a button that asks the agent to fill it. The agent registers items with `POST /api/requests {requests:[{kind, title, desc?, options?, ref?}]}` (`ref` = a task/event/note id shown as a link). Your answer goes straight to the agent in chat. *I did it* / *Not now* notify it (`POST /api/request-act {id, action: answer|done|dismiss|reopen}`).
+
+### System — Reliability · Safety · Security
+
+Checks computed from real state (`GET /api/trust`), not static text:
+
+- **Reliability:** is the agent running, is the chat read from its own log, the tool-call failure rate, interrupted turns, plan usage, what is waiting on you.
+- **Safety:** does the agent run with permission prompts off (`--dangerously-skip-permissions`, `--dangerously-bypass-approvals-and-sandbox`)? Which risky commands has it actually run (rm -rf, reset --hard, force push, killall, sudo, curl | sh, DROP TABLE, disk writes)? It also confirms data changes go through approval.
+- **Security:**
+  - who can reach the server (bind address) and whether people sign in
+  - cross-site request protection
+  - your AI login token stays on the server
+  - credential file permissions
+  - secrets pasted into notes or tasks (it reports *where*, never the value)
 
 ### Sharing it with other people (optional)
 
@@ -165,9 +213,7 @@ node server.js
 
 With the header set, items carry an author, only the author can edit or delete their own, and the per-person stats and activity come alive. Unset (the default) everything runs as one local user.
 
-**Coding-agent sessions per person.** Click the connection pill (`ANA · <session>`) in the chat header to pick a tmux session. Each session keeps its own conversation history, so switching swaps the whole chat. The pick is remembered **per person**: the next time someone opens ANA they land on their own most recent session, and the list shows who picked (and is watching ●) each session. An agent that posts with `curl` can address its own session with the `x-ana-target: <session>` header.
-
-**Questions from the agent.** When Claude asks through AskUserQuestion (or shows a permission menu), the chat renders it as a card: question tabs, option buttons with descriptions, checkboxes for multi-select, a free-text field for "Type something", and Submit / Cancel. The server turns each click into the right keystrokes.
+**Coding-agent sessions per person.** The session combo at the top of the chat picks a tmux session. Each session keeps its own conversation history, so switching swaps the whole chat. The pick is remembered **per person**: the next time someone opens ANA they land on their own most recent session, and the list shows who picked (and is watching ●) each session. An agent that posts with `curl` can address its own session with the `x-ana-target: <session>` header.
 
 > The header is trusted as-is, so it only means anything when a gateway in front actually sets it. Keep the server on loopback or behind that proxy — exposing it on `0.0.0.0` with this option on lets anyone forge the header.
 
@@ -193,42 +239,30 @@ const app = core.createChannelServer({
 app.listen(() => console.log('ANA → http://localhost:8809'));
 ```
 
-Then, on your page: send with `POST /api/chat {text, force:true}` and stream with `GET /api/stream` (SSE). That's the whole integration. Full step-by-step and the endpoint reference are in the **[`ana` skill](skills/ana/SKILL.md)** — install it into Claude Code and it will wire ANA into your app for you:
-
-```bash
-# use as a Claude Code plugin/skill
-cp -r skills/ana ~/.claude/skills/           # then: "attach ANA to my app"
-```
+Then, on your page: send with `POST /api/chat {text, force:true}` and stream with `GET /api/stream` (SSE). That's the whole integration. Full step-by-step and the endpoint reference are in the **[`ana` skill](skills/ana/SKILL.md)**. With the plugin installed (see [Skills](#skills)), just ask Claude Code: *"attach ANA to my app"*.
 
 ---
 
-## Repository layout
+## Skills
 
-```
-channel-core.js     ★ the whole ANA runtime — tmux inject / capture-pane mirror / ledger (0 deps)
-server.js             base app: mounts channel-core + dashboard-api, serves dashboard.html
-dashboard-api.js      example rich-response API (workspaces · todo · schedule · memo · links · evolve, diff→approve)
-graph.js              Notes·Tasks·Calendar relation graph on NodeRel (derived graph.sqlite per workspace)
-dashboard.html        reference UI: workspaces, Chip mode, context chips, docked chat, relation chips, evolution tab
-package.json          dependencies: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot
-test.cjs              74 tests (unit + integration against mock_agent.py)
-agent-log.js          chat from the agent's own JSONL log (Claude Code + Codex): replies, tools, model, limits
-codex-settings.js     Codex model/effort catalog and switching through Codex's own menu
-features.json         feature manifest: anchors + skill per feature (used by ana-update)
-mock_agent.py         deterministic TUI stand-in for tests
-skills/ana/SKILL.md   "attach ANA to your service" — the simple recipe above
-skills/install/       "install & run ANA" — env check, installer, tmux runner, Windows WSL bootstrap
-skills/ana-update/    "update an existing ANA" — diff vs upstream by feature, port what you pick
-skills/chat-window/   Claude-app chat: combo, model sheet, usage rings, voice, attachments, per-session, Codex
-skills/context-chips/ Chip mode, ✎ draw-on-screen annotation, ⟳ rescan new elements
-skills/relations/     NodeRel item relations, relation chips, Relations tab
-skills/app-shell/     Workspace / Collaborate / System areas, bottom nav, workspace combo
-skills/agent-requests/ Collaborate: Evolve, Approvals, Requests (agent ↔ user)
-skills/trust-checks/  System: Reliability, Safety, Security checks from real state
-.claude-plugin/       Claude Code plugin + marketplace manifest (install: claude plugin install ana@agent-native-agent)
+The repo is a **Claude Code plugin**. Install it once per machine and every ANA's agent can use the skills; update them the same way:
+
+```bash
+claude plugin marketplace add tykimos/agent-native-agent
+claude plugin install ana@agent-native-agent          # later: claude plugin update ana@agent-native-agent
 ```
 
-`channel-core.js` is the reusable core; `dashboard-api.js` / `dashboard.html` are the **example** you copy from and replace with your own.
+| Skill | Use it to |
+|---|---|
+| [`install`](skills/install/SKILL.md) | take a fresh machine to a running dashboard (env check, installer, tmux runner, Windows WSL) |
+| [`ana`](skills/ana/SKILL.md) | attach the ANA runtime to your own service |
+| [`ana-update`](skills/ana-update/SKILL.md) | bring an existing, customized ANA up to date, feature by feature |
+| [`chat-window`](skills/chat-window/SKILL.md) | the Claude-app chat: session combo, log-based rendering, model sheet, usage rings, voice, attachments, Codex |
+| [`context-chips`](skills/context-chips/SKILL.md) | Chip mode, ✎ draw-on-screen annotation, ⟳ register new elements |
+| [`relations`](skills/relations/SKILL.md) | NodeRel item relations, relation chips, the Relations tab |
+| [`app-shell`](skills/app-shell/SKILL.md) | Workspace / Collaborate / System areas, bottom menu, workspace combo |
+| [`agent-requests`](skills/agent-requests/SKILL.md) | Collaborate: Evolve, Approvals, Requests |
+| [`trust-checks`](skills/trust-checks/SKILL.md) | System: Reliability, Safety, Security checks |
 
 ### Updating an existing ANA
 
@@ -236,19 +270,39 @@ This base is the starting point; each person's ANA grows its own domain code. To
 
 > *"Update to the latest from https://github.com/tykimos/agent-native-agent"*
 
-The **[`ana-update` skill](skills/ana-update/SKILL.md)** runs `ana-diff.mjs`, which reports every feature as ✓ present, ◐ partial, or ✗ missing, plus outdated modules and whether the shared `channel-core.js` differs. It lets you pick, then ports each feature with its skill (chat-window, context-chips, relations, app-shell, agent-requests, trust-checks) into that ANA's own files. It records the synced commit in `.ana-sync.json`, so the next update shows only what's new.
+The **[`ana-update` skill](skills/ana-update/SKILL.md)** runs `ana-diff.mjs`, which reports:
+- every feature as ✓ present, ◐ partial, or ✗ missing
+- outdated modules
+- whether the shared `channel-core.js` differs
 
-Install the skills once per machine so any ANA's agent can use them, and update them the same way:
-
-```bash
-claude plugin marketplace add tykimos/agent-native-agent
-claude plugin install ana@agent-native-agent          # later: claude plugin update ana@agent-native-agent
-```
+You pick what to take. It ports each feature with its skill into that ANA's own files, then records the synced commit in `.ana-sync.json`, so the next update shows only what's new. [`features.json`](features.json) lists every feature with the anchors used for the comparison.
 
 ```bash
 node skills/ana-update/scripts/ana-diff.mjs --target ~/ana/my-ana            # read-only report
 node skills/ana-update/scripts/ana-diff.mjs --target ~/ana/my-ana --record   # after porting
 ```
+
+---
+
+## Repository layout
+
+```
+channel-core.js     ★ the whole ANA runtime — tmux inject / capture-pane mirror / per-session ledgers (0 deps)
+server.js             base app: mounts channel-core + dashboard-api, serves dashboard.html
+dashboard-api.js      base API: workspaces · tasks · events · notes · links · evolve · approvals · requests · trust checks
+dashboard.html        reference UI: three areas, Claude-app chat, Chip mode + drawing, relation chips
+agent-log.js          chat from the agent's own JSONL log (Claude Code + Codex): replies, tools, model, limits
+codex-settings.js     Codex model/effort catalog and switching through Codex's own menu
+graph.js              Notes·Tasks·Calendar relation graph on NodeRel (derived graph.sqlite per workspace)
+seed.js               two example flows for the first run
+features.json         feature manifest: anchors + skill per feature (used by ana-update)
+package.json          dependencies: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot
+test.cjs              unit + integration tests (npm test), mock_agent.py = deterministic TUI stand-in
+skills/               install · ana · ana-update · chat-window · context-chips · relations · app-shell · agent-requests · trust-checks
+.claude-plugin/       plugin + marketplace manifest
+```
+
+`channel-core.js` is the reusable core; `dashboard-api.js` / `dashboard.html` are the **example** you copy from and replace with your own.
 
 ---
 
