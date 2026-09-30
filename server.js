@@ -46,6 +46,7 @@ const apiOpts = {
   UPLOAD_DIR: env.UPLOAD_DIR || path.join(DATA_DIR, 'uploads'),
   NOTIFY_AGENT: env.NOTIFY_AGENT !== '0',
   MAX_TEXT: Number(env.MAX_TEXT || 8000),
+  BIND, PORT,                                          // 시스템 › Security가 노출 범위를 보고한다
   TMUX_SOCKET: SOCKET,                                 // 대화 기록(agent-log.js)이 팬 경로를 물을 때 같은 tmux 소켓을 쓴다
   SEED: env.ANA_SEED !== '0' && !env.ANA_TEST,          // 첫 실행 예제(seed.js). ANA_SEED=0이면 빈 보드로 시작
   // 신원은 앞단(리버스 프록시·SSO 게이트웨이)이 헤더로 실어 줄 때만 잡힌다. 미지정이면 단일 사용자.

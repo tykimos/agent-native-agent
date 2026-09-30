@@ -172,7 +172,8 @@ function createDashboardApi(core, opts) {
   // Evolve가 '에이전트가 앱을 바꾸자고 제안'이라면, Requests는 '에이전트가 이 시스템을 더 잘 운용하려고
   // 사용자에게 부탁'하는 것(정보·결정·행동·권한). 에이전트가 curl로 등록하고, 사용자가 답하거나 처리한다.
   // {id, kind, title, desc, options[], ref, ws, status: open|answered|done|dismissed, answer, at, closedAt}
-  const REQ_KINDS = ['info', 'decision', 'action', 'access'];
+  // approval·decision·access → 협업 › Approvals, action·info → 협업 › Requests
+  const REQ_KINDS = ['info', 'decision', 'action', 'access', 'approval'];
   function loadRequests() {
     const s = readJsonStrict(REQUESTS_FILE, () => ({ next: 1, requests: [] }));
     if (!s || typeof s !== 'object' || !Array.isArray(s.requests)) return { next: 1, requests: [] };
@@ -275,6 +276,93 @@ function createDashboardApi(core, opts) {
     if (!raw) raw = await fsp.readFile(path.join(os.homedir(), '.claude', '.credentials.json'), 'utf8').catch(() => '');
     try { return (JSON.parse(raw) || {}).claudeAiOauth || null; } catch { return null; }
   }
+  // ---- 시스템 › Reliability · Safety · Security ----
+  // 실제 상태에서 계산한 점검 목록. status: ok | info | warn | risk. 비밀값은 값이 아니라 '어디에 있는지'만 알린다.
+  const RISKY_CMDS = [
+    [/\brm\s+-[a-z]*r[a-z]*f|\brm\s+-[a-z]*f[a-z]*r/i, 'Recursive force delete (rm -rf)'],
+    [/\bgit\s+reset\s+--hard\b/i, 'Discards uncommitted work (git reset --hard)'],
+    [/\bgit\s+push\b[^\n]*\s(--force\b|-f\b)/i, 'Force push'],
+    [/\bgit\s+clean\s+-[a-z]*f/i, 'Deletes untracked files (git clean -f)'],
+    [/\bkillall\b|\bpkill\s+-9\b|\bkill\s+-9\b/i, 'Kills processes by name / forcefully'],
+    [/\bsudo\b/i, 'Runs as administrator (sudo)'],
+    [/\bchmod\s+-R\s+777\b|\bchmod\s+777\b/i, 'Opens file permissions to everyone'],
+    [/\b(curl|wget)\b[^|\n]*\|\s*(sudo\s+)?(ba|z)?sh\b/i, 'Pipes a download into a shell'],
+    [/\bdrop\s+(table|database)\b/i, 'Drops a database table'],
+    [/\bdd\s+if=|\bmkfs\b|\bdiskutil\s+erase/i, 'Writes or erases a disk'],
+  ];
+  const SECRET_PATTERNS = [/sk-ant-[A-Za-z0-9_-]{10,}/, /\bsk-[A-Za-z0-9]{32,}/, /\bAKIA[0-9A-Z]{16}\b/, /\bgh[pousr]_[A-Za-z0-9]{30,}/, /\bxox[abp]-[A-Za-z0-9-]{10,}/, /-----BEGIN [A-Z ]*PRIVATE KEY-----/, /\b(password|passwd|비밀번호)\s*[:=]\s*\S{4,}/i];
+  async function collectTrust(ctx) {
+    const rel = [], safe = [], sec = [];
+    const alive = (await ctx.hasSession().catch(() => false)) && (await ctx.agentAlive().catch(() => false));
+    const where = await agentLog.resolve(ctx.target).catch(() => ({}));
+    let log = null; try { log = await agentLog.read(ctx.target, 0, 400); } catch {}
+    const agentName = where.kind === 'codex' ? 'Codex' : where.kind === 'claude' ? 'Claude Code' : 'Agent';
+    // Reliability
+    rel.push(alive ? { id: 'agent', status: 'ok', label: 'Agent is running', value: `${agentName}${log && log.modelName ? ' · ' + log.modelName : ''} in ${ctx.target}` }
+      : { id: 'agent', status: 'risk', label: 'Agent is not running', value: ctx.target, detail: 'Start the coding agent in its tmux session — chat and approvals wait until it is back.' });
+    rel.push(log && log.available ? { id: 'log', status: 'ok', label: 'Chat comes from the agent\'s own log', value: where.kind === 'codex' ? 'Codex rollout' : 'Claude Code transcript', detail: 'Replies and tool results are recorded exactly, not scraped from the screen.' }
+      : { id: 'log', status: 'warn', label: 'Chat is mirrored from the screen', detail: 'This agent has no structured log, so long replies can be cut or garbled.' });
+    const tools = (log && log.items || []).filter((x) => x.kind === 'tools').flatMap((x) => x.tools).filter((t) => t.done);
+    if (tools.length) {
+      const bad = tools.filter((t) => t.isError).length, pct = Math.round((bad / tools.length) * 100);
+      rel.push({ id: 'tools', status: pct >= 30 ? 'risk' : pct >= 10 ? 'warn' : 'ok', label: 'Tool calls that failed', value: `${bad} of ${tools.length} recent (${pct}%)`,
+        detail: pct >= 10 ? 'Frequent failures usually mean a wrong path, a missing tool, or a broken environment — worth a look.' : 'Within the normal range.' });
+    }
+    const intr = (log && log.items || []).filter((x) => x.kind === 'event' && x.text === 'Interrupted').length;
+    if (intr) rel.push({ id: 'interrupts', status: intr >= 5 ? 'warn' : 'info', label: 'Interrupted turns', value: `${intr} recently`, detail: 'Stopped by you or by an error before finishing.' });
+    const lim = where.kind === 'codex' ? log && log.limits : limitsCache.data;
+    for (const [k, name] of [['fiveHour', '5-hour limit'], ['week', 'Weekly limit']]) {
+      const v = lim && lim.available && lim[k]; if (!v) continue;
+      rel.push({ id: `limit-${k}`, status: v.percent >= 95 ? 'risk' : v.percent >= 80 ? 'warn' : 'ok', label: `Plan usage · ${name}`, value: `${v.percent}% used`, detail: v.percent >= 80 ? 'The agent may stop mid-task when the limit is reached.' : '' });
+    }
+    const pend = loadProposals().proposals.filter((x) => x.status === 'pending').length;
+    const openAsk = loadRequests().requests.filter((x) => x.status === 'open').length;
+    rel.push({ id: 'waiting', status: pend + openAsk ? 'info' : 'ok', label: 'Waiting on you', value: `${pend} approval${pend === 1 ? '' : 's'} · ${openAsk} request${openAsk === 1 ? '' : 's'}`, detail: pend + openAsk ? 'See Collaborate.' : 'Nothing pending.' });
+    // Safety
+    const start = where.start || '';
+    const bypass = /--dangerously-skip-permissions|--dangerously-bypass-approvals-and-sandbox|--yolo\b/.test(start);
+    safe.push(bypass ? { id: 'perm', status: 'warn', label: 'The agent runs commands without asking', value: (start.match(/--dangerously-[\w-]+|--yolo/) || [''])[0], detail: 'Permission prompts are off, so nothing stops a destructive command. Keep an eye on the list below, or restart the agent without this flag.' }
+      : { id: 'perm', status: start ? 'ok' : 'info', label: start ? 'The agent asks before risky actions' : 'Permission mode unknown', value: start ? 'permission prompts on' : '', detail: start ? '' : 'Could not read how the agent was started.' });
+    const risky = [];
+    for (const t of tools.concat((log && log.items || []).filter((x) => x.kind === 'tools').flatMap((x) => x.tools).filter((t) => !t.done))) {
+      const c = t.cmd || (t.name === 'Bash' ? t.arg : ''); if (!c) continue;
+      const hit = RISKY_CMDS.find(([re]) => re.test(c)); if (!hit) continue;
+      // 명령이 길어도 위험한 부분이 보이게 — 걸린 곳 앞뒤만 잘라 보여 준다
+      const m = hit[0].exec(c), i = m ? m.index : 0, from = Math.max(0, i - 30);
+      risky.push({ what: hit[1], cmd: `${from ? '…' : ''}${c.slice(from, i + 90).replace(/\s+/g, ' ').trim()}${i + 90 < c.length ? '…' : ''}` });
+    }
+    safe.push(risky.length ? { id: 'risky', status: 'warn', label: 'Risky commands the agent ran recently', value: `${risky.length}`, items: risky.slice(-8).reverse().map((r) => `${r.what} — ${r.cmd}`) }
+      : { id: 'risky', status: 'ok', label: 'No risky commands recently', value: `${tools.length} commands checked`, detail: 'Looks for rm -rf, reset --hard, force push, killall, sudo, curl | sh, DROP TABLE, disk writes.' });
+    safe.push({ id: 'gate', status: 'ok', label: 'Data changes go through approval', value: `${pend} waiting`, detail: 'The agent proposes a diff; nothing changes on the board until you approve it in Collaborate › Approvals.' });
+    // Security
+    const bind = String(opts.BIND || '127.0.0.1');
+    const loop = /^(127\.|::1$|localhost$)/.test(bind);
+    sec.push(loop ? { id: 'bind', status: 'ok', label: 'Only this computer can reach the server', value: `${bind}:${opts.PORT || ''}`.replace(/:$/, ''), detail: 'Remote access goes through your gateway or tunnel.' }
+      : { id: 'bind', status: 'risk', label: 'The server listens on the network', value: bind, detail: 'Anyone on this network can reach it. Bind to 127.0.0.1 and use a signed-in gateway.' });
+    sec.push(ID_HEADER ? { id: 'signin', status: 'ok', label: 'People sign in through the gateway', value: `identity header: ${ID_HEADER}` }
+      : { id: 'signin', status: loop ? 'info' : 'risk', label: 'No sign-in (single-user mode)', detail: 'Whoever can open the dashboard can drive the agent. Fine on your own computer; put a signed-in gateway in front for remote use.' });
+    sec.push({ id: 'csrf', status: 'ok', label: 'Requests from other sites are blocked', value: 'origin + content-type check on every write' });
+    sec.push({ id: 'token', status: 'ok', label: 'Your AI login stays on the server', detail: 'Usage limits are read with your local login; the token is never sent to the browser.' });
+    try {
+      const cf = path.join(os.homedir(), '.claude', '.credentials.json');
+      const st = await fsp.stat(cf);
+      if (st.mode & 0o077) sec.push({ id: 'credfile', status: 'warn', label: 'Claude login file is readable by other users', value: `~/.claude/.credentials.json (${(st.mode & 0o777).toString(8)})`, detail: 'Run: chmod 600 ~/.claude/.credentials.json' });
+    } catch {}
+    if (/--remote-control\b/.test(start)) sec.push({ id: 'remote', status: 'info', label: 'Remote control is on', detail: 'This agent session can also be driven from your claude.ai account.' });
+    const found = [];
+    try {
+      const s = loadData(curWs());
+      const scan = (kind, title, text) => { if (SECRET_PATTERNS.some((re) => re.test(String(text || '')))) found.push(`${kind}: ${String(title || '').slice(0, 60) || '(untitled)'}`); };
+      (s.notes || []).forEach((n) => scan('Note', n.title || String(n.text || '').split('\n')[0], `${n.title || ''}\n${n.text || ''}`));
+      (s.items || []).forEach((t) => scan('Task', t.title || t.text, `${t.title || ''} ${t.text || ''}`));
+      (s.events || []).forEach((e) => scan('Event', e.title, e.title));
+    } catch {}
+    sec.push(found.length ? { id: 'secrets', status: 'warn', label: 'Possible secrets saved in your data', value: `${found.length}`, detail: 'API keys or passwords in notes are sent to the agent and kept in history. Move them to a password manager.', items: found.slice(0, 8) }
+      : { id: 'secrets', status: 'ok', label: 'No secrets found in notes, tasks or events', detail: 'Checks for API keys, tokens, private keys and "password:" lines.' });
+    const count = (list) => ({ risk: list.filter((x) => x.status === 'risk').length, warn: list.filter((x) => x.status === 'warn').length });
+    return { at: Date.now(), target: ctx.target, reliability: { checks: rel, ...count(rel) }, safety: { checks: safe, ...count(safe) }, security: { checks: sec, ...count(sec) } };
+  }
+
   // 요금제 한도(5시간·주간) — Claude Code의 /usage와 같은 곳(api.anthropic.com/api/oauth/usage)에서 읽는다. 1분 캐시.
   let limitsCache = { at: 0, data: null };
   async function collectLimits() {
@@ -493,6 +581,11 @@ function createDashboardApi(core, opts) {
         },
         graph: g4,
       }), true;
+    }
+
+    if (p === '/api/trust' && req.method === 'GET') {
+      try { return sendJson(res, 200, await collectTrust(ctx)), true; }
+      catch (e) { return sendJson(res, 500, { error: 'Checks failed', detail: e.message }), true; }
     }
 
     if (p === '/api/limits' && req.method === 'GET') {

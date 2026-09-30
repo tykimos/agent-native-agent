@@ -222,8 +222,9 @@ skills/ana-update/    "기존 ANA 업데이트" — 기능별로 업스트림과
 skills/chat-window/   Claude 앱 같은 채팅: 콤보, 모델 시트, 한도 링, 음성, 첨부, 세션별 기록, Codex
 skills/context-chips/ 칩 모드, ✎ 화면 그리기(주석), ⟳ 새 요소 등록
 skills/relations/     NodeRel 항목 관계, 관계 칩, Relations 탭
-skills/app-shell/     Workspace / System 영역, 하단 메뉴, 워크스페이스 콤보
-skills/agent-requests/ Requests(에이전트 → 사용자)와 Evolve(에이전트 → 앱)
+skills/app-shell/     Workspace / Collaborate / System 영역, 하단 메뉴, 워크스페이스 콤보
+skills/agent-requests/ 협업: 진화 제안 · 승인 요청 · 작업 요청
+skills/trust-checks/  시스템: AI 신뢰성 · 안전 · 보안 점검(실제 상태 기반)
 .claude-plugin/       Claude Code 플러그인 + 마켓플레이스 매니페스트 (설치: claude plugin install ana@agent-native-agent)
 ```
 
@@ -235,7 +236,7 @@ skills/agent-requests/ Requests(에이전트 → 사용자)와 Evolve(에이전�
 
 > *"https://github.com/tykimos/agent-native-agent 최신 내용으로 업데이트해"*
 
-**[`ana-update` 스킬](skills/ana-update/SKILL.md)**이 `ana-diff.mjs`로 기능마다 ✓ 있음 · ◐ 일부 · ✗ 없음, 오래된 모듈, 공유 `channel-core.js` 차이를 보고합니다. 사용자가 고르면 기능별 스킬(chat-window, context-chips, relations, app-shell, agent-requests)로 그 ANA의 파일에 이식하고, 동기화한 커밋을 `.ana-sync.json`에 남깁니다. 다음 업데이트 때는 그 뒤에 새로 생긴 것만 보여 줍니다.
+**[`ana-update` 스킬](skills/ana-update/SKILL.md)**이 `ana-diff.mjs`로 기능마다 ✓ 있음 · ◐ 일부 · ✗ 없음, 오래된 모듈, 공유 `channel-core.js` 차이를 보고합니다. 사용자가 고르면 기능별 스킬(chat-window, context-chips, relations, app-shell, agent-requests, trust-checks)로 그 ANA의 파일에 이식하고, 동기화한 커밋을 `.ana-sync.json`에 남깁니다. 다음 업데이트 때는 그 뒤에 새로 생긴 것만 보여 줍니다.
 
 스킬은 머신마다 한 번 설치해 두면 어느 ANA의 에이전트든 쓸 수 있고, 업데이트도 같은 방법으로 합니다.
 

@@ -935,6 +935,22 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
 .modeseg .tbadge, .bottomnav .tbadge { min-width: 17px; height: 17px; margin-left: 5px; padding: 0 5px; border-radius: 999px; background: var(--c-1); color: #fff; font-size: 10.5px; line-height: 17px; font-weight: 800; display: none; }
 .modeseg .tbadge.show, .bottomnav .tbadge.show { display: inline-block; }
 body.sys-mode .ws-combo { display: none; }
+/* 점검 카드(Reliability · Safety · Security) */
+.trust-sum { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 12px; font-size: 13px; font-weight: 700; color: var(--text-sub); }
+.trust-sum .pill { padding: 4px 10px; border-radius: 999px; background: var(--surface-2); }
+.trust-sum .pill.risk { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+.trust-sum .pill.warn { background: var(--warm-bg); color: var(--warm-fg); }
+.trust-sum .pill.ok { background: var(--success-bg); color: var(--success); }
+.trust-list { display: flex; flex-direction: column; gap: 10px; }
+.tcheck { display: grid; grid-template-columns: 22px 1fr; gap: 4px 10px; padding: 14px 16px; }
+.tcheck .ti { width: 22px; height: 22px; border-radius: 999px; display: grid; place-items: center; font-size: 13px; font-weight: 900; color: #fff; background: var(--success); }
+.tcheck.warn .ti { background: var(--warm-fg); } .tcheck.risk .ti { background: var(--danger); } .tcheck.info .ti { background: var(--text-weak); }
+.tcheck .tl { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-weight: 800; font-size: 14.5px; }
+.tcheck .tv { font-weight: 600; font-size: 12.5px; color: var(--text-sub); font-family: ui-monospace, Menlo, monospace; overflow-wrap: anywhere; }
+.tcheck .td { grid-column: 2; font-size: 13px; color: var(--text-sub); line-height: 1.5; }
+.tcheck ul { grid-column: 2; margin: 4px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--text-sub); font-family: ui-monospace, Menlo, monospace; }
+.tcheck li { margin: 2px 0; overflow-wrap: anywhere; }
+#apprDiffs .prop { margin-bottom: 10px; }
 /* 콤보가 빠진 자리 — Chip·그리기·새로고침·프로필 묶음을 Workspace일 때와 같이 오른쪽 끝에 붙인다 */
 @media (max-width: 768px) { body.sys-mode .topnav .mode-toggle { margin-left: auto; } }
 .topnav .tab[hidden] { display: none; }
@@ -1062,7 +1078,7 @@ body.sys-mode .ws-combo { display: none; }
     <div class="topnav-brand"><img src="/ana-logo.png" alt="ANA logo"><span class="bname">ANA</span></div>
     <!-- 영역 전환(PC) — 모바일에서는 하단 메뉴(.bottomnav)가 같은 일을 한다 -->
     <div class="seg modeseg" role="tablist" aria-label="Area">
-      <button data-area="ws" class="on" role="tab">Workspace</button><button data-area="sys" role="tab">System<span class="tbadge" data-sysbadge>0</span></button>
+      <button data-area="ws" class="on" role="tab">Workspace</button><button data-area="collab" role="tab">Collaborate<span class="tbadge" data-collabbadge>0</span></button><button data-area="sys" role="tab">System<span class="tbadge" data-sysbadge>0</span></button>
     </div>
     <div class="ws-combo" id="wsCombo">
       <button class="ws-btn" id="wsBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Workspace">
@@ -1082,10 +1098,14 @@ body.sys-mode .ws-combo { display: none; }
       <button class="tab on" data-view="todo" data-group="ws" role="tab" aria-selected="true">Tasks</button>
       <button class="tab" data-view="schedule" data-group="ws" role="tab" aria-selected="false">Calendar</button>
       <button class="tab" data-view="memo" data-group="ws" role="tab" aria-selected="false">Notes</button>
+      <button class="tab" data-view="evolve" data-group="collab" role="tab" aria-selected="false">Evolve<span class="tbadge" id="evoBadge">0</span></button>
+      <button class="tab" data-view="approvals" data-group="collab" role="tab" aria-selected="false">Approvals<span class="tbadge" id="apprBadge">0</span></button>
+      <button class="tab" data-view="requests" data-group="collab" role="tab" aria-selected="false">Requests<span class="tbadge" id="reqBadge">0</span></button>
       <button class="tab" data-view="stats" data-group="sys" role="tab" aria-selected="false">Stats</button>
-      <button class="tab" data-view="requests" data-group="sys" role="tab" aria-selected="false">Requests<span class="tbadge" id="reqBadge">0</span></button>
-      <button class="tab" data-view="evolve" data-group="sys" role="tab" aria-selected="false">Evolve<span class="tbadge" id="evoBadge">0</span></button>
       <button class="tab" data-view="relations" data-group="sys" role="tab" aria-selected="false">Relations</button>
+      <button class="tab" data-view="reliability" data-group="sys" role="tab" aria-selected="false">Reliability</button>
+      <button class="tab" data-view="safety" data-group="sys" role="tab" aria-selected="false">Safety</button>
+      <button class="tab" data-view="security" data-group="sys" role="tab" aria-selected="false">Security</button>
     </div>
     <button id="modeToggle" class="mode-toggle" role="switch" aria-checked="false" aria-label="Chip mode">
       <span class="knob"></span>Chip
@@ -1190,16 +1210,41 @@ body.sys-mode .ws-combo { display: none; }
 
   <!-- 요청: 에이전트 → 사용자 (시스템을 더 잘 운용하기 위해 필요한 것) -->
   <section class="view" id="requestsView" role="tabpanel"><div class="wrap">
-    <div class="evo-head"><span class="evo-lead">What the agent needs from you to run this better — information, decisions, things only you can do, access</span></div>
+    <div class="evo-head"><span class="evo-lead">Work the agent is asking you to do — things only you can do, and information it is missing</span></div>
     <div class="evo-cta"><button id="reqAsk">Ask the agent what it needs</button></div>
     <div id="reqList"></div>
     <div class="empty" id="reqEmpty">No open requests — try [Ask the agent what it needs]</div>
     <details class="req-closed" id="reqClosedBox" hidden><summary id="reqClosedSum">Closed</summary><div id="reqClosed"></div></details>
   </div></section>
 
+  <!-- 협업 › 승인: 에이전트가 일을 하려면 사용자 승인이 필요한 것(데이터 변경 제안 · 결정 · 접근 · 승인 요청) -->
+  <section class="view" id="approvalsView" role="tabpanel"><div class="wrap">
+    <div class="evo-head"><span class="evo-lead">What the agent needs your OK for before it goes on — data changes, decisions, access</span></div>
+    <div class="evo-cta"><button id="apprAsk">Ask the agent what needs my approval</button></div>
+    <div class="sec-head" id="apprDiffHead" hidden><h2>Data changes</h2><span class="cnt" id="apprDiffCnt"></span></div>
+    <div id="apprDiffs"></div>
+    <div id="apprList"></div>
+    <div class="empty" id="apprEmpty">Nothing waiting for your approval</div>
+    <details class="req-closed" id="apprClosedBox" hidden><summary id="apprClosedSum">Closed</summary><div id="apprClosed"></div></details>
+  </div></section>
+
+  <!-- 시스템 › 신뢰성 · 안전 · 보안 — 서버가 실제 상태로 계산한 점검(/api/trust) -->
+  <section class="view trust-view" id="reliabilityView" role="tabpanel"><div class="wrap">
+    <div class="evo-head"><span class="evo-lead">Can you rely on the agent right now — is it running, reading its own log, succeeding at its tools, within its plan limits</span></div>
+    <div class="trust-sum" data-trust-sum="reliability"></div><div class="trust-list" data-trust="reliability"></div>
+  </div></section>
+  <section class="view trust-view" id="safetyView" role="tabpanel"><div class="wrap">
+    <div class="evo-head"><span class="evo-lead">What stops the agent from doing damage — permission mode, risky commands it ran, approval gates</span></div>
+    <div class="trust-sum" data-trust-sum="safety"></div><div class="trust-list" data-trust="safety"></div>
+  </div></section>
+  <section class="view trust-view" id="securityView" role="tabpanel"><div class="wrap">
+    <div class="evo-head"><span class="evo-lead">Who can reach this ANA and what it keeps — network exposure, sign-in, credentials, secrets in your data</span></div>
+    <div class="trust-sum" data-trust-sum="security"></div><div class="trust-list" data-trust="security"></div>
+  </div></section>
+
   <!-- 진화 -->
   <section class="view" id="evolveView" role="tabpanel"><div class="wrap">
-    <div class="evo-head"><span class="evo-lead">Changes the agent proposes to this app — approve one and the agent builds it</span></div>
+    <div class="evo-head"><span class="evo-lead">How the agent thinks this app should evolve — from its features, your data and how you use it. Approve one and the agent builds it</span></div>
     <div class="evo-cta"><button id="evoAnalyze">Ask the agent to analyze</button></div>
     <div id="evoList"></div>
     <div class="empty" id="evoEmpty">No proposals yet — try [Ask the agent to analyze]</div>
@@ -1296,6 +1341,7 @@ body.sys-mode .ws-combo { display: none; }
 <!-- 하단 메뉴(모바일): Workspace = 할일·일정·메모 / System = 통계·요청·진화·관계 -->
 <nav class="bottomnav" aria-label="Area">
   <button data-area="ws" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Workspace</button>
+  <button data-area="collab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Collaborate<span class="tbadge" data-collabbadge>0</span></button>
   <button data-area="sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>System<span class="tbadge" data-sysbadge>0</span></button>
 </nav>
 <!-- 모델 선택 시트(Claude Code 세션) — Claude 앱과 같은 모양 -->
@@ -1393,7 +1439,7 @@ let sessionAlive = false, busy = false, atBottom = true;
 // 선언줄 이전에 읽으면 던지고, 그러면 이후 스크립트 전체가 중단된다(실제로 그런 사고가 있었다).
 let contextChips = [], attachments = [];
 // 대화 기록 모드(Claude Code JSONL) 상태 — pollHealth가 부트스트랩 중에 부르므로 여기서 먼저 선언한다
-let logMode = false, logRev = 0, logSession = '', logTimer = null, logBusy = false, logModel = '', logServerModel = '', logServerEffort = '', logEffort = '', msheetBusy = false, logKind = '', limits = null;
+let logMode = false, logRev = 0, logSession = '', logTimer = null, logBusy = false, logModel = '', logServerModel = '', logServerEffort = '', logEffort = '', msheetBusy = false, logKind = '', limits = null, trustRisk = 0, apprOpenReqs = 0, apprLive = 0;
 const logOpen = new Set();          // 사용자가 펼쳐 둔 도구 묶음(다시 그려도 유지)   // attachments: {name, size, path, pending}
 
 /* ================= 데이터 (할일 + 일정) ================= */
@@ -1719,7 +1765,9 @@ $('memoList').addEventListener('keydown', (e) => {
 
 /* ---- 요청 (에이전트 → 사용자) ----
    에이전트가 이 시스템을 더 잘 운용하려고 사용자에게 부탁하는 것. 답은 채팅으로 에이전트에게 전달된다. */
-const REQ_KIND = { info: 'Needs info', decision: 'Decision', action: 'To do', access: 'Access' };
+const REQ_KIND = { info: 'Needs info', decision: 'Decision', action: 'To do', access: 'Access', approval: 'Approval' };
+// 승인 계열은 Collaborate › Approvals, 나머지(action·info)는 › Requests
+const APPROVAL_KINDS = ['approval', 'decision', 'access'];
 let requestsCache = [];
 function reqCard(r, closed) {
   const kind = REQ_KIND[r.kind] ? r.kind : 'info';
@@ -1744,19 +1792,60 @@ function reqCard(r, closed) {
 async function refreshRequests() {
   let d; try { d = await (await fetch('/api/requests')).json(); } catch { return; }
   requestsCache = d.requests || [];
-  // 답을 쓰던 칸은 다시 그려도 지우지 않는다
-  const drafts = {}; document.querySelectorAll('#reqList .req-card').forEach((c) => { const t = c.querySelector('textarea'); if (t && t.value) drafts[c.dataset.rid] = t.value; });
-  const live = requestsCache.filter((x) => x.status === 'open' || x.status === 'answered').sort((a, b) => (a.status === b.status ? a.id - b.id : a.status === 'open' ? -1 : 1));
-  const closed = requestsCache.filter((x) => x.status === 'done' || x.status === 'dismissed').sort((a, b) => String(b.closedAt || '').localeCompare(String(a.closedAt || ''))).slice(0, 20);
-  const open = live.filter((x) => x.status === 'open').length;
-  $('reqBadge').textContent = open; $('reqBadge').classList.toggle('show', open > 0); updateSysBadge();
-  $('reqList').innerHTML = live.map((r) => reqCard(r, false)).join('');
-  Object.entries(drafts).forEach(([id, v]) => { const t = document.querySelector(`#reqList .req-card[data-rid="${id}"] textarea`); if (t) t.value = v; });
-  $('reqEmpty').style.display = live.length ? 'none' : 'block';
-  $('reqClosedBox').hidden = !closed.length;
-  $('reqClosedSum').textContent = `Closed (${closed.length})`;
-  $('reqClosed').innerHTML = closed.map((r) => reqCard(r, true)).join('');
+  const isAppr = (r) => APPROVAL_KINDS.includes(r.kind);
+  const openAppr = renderReqBox('appr', requestsCache.filter(isAppr));
+  const openReq = renderReqBox('req', requestsCache.filter((r) => !isAppr(r)));
+  $('reqBadge').textContent = openReq; $('reqBadge').classList.toggle('show', openReq > 0);
+  apprOpenReqs = openAppr; renderApprovals();
 }
+// 한 상자(prefix: req | appr)에 열린 요청과 닫힌 요청을 그린다. 답을 쓰던 칸은 다시 그려도 지우지 않는다. 반환: 열린 수
+function renderReqBox(prefix, list) {
+  const listEl = $(prefix + 'List');
+  const drafts = {}; listEl.querySelectorAll('.req-card').forEach((c) => { const t = c.querySelector('textarea'); if (t && t.value) drafts[c.dataset.rid] = t.value; });
+  const live = list.filter((x) => x.status === 'open' || x.status === 'answered').sort((a, b) => (a.status === b.status ? a.id - b.id : a.status === 'open' ? -1 : 1));
+  const closed = list.filter((x) => x.status === 'done' || x.status === 'dismissed').sort((a, b) => String(b.closedAt || '').localeCompare(String(a.closedAt || ''))).slice(0, 20);
+  listEl.innerHTML = live.map((r) => reqCard(r, false)).join('');
+  Object.entries(drafts).forEach(([id, v]) => { const t = listEl.querySelector(`.req-card[data-rid="${id}"] textarea`); if (t) t.value = v; });
+  if (prefix === 'req') $('reqEmpty').style.display = live.length ? 'none' : 'block';
+  $(prefix + 'ClosedBox').hidden = !closed.length;
+  $(prefix + 'ClosedSum').textContent = `Closed (${closed.length})`;
+  $(prefix + 'Closed').innerHTML = closed.map((r) => reqCard(r, true)).join('');
+  if (prefix === 'appr') apprLive = live.length;
+  return live.filter((x) => x.status === 'open').length;
+}
+// 승인 탭: 대기 중인 데이터 변경(diff→approve) + 승인 계열 요청
+function renderApprovals() {
+  const pend = [...proposals.values()].filter((p) => p.status === 'pending').sort((a, b) => a.id - b.id);
+  $('apprDiffHead').hidden = !pend.length; $('apprDiffCnt').textContent = pend.length ? String(pend.length) : '';
+  $('apprDiffs').innerHTML = pend.map((p) => propCard(p.id, p.text || 'Change proposal')).join('');
+  $('apprEmpty').style.display = pend.length || apprLive ? 'none' : 'block';
+  const n = pend.length + apprOpenReqs;
+  $('apprBadge').textContent = n; $('apprBadge').classList.toggle('show', n > 0); updateSysBadge();
+}
+$('apprDiffs').addEventListener('click', (e) => {
+  const pbtn = e.target.closest('.prop button'); if (!pbtn) return;
+  const decision = pbtn.classList.contains('ok') ? 'approve' : 'reject'; const pid = Number(pbtn.closest('.prop').dataset.pid);
+  post('/api/approve', { pid, decision }).then((r) => { if (!r.ok) r.json().then((x) => showErr(x.error || 'Approval failed')).catch(() => {}); }).catch(() => showErr('Approval failed'));
+});
+
+/* ---- System › Reliability · Safety · Security ---- 서버가 계산한 점검(/api/trust)을 카드로. 1분마다, 보일 때만 */
+const TRUST_ICON = { ok: '✓', info: 'i', warn: '!', risk: '!' };
+async function refreshTrust() {
+  let d; try { d = await (await fetch('/api/trust')).json(); } catch { return; }
+  if (!d || d.error) return;
+  for (const sec of ['reliability', 'safety', 'security']) {
+    const g = d[sec]; if (!g) continue;
+    const ok = g.checks.filter((c) => c.status === 'ok').length;
+    document.querySelector(`[data-trust-sum="${sec}"]`).innerHTML = [g.risk ? `<span class="pill risk">${g.risk} at risk</span>` : '', g.warn ? `<span class="pill warn">${g.warn} to review</span>` : '',
+      `<span class="pill ok">${ok} OK</span>`].join('');
+    const order = { risk: 0, warn: 1, info: 2, ok: 3 };
+    document.querySelector(`[data-trust="${sec}"]`).innerHTML = g.checks.slice().sort((a, b) => order[a.status] - order[b.status]).map((c) => `<div class="tcheck card ${c.status}" role="group" aria-label="${escapeHtml(c.status)}: ${escapeHtml(c.label)}">
+      <span class="ti" aria-hidden="true">${TRUST_ICON[c.status] || '·'}</span><div class="tl">${escapeHtml(c.label)}${c.value ? `<span class="tv">${escapeHtml(c.value)}</span>` : ''}</div>
+      ${c.detail ? `<div class="td">${escapeHtml(c.detail)}</div>` : ''}${(c.items || []).length ? `<ul>${c.items.map((x) => `<li>${escapeHtml(x)}</li>`).join('')}</ul>` : ''}</div>`).join('');
+  }
+  trustRisk = (d.reliability.risk || 0) + (d.safety.risk || 0) + (d.security.risk || 0); updateSysBadge();
+}
+setInterval(() => { if (!document.hidden) refreshTrust(); }, 60000);
 async function reqAct(id, action, answer) {
   let r; try { r = await post('/api/request-act', { id, action, answer }); } catch { showErr('Failed to update the request'); return false; }
   if (!r.ok) { showErr((await r.json().catch(() => ({}))).error || 'Failed to update the request'); return false; }
@@ -1771,7 +1860,7 @@ async function reqAnswer(card, answer) {
   post('/api/chat', { text: msg, force: true }).then((x) => { if (!x.ok) x.json().then((e) => showErr(e.error || 'Could not send the answer to the agent')).catch(() => {}); })
     .catch(() => showErr('Could not send the answer to the agent'));
 }
-['reqList', 'reqClosed'].forEach((box) => $(box).addEventListener('click', (e) => {
+['reqList', 'reqClosed', 'apprList', 'apprClosed'].forEach((box) => $(box).addEventListener('click', (e) => {
   const card = e.target.closest('.req-card'), btn = e.target.closest('button');
   if (!card || !btn || document.body.classList.contains('ana-mode') && !btn) return;
   const id = Number(card.dataset.rid);
@@ -1789,9 +1878,17 @@ $('reqList').addEventListener('keydown', (e) => {
 $('reqAsk').onclick = () => {
   const b = $('reqAsk'); b.disabled = true; const orig = b.textContent; b.textContent = 'Requesting…';
   const h = location.host;
-  const prompt = `[Requests] Look at how this system is being run — tasks, notes, calendar, their relations and our recent conversation — and register what you need FROM ME to run it better: missing information, decisions only I can make, actions only I can do, access you lack. Do not register changes to the app itself (those are Evolve proposals).
-Register: curl -s -X POST http://${h}/api/requests -H 'content-type: application/json' -d '{"requests":[{"kind":"decision","title":"Short question","desc":"Why it matters","options":["A","B"],"ref":"<optional task/event/note id>"}]}' (kind is info|decision|action|access; options only for decisions).
+  const prompt = `[Requests] Look at how this system is being run — tasks, notes, calendar, their relations and our recent conversation — and register work you need FROM ME: actions only I can do (kind action) and information you are missing (kind info). Things you need my OK for go in as kind approval / decision / access (they show under Approvals). Do not register changes to the app itself (those are Evolve proposals).
+Register: curl -s -X POST http://${h}/api/requests -H 'content-type: application/json' -d '{"requests":[{"kind":"decision","title":"Short question","desc":"Why it matters","options":["A","B"],"ref":"<optional task/event/note id>"}]}' (kind is action|info|approval|decision|access; options only for decisions).
 Where the flow breaks: GET http://${h}/api/stats (graph.gaps) · relations: GET http://${h}/api/graph/schema · open requests: GET http://${h}/api/requests.`;
+  post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
+    .catch(() => showErr('Request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
+};
+$('apprAsk').onclick = () => {
+  const b = $('apprAsk'); b.disabled = true; const orig = b.textContent; b.textContent = 'Requesting…';
+  const h = location.host;
+  const prompt = `[Approvals] Before you go on with any work, list what you need my OK for — a step you should not take on your own (deleting or overwriting things, spending money, sending messages to other people, changing settings), a choice between options, or access you need me to grant. Register each one; I will approve or reject it in Collaborate › Approvals. Data changes to the board still go through the diff → approve flow.
+Register: curl -s -X POST http://${h}/api/requests -H 'content-type: application/json' -d '{"requests":[{"kind":"approval","title":"What you want to do","desc":"Why, and what happens if I say no","options":["Approve","Reject"],"ref":"<optional task/event/note id>"}]}' (kind is approval|decision|access). Open ones: GET http://${h}/api/requests.`;
   post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
     .catch(() => showErr('Request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
 };
@@ -1832,7 +1929,7 @@ $('evoList').addEventListener('click', (e) => {
 });
 $('evoAnalyze').onclick = () => {
   const b = $('evoAnalyze'); b.disabled = true; const orig = b.textContent; b.textContent = 'Requesting…';
-  const prompt = `[Evolve] Analyze this app's features, data, and recent conversation, then register improve/add/remove proposals.\nRegister: curl -s -X POST http://${location.host}/api/evolve -H 'content-type: application/json' -d '{"proposals":[{"type":"improve","title":"Title","desc":"Description"}]}' (type is improve|add|remove).\nHow notes, tasks and events relate: GET http://${location.host}/api/graph/schema (NodeRel graph) and /api/stats (graph.gaps).`;
+  const prompt = `[Evolve] Look at this app's current features, the data in it, and how it is being used (usage log: GET http://${location.host}/api/activity, plus our recent conversation), then propose how the app should evolve — register improve/add/remove proposals.\nRegister: curl -s -X POST http://${location.host}/api/evolve -H 'content-type: application/json' -d '{"proposals":[{"type":"improve","title":"Title","desc":"Description"}]}' (type is improve|add|remove).\nHow notes, tasks and events relate: GET http://${location.host}/api/graph/schema (NodeRel graph) and /api/stats (graph.gaps).`;
   post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Analyze request failed')).catch(() => {}); else openChat(); })
     .catch(() => showErr('Analyze request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
 };
@@ -2125,25 +2222,27 @@ function renderRelStats(g) {
 /* ================= 탭 전환 ================= */
 // 영역(Workspace / System)마다 마지막으로 본 탭을 기억한다
 let appMode = 'ws';
-const lastTab = { ws: 'todo', sys: 'stats' };
-try { const m = localStorage.getItem('ana-area'); if (m === 'sys') appMode = 'sys'; const t = JSON.parse(localStorage.getItem('ana-area-tabs') || '{}'); Object.assign(lastTab, t); } catch {}
+const lastTab = { ws: 'todo', collab: 'evolve', sys: 'stats' };
+const AREAS = ['ws', 'collab', 'sys'];
+try { const m = localStorage.getItem('ana-area'); if (AREAS.includes(m)) appMode = m; const t = JSON.parse(localStorage.getItem('ana-area-tabs') || '{}'); Object.assign(lastTab, t); } catch {}
 // 탭 선택은 click()이 아니라 이 함수로 — 클릭 처리 중인 버튼에 다시 click()을 부르면 브라우저가 무시한다
 function selectTab(b) {
     if (b.dataset.group && b.dataset.group !== appMode) applyArea(b.dataset.group);
     if ($('memoView').classList.contains('on') && b.dataset.view !== 'memo') cleanupEmptyMemos(); // 메모 탭 이탈 시 빈 메모 정리(진화 #3)
     document.querySelectorAll('.topnav .tab').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
-    ['todo', 'schedule', 'memo', 'stats', 'requests', 'evolve', 'relations'].forEach((v) => $(v + 'View').classList.toggle('on', b.dataset.view === v));
+    ['todo', 'schedule', 'memo', 'evolve', 'approvals', 'requests', 'stats', 'relations', 'reliability', 'safety', 'security'].forEach((v) => $(v + 'View').classList.toggle('on', b.dataset.view === v));
     lastTab[appMode] = b.dataset.view;
     try { localStorage.setItem('ana-area-tabs', JSON.stringify(lastTab)); } catch {}
     if (b.dataset.view === 'evolve') refreshEvolve();
-    if (b.dataset.view === 'requests') refreshRequests();
+    if (b.dataset.view === 'requests' || b.dataset.view === 'approvals') refreshRequests();
+    if (['reliability', 'safety', 'security'].includes(b.dataset.view)) refreshTrust();
     if (b.dataset.view === 'stats') renderStats();
     if (b.dataset.view === 'relations') renderRelations();
 }
 document.querySelectorAll('.topnav .tab').forEach((b) => { b.onclick = () => selectTab(b); });
 function applyArea(mode) {
-  appMode = mode === 'sys' ? 'sys' : 'ws';
-  document.body.classList.toggle('sys-mode', appMode === 'sys');
+  appMode = AREAS.includes(mode) ? mode : 'ws';
+  document.body.classList.toggle('sys-mode', appMode !== 'ws');   // 워크스페이스 콤보는 Workspace 영역에서만
   document.querySelectorAll('[data-area]').forEach((x) => { const on = x.dataset.area === appMode; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
   document.querySelectorAll('.topnav .tab[data-group]').forEach((t) => { t.hidden = t.dataset.group !== appMode; });
   try { localStorage.setItem('ana-area', appMode); } catch {}
@@ -2155,9 +2254,12 @@ function setAppMode(mode, view) {
 }
 document.querySelectorAll('[data-area]').forEach((b) => b.onclick = () => setAppMode(b.dataset.area));
 // System 배지 = 열린 요청 + 새 진화 제안
+// Collaborate 배지 = 열린 작업 요청 + 승인 대기 + 새 진화 제안, System 배지 = 위험(risk) 점검 수
+const badgeN = (id) => (Number($(id).textContent) || 0) * $(id).classList.contains('show');
+function setAreaBadge(attr, n) { document.querySelectorAll(`[${attr}]`).forEach((x) => { x.textContent = n > 9 ? '9+' : String(n); x.classList.toggle('show', n > 0); }); }
 function updateSysBadge() {
-  const n = (Number($('reqBadge').textContent) || 0) * $('reqBadge').classList.contains('show') + (Number($('evoBadge').textContent) || 0) * $('evoBadge').classList.contains('show');
-  document.querySelectorAll('[data-sysbadge]').forEach((x) => { x.textContent = n > 9 ? '9+' : String(n); x.classList.toggle('show', n > 0); });
+  setAreaBadge('data-collabbadge', badgeN('reqBadge') + badgeN('apprBadge') + badgeN('evoBadge'));
+  setAreaBadge('data-sysbadge', trustRisk);
 }
 // 영역 적용은 스크립트가 다 읽힌 뒤에 — 탭 클릭이 아래쪽에서 선언되는 상태 변수를 건드려도 TDZ에 걸리지 않게
 document.querySelectorAll('.topnav .tab[data-group]').forEach((t) => { t.hidden = t.dataset.group !== appMode; });
@@ -2912,7 +3014,7 @@ function connect() {
       case 'pending': renderPending(logMode ? [] : d.pending); reconcile(); updateEmpty(); pinChat(); break;
       case 'status': if ('dialog' in d && health) health.dialog = d.dialog; sessionAlive = d.session; busy = d.busy; $('typTx').textContent = d.spin || 'Working…'; if (d.resync !== undefined) screenResync = !!d.resync; renderStatus(); updateEmpty(); reconcile(); break;
       case 'draft': renderDraft(d.draft); break;
-      case 'proposal': proposals.set(d.proposal.id, d.proposal); refreshPropCards(); break;
+      case 'proposal': proposals.set(d.proposal.id, d.proposal); refreshPropCards(); renderApprovals(); break;
       case 'data': if (d.version !== dataVersion) refreshData(); break;
       case 'workspaces': loadWorkspaces(); break;
       // 다이얼로그 열림/닫힘은 스트림으로 즉시 반영(health 폴은 백그라운드 탭에서 멈춘다)

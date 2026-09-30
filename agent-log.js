@@ -117,7 +117,7 @@ function createAgentLog({ socket = '' } = {}) {
           .sort((a, b) => b.m - a.m)[0]?.f || null;
       } catch { file = null; }
     }
-    const r = { file, kind, cwd: info && info.cwd, at: Date.now() };
+    const r = { file, kind, cwd: info && info.cwd, start: (info && info.start) || '', at: Date.now() };
     where.set(target, r);
     return r;
   }
@@ -210,6 +210,7 @@ function createAgentLog({ socket = '' } = {}) {
           let grp = last(st);
           if (!grp || grp.kind !== 'tools') grp = push(st, { id: `g-${b.id}`, kind: 'tools', tools: [] });
           const tool = { id: b.id, name: b.name, ...toolLabel(b.name, b.input), done: false, isError: false, result: '', images: [] };
+          if (b.name === 'Bash' && b.input && typeof b.input.command === 'string') tool.cmd = b.input.command.slice(0, 600);   // 안전 점검용 원문
           grp.tools.push(tool); st.tools.set(b.id, { item: grp, tool }); touch(st, grp);
         }
       }
@@ -235,7 +236,7 @@ function createAgentLog({ socket = '' } = {}) {
     else if (it.type === 'AgentMessage') { const t = texts(it.content).trim(); if (t) push(st, { id: it.id, kind: 'assistant', text: t }); }
     else if (it.type === 'CommandExecution') {
       const cmd = Array.isArray(it.command) ? it.command[it.command.length - 1] : String(it.command || '');
-      codexTool(st, it.id, { name: 'Bash', verb: 'Ran', arg: String(cmd).split('\n')[0].slice(0, 160), isError: it.exit_code !== 0 && it.exit_code != null,
+      codexTool(st, it.id, { name: 'Bash', verb: 'Ran', arg: String(cmd).split('\n')[0].slice(0, 160), cmd: String(cmd).slice(0, 600), isError: it.exit_code !== 0 && it.exit_code != null,
         result: String(it.formatted_output || it.aggregated_output || '').slice(0, MAX_RESULT) });
     } else if (it.type === 'FileChange') {
       const files = Object.keys(it.changes || {});

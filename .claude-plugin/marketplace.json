@@ -9,7 +9,7 @@
     {
       "name": "ana",
       "source": "./",
-      "description": "ANA runtime + skills: install, attach, ana-update (diff & port features into an existing ANA), chat-window, context-chips, relations, app-shell, agent-requests."
+      "description": "ANA runtime + skills: install, attach, ana-update (diff & port features into an existing ANA), chat-window, context-chips, relations, app-shell, agent-requests, trust-checks."
     }
   ]
 }

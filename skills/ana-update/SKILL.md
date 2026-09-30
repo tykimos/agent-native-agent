@@ -1,6 +1,6 @@
 ---
 name: ana-update
-description: Bring an existing, customized ANA up to date with the latest upstream ANA (github.com/tykimos/agent-native-agent) feature by feature — compare first, report what is new/missing/outdated, then port only what the user picks, using the per-feature skills (chat-window, context-chips, relations, app-shell, agent-requests). Never overwrite the ANA's own domain code. Use when the user says "최신 내용으로 업데이트해", "ANA 업데이트", "update this ANA", "upstream이랑 뭐가 달라", "새 기능 가져와", "base-ana 개선사항 적용", or gives the ANA GitHub URL and asks to sync.
+description: Bring an existing, customized ANA up to date with the latest upstream ANA (github.com/tykimos/agent-native-agent) feature by feature — compare first, report what is new/missing/outdated, then port only what the user picks, using the per-feature skills (chat-window, context-chips, relations, app-shell, agent-requests, trust-checks). Never overwrite the ANA's own domain code. Use when the user says "최신 내용으로 업데이트해", "ANA 업데이트", "update this ANA", "upstream이랑 뭐가 달라", "새 기능 가져와", "base-ana 개선사항 적용", or gives the ANA GitHub URL and asks to sync.
 ---
 
 # ana-update — compare with upstream, then port feature by feature

@@ -222,8 +222,9 @@ skills/ana-update/    "update an existing ANA" — diff vs upstream by feature, 
 skills/chat-window/   Claude-app chat: combo, model sheet, usage rings, voice, attachments, per-session, Codex
 skills/context-chips/ Chip mode, ✎ draw-on-screen annotation, ⟳ rescan new elements
 skills/relations/     NodeRel item relations, relation chips, Relations tab
-skills/app-shell/     Workspace / System areas, bottom nav, workspace combo
-skills/agent-requests/ Requests (agent → user) and Evolve (agent → app)
+skills/app-shell/     Workspace / Collaborate / System areas, bottom nav, workspace combo
+skills/agent-requests/ Collaborate: Evolve, Approvals, Requests (agent ↔ user)
+skills/trust-checks/  System: Reliability, Safety, Security checks from real state
 .claude-plugin/       Claude Code plugin + marketplace manifest (install: claude plugin install ana@agent-native-agent)
 ```
 
@@ -235,7 +236,7 @@ This base is the starting point; each person's ANA grows its own domain code. To
 
 > *"Update to the latest from https://github.com/tykimos/agent-native-agent"*
 
-The **[`ana-update` skill](skills/ana-update/SKILL.md)** runs `ana-diff.mjs`, which reports every feature as ✓ present, ◐ partial, or ✗ missing, plus outdated modules and whether the shared `channel-core.js` differs. It lets you pick, then ports each feature with its skill (chat-window, context-chips, relations, app-shell, agent-requests) into that ANA's own files. It records the synced commit in `.ana-sync.json`, so the next update shows only what's new.
+The **[`ana-update` skill](skills/ana-update/SKILL.md)** runs `ana-diff.mjs`, which reports every feature as ✓ present, ◐ partial, or ✗ missing, plus outdated modules and whether the shared `channel-core.js` differs. It lets you pick, then ports each feature with its skill (chat-window, context-chips, relations, app-shell, agent-requests, trust-checks) into that ANA's own files. It records the synced commit in `.ana-sync.json`, so the next update shows only what's new.
 
 Install the skills once per machine so any ANA's agent can use them, and update them the same way:
 
