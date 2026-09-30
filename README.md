@@ -17,7 +17,7 @@
 
 <br/>
 
-![ANA — watch a dashboard, converse, the app evolves](docs/assets/dashboard-ana.png)
+![ANA — watch a dashboard, converse, the app evolves](docs/assets/dashboard-ana.webp)
 
 </div>
 
@@ -129,7 +129,7 @@ Open **http://localhost:8809** and tap the chat button. The server needs **no la
 
 ## What's in the base
 
-![Workspace · Collaborate · System on a phone](docs/assets/areas-mobile.png)
+![Workspace · Collaborate · System on a phone](docs/assets/areas-mobile.webp)
 
 The base is a solo operations board: notes, tasks and a calendar you run together with a coding agent. It is split into **three areas** (a bottom menu on phones, a switch next to the logo on desktop):
 

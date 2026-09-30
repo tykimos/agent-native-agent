@@ -17,7 +17,7 @@
 
 <br/>
 
-![ANA — 대시보드를 보며 대화하면 앱이 진화한다](docs/assets/dashboard-ana.png)
+![ANA — 대시보드를 보며 대화하면 앱이 진화한다](docs/assets/dashboard-ana.webp)
 
 </div>
 
@@ -129,7 +129,7 @@ node server.js           # → http://localhost:8809
 
 ## base에 들어 있는 것
 
-![휴대폰에서 본 Workspace · Collaborate · System](docs/assets/areas-mobile.png)
+![휴대폰에서 본 Workspace · Collaborate · System](docs/assets/areas-mobile.webp)
 
 base는 혼자 쓰는 업무 운영 보드입니다. 메모, 할일, 일정을 코딩 에이전트와 함께 운영합니다. 화면은 **세 영역**으로 나뉩니다(휴대폰은 하단 메뉴, PC는 로고 옆 전환 버튼).
 
