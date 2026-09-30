@@ -412,6 +412,82 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 /* 사진 확대 뷰어 */
 
 /* 진화 탭 */
+/* CCTV 감시 — 지도(Leaflet + OpenStreetMap) + 탐지 목록 */
+.wrap.cctv-wrap { max-width: 1240px; }
+.cctv-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: start; }
+.cctv-map { position: relative; z-index: 0; height: min(68vh, 640px); min-height: 360px; overflow: hidden; }
+.cctv-map.leaflet-container { font: inherit; }
+.cctv-side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.cctv-side .seg { align-self: flex-start; }
+.cctv-side .empty { padding: 28px 0; }
+@media (max-width: 900px) { .cctv-layout { grid-template-columns: 1fr; } .cctv-map { height: 52vh; min-height: 300px; } }
+.cv-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--text-sub); font-weight: 700; }
+.cv-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+.cv-legend i.ln { width: 14px; height: 4px; border-radius: 2px; vertical-align: 2px; }
+.cv-legend i.zn { border-radius: 2px; border: 2px dashed #E5484D; background: rgba(229,72,77,.15); }
+.cv-card { padding: 12px 14px; cursor: pointer; border-left: 4px solid var(--cv, var(--line)); }
+.cv-card.sel { box-shadow: 0 0 0 2px var(--blue), var(--sh-card); }
+.cv-top { display: flex; align-items: center; gap: 8px; }
+.cv-type { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; color: #fff; background: var(--cv); }
+.cv-st { margin-left: auto; font-size: 11.5px; font-weight: 800; color: var(--text-weak); }
+.cv-st.new { color: var(--danger); } .cv-st.assigned { color: var(--warm-fg); } .cv-st.resolved { color: var(--success); }
+.cv-cam { font-weight: 800; font-size: 14px; margin-top: 6px; }
+.cv-meta { font-size: 12px; color: var(--text-weak); font-weight: 600; margin-top: 2px; }
+.cv-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; align-items: center; }
+.cv-acts select { height: 32px; max-width: 100%; padding: 0 8px; border-radius: var(--r-xs); border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font: inherit; font-size: 12.5px; }
+.cv-acts button { height: 32px; padding: 0 12px; border-radius: var(--r-xs); font-size: 12.5px; font-weight: 800; background: var(--surface-2); color: var(--text-sub); }
+.cv-acts button.pri { background: var(--blue); color: var(--white); }
+.cv-acts button:disabled { opacity: .5; }
+.cv-cam-ic { width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); display: grid; place-items: center; font-size: 14px; }
+/* 순찰대 이름표는 위치점 바로 위에 띄운다 — 탐방지원센터처럼 카메라와 같은 자리에 있어도 📷를 가리지 않게 */
+.cv-pat-ic { display: inline-block; transform: translate(-50%, calc(-100% - 15px)); padding: 3px 8px; border-radius: 999px; background: #0F9D58; color: #fff; font-size: 11.5px; font-weight: 800; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+.cv-pat-ic.busy { background: #E8731C; } .cv-pat-ic.off { background: #8B95A1; }
+.cv-pulse { animation: cvPulse 1.4s ease-in-out infinite; }
+@keyframes cvPulse { 50% { stroke-width: 8px; stroke-opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .cv-pulse { animation: none; } }
+/* CCTV 뷰어 */
+.modal.cv-viewer { width: min(760px, calc(100vw - 32px)); }
+.cvv-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.cvv-head h3 { margin: 0; }
+.cvv-live { font-size: 11px; font-weight: 900; color: #fff; background: #E5484D; padding: 2px 8px; border-radius: 999px; animation: cvPulse 1.6s ease-in-out infinite; }
+.cvv-screen { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: #0B0D10; border-radius: var(--r-sm); overflow: hidden; }
+.cvv-screen video, .cvv-screen img, .cvv-screen iframe { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; border: 0; background: #0B0D10; }
+.cvv-osd { position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; gap: 10px; padding: 8px 11px; pointer-events: none;
+  font: 700 12px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #fff; text-shadow: 0 1px 2px #000, 0 0 4px #000; }
+.cvv-tag { position: absolute; left: 10px; bottom: 10px; padding: 3px 9px; border-radius: 999px; background: var(--cv); color: #fff; font-size: 12px; font-weight: 800; }
+.cvv-err { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); max-width: 90%; padding: 6px 12px; border-radius: 999px; background: rgba(0,0,0,.7); color: #fff; font-size: 12.5px; font-weight: 700; text-align: center; }
+.cvv-nosig { position: absolute; inset: 0; display: grid; place-content: center; gap: 8px; padding: 16px; text-align: center; color: #97A1AD; font-size: 12.5px; font-weight: 600;
+  background: repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 2px, transparent 2px 4px), radial-gradient(circle at 50% 45%, #1C2026, #0B0D10 70%); }
+.cvv-nosig b { font: 800 22px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .12em; color: #E6E8EB; }
+.cvv-seg { margin-top: 10px; }
+.cvv-seg[hidden] { display: none; }
+.cvv-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.cvv-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border-radius: var(--r-xs); background: var(--surface-2); text-align: left; border-left: 3px solid var(--cv); }
+.cvv-item.on { box-shadow: 0 0 0 2px var(--blue); }
+.cvv-item .cv-meta { margin: 0; }
+.cvv-set { margin-top: 12px; }
+.cvv-set summary { cursor: pointer; font-size: 13px; font-weight: 800; color: var(--text-sub); }
+.cvv-set form { display: flex; gap: 6px; margin: 9px 0 6px; }
+.cvv-set input { flex: 1; min-width: 0; height: 38px; padding: 0 12px; border: 1.5px solid var(--line); border-radius: var(--r-xs); background: var(--surface-2); color: var(--text); font: inherit; font-size: 13px; }
+.cvv-set button { flex: 0 0 auto; height: 38px; padding: 0 12px; border-radius: var(--r-xs); background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); font-size: 12.5px; font-weight: 800; color: var(--text-sub); }
+.cvv-set button[type="submit"] { background: var(--blue); color: var(--white); box-shadow: none; }
+.cv-cam-ic { cursor: pointer; }
+.cvv-open { margin-top: 7px; padding: 4px 11px; border-radius: 999px; background: var(--blue); color: var(--white); font-size: 12px; font-weight: 800; }
+/* 도로 관리 — CCTV 탭의 지도·목록 틀(.cctv-*, .cv-*)을 그대로 쓰고 점수·요인 막대만 더한다 */
+.rd-k.repave .n { color: #E5484D; } .rd-k.inspect .n { color: #E8731C; } .rd-k.ok .n { color: #16A26B; }
+.rd-info { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: -4px 2px 12px; font-size: 12px; color: var(--text-sub); font-weight: 700; }
+.rd-info button { height: 26px; padding: 0 10px; border-radius: 999px; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); font-size: 11.5px; font-weight: 800; color: var(--text-sub); }
+.rd-note { flex-basis: 100%; color: var(--text-weak); font-weight: 600; }
+.rd-tg { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.rd-score { min-width: 34px; height: 24px; padding: 0 7px; border-radius: 8px; background: var(--cv); color: #fff; font-size: 13px; font-weight: 900; display: grid; place-items: center; }
+.rd-card .cv-type { background: none; color: var(--cv); padding: 0; font-size: 12.5px; }
+.rd-bars { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; margin-top: 9px; }
+.rd-f { display: grid; grid-template-columns: 52px 1fr 22px; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-sub); font-weight: 700; }
+.rd-f i { height: 6px; border-radius: 3px; background: var(--line-2); overflow: hidden; }
+.rd-f b { display: block; height: 100%; border-radius: 3px; background: var(--cv); }
+.rd-f em { font-style: normal; text-align: right; color: var(--text-weak); }
+.rd-why { margin-top: 7px; font-size: 12px; color: var(--text-sub); font-weight: 600; }
+.rd-plan { font-size: 12px; font-weight: 800; color: var(--blue-700); }
 .evo-head { display: flex; align-items: baseline; gap: 8px; margin: 4px 2px 12px; }
 .evo-lead { font-size: 12px; color: var(--text-weak); font-weight: 600; }
 .evo-cta { margin-bottom: 12px; }
@@ -1074,41 +1150,43 @@ body.sys-mode .ws-combo { display: none; }
 
 <!-- ◀ 메인: 할일 / 일정 / 진화 -->
 <div id="main">
-  <nav class="topnav" aria-label="Main menu" role="tablist">
+  <nav class="topnav" aria-label="메인 메뉴" role="tablist">
     <div class="topnav-brand"><img src="/ana-logo.png" alt="ANA logo"><span class="bname">ANA</span></div>
     <!-- 영역 전환(PC) — 모바일에서는 하단 메뉴(.bottomnav)가 같은 일을 한다 -->
-    <div class="seg modeseg" role="tablist" aria-label="Area">
-      <button data-area="ws" class="on" role="tab">Workspace</button><button data-area="collab" role="tab">Collaborate<span class="tbadge" data-collabbadge>0</span></button><button data-area="sys" role="tab">System<span class="tbadge" data-sysbadge>0</span></button>
+    <div class="seg modeseg" role="tablist" aria-label="영역">
+      <button data-area="ws" class="on" role="tab">워크스페이스</button><button data-area="collab" role="tab">협업<span class="tbadge" data-collabbadge>0</span></button><button data-area="sys" role="tab">시스템<span class="tbadge" data-sysbadge>0</span></button>
     </div>
     <div class="ws-combo" id="wsCombo">
-      <button class="ws-btn" id="wsBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Workspace">
+      <button class="ws-btn" id="wsBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="워크스페이스">
         <span class="wsn" id="wsName">Base Workspace</span><span class="caret">▼</span></button>
       <div class="ws-menu" id="wsMenu" hidden>
-        <div class="ws-label">Workspace</div>
-        <div class="ws-list" id="wsList" role="listbox" aria-label="Workspaces"></div>
-        <button class="ws-add" id="wsAddBtn">＋ Add workspace</button>
+        <div class="ws-label">워크스페이스</div>
+        <div class="ws-list" id="wsList" role="listbox" aria-label="워크스페이스 목록"></div>
+        <button class="ws-add" id="wsAddBtn">＋ 워크스페이스 추가</button>
         <form class="ws-new" id="wsNew" hidden>
-          <input id="wsNewName" maxlength="60" placeholder="Workspace name" autocomplete="off" aria-label="New workspace name">
-          <button type="submit">Add</button>
+          <input id="wsNewName" maxlength="60" placeholder="워크스페이스 이름" autocomplete="off" aria-label="새 워크스페이스 이름">
+          <button type="submit">추가</button>
         </form>
         <div class="ws-err" id="wsErr" hidden></div>
       </div>
     </div>
     <div class="tabstrip">
-      <button class="tab on" data-view="todo" data-group="ws" role="tab" aria-selected="true">Tasks</button>
-      <button class="tab" data-view="schedule" data-group="ws" role="tab" aria-selected="false">Calendar</button>
-      <button class="tab" data-view="memo" data-group="ws" role="tab" aria-selected="false">Notes</button>
-      <button class="tab" data-view="evolve" data-group="collab" role="tab" aria-selected="false">Evolve<span class="tbadge" id="evoBadge">0</span></button>
-      <button class="tab" data-view="approvals" data-group="collab" role="tab" aria-selected="false">Approvals<span class="tbadge" id="apprBadge">0</span></button>
-      <button class="tab" data-view="requests" data-group="collab" role="tab" aria-selected="false">Requests<span class="tbadge" id="reqBadge">0</span></button>
-      <button class="tab" data-view="stats" data-group="sys" role="tab" aria-selected="false">Stats</button>
-      <button class="tab" data-view="relations" data-group="sys" role="tab" aria-selected="false">Relations</button>
-      <button class="tab" data-view="reliability" data-group="sys" role="tab" aria-selected="false">Reliability</button>
-      <button class="tab" data-view="safety" data-group="sys" role="tab" aria-selected="false">Safety</button>
-      <button class="tab" data-view="security" data-group="sys" role="tab" aria-selected="false">Security</button>
+      <button class="tab on" data-view="todo" data-group="ws" role="tab" aria-selected="true">할일</button>
+      <button class="tab" data-view="schedule" data-group="ws" role="tab" aria-selected="false">일정</button>
+      <button class="tab" data-view="memo" data-group="ws" role="tab" aria-selected="false">메모</button>
+      <button class="tab" data-view="cctv" data-group="ws" role="tab" aria-selected="false">CCTV 감시<span class="tbadge" id="cctvBadge">0</span></button>
+      <button class="tab" data-view="road" data-group="ws" role="tab" aria-selected="false">도로 관리<span class="tbadge" id="roadBadge">0</span></button>
+      <button class="tab" data-view="evolve" data-group="collab" role="tab" aria-selected="false">진화<span class="tbadge" id="evoBadge">0</span></button>
+      <button class="tab" data-view="approvals" data-group="collab" role="tab" aria-selected="false">승인<span class="tbadge" id="apprBadge">0</span></button>
+      <button class="tab" data-view="requests" data-group="collab" role="tab" aria-selected="false">요청<span class="tbadge" id="reqBadge">0</span></button>
+      <button class="tab" data-view="stats" data-group="sys" role="tab" aria-selected="false">통계</button>
+      <button class="tab" data-view="relations" data-group="sys" role="tab" aria-selected="false">관계</button>
+      <button class="tab" data-view="reliability" data-group="sys" role="tab" aria-selected="false">신뢰성</button>
+      <button class="tab" data-view="safety" data-group="sys" role="tab" aria-selected="false">안전</button>
+      <button class="tab" data-view="security" data-group="sys" role="tab" aria-selected="false">보안</button>
     </div>
-    <button id="modeToggle" class="mode-toggle" role="switch" aria-checked="false" aria-label="Chip mode">
-      <span class="knob"></span>Chip
+    <button id="modeToggle" class="mode-toggle" role="switch" aria-checked="false" aria-label="칩 모드">
+      <span class="knob"></span>칩
     </button>
     <button id="drawBtn" class="chip-scan draw-btn" aria-label="Draw on the screen and attach it to the chat" title="Draw on the screen — circle what you mean">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
@@ -1116,19 +1194,19 @@ body.sys-mode .ws-combo { display: none; }
     <button id="chipScanBtn" class="chip-scan" aria-label="Find and register elements that can't be picked as chips yet" title="Register unpickable elements as chips">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
     </button>
-    <button id="meBtn" class="avatar-btn" aria-label="My profile" aria-haspopup="menu"><span class="av">?</span></button>
+    <button id="meBtn" class="avatar-btn" aria-label="내 프로필" aria-haspopup="menu"><span class="av">?</span></button>
   </nav>
   <div class="me-menu" id="meMenu" role="menu" hidden>
     <button id="menuEditInfo" role="menuitem">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      Edit My Info</button>
+      내 정보 수정</button>
     <button id="menuSettings" role="menuitem">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      Settings</button>
+      설정</button>
     <div class="mm-sep" role="separator"></div>
     <button id="menuLogout" role="menuitem">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-      <span>Log out<span class="mm-hint" id="menuLogoutHint" hidden></span></span></button>
+      <span>로그아웃<span class="mm-hint" id="menuLogoutHint" hidden></span></span></button>
   </div>
 
   <!-- 할일 -->
@@ -1138,7 +1216,7 @@ body.sys-mode .ws-combo { display: none; }
       <div class="kpi card open"><div class="n" id="kOpen">0</div><div class="l">Open</div></div>
       <div class="kpi card done"><div class="n" id="kDone">0</div><div class="l">Done</div></div>
     </div>
-    <div class="sec-head"><h2>Tasks</h2><span class="cnt" id="todoMeta"></span><span class="sp"></span>
+    <div class="sec-head"><h2>할일</h2><span class="cnt" id="todoMeta"></span><span class="sp"></span>
       <button class="add-btn" id="addTodoBtn">＋ Task</button></div>
     <div id="todoList"></div>
     <div class="empty" id="todoEmpty">No tasks yet — add one with ＋ Task or via chat</div>
@@ -1190,8 +1268,55 @@ body.sys-mode .ws-combo { display: none; }
     </div>
   </div></section>
 
+  <!-- CCTV 감시(사례 13): 지도 위 카메라·탐방로·금지 구역·순찰대·탐지, 옆에 탐지 목록과 순찰 배정 -->
+  <section class="view" id="cctvView" role="tabpanel"><div class="wrap cctv-wrap">
+    <div class="kpis">
+      <div class="kpi card open"><div class="n" id="cvNew">0</div><div class="l">신규 탐지</div></div>
+      <div class="kpi card total"><div class="n" id="cvAssigned">0</div><div class="l">순찰 중</div></div>
+      <div class="kpi card done"><div class="n" id="cvToday">0</div><div class="l">오늘 조치</div></div>
+    </div>
+    <div class="sec-head"><h2>CCTV 감시</h2><span class="cnt" id="cvPark"></span><span class="sp"></span>
+      <button class="add-btn" id="cvSim" title="카메라 한 대에서 무작위 불법행위 탐지를 만듭니다(데모)">＋ 모의 탐지</button></div>
+    <div class="cctv-layout">
+      <div class="cctv-map card" id="cvMap" aria-label="CCTV 지도"><div class="empty" id="cvMapMsg">지도를 불러오는 중…</div></div>
+      <aside class="cctv-side" aria-label="탐지 목록">
+        <div class="cv-legend">
+          <span><i style="background:#E5484D"></i>비법정 탐방로 출입</span><span><i style="background:#E8731C"></i>취사·흡연</span><span><i style="background:#8E4EC6"></i>쓰레기 투기</span>
+          <span><i class="ln" style="background:#16A26B"></i>법정 탐방로</span><span><i class="zn"></i>출입 금지 구역</span>
+        </div>
+        <div class="seg" id="cvSeg"><button class="on" data-f="open">처리 대기</button><button data-f="all">전체</button></div>
+        <div id="cvList"></div>
+        <div class="empty" id="cvEmpty">처리할 탐지가 없습니다 — ＋ 모의 탐지로 흐름을 볼 수 있어요</div>
+      </aside>
+    </div>
+  </div></section>
+
+  <!-- 도로 관리: 날씨·교통량·과거 파손 이력으로 정밀검사/포장공사가 필요한 도로를 지도에 표시 (지도·목록 틀은 CCTV 탭과 공유) -->
+  <section class="view" id="roadView" role="tabpanel"><div class="wrap cctv-wrap">
+    <div class="kpis">
+      <div class="kpi card rd-k repave"><div class="n" id="rdRepave">0</div><div class="l">포장공사 필요</div></div>
+      <div class="kpi card rd-k inspect"><div class="n" id="rdInspect">0</div><div class="l">정밀검사 필요</div></div>
+      <div class="kpi card rd-k ok"><div class="n" id="rdOk">0</div><div class="l">양호</div></div>
+    </div>
+    <div class="sec-head"><h2>도로 관리</h2><span class="cnt" id="rdCity"></span><span class="sp"></span>
+      <button class="add-btn" id="rdSim" title="예제 도로 하나에 무작위 파손 신고를 넣습니다(데모)">＋ 모의 파손 신고</button></div>
+    <div class="rd-info"><span id="rdWx"></span><button id="rdWxBtn" title="Open-Meteo에서 지난 1년 날씨를 다시 받습니다">다시 받기</button><span class="rd-note" id="rdNote"></span></div>
+    <div class="cctv-layout">
+      <div class="cctv-map card" id="rdMap" aria-label="도로 지도"><div class="empty" id="rdMapMsg">지도를 불러오는 중…</div></div>
+      <aside class="cctv-side" aria-label="도로 목록">
+        <div class="cv-legend">
+          <span><i class="ln" style="background:#E5484D"></i>포장공사 필요</span><span><i class="ln" style="background:#E8731C"></i>정밀검사 필요</span><span><i class="ln" style="background:#16A26B"></i>양호</span>
+          <label class="rd-tg"><input type="checkbox" id="rdDmgToggle" checked> 파손 지점</label>
+        </div>
+        <div class="seg" id="rdSeg"><button class="on" data-f="need">조치 필요</button><button data-f="all">전체</button></div>
+        <div id="rdList"></div>
+        <div class="empty" id="rdEmpty">조치가 필요한 도로가 없습니다</div>
+      </aside>
+    </div>
+  </div></section>
+
   <section class="view" id="statsView" role="tabpanel"><div class="wrap">
-    <div class="sec-head"><h2>Stats</h2><span class="sp"></span>
+    <div class="sec-head"><h2>통계</h2><span class="sp"></span>
       <div class="seg" id="statSeg"><button class="on" data-seg="mine">My stats</button><button data-seg="all">All</button></div></div>
     <div id="statBody"></div>
     <div class="sec-head" style="margin-top:22px"><h2>Activity</h2></div>
@@ -1200,7 +1325,7 @@ body.sys-mode .ws-combo { display: none; }
 
   <!-- 관계: 메모·할일·일정이 어떻게 이어져 있는지(NodeRel) — 흐름 그림 · 끊긴 곳 · 관계 어휘 -->
   <section class="view" id="relationsView" role="tabpanel"><div class="wrap">
-    <div class="sec-head"><h2>Relations</h2><span class="cnt" id="relWs"></span><span class="sp"></span><span class="cnt">NodeRel</span></div>
+    <div class="sec-head"><h2>관계</h2><span class="cnt" id="relWs"></span><span class="sp"></span><span class="cnt">NodeRel</span></div>
     <div class="rel-graph card" id="relGraph"></div>
     <div class="sec-head" style="margin-top:22px"><h2>Where the flow breaks</h2></div>
     <div id="relStats"></div>
@@ -1339,10 +1464,10 @@ body.sys-mode .ws-combo { display: none; }
   </div>
 </div>
 <!-- 하단 메뉴(모바일): Workspace = 할일·일정·메모 / System = 통계·요청·진화·관계 -->
-<nav class="bottomnav" aria-label="Area">
-  <button data-area="ws" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Workspace</button>
-  <button data-area="collab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Collaborate<span class="tbadge" data-collabbadge>0</span></button>
-  <button data-area="sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>System<span class="tbadge" data-sysbadge>0</span></button>
+<nav class="bottomnav" aria-label="영역">
+  <button data-area="ws" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>워크스페이스</button>
+  <button data-area="collab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>협업<span class="tbadge" data-collabbadge>0</span></button>
+  <button data-area="sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>시스템<span class="tbadge" data-sysbadge>0</span></button>
 </nav>
 <!-- 모델 선택 시트(Claude Code 세션) — Claude 앱과 같은 모양 -->
 <div class="limit-pop" id="limitPop" role="status" hidden></div>
@@ -1389,6 +1514,17 @@ body.sys-mode .ws-combo { display: none; }
   <h3 id="cfTitle">Delete?</h3>
   <p class="cf-body" id="cfBody"></p>
   <div class="modal-acts"><button class="cancel" id="cfNo">Cancel</button><button class="danger-act" id="cfYes">Delete</button></div>
+</div>
+<!-- CCTV 뷰어: 카메라를 누르면 실시간 영상(등록된 경우) · 탐지 스냅샷 · 이 카메라의 최근 탐지 -->
+<div class="modal cv-viewer" id="cvViewer" role="dialog" aria-modal="true" aria-labelledby="cvvTitle">
+  <div class="cvv-head"><h3 id="cvvTitle">CCTV</h3><span class="cvv-live" id="cvvLive" hidden>● LIVE</span></div>
+  <div class="cvv-screen" id="cvvScreen"></div>
+  <div class="seg cvv-seg" id="cvvSeg" hidden><button data-v="live">실시간</button><button data-v="snap">탐지 순간</button></div>
+  <div class="cvv-list" id="cvvList"></div>
+  <details class="cvv-set" id="cvvSet"><summary>영상 주소 설정</summary>
+    <form id="cvvForm"><input id="cvvUrl" placeholder="https://… .m3u8 · .mp4 · MJPEG · 이미지 · 웹 플레이어" autocomplete="off" aria-label="영상 주소"><button type="submit">저장</button><button type="button" id="cvvClear">해제</button></form>
+    <div class="me-hint">HLS(.m3u8)·MP4·MJPEG·정지 이미지는 바로 재생하고, 그 밖의 주소는 웹 플레이어 페이지로 띄웁니다.</div></details>
+  <div class="modal-acts"><button class="cancel" id="cvvSim">이 카메라로 모의 탐지</button><button class="save" data-close>닫기</button></div>
 </div>
 <div class="scrim" id="scrim"></div>
 <div class="modal" id="todoModal" role="dialog" aria-modal="true" aria-label="Add task">
@@ -1455,6 +1591,7 @@ async function refreshData() {
   renderTodos(); renderCalendar(); renderDay(); renderUpcoming(); renderMemos();
   if ($('relationsView').classList.contains('on')) renderRelations();
   refreshPropCards();
+  refreshCctv(); refreshRoad();
 }
 
 /* ---- 관계 (NodeRel) ----
@@ -2024,7 +2161,7 @@ async function loadMe() {
   $('menuLogoutHint').textContent = signedIn ? 'Set ANA_LOGOUT_URL to enable' : 'Single-user mode — no sign-in';
   renderTodos(); renderMemos(); renderUpcoming();
 }
-/* 아바타 클릭 → 드롭다운 메뉴(Edit My Info / Settings) */
+/* 아바타 클릭 → 드롭다운 메뉴(내 정보 수정 / 설정) */
 function openMyInfo() {
   $('meMail').textContent = signedIn ? me.email : 'Local profile — single-user mode';
   $('meName').value = me.name || '';
@@ -2230,7 +2367,7 @@ function selectTab(b) {
     if (b.dataset.group && b.dataset.group !== appMode) applyArea(b.dataset.group);
     if ($('memoView').classList.contains('on') && b.dataset.view !== 'memo') cleanupEmptyMemos(); // 메모 탭 이탈 시 빈 메모 정리(진화 #3)
     document.querySelectorAll('.topnav .tab').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
-    ['todo', 'schedule', 'memo', 'evolve', 'approvals', 'requests', 'stats', 'relations', 'reliability', 'safety', 'security'].forEach((v) => $(v + 'View').classList.toggle('on', b.dataset.view === v));
+    ['todo', 'schedule', 'memo', 'cctv', 'road', 'evolve', 'approvals', 'requests', 'stats', 'relations', 'reliability', 'safety', 'security'].forEach((v) => $(v + 'View').classList.toggle('on', b.dataset.view === v));
     lastTab[appMode] = b.dataset.view;
     try { localStorage.setItem('ana-area-tabs', JSON.stringify(lastTab)); } catch {}
     if (b.dataset.view === 'evolve') refreshEvolve();
@@ -2238,6 +2375,8 @@ function selectTab(b) {
     if (['reliability', 'safety', 'security'].includes(b.dataset.view)) refreshTrust();
     if (b.dataset.view === 'stats') renderStats();
     if (b.dataset.view === 'relations') renderRelations();
+    if (b.dataset.view === 'cctv') { ensureCctvMap(); refreshCctv(); }
+    if (b.dataset.view === 'road') { ensureRoadMap(); refreshRoad(); }
 }
 document.querySelectorAll('.topnav .tab').forEach((b) => { b.onclick = () => selectTab(b); });
 function applyArea(mode) {
@@ -2265,11 +2404,375 @@ function updateSysBadge() {
 document.querySelectorAll('.topnav .tab[data-group]').forEach((t) => { t.hidden = t.dataset.group !== appMode; });
 setTimeout(() => setAppMode(appMode), 0);
 
+/* ================= CCTV 감시 (사례 13 · 불법행위 탐지 → 순찰 배정) =================
+   서버(cctv.js)가 워크스페이스별 카메라·탐방로·금지 구역·순찰대·탐지를 준다. 지도는 Leaflet + OpenStreetMap —
+   탭을 처음 열 때 CDN에서 불러온다. 못 불러와도 목록에서 배정·조치는 그대로 된다. */
+const CV_TYPES = {
+  offtrail: { label: '비법정 탐방로 출입', color: '#E5484D', ic: '🚷' },
+  fire: { label: '취사·흡연', color: '#E8731C', ic: '🔥' },
+  litter: { label: '쓰레기 투기', color: '#8E4EC6', ic: '🗑️' },
+};
+const CV_STATUS = { new: '신규', assigned: '순찰 배정', resolved: '조치 완료', false: '오탐' };
+const CV_PAT = { available: '대기', busy: '출동 중', off: '비번' };
+const CV_DONE = { assign: '순찰을 배정했습니다 — 할일에 올렸어요', resolve: '조치 완료로 닫았습니다', false: '오탐으로 닫았습니다', reopen: '다시 열었습니다' };
+let cctv = null, cvMap = null, cvLayer = null, cvSel = null, cvFilter = 'open', leafletP = null, cvFitted = false;
+const cvMarkers = new Map();
+function loadLeaflet() {
+  if (window.L) return Promise.resolve(window.L);
+  if (leafletP) return leafletP;
+  leafletP = new Promise((ok, no) => {
+    const css = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+      integrity: 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=', crossOrigin: '' });
+    const js = Object.assign(document.createElement('script'), { src: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+      integrity: 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=', crossOrigin: '' });
+    js.onload = () => ok(window.L);
+    js.onerror = () => { leafletP = null; js.remove(); no(new Error('leaflet load failed')); };
+    document.head.append(css, js);
+  });
+  return leafletP;
+}
+async function refreshCctv() {
+  let d; try { const r = await fetch('/api/cctv'); if (!r.ok) return; d = await r.json(); } catch { return; }
+  cctv = d; renderCctv();
+}
+const cvAgo = (iso) => { const m = Math.round((Date.now() - Date.parse(iso)) / 60000); return m < 1 ? '방금' : m < 60 ? `${m}분 전` : m < 1440 ? `${Math.round(m / 60)}시간 전` : `${Math.round(m / 1440)}일 전`; };
+const cvDay = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const cvCam = (id) => (cctv.cameras.find((c) => c.id === id) || { name: id });
+const cvPatrol = (id) => cctv.patrols.find((p) => p.id === id);
+const cvShown = (d) => cvFilter === 'all' || d.status === 'new' || d.status === 'assigned';
+function renderCctv() {
+  if (!cctv) return;
+  const ds = cctv.detections, nNew = ds.filter((d) => d.status === 'new').length;
+  $('cctvBadge').textContent = nNew > 9 ? '9+' : String(nNew); $('cctvBadge').classList.toggle('show', nNew > 0);
+  $('cvNew').textContent = nNew;
+  $('cvAssigned').textContent = ds.filter((d) => d.status === 'assigned').length;
+  $('cvToday').textContent = ds.filter((d) => d.status === 'resolved' && d.closedAt && cvDay(d.closedAt) === today()).length;
+  $('cvPark').textContent = (cctv.park && cctv.park.name) || '';
+  const list = ds.filter(cvShown).reverse().slice(0, 100);
+  $('cvEmpty').style.display = list.length ? 'none' : '';
+  $('cvList').innerHTML = list.map((d) => {
+    const t = CV_TYPES[d.type] || { label: d.type, color: '#8B95A1', ic: '•' }, p = d.patrol && cvPatrol(d.patrol);
+    let acts;
+    if (d.status === 'new') {
+      const near = d.nearest || [];
+      acts = near.length
+        ? `<select data-cv-pat aria-label="배정할 순찰대">${near.map((n, i) => `<option value="${escapeHtml(n.id)}">${escapeHtml(n.name)} · ${n.km}km${i ? '' : ' (가장 가까움)'}</option>`).join('')}</select><button class="pri" data-cv="assign">순찰 배정</button>`
+        : '<span class="cv-meta">대기 중인 순찰대가 없습니다</span>';
+      acts += '<button data-cv="false">오탐</button>';
+    } else if (d.status === 'assigned') acts = '<button class="pri" data-cv="resolve">조치 완료</button><button data-cv="false">오탐</button><button data-cv="reopen">배정 취소</button>';
+    else acts = '<button data-cv="reopen">다시 열기</button>';
+    acts += '<button data-cv="view" title="이 카메라 영상 보기">📷 영상</button>';
+    const meta = [cvAgo(d.at), d.confidence != null ? `신뢰도 ${Math.round(d.confidence * 100)}%` : '', p ? p.name : '', d.note].filter(Boolean).map(escapeHtml).join(' · ');
+    return `<div class="card cv-card ${d.id === cvSel ? 'sel' : ''}" data-id="${escapeHtml(d.id)}" style="--cv:${t.color}">
+      <div class="cv-top"><span class="cv-type">${t.ic} ${escapeHtml(t.label)}</span><span class="cv-st ${d.status}">${CV_STATUS[d.status] || escapeHtml(d.status)}</span></div>
+      <div class="cv-cam">${escapeHtml(cvCam(d.camera).name)}</div><div class="cv-meta">${meta}</div>
+      <div class="cv-acts">${acts}</div></div>`;
+  }).join('');
+  drawCctvMap();
+  if (modalCur === 'cvViewer' && cvvCam) renderCvvList();
+}
+async function ensureCctvMap() {
+  if (cvMap) { cvMap.invalidateSize(); return; }
+  let L; try { L = await loadLeaflet(); } catch { $('cvMapMsg').textContent = '지도를 불러오지 못했습니다(인터넷 연결 확인) — 목록에서 배정·조치는 계속할 수 있습니다'; return; }
+  if (cvMap) return;
+  $('cvMapMsg').remove();
+  const park = (cctv && cctv.park) || { center: [37.648, 126.98], zoom: 13 };
+  cvMap = L.map('cvMap').setView(park.center, park.zoom);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors' }).addTo(cvMap);
+  cvLayer = L.layerGroup().addTo(cvMap);
+  // 겹침 순서: 순찰대(markerPane 600) < 탐지 점(650) < 카메라(660) < 팝업(700).
+  // 탐지는 기본 위치가 카메라 자리라 카메라를 덮기 쉽다 — 📷는 늘 눌려서 영상을 열 수 있어야 한다.
+  cvMap.createPane('cvDet').style.zIndex = 650;
+  cvMap.createPane('cvCam').style.zIndex = 660;
+  // 채팅 사이드바를 열고 닫으면 창 크기는 그대로인데 지도 칸만 바뀐다 — 칸 크기를 직접 지켜본다
+  new ResizeObserver(() => cvMap.invalidateSize()).observe($('cvMap'));
+  drawCctvMap();
+}
+function drawCctvMap() {
+  if (!cvMap || !cctv) return;
+  const L = window.L;
+  cvLayer.clearLayers(); cvMarkers.clear();
+  if (!cvFitted && cctv.cameras.length) { cvMap.fitBounds(cctv.cameras.map((c) => [c.lat, c.lng]), { padding: [36, 36] }); cvFitted = true; }
+  cctv.trails.forEach((t) => L.polyline(t.path, { color: '#16A26B', weight: 4, opacity: 0.85 }).bindTooltip(`법정 탐방로 · ${escapeHtml(t.name)}`).addTo(cvLayer));
+  cctv.zones.forEach((z) => L.polygon(z.path, { color: '#E5484D', weight: 2, dashArray: '6 5', fillOpacity: 0.12 }).bindTooltip(`출입 금지 · ${escapeHtml(z.name)}`).addTo(cvLayer));
+  cctv.cameras.forEach((c) => L.marker([c.lat, c.lng], { pane: 'cvCam',
+    icon: L.divIcon({ className: '', html: '<div class="cv-cam-ic" aria-hidden="true">📷</div>', iconSize: [26, 26], iconAnchor: [13, 13] }) })
+    .bindTooltip(`CCTV · ${escapeHtml(c.name)} — 눌러서 영상 보기`).on('click', () => openCvViewer(c.id, null)).addTo(cvLayer));
+  cctv.detections.filter(cvShown).forEach((d) => {
+    const t = CV_TYPES[d.type] || { label: d.type, color: '#8B95A1', ic: '•' }, closed = d.status === 'resolved' || d.status === 'false';
+    const m = L.circleMarker([d.lat, d.lng], { radius: d.status === 'new' ? 10 : 8, color: '#fff', weight: 2, fillColor: t.color,
+      fillOpacity: closed ? 0.35 : 0.95, pane: 'cvDet', className: d.status === 'new' ? 'cv-pulse' : '' })
+      .bindPopup(`<b>${t.ic} ${escapeHtml(t.label)}</b><br>${escapeHtml(cvCam(d.camera).name)}<br>${CV_STATUS[d.status] || ''} · ${cvAgo(d.at)}<br><button class="cvv-open" data-cam="${escapeHtml(d.camera)}" data-det="${escapeHtml(d.id)}">📷 영상 보기</button>`)
+      .on('click', () => selectCv(d.id, false)).addTo(cvLayer);
+    cvMarkers.set(d.id, m);
+    const p = d.status === 'assigned' && cvPatrol(d.patrol);
+    if (p) L.polyline([[p.lat, p.lng], [d.lat, d.lng]], { color: '#E8731C', weight: 2, dashArray: '4 6' }).addTo(cvLayer);
+  });
+  cctv.patrols.forEach((p) => L.marker([p.lat, p.lng], { zIndexOffset: 500,
+    icon: L.divIcon({ className: '', html: `<div class="cv-pat-ic ${escapeHtml(p.status)}">👮 ${escapeHtml(p.name)}</div>`, iconSize: [0, 0] }) })
+    .bindTooltip(`${escapeHtml(p.name)} · ${CV_PAT[p.status] || ''}`).addTo(cvLayer));
+}
+function selectCv(id, fly) {
+  cvSel = id;
+  document.querySelectorAll('#cvList .cv-card').forEach((x) => x.classList.toggle('sel', x.dataset.id === id));
+  const m = cvMarkers.get(id);
+  if (fly && m) { cvMap.flyTo(m.getLatLng(), Math.max(cvMap.getZoom(), 15), { duration: 0.6 }); m.openPopup(); }
+  if (!fly) document.querySelector(`#cvList .cv-card[data-id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+$('cvList').onclick = async (e) => {
+  const card = e.target.closest('.cv-card'); if (!card) return;
+  const b = e.target.closest('[data-cv]');
+  if (!b) { if (!e.target.closest('select')) selectCv(card.dataset.id, true); return; }
+  if (b.dataset.cv === 'view') { const d = cctv.detections.find((x) => x.id === card.dataset.id); if (d) openCvViewer(d.camera, d.id); return; }
+  const body = { id: card.dataset.id, action: b.dataset.cv };
+  const sel = card.querySelector('[data-cv-pat]'); if (body.action === 'assign' && sel) body.patrol = sel.value;
+  b.disabled = true;
+  let r, j = {}; try { r = await post('/api/cctv/act', body); j = await r.json(); } catch {}
+  if (!r || !r.ok) { b.disabled = false; toast(j.error ? `처리하지 못했습니다 — ${j.error}` : '처리하지 못했습니다'); return; }
+  toast(CV_DONE[body.action]);
+  refreshCctv();
+};
+$('cvSeg').onclick = (e) => {
+  const b = e.target.closest('button[data-f]'); if (!b) return;
+  cvFilter = b.dataset.f;
+  $('cvSeg').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+  renderCctv();
+};
+$('cvSim').onclick = async () => {
+  let r, j = {}; try { r = await post('/api/cctv/simulate', {}); j = await r.json(); } catch {}
+  if (!r || !r.ok) { toast('모의 탐지를 만들지 못했습니다'); return; }
+  cvSel = j.id; await refreshCctv(); selectCv(j.id, true);
+};
+
+/* ---- CCTV 뷰어: 카메라(지도 📷 · 탐지 카드 · 팝업)를 누르면 연다 ----
+   등록된 영상 주소를 종류대로 재생(HLS·MP4·MJPEG·정지 이미지·웹 플레이어), 탐지 스냅샷, 이 카메라의 최근 탐지.
+   닫으면 재생을 완전히 멈춘다(closeModal → stopCvStream). */
+let cvvCam = null, cvvDet = null, cvvMode = 'live', cvvClock = null, cvvRefresh = null, cvvHls = null, hlsP = null;
+function loadHls() {
+  if (window.Hls) return Promise.resolve(window.Hls);
+  if (hlsP) return hlsP;
+  hlsP = new Promise((ok, no) => {
+    const js = Object.assign(document.createElement('script'), { src: 'https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.6.15/hls.min.js',
+      integrity: 'sha384-iZBI1/lW9u8FcBjxuQ8nPTsU7TXhZNtzkV8H3gQHSTgz+VYQoKWqGlBHqhO84alJ', crossOrigin: 'anonymous', referrerPolicy: 'no-referrer' });
+    js.onload = () => ok(window.Hls);
+    js.onerror = () => { hlsP = null; js.remove(); no(new Error('hls.js load failed')); };
+    document.head.append(js);
+  });
+  return hlsP;
+}
+function stopCvStream() {
+  clearInterval(cvvClock); clearInterval(cvvRefresh); cvvClock = cvvRefresh = null;
+  if (cvvHls) { cvvHls.destroy(); cvvHls = null; }
+  const v = $('cvvScreen').querySelector('video'); if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+  $('cvvScreen').innerHTML = '';
+}
+function openCvViewer(camId, detId) {
+  if (!cctv || !cctv.cameras.some((c) => c.id === camId)) return;
+  cvvCam = camId; cvvDet = detId || null;
+  const det = cvvDet && cctv.detections.find((d) => d.id === cvvDet);
+  cvvMode = det && det.snapshot ? 'snap' : 'live';
+  const cam = cvCam(camId);
+  $('cvvTitle').textContent = cam.name;
+  $('cvvUrl').value = (cam.stream && cam.stream.url) || '';
+  $('cvvSet').open = !cam.stream;
+  if (modalCur !== 'cvViewer') openModal('cvViewer');
+  renderCvvScreen(); renderCvvList();
+}
+function renderCvvScreen() {
+  stopCvStream();
+  const cam = cvCam(cvvCam), det = cvvDet && cctv.detections.find((d) => d.id === cvvDet), scr = $('cvvScreen');
+  const snap = cvvMode === 'snap' && det && det.snapshot;
+  $('cvvSeg').hidden = !(det && det.snapshot);
+  $('cvvSeg').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.v === cvvMode));
+  const st = cam.stream;
+  $('cvvLive').hidden = !!snap || !st;
+  let media = '';
+  if (snap) media = `<img src="${escapeHtml(det.snapshot)}" alt="탐지 순간 화면">`;
+  else if (!st) media = '<div class="cvv-nosig"><b>NO SIGNAL</b><span>이 카메라에 영상 주소가 등록되지 않았습니다 — 아래 [영상 주소 설정]에서 넣을 수 있어요</span></div>';
+  else if (st.type === 'iframe') media = `<iframe src="${escapeHtml(st.url)}" allow="autoplay; fullscreen" referrerpolicy="no-referrer" title="${escapeHtml(cam.name)} 영상"></iframe>`;
+  else if (st.type === 'image' || st.type === 'mjpeg') media = `<img src="${escapeHtml(st.url)}" alt="${escapeHtml(cam.name)} 영상">`;
+  else media = '<video muted autoplay playsinline controls></video>';
+  const t = det && CV_TYPES[det.type];
+  scr.innerHTML = `${media}<div class="cvv-osd"><span>${escapeHtml(cam.name)}</span><span id="cvvTime"></span></div>`
+    + (snap ? `<div class="cvv-tag" style="--cv:${t ? t.color : '#8B95A1'}">${t ? `${t.ic} ${escapeHtml(t.label)}` : ''} · 탐지 순간</div>` : '');
+  const img = scr.querySelector('img');
+  if (img) img.onerror = () => { scr.querySelector('.cvv-osd').insertAdjacentHTML('afterend', '<div class="cvv-err">영상을 불러오지 못했습니다 — 주소나 카메라 연결을 확인하세요</div>'); };
+  // 시각: 스냅샷이면 탐지 시각, 실시간이면 지금(1초마다)
+  const tick = () => { const el = $('cvvTime'); if (el) el.textContent = new Date(snap ? det.at : Date.now()).toLocaleString('ko-KR', { hour12: false }); };
+  tick(); if (!snap) cvvClock = setInterval(tick, 1000);
+  if (snap || !st) return;
+  // 정지 이미지 주소는 2초마다 다시 받아 준실시간으로 보여 준다(MJPEG는 브라우저가 알아서 흐른다)
+  if (st.type === 'image') cvvRefresh = setInterval(() => { const i = scr.querySelector('img'); if (i) i.src = st.url + (st.url.includes('?') ? '&' : '?') + '_t=' + Date.now(); }, 2000);
+  const v = scr.querySelector('video'); if (!v) return;
+  const fail = () => scr.querySelector('.cvv-osd').insertAdjacentHTML('afterend', '<div class="cvv-err">영상을 재생하지 못했습니다 — 주소나 카메라 연결을 확인하세요</div>');
+  v.onerror = fail;
+  if (st.type === 'video' || v.canPlayType('application/vnd.apple.mpegurl')) { v.src = st.url; return; }
+  const cam0 = cvvCam;
+  loadHls().then((Hls) => {
+    if (cvvCam !== cam0 || !scr.contains(v) || !Hls.isSupported()) return;
+    cvvHls = new Hls(); cvvHls.loadSource(st.url); cvvHls.attachMedia(v);
+    cvvHls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) { fail(); cvvHls.destroy(); cvvHls = null; } });
+  }).catch(fail);
+}
+function renderCvvList() {
+  const ds = cctv.detections.filter((d) => d.camera === cvvCam).slice(-6).reverse();
+  $('cvvList').innerHTML = ds.length ? ds.map((d) => {
+    const t = CV_TYPES[d.type] || { label: d.type, color: '#8B95A1', ic: '•' };
+    return `<button class="cvv-item ${d.id === cvvDet ? 'on' : ''}" data-det="${escapeHtml(d.id)}" style="--cv:${t.color}">
+      <span class="cv-type">${t.ic} ${escapeHtml(t.label)}</span><span class="cv-meta">${cvAgo(d.at)}${d.snapshot ? ' · 📸' : ''}</span><span class="cv-st ${d.status}">${CV_STATUS[d.status] || ''}</span></button>`;
+  }).join('') : '<div class="cv-meta">이 카메라의 탐지 기록이 없습니다</div>';
+}
+$('cvvList').onclick = (e) => {
+  const b = e.target.closest('[data-det]'); if (!b) return;
+  const d = cctv.detections.find((x) => x.id === b.dataset.det); if (!d) return;
+  cvvDet = d.id; cvvMode = d.snapshot ? 'snap' : 'live';
+  renderCvvScreen(); renderCvvList(); selectCv(d.id, true);
+};
+$('cvvSeg').onclick = (e) => { const b = e.target.closest('button[data-v]'); if (!b || b.dataset.v === cvvMode) return; cvvMode = b.dataset.v; renderCvvScreen(); };
+$('cvvForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const url = $('cvvUrl').value.trim(); if (!url) return;
+  let r, j = {}; try { r = await post('/api/cctv/camera', { id: cvvCam, stream: { url } }); j = await r.json(); } catch {}
+  if (!r || !r.ok) { toast(j.error ? `저장하지 못했습니다 — ${j.error}` : '저장하지 못했습니다'); return; }
+  cvCam(cvvCam).stream = j.stream; cvvMode = 'live'; $('cvvSet').open = false;
+  toast('영상 주소를 저장했습니다'); renderCvvScreen();
+};
+$('cvvClear').onclick = async () => {
+  let r; try { r = await post('/api/cctv/camera', { id: cvvCam, stream: null }); } catch {}
+  if (!r || !r.ok) { toast('해제하지 못했습니다'); return; }
+  delete cvCam(cvvCam).stream; $('cvvUrl').value = ''; toast('영상 주소를 해제했습니다'); renderCvvScreen();
+};
+$('cvvSim').onclick = async () => {
+  let r, j = {}; try { r = await post('/api/cctv/detect', { camera: cvvCam, type: Object.keys(CV_TYPES)[Math.floor(Math.random() * 3)], confidence: 0.8, note: '모의 탐지' }); j = await r.json(); } catch {}
+  if (!r || !r.ok) { toast('모의 탐지를 만들지 못했습니다'); return; }
+  cvvDet = j.id; await refreshCctv(); renderCvvList();
+};
+// 지도 팝업의 [영상 보기]
+document.addEventListener('click', (e) => { const b = e.target.closest('.cvv-open'); if (b) openCvViewer(b.dataset.cam, b.dataset.det || null); });
+
+/* ================= 도로 관리 (날씨 · 교통량 · 파손 이력 → 정밀검사 / 포장공사) =================
+   서버(road.js)가 도로마다 점수·판정·근거를 계산해 준다. 지도는 CCTV 탭과 같은 Leaflet(loadLeaflet)을 쓴다. */
+const RD_COLOR = { repave: '#E5484D', inspect: '#E8731C', ok: '#16A26B' };
+const RD_FACTORS = [['damage', '파손 이력'], ['traffic', '교통량'], ['weather', '기상'], ['age', '노후도']];
+const RD_PLAN = { inspect: '정밀검사', repave: '포장공사' };
+const RD_DONE = { inspect: '정밀검사를 지시했습니다 — 할일에 올렸어요', repave: '포장공사를 계획했습니다 — 할일에 올렸어요', done: '완료 처리했습니다', cancel: '계획을 취소했습니다' };
+let roadData = null, rdMap = null, rdLayer = null, rdSel = null, rdFilter = 'need', rdShowDmg = true, rdFitted = false;
+const rdLines = new Map();
+async function refreshRoad() {
+  let d; try { const r = await fetch('/api/road'); if (!r.ok) return; d = await r.json(); } catch { return; }
+  roadData = d; renderRoad();
+}
+const rdShown = (r) => rdFilter === 'all' || r.assessment.verdict !== 'ok' || r.plan;
+const rdNum = (n) => (n >= 10000 ? `${Math.round(n / 1000) / 10}만` : n.toLocaleString());
+function renderRoad() {
+  if (!roadData) return;
+  const roads = roadData.roads, cnt = { repave: 0, inspect: 0, ok: 0 };
+  roads.forEach((r) => cnt[r.assessment.verdict]++);
+  $('rdRepave').textContent = cnt.repave; $('rdInspect').textContent = cnt.inspect; $('rdOk').textContent = cnt.ok;
+  const need = roads.filter((r) => r.assessment.verdict !== 'ok' && !r.plan).length;
+  $('roadBadge').textContent = need > 9 ? '9+' : String(need); $('roadBadge').classList.toggle('show', need > 0);
+  $('rdCity').textContent = (roadData.city && roadData.city.name) || '';
+  const w = roadData.weather || {}, cells = Object.values(w.cells || {});
+  $('rdWx').textContent = cells.length
+    ? `기상: Open-Meteo ${w.from || ''} ~ ${w.to || ''} · 동결융해 ${Math.max(...cells.map((c) => c.ftc))}일 · 호우(30mm↑) ${Math.max(...cells.map((c) => c.heavyRain))}일 · 강수 ${Math.max(...cells.map((c) => c.rainTotal))}mm`
+    : '기상: 아직 받지 못해 평년 수준 값으로 계산 중';
+  $('rdNote').textContent = roadData.note || '';
+  const list = roads.filter(rdShown);
+  $('rdEmpty').style.display = list.length ? 'none' : '';
+  $('rdList').innerHTML = list.map((r) => {
+    const a = r.assessment, st = a.stats, c = RD_COLOR[a.verdict];
+    const bars = RD_FACTORS.map(([k, l]) => `<div class="rd-f"><span>${l}</span><i><b style="width:${Math.round(a.factors[k] * 100)}%"></b></i><em>${Math.round(a.factors[k] * 100)}</em></div>`).join('');
+    const facts = [`${st.km}km`, `3년 파손 ${st.damages3y}건`, `일 교통량 ${rdNum(r.aadt)}대(중차량 ${r.heavyPct}%)`, `포장 ${r.pavedAt}`].map(escapeHtml).join(' · ');
+    let acts;
+    if (r.plan) acts = `<span class="rd-plan">${RD_PLAN[r.plan.kind]} ${r.plan.kind === 'inspect' ? '진행 중' : '계획됨'} · ${escapeHtml(r.plan.at.slice(0, 10))}</span><button class="pri" data-rd="done">완료 처리</button><button data-rd="cancel">취소</button>`;
+    else if (a.verdict === 'repave') acts = '<button class="pri" data-rd="repave">포장공사 계획</button><button data-rd="inspect">정밀검사 지시</button>';
+    else acts = `<button class="${a.verdict === 'inspect' ? 'pri' : ''}" data-rd="inspect">정밀검사 지시</button><button data-rd="repave">포장공사 계획</button>`;
+    return `<div class="card cv-card rd-card ${r.id === rdSel ? 'sel' : ''}" data-id="${escapeHtml(r.id)}" style="--cv:${c}">
+      <div class="cv-top"><span class="rd-score">${a.score}</span><span class="cv-type">${escapeHtml(roadData.verdicts[a.verdict])}</span></div>
+      <div class="cv-cam">${escapeHtml(r.name)}</div><div class="cv-meta">${facts}</div>
+      <div class="rd-bars">${bars}</div>
+      ${a.reasons.length ? `<div class="rd-why">${a.reasons.map(escapeHtml).join(' · ')}</div>` : ''}
+      <div class="cv-acts">${acts}</div></div>`;
+  }).join('');
+  drawRoadMap();
+}
+async function ensureRoadMap() {
+  if (rdMap) { rdMap.invalidateSize(); return; }
+  let L; try { L = await loadLeaflet(); } catch { $('rdMapMsg').textContent = '지도를 불러오지 못했습니다(인터넷 연결 확인) — 목록에서 판정과 조치는 계속 볼 수 있습니다'; return; }
+  if (rdMap) return;
+  $('rdMapMsg').remove();
+  const c = (roadData && roadData.city) || { center: [37.53, 127.01], zoom: 12 };
+  rdMap = L.map('rdMap').setView(c.center, c.zoom);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors' }).addTo(rdMap);
+  rdLayer = L.layerGroup().addTo(rdMap);
+  rdMap.createPane('rdDmg').style.zIndex = 450;   // 파손 점은 도로선(overlayPane 400) 위
+  new ResizeObserver(() => rdMap.invalidateSize()).observe($('rdMap'));
+  drawRoadMap();
+}
+function drawRoadMap() {
+  if (!rdMap || !roadData) return;
+  const L = window.L;
+  rdLayer.clearLayers(); rdLines.clear();
+  if (!rdFitted && roadData.roads.length) { rdMap.fitBounds(roadData.roads.flatMap((r) => r.path), { padding: [30, 30] }); rdFitted = true; }
+  const shown = new Set(roadData.roads.filter(rdShown).map((r) => r.id));
+  // 점수 낮은 길부터 그려 높은 길이 위에 오게
+  [...roadData.roads].reverse().forEach((r) => {
+    const a = r.assessment, sel = r.id === rdSel;
+    const line = L.polyline(r.path, { color: RD_COLOR[a.verdict], weight: (sel ? 4 : 0) + 4 + Math.round(a.score / 20), opacity: shown.has(r.id) ? 0.9 : 0.35, lineCap: 'round' })
+      .bindTooltip(`${escapeHtml(r.name)} · ${a.score}점 · ${escapeHtml(roadData.verdicts[a.verdict])}`, { sticky: true })
+      .on('click', () => selectRoad(r.id, false)).addTo(rdLayer);
+    rdLines.set(r.id, line);
+  });
+  if (!rdShowDmg) return;
+  roadData.damages.forEach((d) => {
+    if (!shown.has(d.road)) return;
+    L.circleMarker([d.lat, d.lng], { pane: 'rdDmg', radius: 2 + d.severity, weight: 1, color: '#fff', fillColor: ['#F5B400', '#E8731C', '#B42318'][d.severity - 1], fillOpacity: 0.95 })
+      .bindTooltip(`${escapeHtml(roadData.types[d.type] || d.type)} · 심각도 ${d.severity} · ${escapeHtml(d.date)}${d.note ? ' · ' + escapeHtml(d.note) : ''}`).addTo(rdLayer);
+  });
+}
+function selectRoad(id, fly) {
+  rdSel = id;
+  document.querySelectorAll('#rdList .rd-card').forEach((x) => x.classList.toggle('sel', x.dataset.id === id));
+  drawRoadMap();
+  const line = rdLines.get(id);
+  if (fly && line) rdMap.flyToBounds(line.getBounds(), { padding: [60, 60], maxZoom: 16, duration: 0.6 });
+  if (!fly) document.querySelector(`#rdList .rd-card[data-id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+$('rdList').onclick = async (e) => {
+  const card = e.target.closest('.rd-card'); if (!card) return;
+  const b = e.target.closest('[data-rd]');
+  if (!b) { selectRoad(card.dataset.id, true); return; }
+  b.disabled = true;
+  let r, j = {}; try { r = await post('/api/road/act', { road: card.dataset.id, action: b.dataset.rd }); j = await r.json(); } catch {}
+  if (!r || !r.ok) { b.disabled = false; toast(j.error ? `처리하지 못했습니다 — ${j.error}` : '처리하지 못했습니다'); return; }
+  toast(RD_DONE[b.dataset.rd]);
+  refreshRoad();
+};
+$('rdSeg').onclick = (e) => {
+  const b = e.target.closest('button[data-f]'); if (!b) return;
+  rdFilter = b.dataset.f;
+  $('rdSeg').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+  renderRoad();
+};
+$('rdDmgToggle').onchange = (e) => { rdShowDmg = e.target.checked; drawRoadMap(); };
+$('rdWxBtn').onclick = async () => {
+  let r; try { r = await post('/api/road/weather', {}); } catch {}
+  toast(r && r.ok ? '날씨를 다시 받는 중입니다 — 끝나면 점수가 갱신돼요' : '날씨를 받을 수 없습니다(오프라인)');
+};
+$('rdSim').onclick = async () => {
+  let r, j = {}; try { r = await post('/api/road/simulate', {}); j = await r.json(); } catch {}
+  if (!r || !r.ok) { toast('모의 신고를 만들지 못했습니다'); return; }
+  await refreshRoad(); toast('모의 파손 신고를 넣었습니다'); selectRoad(j.road, true);
+};
+
 /* ================= 모달 (수동 추가) ================= */
 let modalCur = null;
 function openModal(id) { modalCur = id; $('scrim').classList.add('on'); $(id).classList.add('on'); const inp = $(id).querySelector('input'); if (inp) setTimeout(() => inp.focus(), 50); }
 function closeModal() {
   if (!modalCur) return;
+  if (modalCur === 'cvViewer') stopCvStream();
   $(modalCur).classList.remove('on'); modalCur = null;
   $('scrim').classList.remove('on');
 }
@@ -3023,6 +3526,8 @@ function connect() {
       case 'target': if (d.user === youKey && d.target !== streamTarget) switchStream(); break;
       case 'evolve': if ($('evolveView').classList.contains('on')) refreshEvolve(); else refreshEvolve(); break;
       case 'requests': refreshRequests(); break;
+      case 'cctv': refreshCctv(); break;
+      case 'road': refreshRoad(); break;
     }
   };
   stream.onerror = () => {
@@ -3049,12 +3554,12 @@ function renderWorkspaces() {
   $('wsList').innerHTML = workspaces.map((w) => {
     const id = escapeHtml(w.id), name = escapeHtml(w.name);
     if (w.id === wsEditing) return `<div class="ws-row"><form class="ws-new" data-rename-form="${id}">
-      <input value="${name}" maxlength="60" aria-label="Rename workspace" autocomplete="off"><button type="submit">Save</button></form></div>`;
-    const grip = workspaces.length > 1 ? `<button class="ws-grip" data-ws-grip="${id}" aria-label="Reorder ${name} (drag, or arrow keys)" title="Drag to reorder">${GRIP}</button>` : '';
+      <input value="${name}" maxlength="60" aria-label="워크스페이스 이름 바꾸기" autocomplete="off"><button type="submit">저장</button></form></div>`;
+    const grip = workspaces.length > 1 ? `<button class="ws-grip" data-ws-grip="${id}" aria-label="${name} 순서 바꾸기 (끌기 또는 화살표 키)" title="끌어서 순서 바꾸기">${GRIP}</button>` : '';
     return `<div class="ws-row" data-row="${id}">${grip}<button class="ws-item ${w.id === currentWs ? 'on' : ''}" role="option"
       aria-selected="${w.id === currentWs}" data-ws="${id}" title="${name}">${name}</button>
-      <button class="ws-act" data-ws-rename="${id}" aria-label="Rename ${name}" title="Rename">${PEN}</button>${w.id === 'default' ? '' :
-      `<button class="ws-act del" data-ws-remove="${id}" aria-label="Delete ${name}" title="Delete">${BIN}</button>`}</div>`;
+      <button class="ws-act" data-ws-rename="${id}" aria-label="${name} 이름 바꾸기" title="이름 바꾸기">${PEN}</button>${w.id === 'default' ? '' :
+      `<button class="ws-act del" data-ws-remove="${id}" aria-label="${name} 삭제" title="삭제">${BIN}</button>`}</div>`;
   }).join('');
   const f = $('wsList').querySelector('[data-rename-form] input');
   if (f) { f.focus(); f.select(); }

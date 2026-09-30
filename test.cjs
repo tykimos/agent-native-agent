@@ -485,6 +485,17 @@ t('L2 agent-log(Codex): 모델명 표기 · rate_limits 창 길이로 5시간/�
   assert.equal(codexLimits({ primary: null, secondary: null }), null);
 });
 
+t('W1 도로 기상 요약: 동결융해·호우·한파 계산, 자료가 모자라면 null', () => {
+  const road = require('./road.js');
+  const n = 300, daily = { temperature_2m_max: Array(n).fill(10), temperature_2m_min: Array(n).fill(5), precipitation_sum: Array(n).fill(0) };
+  daily.temperature_2m_min[0] = -3; daily.temperature_2m_max[0] = 2;       // 동결융해
+  daily.temperature_2m_min[1] = -12; daily.temperature_2m_max[1] = -2;     // 한파, 융해 없음
+  daily.precipitation_sum[2] = 45;                                          // 호우
+  const w = road.summarizeWeather(daily);
+  assert.equal(w.ftc, 1); assert.equal(w.coldDays, 1); assert.equal(w.heavyRain, 1); assert.equal(w.rainTotal, 45);
+  assert.equal(road.summarizeWeather({ temperature_2m_max: [1], temperature_2m_min: [-1] }), null);
+});
+
 t('F1 features.json: 모든 기능 앵커가 이 저장소 코드에 실제로 있다(스킬·업데이트 비교의 기준)', () => {
   const m = JSON.parse(fs.readFileSync(path.join(__dirname, 'features.json'), 'utf8'));
   const code = fs.readdirSync(__dirname).filter((f) => /\.(m?js|cjs|html)$/.test(f) && !/test\.|\.test\./.test(f) && f !== 'channel-core.js')
@@ -538,7 +549,7 @@ async function integration() {
     AUDIT_FILE: path.join(SCRATCH, 'int-audit.jsonl'),
     UPLOAD_DIR: path.join(SCRATCH, 'int-uploads'),
     TARGETS_FILE: path.join(SCRATCH, 'int-targets.json'),   // 사람별 최근 세션 — 실전 .ana/targets.json 오염 방지
-    NOTIFY_AGENT: '0', ANA_READY_GUARD: '0', // 승인 알림 주입이 mock 에이전트 에코를 유발해 total 계산을 흔들지 않도록
+    NOTIFY_AGENT: '0', ANA_READY_GUARD: '0', ANA_OFFLINE: '1', // 승인 알림 주입이 mock 에이전트 에코를 유발해 total 계산을 흔들지 않도록
   };
   delete childEnv.ANA_TEST;
   // ANA_PANE_ID는 resolveTarget에서 TMUX_SESSION보다 우선한다 — 개발자 셸에 남아 있으면 테스트가
@@ -847,6 +858,85 @@ async function integration() {
       j = await (await post('/api/request-act', { id: pick.id, action: 'done' })).json(); assert.equal(j.status, 'done');
       const after = (await (await fetch(`${api}/api/requests`)).json()).requests;
       assert.equal(after.find((x) => x.id === pick.id).answer, 'B');
+    });
+
+    await ta('C16 CCTV: 예제 시드, 탐지 등록·검증, 가까운 순찰대 배정→할일 생성, 조치 완료→할일 완료·순찰대 복귀', async () => {
+      const g = await (await fetch(`${api}/api/cctv`)).json();
+      assert.ok(g.cameras.length >= 5 && g.patrols.length >= 3 && g.zones.length && g.trails.length, '북한산 예제가 채워진다');
+      assert.equal((await post('/api/cctv/detect', { camera: 'nope', type: 'fire' })).status, 400);
+      assert.equal((await post('/api/cctv/detect', { camera: 'cam-uidong', type: 'bbq' })).status, 400);
+      assert.equal((await post('/api/cctv/detect', { camera: 'cam-uidong', type: 'fire', lat: 'x', lng: 1 })).status, 400);
+      let j = await (await post('/api/cctv/detect', { camera: 'cam-uidong', type: 'fire', confidence: 0.9 })).json();
+      assert.ok(j.id); assert.equal(j.nearest[0].id, 'p-2', '우이동 카메라에서 가장 가까운 건 2조');
+      j = await (await post('/api/cctv/act', { id: j.id, action: 'assign' })).json();
+      assert.equal(j.patrol, 'p-2'); assert.ok(j.taskId);
+      const st = await (await fetch(`${api}/api/state`)).json();
+      const task = st.items.find((x) => x.id === j.taskId);
+      assert.ok(task && /순찰/.test(task.title) && !task.done, '배정하면 순찰 할일이 생긴다');
+      let c = await (await fetch(`${api}/api/cctv`)).json();
+      const det = c.detections.find((x) => x.taskId === j.taskId);
+      assert.equal(det.status, 'assigned'); assert.equal(c.patrols.find((p) => p.id === 'p-2').status, 'busy');
+      assert.equal((await post('/api/cctv/act', { id: det.id, action: 'assign' })).status, 409, '이미 배정된 탐지는 다시 배정하지 않는다');
+      assert.equal((await post('/api/cctv/act', { id: det.id, action: 'resolve' })).status, 200);
+      c = await (await fetch(`${api}/api/cctv`)).json();
+      assert.equal(c.detections.find((x) => x.id === det.id).status, 'resolved');
+      assert.equal(c.patrols.find((p) => p.id === 'p-2').status, 'available', '조치가 끝나면 순찰대는 대기로');
+      assert.ok((await (await fetch(`${api}/api/state`)).json()).items.find((x) => x.id === j.taskId).done, '순찰 할일도 완료');
+      j = await (await post('/api/cctv/simulate', {})).json(); assert.ok(j.id);
+      assert.equal((await post('/api/cctv/act', { id: j.id, action: 'false' })).status, 200);
+      assert.equal((await post('/api/cctv/patrol', { id: 'p-1', status: 'nap' })).status, 400);
+      assert.equal((await post('/api/cctv/patrol', { id: 'p-1', lat: 37.65, lng: 126.96, status: 'off' })).status, 200);
+    });
+
+    await ta('C18 CCTV 영상: 주소 등록(종류 추정)·검증·해제, 탐지 스냅샷 주소 검증', async () => {
+      let j = await (await post('/api/cctv/camera', { id: 'cam-gugi', stream: { url: 'https://cams.example/gugi/live.m3u8' } })).json();
+      assert.deepEqual(j.stream, { url: 'https://cams.example/gugi/live.m3u8', type: 'hls' });
+      j = await (await post('/api/cctv/camera', { id: 'cam-gugi', stream: { url: 'http://10.0.0.5/axis-cgi/mjpg/video.cgi' } })).json();
+      assert.equal(j.stream.type, 'mjpeg');
+      assert.equal((await post('/api/cctv/camera', { id: 'cam-gugi', stream: { url: 'javascript:alert(1)' } })).status, 400, 'http(s)·서버 경로만');
+      assert.equal((await post('/api/cctv/camera', { id: 'cam-gugi', stream: { url: 'https://x/a', type: 'rtsp' } })).status, 400);
+      assert.equal((await post('/api/cctv/camera', { id: 'nope', stream: null })).status, 404);
+      let c = await (await fetch(`${api}/api/cctv`)).json();
+      assert.equal(c.cameras.find((x) => x.id === 'cam-gugi').stream.type, 'mjpeg');
+      assert.equal((await post('/api/cctv/camera', { id: 'cam-gugi', stream: null })).status, 200);
+      c = await (await fetch(`${api}/api/cctv`)).json();
+      assert.equal(c.cameras.find((x) => x.id === 'cam-gugi').stream, undefined, '해제하면 주소가 사라진다');
+      assert.equal((await post('/api/cctv/detect', { camera: 'cam-gugi', type: 'litter', snapshot: 'data:text/html,x' })).status, 400);
+      j = await (await post('/api/cctv/detect', { camera: 'cam-gugi', type: 'litter', snapshot: '/api/upload/snap-1.jpg' })).json();
+      c = await (await fetch(`${api}/api/cctv`)).json();
+      assert.equal(c.detections.find((x) => x.id === j.id).snapshot, '/api/upload/snap-1.jpg');
+    });
+
+    await ta('C17 도로: 예제 시드·판정 3종, 파손 신고 검증, 정밀검사→할일, 포장공사 완료→포장일 갱신·점수 하락', async () => {
+      let g = await (await fetch(`${api}/api/road`)).json();
+      assert.ok(g.roads.length >= 5 && g.damages.length > 0, '서울 예제 도로·파손 이력이 채워진다');
+      const verdicts = new Set(g.roads.map((r) => r.assessment.verdict));
+      assert.ok(verdicts.has('repave') && verdicts.has('inspect') && verdicts.has('ok'), '예제는 세 판정이 모두 나온다');
+      assert.ok(g.roads.every((r, i) => !i || g.roads[i - 1].assessment.score >= r.assessment.score), '점수 내림차순');
+      assert.equal((await post('/api/road/damage', { road: 'nope', type: 'pothole', severity: 2 })).status, 400);
+      assert.equal((await post('/api/road/damage', { road: 'r-sejong', type: 'hole', severity: 2 })).status, 400);
+      assert.equal((await post('/api/road/damage', { road: 'r-sejong', type: 'pothole', severity: 5 })).status, 400);
+      assert.equal((await post('/api/road/traffic', { road: 'r-sejong', heavyPct: 120 })).status, 400);
+      assert.equal((await post('/api/road/weather', {})).status, 503, '오프라인이면 날씨를 받지 않는다');
+      const before = g.roads.find((r) => r.id === 'r-sejong').assessment;
+      assert.equal((await post('/api/road/damage', { road: 'r-sejong', type: 'subsidence', severity: 3 })).status, 200);
+      g = await (await fetch(`${api}/api/road`)).json();
+      const after = g.roads.find((r) => r.id === 'r-sejong').assessment;
+      assert.ok(after.score > before.score && after.stats.severeRecent >= 1 && after.verdict !== 'ok', '심각 파손 신고는 점수를 올리고 최소 정밀검사로');
+      let j = await (await post('/api/road/act', { road: 'r-sejong', action: 'inspect' })).json();
+      assert.ok(j.taskId);
+      assert.equal((await post('/api/road/act', { road: 'r-sejong', action: 'repave' })).status, 409, '계획이 있으면 새 계획 불가');
+      assert.ok((await (await fetch(`${api}/api/state`)).json()).items.some((x) => x.id === j.taskId && /정밀검사/.test(x.title)));
+      assert.equal((await post('/api/road/act', { road: 'r-sejong', action: 'done' })).status, 200);
+      const top = g.roads[0];
+      j = await (await post('/api/road/act', { road: top.id, action: 'repave' })).json();
+      assert.equal((await post('/api/road/act', { road: top.id, action: 'done' })).status, 200);
+      g = await (await fetch(`${api}/api/road`)).json();
+      const re = g.roads.find((r) => r.id === top.id);
+      assert.equal(re.pavedAt, new Date().toISOString().slice(0, 10));
+      assert.equal(re.assessment.stats.damages3y, 0, '포장 전 파손은 더 세지 않는다');
+      assert.ok(re.assessment.score < top.assessment.score && re.assessment.verdict === 'ok');
+      assert.ok((await (await fetch(`${api}/api/state`)).json()).items.find((x) => x.id === j.taskId).done, '포장공사 할일도 완료');
     });
 
     await ta('I15 세션별 원장·사람별 최근 세션: 전환하면 그 세션 이력만, 헤더로 명시하면 그 세션, 되돌리면 원래 이력', async () => {

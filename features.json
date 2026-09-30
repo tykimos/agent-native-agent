@@ -243,6 +243,45 @@
         "safetyView",
         "securityView"
       ]
+    },
+    {
+      "id": "cctv-patrol",
+      "title": "CCTV illegal-activity detection → patrol dispatch (use case 13)",
+      "skill": "cctv-patrol",
+      "summary": "Workspace › CCTV 감시: Leaflet + OpenStreetMap map of cameras, official trails, no-entry zones, patrols and detections (off-trail entry, cooking/smoking, littering). Detections arrive via /api/cctv/detect; assign the nearest free patrol (creates a Task), then resolve or mark false positive. Click a camera to open the CCTV viewer: live feed (HLS / MP4 / MJPEG / image / web player), detection snapshot, recent detections.",
+      "copy": [
+        "cctv.js"
+      ],
+      "anchors": [
+        "/api/cctv",
+        "cctvView",
+        "cctvBadge",
+        "function loadLeaflet",
+        "function renderCctv",
+        "function drawCctvMap",
+        "function nearestPatrols",
+        "/api/cctv/camera",
+        "function openCvViewer",
+        "function stopCvStream"
+      ]
+    },
+    {
+      "id": "road-maintenance",
+      "title": "Road maintenance priority — inspect / repave map",
+      "skill": "road-maintenance",
+      "summary": "Workspace › 도로 관리: scores each road from weather (Open-Meteo freeze-thaw and heavy-rain days), traffic volume, damage history and pavement age; Leaflet + OpenStreetMap map colored repave / inspect / ok with reasons; plan an inspection or repaving as a Task and mark it done.",
+      "copy": [
+        "road.js"
+      ],
+      "anchors": [
+        "/api/road",
+        "roadView",
+        "roadBadge",
+        "function assess",
+        "function summarizeWeather",
+        "function renderRoad",
+        "function drawRoadMap"
+      ]
     }
   ]
 }

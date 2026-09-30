@@ -20,6 +20,8 @@ const { AsyncLocalStorage } = require('node:async_hooks');
 const relgraph = require('./graph.js');
 const codexSettings = require('./codex-settings.js');
 const { createAgentLog } = require('./agent-log.js');
+const { createCctv } = require('./cctv.js');
+const { createRoad } = require('./road.js');
 
 function createDashboardApi(core, opts) {
   const { ROOT } = opts;
@@ -145,6 +147,12 @@ function createDashboardApi(core, opts) {
   const saveData = (s, ws) => { relgraph.pruneLinks(s); writeJsonAtomic(dataFileOf(ws || curWs()), s); };
   // 관계 그래프 — state.json에서 파생되는 NodeRel 인덱스(워크스페이스마다 graph.sqlite)
   const graph = relgraph.createGraph({ loadData, dataFileOf });
+  // 사례 13 · CCTV 불법행위 탐지 — 워크스페이스마다 state.json 옆 cctv.json (cctv.js 참고)
+  const cctv = createCctv({ fs: require('node:fs'), fileOf: (ws) => path.join(path.dirname(dataFileOf(ws)), 'cctv.json'),
+    readJsonStrict, writeJsonAtomic, sendJson, newId, loadData, saveData, audit, actor });
+  // 도로 유지관리 — 날씨·교통량·파손 이력으로 정밀검사/포장공사 대상 표시. 워크스페이스마다 roads.json (road.js 참고)
+  const road = createRoad({ fs: require('node:fs'), fileOf: (ws) => path.join(path.dirname(dataFileOf(ws)), 'roads.json'),
+    readJsonStrict, writeJsonAtomic, sendJson, newId, loadData, saveData, audit, actor, offline: !!opts.OFFLINE });
 
   function loadProposals() {
     const s = readJsonStrict(PROPOSALS_FILE, () => ({ proposals: [] }));
@@ -423,6 +431,11 @@ function createDashboardApi(core, opts) {
   async function routes(req, res, url, ctx) {
     const p = url.pathname;
     const { commit, broadcast, csrfOk, jsonBody } = ctx;
+
+    // ---- CCTV 불법행위 탐지(지도·탐지·순찰 배정) ----
+    if (p.startsWith('/api/cctv') && await cctv.route(req, res, p, ctx, curWs())) return true;
+    // ---- 도로 유지관리(날씨·교통량·파손 이력 → 정밀검사/포장공사) ----
+    if (p.startsWith('/api/road') && await road.route(req, res, p, ctx, curWs())) return true;
 
     // ---- 워크스페이스 목록/추가/선택/이름 변경/삭제/순서 변경 ----
     if (p === '/api/workspaces' && req.method === 'GET') {
