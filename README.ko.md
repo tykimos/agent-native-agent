@@ -266,6 +266,8 @@ claude plugin install ana@agent-native-agent          # 이후: claude plugin up
 | [`app-shell`](skills/app-shell/SKILL.md) | Workspace / Collaborate / System 영역, 하단 메뉴, 워크스페이스 콤보 |
 | [`agent-requests`](skills/agent-requests/SKILL.md) | 협업: 진화 제안, 승인 요청, 작업 요청 |
 | [`trust-checks`](skills/trust-checks/SKILL.md) | 시스템: AI 신뢰성, 안전, 보안 점검 |
+| [`cctv-patrol`](skills/cctv-patrol/SKILL.md) | 사례 13: CCTV 불법행위 탐지 지도(OpenStreetMap), 순찰 배정 |
+| [`road-maintenance`](skills/road-maintenance/SKILL.md) | 날씨·교통량·파손 이력으로 정밀검사·포장공사가 필요한 도로를 지도에 표시 |
 
 ### 기존 ANA 업데이트
 
@@ -301,7 +303,7 @@ seed.js               첫 실행용 예제 흐름 두 개
 features.json         기능 목록: 기능별 앵커 + 담당 스킬 (ana-update가 비교 기준으로 사용)
 package.json          의존성: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot
 test.cjs              단위 + 통합 테스트(npm test), mock_agent.py = 테스트용 결정적 TUI
-skills/               install · ana · ana-update · chat-window · context-chips · relations · app-shell · agent-requests · trust-checks
+skills/               install · ana · ana-update · chat-window · context-chips · relations · app-shell · agent-requests · trust-checks · cctv-patrol · road-maintenance
 .claude-plugin/       플러그인 + 마켓플레이스 매니페스트
 ```
 

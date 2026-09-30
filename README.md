@@ -263,6 +263,8 @@ claude plugin install ana@agent-native-agent          # later: claude plugin upd
 | [`app-shell`](skills/app-shell/SKILL.md) | Workspace / Collaborate / System areas, bottom menu, workspace combo |
 | [`agent-requests`](skills/agent-requests/SKILL.md) | Collaborate: Evolve, Approvals, Requests |
 | [`trust-checks`](skills/trust-checks/SKILL.md) | System: Reliability, Safety, Security checks |
+| [`cctv-patrol`](skills/cctv-patrol/SKILL.md) | Use case 13: CCTV illegal-activity detection on an OpenStreetMap map, patrol dispatch |
+| [`road-maintenance`](skills/road-maintenance/SKILL.md) | Roads needing inspection or repaving, from weather, traffic and damage history, on an OpenStreetMap map |
 
 ### Updating an existing ANA
 
@@ -298,7 +300,7 @@ seed.js               two example flows for the first run
 features.json         feature manifest: anchors + skill per feature (used by ana-update)
 package.json          dependencies: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot
 test.cjs              unit + integration tests (npm test), mock_agent.py = deterministic TUI stand-in
-skills/               install · ana · ana-update · chat-window · context-chips · relations · app-shell · agent-requests · trust-checks
+skills/               install · ana · ana-update · chat-window · context-chips · relations · app-shell · agent-requests · trust-checks · cctv-patrol · road-maintenance
 .claude-plugin/       plugin + marketplace manifest
 ```
 

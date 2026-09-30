@@ -52,6 +52,7 @@ const apiOpts = {
   // 신원은 앞단(리버스 프록시·SSO 게이트웨이)이 헤더로 실어 줄 때만 잡힌다. 미지정이면 단일 사용자.
   IDENTITY_HEADER: env.ANA_IDENTITY_HEADER || '',
   LOGOUT_URL: env.ANA_LOGOUT_URL || '',
+  OFFLINE: env.ANA_OFFLINE === '1',                    // 외부 API(날씨·도로 선형)를 부르지 않는다 — 테스트·폐쇄망
 };
 const opts = {
   ROOT, PORT, BIND, SESSION, SOCKET, TARGET,
