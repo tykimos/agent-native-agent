@@ -68,6 +68,26 @@ function seedCctv() {
   };
 }
 
+// 예제 카메라의 기본 영상 — 실제 북한산 CCTV가 아니라 누르자마자 흐름을 볼 수 있게 한 데모 영상이다.
+// 미국 산림청(USFS)이 찍은 Pacific Crest Trail 영상(퍼블릭 도메인, Wikimedia Commons)을 위치 성격에 맞춰 골랐다.
+// 카메라에 stream이 없을 때(undefined)만 쓰인다. 사용자가 해제하면 stream: null로 남아 기본 영상도 뜨지 않는다.
+const COMMONS = 'https://upload.wikimedia.org/wikipedia/commons/transcoded/';
+const DEMO_CREDIT = '데모 영상 · Pacific Crest Trail, 미국 산림청(USFS) · 퍼블릭 도메인 · Wikimedia Commons';
+const DEMO_STREAMS = {
+  'cam-bhs': ['1/18/The_Pacific_Crest_Trail_%28PCT%29_in_southern_Oregon_%2823690660281%29.webm/The_Pacific_Crest_Trail_%28PCT%29_in_southern_Oregon_%2823690660281%29.webm.480p.vp9.webm', 'File%3AThe_Pacific_Crest_Trail_(PCT)_in_southern_Oregon_(23690660281).webm'],
+  'cam-baekun': ['b/b7/The_Pacific_Crest_Trail_%28PCT%29_in_southern_Oregon_%2823690650671%29.webm/The_Pacific_Crest_Trail_%28PCT%29_in_southern_Oregon_%2823690650671%29.webm.480p.vp9.webm', 'File%3AThe_Pacific_Crest_Trail_(PCT)_in_southern_Oregon_(23690650671).webm'],
+  'cam-insu': ['2/2d/The_Pacific_Crest_Trail_%28PCT%29_in_southern_Oregon_%2823690463361%29.webm/The_Pacific_Crest_Trail_%28PCT%29_in_southern_Oregon_%2823690463361%29.webm.480p.vp9.webm', 'File%3AThe_Pacific_Crest_Trail_(PCT)_in_southern_Oregon_(23690463361).webm'],
+  'cam-uidong': ['c/c5/The_Pacific_Crest_Trail_%28PCT%29_in_southern_Oregon_%2823747717006%29.webm/The_Pacific_Crest_Trail_%28PCT%29_in_southern_Oregon_%2823747717006%29.webm.480p.vp9.webm', 'File%3AThe_Pacific_Crest_Trail_(PCT)_in_southern_Oregon_(23747717006).webm'],
+  'cam-daedong': ['4/40/The_Pacific_Crest_Trail_%28PCT%29_in_southern_Oregon_%2823690458971%29.webm/The_Pacific_Crest_Trail_%28PCT%29_in_southern_Oregon_%2823690458971%29.webm.480p.vp9.webm', 'File%3AThe_Pacific_Crest_Trail_(PCT)_in_southern_Oregon_(23690458971).webm'],
+  'cam-jeongneung': ['a/a1/The_Pacific_Crest_Trail_%28PCT%29_in_southern_Oregon_%2823690497321%29.webm/The_Pacific_Crest_Trail_%28PCT%29_in_southern_Oregon_%2823690497321%29.webm.480p.vp9.webm', 'File%3AThe_Pacific_Crest_Trail_(PCT)_in_southern_Oregon_(23690497321).webm'],
+  'cam-gugi': ['b/bf/The_Pacific_Crest_Trail_%28PCT%29_in_southern_Oregon_%2823665383832%29.webm/The_Pacific_Crest_Trail_%28PCT%29_in_southern_Oregon_%2823665383832%29.webm.480p.vp9.webm', 'File%3AThe_Pacific_Crest_Trail_(PCT)_in_southern_Oregon_(23665383832).webm'],
+  'cam-sumeun': ['4/4d/The_Pacific_Crest_Trail_%28PCT%29_in_southern_Oregon_%2823146339253%29.webm/The_Pacific_Crest_Trail_%28PCT%29_in_southern_Oregon_%2823146339253%29.webm.480p.vp9.webm', 'File%3AThe_Pacific_Crest_Trail_(PCT)_in_southern_Oregon_(23146339253).webm'],
+};
+function demoStream(camId) {
+  const d = DEMO_STREAMS[camId];
+  return d ? { url: COMMONS + d[0], type: 'video', demo: true, credit: DEMO_CREDIT, source: 'https://commons.wikimedia.org/wiki/' + d[1] } : null;
+}
+
 // 두 좌표 사이 거리(km, 하버사인)
 function distKm(a, b) {
   const R = 6371, rad = (d) => (d * Math.PI) / 180;
@@ -99,7 +119,8 @@ function createCctv(deps) {
     return s;
   }
   const save = (ws, s) => { s.version = (s.version || 1) + 1; writeJsonAtomic(fileOf(ws), s); };
-  const view = (s) => ({ ...s, types: TYPES, detections: s.detections.map((d) => d.status === 'new' ? { ...d, nearest: nearestPatrols(s, d).slice(0, 3) } : d) });
+  const view = (s) => ({ ...s, types: TYPES,
+    cameras: s.cameras.map((c) => (c.stream === undefined ? { ...c, stream: demoStream(c.id) } : c)), detections: s.detections.map((d) => d.status === 'new' ? { ...d, nearest: nearestPatrols(s, d).slice(0, 3) } : d) });
 
   // 배정·종료 때 순찰 할일을 함께 움직인다 — 배정하면 워크스페이스 할일에 올라가 다른 기능(달력·관계)과 이어진다
   function addTask(ws, title) {
@@ -198,7 +219,7 @@ function createCctv(deps) {
     } else if (p === '/api/cctv/camera') {
       const cam = s.cameras.find((c) => c.id === body.id);
       if (!cam) return fail(404, 'camera not found');
-      if (body.stream === null || body.stream === '') delete cam.stream;
+      if (body.stream === null || body.stream === '') cam.stream = null;   // 명시적 해제 — 기본 데모 영상도 끈다
       else {
         const st = body.stream || {};
         if (!okUrl(st.url)) return fail(400, 'stream.url must be an http(s) URL or a /path on this server');
@@ -207,7 +228,7 @@ function createCctv(deps) {
         cam.stream = { url: st.url, type };
       }
       audit(actor(req), 'cctv.camera', cam.id);
-      out = { stream: cam.stream || null };
+      out = { stream: cam.stream };
     } else if (p === '/api/cctv/patrol') {
       const pat = s.patrols.find((x) => x.id === body.id);
       if (!pat) return fail(404, 'not found');
@@ -227,4 +248,4 @@ function createCctv(deps) {
   return { route, load };
 }
 
-module.exports = { createCctv, seedCctv, distKm, guessStream, TYPES };
+module.exports = { createCctv, seedCctv, distKm, guessStream, demoStream, TYPES };

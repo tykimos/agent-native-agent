@@ -900,7 +900,9 @@ async function integration() {
       assert.equal(c.cameras.find((x) => x.id === 'cam-gugi').stream.type, 'mjpeg');
       assert.equal((await post('/api/cctv/camera', { id: 'cam-gugi', stream: null })).status, 200);
       c = await (await fetch(`${api}/api/cctv`)).json();
-      assert.equal(c.cameras.find((x) => x.id === 'cam-gugi').stream, undefined, '해제하면 주소가 사라진다');
+      assert.equal(c.cameras.find((x) => x.id === 'cam-gugi').stream, null, '해제하면 기본 데모 영상도 끈다');
+      const demo = c.cameras.find((x) => x.id === 'cam-daedong').stream;
+      assert.ok(demo && demo.demo && demo.type === 'video' && /^https:\/\/upload\.wikimedia\.org\//.test(demo.url) && demo.source, '손대지 않은 예제 카메라는 기본 데모 영상');
       assert.equal((await post('/api/cctv/detect', { camera: 'cam-gugi', type: 'litter', snapshot: 'data:text/html,x' })).status, 400);
       j = await (await post('/api/cctv/detect', { camera: 'cam-gugi', type: 'litter', snapshot: '/api/upload/snap-1.jpg' })).json();
       c = await (await fetch(`${api}/api/cctv`)).json();

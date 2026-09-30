@@ -459,6 +459,10 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 .cvv-nosig { position: absolute; inset: 0; display: grid; place-content: center; gap: 8px; padding: 16px; text-align: center; color: #97A1AD; font-size: 12.5px; font-weight: 600;
   background: repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 2px, transparent 2px 4px), radial-gradient(circle at 50% 45%, #1C2026, #0B0D10 70%); }
 .cvv-nosig b { font: 800 22px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .12em; color: #E6E8EB; }
+.cvv-credit { margin-top: 6px; font-size: 11.5px; color: var(--text-weak); font-weight: 600; }
+.cvv-credit a { color: inherit; text-decoration: underline; }
+.cvv-credit[hidden] { display: none; }
+.cvv-live.demo { background: #6B7684; animation: none; }
 .cvv-seg { margin-top: 10px; }
 .cvv-seg[hidden] { display: none; }
 .cvv-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
@@ -1519,6 +1523,7 @@ body.sys-mode .ws-combo { display: none; }
 <div class="modal cv-viewer" id="cvViewer" role="dialog" aria-modal="true" aria-labelledby="cvvTitle">
   <div class="cvv-head"><h3 id="cvvTitle">CCTV</h3><span class="cvv-live" id="cvvLive" hidden>● LIVE</span></div>
   <div class="cvv-screen" id="cvvScreen"></div>
+  <div class="cvv-credit" id="cvvCredit" hidden></div>
   <div class="seg cvv-seg" id="cvvSeg" hidden><button data-v="live">실시간</button><button data-v="snap">탐지 순간</button></div>
   <div class="cvv-list" id="cvvList"></div>
   <details class="cvv-set" id="cvvSet"><summary>영상 주소 설정</summary>
@@ -2574,7 +2579,7 @@ function openCvViewer(camId, detId) {
   cvvMode = det && det.snapshot ? 'snap' : 'live';
   const cam = cvCam(camId);
   $('cvvTitle').textContent = cam.name;
-  $('cvvUrl').value = (cam.stream && cam.stream.url) || '';
+  $('cvvUrl').value = (cam.stream && !cam.stream.demo && cam.stream.url) || '';
   $('cvvSet').open = !cam.stream;
   if (modalCur !== 'cvViewer') openModal('cvViewer');
   renderCvvScreen(); renderCvvList();
@@ -2587,6 +2592,10 @@ function renderCvvScreen() {
   $('cvvSeg').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.v === cvvMode));
   const st = cam.stream;
   $('cvvLive').hidden = !!snap || !st;
+  $('cvvLive').textContent = st && st.demo ? '● 데모 영상' : '● LIVE';
+  $('cvvLive').classList.toggle('demo', !!(st && st.demo));
+  $('cvvCredit').hidden = !(st && st.demo && !snap);
+  $('cvvCredit').innerHTML = st && st.demo ? `실제 북한산 CCTV가 아닌 ${escapeHtml(st.credit || '데모 영상')} — <a href="${escapeHtml(st.source || '#')}" target="_blank" rel="noopener">출처</a>` : '';
   let media = '';
   if (snap) media = `<img src="${escapeHtml(det.snapshot)}" alt="탐지 순간 화면">`;
   else if (!st) media = '<div class="cvv-nosig"><b>NO SIGNAL</b><span>이 카메라에 영상 주소가 등록되지 않았습니다 — 아래 [영상 주소 설정]에서 넣을 수 있어요</span></div>';
@@ -2607,7 +2616,8 @@ function renderCvvScreen() {
   const v = scr.querySelector('video'); if (!v) return;
   const fail = () => scr.querySelector('.cvv-osd').insertAdjacentHTML('afterend', '<div class="cvv-err">영상을 재생하지 못했습니다 — 주소나 카메라 연결을 확인하세요</div>');
   v.onerror = fail;
-  if (st.type === 'video' || v.canPlayType('application/vnd.apple.mpegurl')) { v.src = st.url; return; }
+  if (st.type === 'video') { v.loop = true; v.src = st.url; return; }   // 녹화 파일·데모 영상은 반복 재생
+  if (v.canPlayType('application/vnd.apple.mpegurl')) { v.src = st.url; return; }
   const cam0 = cvvCam;
   loadHls().then((Hls) => {
     if (cvvCam !== cam0 || !scr.contains(v) || !Hls.isSupported()) return;
@@ -2641,7 +2651,7 @@ $('cvvForm').onsubmit = async (e) => {
 $('cvvClear').onclick = async () => {
   let r; try { r = await post('/api/cctv/camera', { id: cvvCam, stream: null }); } catch {}
   if (!r || !r.ok) { toast('해제하지 못했습니다'); return; }
-  delete cvCam(cvvCam).stream; $('cvvUrl').value = ''; toast('영상 주소를 해제했습니다'); renderCvvScreen();
+  cvCam(cvvCam).stream = null; $('cvvUrl').value = ''; toast('영상 주소를 해제했습니다'); renderCvvScreen();
 };
 $('cvvSim').onclick = async () => {
   let r, j = {}; try { r = await post('/api/cctv/detect', { camera: cvvCam, type: Object.keys(CV_TYPES)[Math.floor(Math.random() * 3)], confidence: 0.8, note: '모의 탐지' }); j = await r.json(); } catch {}
