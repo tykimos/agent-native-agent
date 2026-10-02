@@ -158,15 +158,39 @@ function inputBoxReady(screen) {
 }
 
 // 오버레이 다이얼로그가 열려 있는가(CR3·coding-M8): ▔ 구분선 / Esc to cancel / ❯ 1. 메뉴 / 신뢰 프롬프트
+// 평소 입력 상자(구분선 ─── 사이의 '❯ ' 프롬프트)가 맨 아래에 보이면 다이얼로그가 아니다.
+// 다이얼로그가 뜨면 Claude Code는 입력 상자를 그 화면으로 바꾼다. 응답 본문에 'Select model'·'Esc to cancel' 같은
+// 글자가 있어도 입력 상자가 보이는 동안은 다이얼로그로 오인하지 않게 하는 첫 관문.
+function promptBoxVisible(lines) {
+  const seps = [];
+  for (let i = 0; i < lines.length; i++) if (SEP_LINE(lines[i])) seps.push(i);
+  if (seps.length < 2) return false;
+  const top = seps[seps.length - 2], bot = seps[seps.length - 1];
+  let prompt = false;
+  for (let i = top + 1; i < bot; i++) {
+    const t = lines[i].replace(/ /g, ' ').trim();
+    if (/^[❯>]\s+(\d+\.|Submit$|Select\s)/.test(t)) return false;   // 메뉴·Submit 행·선택 오버레이
+    if (/^[❯>](\s|$)/.test(t)) prompt = true;
+  }
+  if (!prompt) return false;
+  for (let i = bot + 1; i < lines.length; i++) if (/Esc to cancel|Enter to (select|confirm)/i.test(lines[i])) return false;
+  return true;
+}
+
+// 오버레이 다이얼로그가 열려 있는가(CR3·coding-M8): 화면 맨 아래 부분에서만, 줄 머리로 판정한다.
+// (예전엔 화면 어디서든 부분 문자열로 찾아서, 응답 본문에 'Select model' 같은 말이 있으면 대화가 막혔다)
 function dialogOpen(screen) {
-  for (const raw of screen.split('\n')) {
-    const t = raw.trim();
-    if (/Esc to cancel|to confirm ·|trust this folder|Select (a |model|the )/i.test(t)) return true;
-    // AskUserQuestion: 푸터가 좁은 폭에서 줄바꿈되면 'Esc to cancel'이 쪼개진다 → 앞부분·탭 줄·Submit 행으로도 판정
-    if (/^Enter to select ·|· (Tab\/Arrow keys|↑\/↓) to navigate/.test(t)) return true;
+  const lines = screen.split('\n');
+  if (promptBoxVisible(lines)) return false;
+  const tail = lines.map((l) => l.replace(/ /g, ' ').trim()).filter(Boolean).slice(-20);
+  for (const t of tail) {
+    if (/^(Press )?Enter to (select|confirm)\b|(^|·\s*)Esc to cancel\b|^Esc$|^to cancel$/i.test(t)) return true;   // 푸터(좁은 폭에서 쪼개진 것 포함)
+    if (/· (Tab\/Arrow keys|↑\/↓) to navigate/.test(t)) return true;
+    if (/trust this folder|^Do you trust/i.test(t)) return true;
+    if (/^([▔▁▂▃▄▅▆▇█]+\s*)?([❯>]\s+)?Select (a |model|the )/i.test(t)) return true;   // 모델 선택 등 오버레이 제목
     if (/^←\s+[☐☒]/.test(t) || /^[❯>]\s+Submit$/.test(t)) return true;
     if (/^([▔▁▂▃▄▅▆▇█])\1{11,}$/.test(t)) return true;   // 수평 오버레이 구분선(단일 블록 문자 12+ 반복). welcome 로고 제외
-    if (/^[❯>]\s+\d+\.\s/.test(t.replace(/\u00A0/g, ' '))) return true;
+    if (/^[❯>]\s+\d+\.\s/.test(t)) return true;
   }
   return false;
 }

@@ -382,6 +382,11 @@ t('D9 inputBoxReady / dialogOpen 판정 (CR4)', () => {
   assert.equal(srv.dialogOpen(menu), true);
   assert.equal(srv.dialogOpen('▔▔▔▔▔ Select model'), true);
   assert.equal(srv.dialogOpen(box), false);
+  // 회귀: 응답 본문에 'Select model'·'Esc to cancel'·'❯ 1.' 같은 글자가 있어도 입력 상자가 보이면 다이얼로그가 아니다
+  const reply = ['⏺ 모델 선택 메뉴(`Select model`)도 잡습니다. 취소는 Esc to cancel', '❯ 1. 사용자가 보낸 목록', '──────', '❯ 진행해', '──────', '  ⏵⏵ bypass permissions on'].join('\n');
+  assert.equal(srv.dialogOpen(reply), false);
+  // 입력 상자 아래에 다이얼로그 푸터가 있으면 여전히 다이얼로그
+  assert.equal(srv.dialogOpen(['──────', '❯ ', '──────', 'Enter to confirm · Esc to cancel'].join('\n')), true);
 });
 
 t('D10 parseDialog: AskUserQuestion(단일·다중·Submit 커서·검토·직접 입력)·권한 메뉴 구조화', () => {

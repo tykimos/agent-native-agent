@@ -476,7 +476,9 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 @media (max-width: 768px) {
   body, body.chatting { grid-template-columns: minmax(0, 1fr) 0; }
   #chatResize { display: none; }
-  #chatSide { position: fixed; left: 0; right: 0; top: var(--vvt, 0px); bottom: auto; z-index: 50; width: 100%; height: var(--vvh, 100dvh); border-left: none;
+  /* 채팅은 화면 전체에 고정. 키보드가 떠 있을 때만 '보이는 영역'(visualViewport)에 맞춘다 —
+     평소에도 offsetTop을 따르면 iOS 바운스 스크롤 중 값이 흔들려 채팅이 통째로 밀려 내려간다 */
+  #chatSide { position: fixed; left: 0; right: 0; top: 0; bottom: auto; z-index: 50; width: 100%; height: 100dvh; border-left: none;
     visibility: hidden; transform: translateX(100%);
     transition: transform .24s cubic-bezier(.32,.72,0,1), visibility 0s .24s; }
   body.chatting #chatSide { visibility: visible; transform: none;
@@ -539,7 +541,7 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 
 /* overflow-y만 지정하면 CSS 규칙상 overflow-x가 auto로 계산되어, 긴 경로·명령 한 줄이
    피드 전체를 옆으로 밀어 버린다(모바일 횡스크롤의 원인). 가로는 명시적으로 잠근다. */
-#feed { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 14px 14px 10px; display: flex; flex-direction: column; gap: 10px; position: relative; }
+#feed { flex: 1; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 14px 14px 10px; display: flex; flex-direction: column; gap: 10px; position: relative; }
 #feed > * { max-width: 100%; }
 .msg { max-width: 86%; padding: 10px 14px; border-radius: var(--r); font-size: 14px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
 .msg-by { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; opacity: .85; margin-bottom: 5px; }
@@ -877,6 +879,12 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
 /* 떠 있는 입력 영역(도크). #chatSide > *:not(#chatResize)의 고정 폭(명시도 2-0-0)을 이기려고 선택자를 한 단계 올린다 */
 /* 키보드가 떠 있을 때: 홈 인디케이터 여백(safe-area)을 빼고 키보드 바로 위에 붙인다(Claude 앱과 같은 간격) */
 html.kb-open .chat-dock .composer { margin-bottom: 2px; }
+@media (max-width: 768px) {
+  html.kb-open #chatSide { top: var(--vvt, 0px); height: var(--vvh, 100dvh); }
+  /* 채팅이 열려 있는 동안 뒤의 대시보드는 스크롤되지 않는다(끝에서 더 당겨도 화면이 끌려가지 않게) */
+  html:has(body.chatting), body.chatting { overflow: hidden; overscroll-behavior: none; }
+  #chatSide { overscroll-behavior: none; }
+}
 #chatSide > .chat-dock.chat-dock:not(#chatResize) { position: absolute; right: 0; bottom: 0; z-index: 5; pointer-events: none; }
 @media (max-width: 768px) { #chatSide > .chat-dock.chat-dock:not(#chatResize) { left: 0; width: auto; } }
 .chat-dock > * { pointer-events: auto; }
