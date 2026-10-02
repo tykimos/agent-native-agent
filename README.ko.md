@@ -303,6 +303,7 @@ package.json          의존성: @tykimos/noderel (github:tykimos/NodeRel), mode
 test.cjs              단위 + 통합 테스트(npm test), mock_agent.py = 테스트용 결정적 TUI
 skills/               install · ana · ana-update · chat-window · context-chips · relations · app-shell · agent-requests · trust-checks
 .claude-plugin/       플러그인 + 마켓플레이스 매니페스트
+CHANGELOG.ko.md       버전별 변경 기록 (영문: CHANGELOG.md)
 ```
 
 `channel-core.js`는 재사용 가능한 코어이고, `dashboard-api.js` / `dashboard.html`은 복사해서 당신의 것으로 교체하는 **예시**입니다.

@@ -300,6 +300,7 @@ package.json          dependencies: @tykimos/noderel (github:tykimos/NodeRel), m
 test.cjs              unit + integration tests (npm test), mock_agent.py = deterministic TUI stand-in
 skills/               install · ana · ana-update · chat-window · context-chips · relations · app-shell · agent-requests · trust-checks
 .claude-plugin/       plugin + marketplace manifest
+CHANGELOG.md          release notes per version (Korean: CHANGELOG.ko.md)
 ```
 
 `channel-core.js` is the reusable core; `dashboard-api.js` / `dashboard.html` are the **example** you copy from and replace with your own.
