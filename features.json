@@ -8,7 +8,10 @@
       "TARGETS_FILE",
       "transcripts",
       "parseDialog",
-      "ensureNotInCopyMode"
+      "ensureNotInCopyMode",
+      "anaNameOf",
+      "defaultSession",
+      "isAnaSession"
     ]
   },
   "features": [

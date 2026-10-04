@@ -5,7 +5,7 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
-## [0.4.1] — Unreleased
+## [0.4.1] — 2026-10-04
 
 One naming rule for every ANA: the folder gives the name, and the name gives the tmux sessions.
 
@@ -17,6 +17,13 @@ One naming rule for every ANA: the folder gives the name, and the name gives the
 - **Install scripts.** `install.sh` and `install-wsl.ps1` clone into `~/ana/base-ana`. `run.sh` and `check-env.sh` derive the session from the folder, and `run.sh` names its server session `srv-<session>` so it stays out of the chat list. A server still running as `<session>-server` is reused.
 - `channel-core.js` exports `anaNameOf`, `defaultSession` and `isAnaSession`.
 - README, the `install` skill and the `ana` skill use the new paths and session names, with a short "Naming convention" section.
+
+### Fixed
+
+- **Chat header stuck on "Not connected" until a reload** while the agent was actually running.
+  - **Cause:** after the iPhone screen locks or the tab goes to the background, Safari can leave the connection half-dead. Status, session-list and stream requests then neither failed nor answered. The page had no timeouts, so the header and the session popup (its "Start an agent in tmux…" placeholder) stayed frozen.
+  - **Now:** every poll has a timeout. Coming back to the page re-checks at once (`visibilitychange`, `pageshow`, `online`). A live stream that has been silent for over 40 seconds is reopened (the server pings every 15 seconds).
+  - The header says **Reconnecting…** while the server can't be reached, and **Not connected** only when the server reports that the agent isn't running.
 
 ## [0.4.0] — 2026-10-02
 
@@ -77,6 +84,6 @@ The base becomes a solo operations board you run with a coding agent. It has thr
 
 See the [commit history](https://github.com/tykimos/agent-native-agent/commits/main) up to `d690eda`: workspaces, Chip mode, the install skill, per-session ledgers, and structured AskUserQuestion cards.
 
-[0.4.1]: https://github.com/tykimos/agent-native-agent/compare/v0.4.0...main
+[0.4.1]: https://github.com/tykimos/agent-native-agent/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/tykimos/agent-native-agent/compare/d690eda...v0.4.0
 [0.3.0]: https://github.com/tykimos/agent-native-agent/commits/d690eda

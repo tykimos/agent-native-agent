@@ -5,7 +5,7 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
-## [0.4.1] — 미출시
+## [0.4.1] — 2026-10-04
 
 모든 ANA에 같은 이름 규칙을 씁니다. 폴더가 이름을 정하고, 이름이 tmux 세션을 정합니다.
 
@@ -17,6 +17,13 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 - **설치 스크립트.** `install.sh`와 `install-wsl.ps1`은 `~/ana/base-ana`로 clone합니다. `run.sh`와 `check-env.sh`는 폴더에서 세션 이름을 정하고, `run.sh`의 서버 세션은 `srv-<세션>`이라 채팅 목록에 뜨지 않습니다. `<세션>-server`로 떠 있는 기존 서버는 그대로 이어 씁니다.
 - `channel-core.js`가 `anaNameOf`, `defaultSession`, `isAnaSession`을 내보냅니다.
 - README, `install` 스킬, `ana` 스킬을 새 경로·세션 이름으로 고치고 짧은 "이름 규칙" 절을 넣었습니다.
+
+### 수정
+
+- **에이전트가 실제로 떠 있는데 채팅 상단이 "Not connected"로 굳고, 새로고침해야 풀리던 문제.**
+  - **원인:** iPhone 화면이 꺼지거나 탭이 백그라운드로 가면 Safari가 연결을 반쯤 죽은 채로 남길 수 있습니다. 그러면 상태·세션 목록·실시간 스트림 요청이 실패도 응답도 없이 멈췄습니다. 요청에 시간 제한이 없어서 상단 표시와 세션 팝업(기본 안내 문구 "Start an agent in tmux…")이 그대로 굳었습니다.
+  - **지금:** 모든 조회에 시간 제한이 있습니다. 화면으로 돌아오면 바로 다시 확인합니다(`visibilitychange`, `pageshow`, `online`). 실시간 스트림이 40초 넘게 조용하면 다시 연결합니다(서버는 15초마다 ping을 보냅니다).
+  - 서버에 닿지 못하는 동안은 **Reconnecting…**, 서버가 에이전트가 없다고 할 때만 **Not connected**로 표시합니다.
 
 ## [0.4.0] — 2026-10-02
 
@@ -77,6 +84,6 @@ base가 코딩 에이전트와 함께 운영하는 1인 업무 보드가 되었�
 
 `d690eda`까지의 [커밋 기록](https://github.com/tykimos/agent-native-agent/commits/main)을 보세요. 워크스페이스, 칩 모드, install 스킬, 세션별 원장, 구조화된 AskUserQuestion 카드가 들어 있습니다.
 
-[0.4.1]: https://github.com/tykimos/agent-native-agent/compare/v0.4.0...main
+[0.4.1]: https://github.com/tykimos/agent-native-agent/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/tykimos/agent-native-agent/compare/d690eda...v0.4.0
 [0.3.0]: https://github.com/tykimos/agent-native-agent/commits/d690eda

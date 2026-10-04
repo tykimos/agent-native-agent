@@ -519,6 +519,7 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 .conn .dot { width: 8px; height: 8px; border-radius: 999px; background: var(--line); flex: 0 0 auto; }
 .conn.ok .dot { background: var(--green); } .conn.ok { color: var(--text); }
 .conn.bad .dot { background: var(--danger); }
+.conn.wait .dot { background: var(--warm-fg); animation: connwait 1.2s ease-in-out infinite; } @keyframes connwait { 50% { opacity: .35; } }
 .conn svg { width: 14px; height: 14px; opacity: .55; flex: 0 0 auto; }
 /* 드롭다운(tmux 선택) — 채팅 헤더 아래로 펼쳐짐 */
 .conn-pop { position: absolute; top: calc(100% + 8px); left: 0; right: 0; padding: 12px; z-index: 60;
@@ -1455,7 +1456,7 @@ let dataVersion = 0, items = [], events = [], notes = [], graphLinks = [];
 const proposals = new Map();
 async function refreshData() {
   let s;
-  try { s = await (await fetch('/api/state')).json(); } catch { return; }
+  try { s = await (await getJSON('/api/state')); } catch { return; }
   dataVersion = s.version || 1;
   items = s.items || []; events = s.events || []; notes = s.notes || [];
   graphLinks = (s.graph && s.graph.links) || [];   // NodeRel이 만든 관계(파생 DUE_ON/ON 포함)
@@ -1798,7 +1799,7 @@ function reqCard(r, closed) {
     ${r.desc ? `<div class="evo-d">${escapeHtml(r.desc)}</div>` : ''}${refChip}${closed ? '' : ans}${body}</div>`;
 }
 async function refreshRequests() {
-  let d; try { d = await (await fetch('/api/requests')).json(); } catch { return; }
+  let d; try { d = await (await getJSON('/api/requests')); } catch { return; }
   requestsCache = d.requests || [];
   const isAppr = (r) => APPROVAL_KINDS.includes(r.kind);
   const openAppr = renderReqBox('appr', requestsCache.filter(isAppr));
@@ -1839,7 +1840,7 @@ $('apprDiffs').addEventListener('click', (e) => {
 /* ---- System › Reliability · Safety · Security ---- 서버가 계산한 점검(/api/trust)을 카드로. 1분마다, 보일 때만 */
 const TRUST_ICON = { ok: '✓', info: 'i', warn: '!', risk: '!' };
 async function refreshTrust() {
-  let d; try { d = await (await fetch('/api/trust')).json(); } catch { return; }
+  let d; try { d = await (await getJSON('/api/trust')); } catch { return; }
   if (!d || d.error) return;
   for (const sec of ['reliability', 'safety', 'security']) {
     const g = d[sec]; if (!g) continue;
@@ -1903,7 +1904,7 @@ Register: curl -s -X POST http://${h}/api/requests -H 'content-type: application
 
 /* ---- 진화 ---- */
 async function refreshEvolve() {
-  let ev; try { ev = await (await fetch('/api/evolve')).json(); } catch { return; }
+  let ev; try { ev = await (await getJSON('/api/evolve')); } catch { return; }
   const live = (ev.proposals || []).filter((x) => x.status !== 'dismissed');
   const nw = live.filter((x) => x.status === 'new').length;
   $('evoBadge').textContent = nw; $('evoBadge').classList.toggle('show', nw > 0); updateSysBadge();
@@ -2020,7 +2021,7 @@ async function loadMe() {
     // via: single = 단일 사용자 모드 / header = 신원 확인됨 / missing = 헤더 이름은 설정됐는데 요청에 없음
     meVia = j.via || '';
   } catch {}
-  try { (await (await fetch('/api/users')).json()).users.forEach((u) => { userMap[u.email] = u; }); } catch {}
+  try { (await (await getJSON('/api/users'))).users.forEach((u) => { userMap[u.email] = u; }); } catch {}
   if (me.email) userMap[me.email] = me;
   $('meBtn').innerHTML = avatarHtml(me.email);
   $('meBtn').title = signedIn ? `${me.name} · ${me.email}`
@@ -2124,8 +2125,8 @@ document.querySelectorAll('#statSeg button').forEach((b) => b.onclick = () => {
 async function renderStats() {
   let d, act;
   try {
-    d = await (await fetch('/api/stats')).json();
-    act = await (await fetch(`/api/activity${statSeg === 'mine' ? '?mine=1' : ''}`)).json();
+    d = await (await getJSON('/api/stats'));
+    act = await (await getJSON(`/api/activity${statSeg === 'mine' ? '?mine=1' : ''}`));
   } catch { $('statBody').innerHTML = '<div class="empty">Failed to load stats</div>'; return; }
   const tile = (n, l) => `<div class="stat card"><div class="n">${n}</div><div class="l">${l}</div></div>`;
   if (statSeg === 'mine') {
@@ -2167,7 +2168,7 @@ const REL_INFO = [
 ];
 async function renderRelations() {
   $('relWs').textContent = (workspaces.find((w) => w.id === currentWs) || {}).name || '';
-  let d; try { d = await (await fetch('/api/stats')).json(); } catch { $('relGraph').innerHTML = '<div class="empty">Failed to load</div>'; return; }
+  let d; try { d = await (await getJSON('/api/stats')); } catch { $('relGraph').innerHTML = '<div class="empty">Failed to load</div>'; return; }
   renderRelStats(d.graph);
   const cnt = (t) => ((d.graph && d.graph.types) || []).find((x) => x.type === t)?.count || 0;
   $('relVocab').innerHTML = `<table><thead><tr><th>Relation</th><th>From → To</th><th>Meaning</th><th>Count</th></tr></thead><tbody>${
@@ -2425,9 +2426,10 @@ function renderStatus() {
   const agentOk = ses && health && health.command && !shell;
   // 상단 연결 pill: 코딩 에이전트 연결 여부만 표시
   const pill = $('connPill');
-  pill.className = 'conn ' + (agentOk ? 'ok' : 'bad');
+  pill.className = 'conn ' + (agentOk ? 'ok' : (!srvConnected || !health) ? 'wait' : 'bad');
   // ANA(코딩 에이전트) 연결 여부를 영문으로 표시
-  $('connLabel').textContent = agentOk ? (health.target || health.name) : 'Not connected';
+  // 서버에 닿지 못한 것(재연결 중)과 에이전트가 없는 것(Not connected)을 구분한다
+  $('connLabel').textContent = agentOk ? (health.target || health.name) : (!srvConnected || !health) ? 'Reconnecting…' : 'Not connected';
   $('agentPill').textContent = agentOk ? (logModel || agentName(health.command, health.target)) : 'No agent';
   pill.title = agentOk ? `Connected to ${health.target || health.name}${health.size ? ' · ' + health.size : ''} — click to switch`
     : !srvConnected ? 'Server unreachable — reconnecting'
@@ -2450,7 +2452,7 @@ async function updateDialog(open) {
   renderDialog();
   if (!dialogInfo) {
     try {
-      const s = await (await fetch('/api/screen')).json();
+      const s = await (await getJSON('/api/screen'));
       $('dlgcardBody').textContent = extractDialog(s.screen || '') || '(check the terminal)';
     } catch { $('dlgcardBody').textContent = '(check the terminal)'; }
   }
@@ -2521,9 +2523,31 @@ function extractDialog(screen) {
 }
 // 이 페이지가 로드된 시점의 빌드. 서버 값이 달라지면 열어 둔 탭이 옛 코드라는 뜻이다.
 let bootBuild = null;
+/* ---- 연결이 '끊기지 않고 멈추는' 경우 대비 ----
+   iPhone Safari는 화면이 꺼지거나 백그라운드로 가면 연결을 멈춘다. 돌아왔을 때 기존 연결이 반쯤 죽어 있으면
+   요청이 실패도 응답도 없이 영원히 기다린다 → 상단이 'Not connected'로 굳고 새로고침해야 풀렸다.
+   그래서 모든 조회에 시간 제한을 두고, 화면으로 돌아오면 바로 다시 묻고, 실시간 스트림이 조용하면 다시 붙는다. */
+async function getJSON(url, ms = 8000) {   // async — 동기 예외도 늘 비동기 거절로(부트스트랩 중 렌더 순서 보존)
+  return fetch(url, { cache: 'no-store', signal: AbortSignal.timeout ? AbortSignal.timeout(ms) : undefined }).then((r) => r.json());
+}
+let lastSseAt = Date.now(), healthInFlight = false;
+function restartStream() { clearTimeout(reconnectT); reconnectT = null; try { if (es) es.close(); } catch {} lastSseAt = Date.now(); connect(); }
+function resumeLink() {
+  if (document.hidden) return;
+  pollHealth();
+  if (Date.now() - lastSseAt > 20000) restartStream();          // 서버는 15초마다 ping — 20초 넘게 조용했으면 죽은 연결
+  if (!$('tmuxCfg').hidden) refreshTmuxCfg();
+}
+document.addEventListener('visibilitychange', resumeLink);
+window.addEventListener('pageshow', resumeLink);
+window.addEventListener('online', resumeLink);
+setInterval(() => { if (!document.hidden && Date.now() - lastSseAt > 40000) restartStream(); }, 10000);
+
 async function pollHealth() {
   if (!logTimer) pollLogSoon();
-  try { health = await (await fetch('/api/health')).json(); } catch { health = null; }
+  if (healthInFlight) return; healthInFlight = true;
+  try { health = await getJSON('/api/health', 6000); srvConnected = true; } catch { health = null; srvConnected = false; }
+  finally { healthInFlight = false; }
   // 서버가 기억한 내 세션이 지금 보는 원장과 다르면(다른 탭·기기에서 바꿈) 그 세션으로 갈아탄다
   if (health && health.target && streamTarget && health.target !== streamTarget) { switchStream(); return; }
   if (health && 'dialogInfo' in health && !dialogBusy) dialogInfo = health.dialogInfo;
@@ -2540,7 +2564,7 @@ loadMe();   // 앞단이 넘겨준 신원 → 아바타·작성자 표시 (없�
 const cfgPanel = $('tmuxCfg');
 async function refreshTmuxCfg() {
   const list = $('tmuxCfgList');
-  let d; try { d = await (await fetch('/api/config')).json(); } catch { list.innerHTML = '<div class="none">Load failed</div>'; return; }
+  let d; try { d = await (await getJSON('/api/config')); } catch { list.innerHTML = '<div class="none">Can\'t reach the server — retrying…</div>'; setTimeout(() => { if (!$('tmuxCfg').hidden) refreshTmuxCfg(); }, 3000); return; }
   const cur = d.target;
   // 이름 규칙 안내: 이 ANA의 세션(<ana>-claude, <ana>-codex …)만 목록에 뜬다
   const hint = cfgPanel.querySelector('.tmux-cfg-hint');
@@ -2609,7 +2633,7 @@ function renderLimits() {
 }
 async function pollLimits() {
   const t = health && health.target;
-  if (!document.hidden && logMode && t) { try { const d = await (await fetch(`/api/limits?target=${encodeURIComponent(t)}`)).json(); if (t === (health && health.target)) limits = d; } catch {} }
+  if (!document.hidden && logMode && t) { try { const d = await (await getJSON(`/api/limits?target=${encodeURIComponent(t)}`)); if (t === (health && health.target)) limits = d; } catch {} }
   renderLimits();
 }
 setInterval(pollLimits, 60000);
@@ -2748,7 +2772,7 @@ async function pollLog() {
   const next = () => { logTimer = setTimeout(pollLog, busy ? 900 : chatHidden() ? 5000 : 2000); };
   if (!target || logBusy) return next();
   logBusy = true;
-  let d; try { d = await (await fetch(`/api/agentlog?target=${encodeURIComponent(target)}&since=${logSession ? logRev : 0}`)).json(); } catch { d = null; }
+  let d; try { d = await (await getJSON(`/api/agentlog?target=${encodeURIComponent(target)}&since=${logSession ? logRev : 0}`)); } catch { d = null; }
   logBusy = false;
   if (!d || target !== (health && health.target)) return next();
   if (!d.available) {
@@ -2997,8 +3021,9 @@ function switchStream() {
 function connect() {
   const gen = streamGen;
   const stream = es = new EventSource('/api/stream' + (lastSeq ? `?since=${lastSeq}` : ''));
-  stream.onopen = () => { if (gen !== streamGen) return; backoff = 1000; srvConnected = true; renderStatus(); };
+  stream.onopen = () => { if (gen !== streamGen) return; lastSseAt = Date.now(); backoff = 1000; srvConnected = true; renderStatus(); };
   stream.onmessage = (e) => {
+    lastSseAt = Date.now();
     if (gen !== streamGen) return;            // 갈아탄 뒤 도착한 옛 스트림 이벤트는 버린다
     const d = JSON.parse(e.data);
     switch (d.kind) {
@@ -3072,7 +3097,7 @@ function renderWorkspaces() {
   else if (keepSel) $('wsList').querySelector(keepSel)?.focus();
 }
 async function loadWorkspaces() {
-  let d; try { d = await (await fetch('/api/workspaces')).json(); } catch { return; }
+  let d; try { d = await (await getJSON('/api/workspaces')); } catch { return; }
   workspaces = d.workspaces || [];
   if (wsDrag) return;                                             // 끌고 있는 중에는 목록을 갈아엎지 않는다
   const lost = currentWs && !wsById(currentWs);                   // 보던 워크스페이스가 다른 곳에서 삭제됨
@@ -3188,7 +3213,7 @@ refreshRequests();
 setInterval(async () => {
   if (document.hidden) return;
   const gen = streamGen;
-  let d; try { d = await (await fetch(`/api/feed?since=${lastSeq}`)).json(); } catch { return; }
+  let d; try { d = await (await getJSON(`/api/feed?since=${lastSeq}`)); } catch { return; }
   if (gen !== streamGen) return;
   if (d.target && streamTarget && d.target !== streamTarget) { switchStream(); return; }
   if (!srvConnected) { srvConnected = true; renderStatus(); }
