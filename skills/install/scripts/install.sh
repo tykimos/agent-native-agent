@@ -5,11 +5,11 @@
 #   공통             : Claude Code CLI (공식 설치 스크립트), ANA 저장소 clone(저장소 밖에서 실행한 경우)
 #   Windows(비 WSL) : 거부 — PowerShell에서 install-wsl.ps1을 먼저 실행하라고 안내
 # Usage: bash install.sh                       (저장소 안에서)
-#        ANA_DIR=~/ana/agent-native-agent bash install.sh   (clone 위치 지정)
+#        ANA_DIR=~/ana/my-ana bash install.sh   (clone 위치 지정 — ~/ana/<xxx>-ana, 폴더명이 ANA 이름)
 # Env:   ANA_REPO (기본 https://github.com/tykimos/agent-native-agent), ANA_DIR, SKIP_CLAUDE=1
 set -euo pipefail
 ANA_REPO=${ANA_REPO:-https://github.com/tykimos/agent-native-agent}
-ANA_DIR=${ANA_DIR:-$HOME/ana/agent-native-agent}
+ANA_DIR=${ANA_DIR:-$HOME/ana/base-ana}
 say() { printf '\033[36m[ana-install]\033[0m %s\n' "$*"; }
 die() { printf '\033[31m[ana-install]\033[0m %s\n' "$*" >&2; exit 1; }
 has() { command -v "$1" >/dev/null 2>&1; }

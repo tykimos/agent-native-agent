@@ -1,11 +1,11 @@
 # ANA on Windows — tmux는 Windows에서 네이티브로 돌지 않으므로 WSL(Ubuntu) 안에 설치한다.
 # PowerShell에서 실행:  powershell -ExecutionPolicy Bypass -File skills\install\scripts\install-wsl.ps1
 #   1) WSL이 없으면 설치(관리자 권한 필요) → 재부팅 후 다시 실행하라고 안내
-#   2) WSL이 있으면 배포판(기본 Ubuntu) 안에서 git 설치 → 저장소 clone(~/ana/agent-native-agent) → install.sh 실행
+#   2) WSL이 있으면 배포판(기본 Ubuntu) 안에서 git 설치 → 저장소 clone(~/ana/base-ana — 폴더명 <xxx>-ana가 ANA 이름) → install.sh 실행
 param(
   [string]$Distro = "Ubuntu",
   [string]$Repo = "https://github.com/tykimos/agent-native-agent",
-  [string]$Dir = "~/ana/agent-native-agent"
+  [string]$Dir = "~/ana/base-ana"
 )
 $ErrorActionPreference = "Stop"
 function Say($m) { Write-Host "[ana-install] $m" -ForegroundColor Cyan }
@@ -40,4 +40,6 @@ bash "`$D/skills/install/scripts/run.sh" start
 $bash = $bash -replace "`r", ""   # CRLF로 체크아웃돼도 bash가 깨지지 않게
 wsl.exe -d $Distro -- bash -lc $bash
 Say "Open http://localhost:8809 (or the port printed above) in your Windows browser."
-Say "Agent login: wsl -d $Distro -- tmux attach -t ana   (detach with Ctrl-b d)"
+# 에이전트 세션 = <폴더명>-claude (폴더명이 -ana로 끝나지 않으면 base-ana-claude) — run.sh와 같은 규칙
+$Name = ($Dir -split '[\\/]')[-1]; if ($Name -notmatch '^.+-ana$') { $Name = "base-ana" }
+Say "Agent login: wsl -d $Distro -- tmux attach -t $Name-claude   (detach with Ctrl-b d)"

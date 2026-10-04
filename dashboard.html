@@ -2542,7 +2542,10 @@ async function refreshTmuxCfg() {
   const list = $('tmuxCfgList');
   let d; try { d = await (await fetch('/api/config')).json(); } catch { list.innerHTML = '<div class="none">Load failed</div>'; return; }
   const cur = d.target;
-  if (!d.sessions || !d.sessions.length) { list.innerHTML = '<div class="none">No running agents — start one in a terminal first</div>'; return; }
+  // 이름 규칙 안내: 이 ANA의 세션(<ana>-claude, <ana>-codex …)만 목록에 뜬다
+  const hint = cfgPanel.querySelector('.tmux-cfg-hint');
+  if (hint && d.ana) hint.textContent = `Each session keeps its own chat history. Start an agent in tmux as ${d.ana}-claude (or ${d.ana}-codex, ${d.ana}-<any>) to see it here.`;
+  if (!d.sessions || !d.sessions.length) { list.innerHTML = `<div class="none">No running agents — start one in a terminal first${d.ana ? `: tmux new -s ${escapeHtml(d.ana)}-claude` : ''}</div>`; return; }
   // 사람 키 → 표시 이름('local'·내 키는 You)
   const who = (k) => (k === d.you ? 'You' : k === 'local' ? 'Local' : displayName(k));
   list.innerHTML = d.sessions.map((s) => {

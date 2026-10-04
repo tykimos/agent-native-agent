@@ -60,8 +60,11 @@ else warn repo "not inside the ANA repo — install.sh will clone it"; fi
 if (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null; then warn port "$PORT is in use — run.sh will pick the next free port"
 else ok port "$PORT free"; fi
 
-if command -v tmux >/dev/null && tmux has-session -t "${TMUX_SESSION:-ana}" 2>/dev/null; then
-  warn session "tmux session '${TMUX_SESSION:-ana}' already exists (run.sh reuses it)"
+# 기본 세션 = <폴더명>-claude (폴더명이 -ana로 끝나지 않으면 base-ana-claude) — run.sh와 같은 규칙
+ANA=$(basename "${HERE:-}"); case "$ANA" in ?*-ana) ;; *) ANA=base-ana ;; esac; ANA=${ANA_NAME:-$ANA}
+SESS=${TMUX_SESSION:-$ANA-claude}
+if command -v tmux >/dev/null && tmux has-session -t "=$SESS" 2>/dev/null; then
+  warn session "tmux session '$SESS' already exists (run.sh reuses it)"
 fi
 
 echo

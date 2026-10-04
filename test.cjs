@@ -526,6 +526,27 @@ t('D3 앵커 정렬은 화면 유래 항목만 사용 (src:api 리치 항목이 
   assert.equal(srv.matchesRunInFeed([{ role: 'user', text: 'q1' }, { role: 'assistant', text: 'a1' }]), true);
 });
 
+t('N1 이름 규칙: 폴더 <xxx>-ana → ANA 이름, 기본 세션 <이름>-claude, ANA_NAME·TMUX_SESSION 우선', () => {
+  const core = require('./channel-core.js');
+  assert.equal(core.anaNameOf('/home/u/ana/base-ana', {}), 'base-ana');
+  assert.equal(core.anaNameOf('/ana/sales-team-ana', {}), 'sales-team-ana');      // xxx 안의 하이픈 허용
+  assert.equal(core.anaNameOf('/home/u/agent-native-agent', {}), 'base-ana');     // -ana로 안 끝나면 샘플 이름
+  assert.equal(core.anaNameOf('/ana', {}), 'base-ana');                           // 'ana' 자체는 xxx가 비어 규칙 밖
+  assert.equal(core.anaNameOf('/x/agent-native-agent', { ANA_NAME: 'my-ana' }), 'my-ana');
+  assert.equal(core.defaultSession('/ana/sales-team-ana', {}), 'sales-team-ana-claude');
+  assert.equal(core.defaultSession('/ana/sales-team-ana', { TMUX_SESSION: 'ana' }), 'ana');   // 기존 배포 호환
+  assert.equal(core.resolveTarget(path.join(SCRATCH, 'demo-x-ana'), {}), 'demo-x-ana-claude');
+  assert.equal(core.resolveTarget(path.join(SCRATCH, 'demo-x-ana'), { ANA_PANE_ID: '%7' }), '%7');
+});
+
+t('N2 세션 목록 규칙: <이름>-<yyy>만(yyy 비어 있지 않음, 하이픈 허용)', () => {
+  const { isAnaSession } = require('./channel-core.js');
+  for (const n of ['base-ana-claude', 'base-ana-codex', 'base-ana-review-2']) assert.ok(isAnaSession(n, 'base-ana'), n);
+  for (const n of ['base-ana', 'base-ana-', 'base-anax-claude', 'srv-base-ana-claude', 'ana', 'unrelated', 'das-ana-cc']) assert.ok(!isAnaSession(n, 'base-ana'), n);
+  assert.ok(isAnaSession('sales-team-ana-codex', 'sales-team-ana'));
+  assert.ok(!isAnaSession('base-ana-claude', ''));
+});
+
 // ============================================================ Part B: 통합
 async function integration() {
   console.log('\n[Part B] 통합 테스트 (tmux ana-selftest + mock_agent.py + :8811)');
@@ -875,6 +896,10 @@ async function integration() {
       const f4 = await (await fetch(`${api}/api/feed`)).json();
       assert.equal(f4.target, orig); assert.equal(f4.total, before, '되돌리면 원래 세션 이력이 그대로');
       assert.equal((await post('/api/config', { target: 'bad target!' })).status, 400);
+      // 세션 목록: 연결된 세션(규칙 밖 이름인 테스트 세션)은 남고, 나머지는 <ana>-<yyy>만
+      const cfg = await (await fetch(`${api}/api/config`)).json();
+      assert.ok(cfg.ana && cfg.sessions.some((x) => x.name === orig), '연결된 세션은 규칙 밖이어도 목록에 남는다');
+      assert.ok(cfg.sessions.every((x) => x.name === orig || x.name.startsWith(`${cfg.ana}-`)), `규칙 밖 세션이 섞임: ${cfg.sessions.map((x) => x.name)}`);
     });
 
     await ta('I13 draft 가드: 터미널 입력창에 미제출 텍스트 있으면 /api/chat 409 (맨 마지막 — 입력 박스가 화면에 남음)', async () => {

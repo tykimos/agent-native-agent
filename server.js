@@ -3,8 +3,9 @@
 // Assembles the channel core (channel-core.js: tmux inject/mirror/ledger) with a dashboard API
 // (dashboard-api.js). No MCP, no channel plugin, no bridge, no hooks, no launcher script.
 //
-//   Launch:  tmux new -s ana      # inside it: run `claude` (or any coding-agent CLI)
-//            node server.js        # → http://localhost:8809
+//   Install: git clone … ~/ana/base-ana   # 폴더 ~/ana/<xxx>-ana → ANA 이름 <xxx>-ana
+//   Launch:  tmux new -s base-ana-claude   # inside it: run `claude` (or any coding-agent CLI)
+//            node server.js                # → http://localhost:8809
 //
 // The agent posts rich responses with curl (optional — plain replies mirror automatically):
 //   curl -s -X POST localhost:8809/api/agent -H 'content-type: application/json' \
@@ -27,7 +28,8 @@ const ROOT = __dirname;
 const env = process.env;
 const PORT = Number(env.PORT || 8809);
 const BIND = env.BIND || '127.0.0.1';
-const SESSION = env.TMUX_SESSION || 'ana';           // `tmux new -s ana`
+const ANA_NAME = core.anaNameOf(ROOT, env);         // 폴더명 <xxx>-ana(아니면 base-ana), ANA_NAME으로 덮어씀
+const SESSION = core.defaultSession(ROOT, env);      // TMUX_SESSION || `<ANA_NAME>-claude`
 const SOCKET = env.TMUX_SOCKET || '';                 // default tmux socket (simple). Set TMUX_SOCKET for isolation.
 const TARGET = core.resolveTarget(ROOT, env);
 const DATA_DIR = env.ANA_DATA_DIR || path.join(ROOT, '.ana'); // runtime state (git-ignored)
@@ -54,7 +56,8 @@ const apiOpts = {
   LOGOUT_URL: env.ANA_LOGOUT_URL || '',
 };
 const opts = {
-  ROOT, PORT, BIND, SESSION, SOCKET, TARGET,
+  ROOT, PORT, BIND, SESSION, SOCKET, TARGET, ANA_NAME,
+  TMUX_ALL: env.ANA_TMUX_ALL === '1',                 // 채팅 세션 목록에 <ANA_NAME>-* 밖의 tmux 세션도 보이기
   HISTORY_LINES: Number(env.HISTORY_LINES || 10000),
   MAX_TEXT: apiOpts.MAX_TEXT,
   POLL_MS: Number(env.POLL_MS || 300),
@@ -90,7 +93,7 @@ if (env.ANA_TEST) {
   api.bootstrap(app.ch.feed);
   app.listen(() => {
     const host = BIND === '0.0.0.0' ? 'localhost' : BIND;
-    console.log(`\nANA → http://${host}:${PORT}   (tmux target: ${TARGET})`);
+    console.log(`\nANA → http://${host}:${PORT}   (ana: ${ANA_NAME}, tmux target: ${TARGET})`);
     console.log(`Run your agent in tmux first:  tmux new -s ${SESSION}   then inside it:  claude`);
     if (BIND === '0.0.0.0') console.error('[ana] warning: 0.0.0.0 bind — trusted network only (no auth).');
   });

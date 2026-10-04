@@ -89,10 +89,10 @@ flowchart TB
 **[`install` 스킬](skills/install/SKILL.md)** 하나로 빈 머신에서 대시보드가 뜨는 데까지 갑니다. 먼저 환경을 분석하고, 빠진 것(Node ≥ 24, tmux, git, curl, Claude Code)과 npm 의존성만 설치한 뒤, 에이전트와 서버를 tmux로 띄우고 응답을 확인합니다. 모든 스크립트는 여러 번 실행해도 안전합니다.
 
 ```bash
-git clone https://github.com/tykimos/agent-native-agent && cd agent-native-agent
+git clone https://github.com/tykimos/agent-native-agent ~/ana/base-ana && cd ~/ana/base-ana
 bash skills/install/scripts/check-env.sh   # 1) 환경 분석 — 보고만 하고 아무것도 바꾸지 않음
 bash skills/install/scripts/install.sh     # 2) 빠진 것만 설치 (brew / apt / dnf / pacman …)
-bash skills/install/scripts/run.sh         # 3) tmux "ana"(에이전트) + "ana-server"(서버) → URL 출력
+bash skills/install/scripts/run.sh         # 3) tmux "base-ana-claude"(에이전트) + "srv-base-ana-claude"(서버) → URL 출력
 bash skills/install/scripts/run.sh status  #    이후: status | stop | restart
 ```
 
@@ -100,7 +100,7 @@ bash skills/install/scripts/run.sh status  #    이후: status | stop | restart
 |---|---|
 | `check-env.sh` | macOS / Linux / WSL / Git Bash를 판별하고 node·tmux·git·curl·claude·저장소 위치·포트를 점검. 마지막 줄에 `ANA_ENV … ready=yes\|no` |
 | `install.sh` | 빠진 것만 설치(macOS는 Homebrew, Linux/WSL은 시스템 패키지 관리자 + NodeSource)하고 Claude Code CLI 설치, 저장소 밖에서 실행하면 clone까지 |
-| `run.sh` | tmux 세션을 띄우거나 재사용, 8809가 사용 중이면 빈 포트를 고르고 응답 확인. `TMUX_SESSION`·`PORT`·`AGENT_CMD`로 변경 가능 |
+| `run.sh` | tmux 세션을 띄우거나 재사용, 8809가 사용 중이면 빈 포트를 고르고 응답 확인. `ANA_NAME`·`TMUX_SESSION`·`PORT`·`AGENT_CMD`로 변경 가능 |
 | `install-wsl.ps1` | **Windows:** tmux는 WSL 안에서만 동작합니다. WSL + Ubuntu를 설치(재부팅 후 다시 실행)한 뒤 WSL 안에서 ANA를 설치·실행. Windows 브라우저에서 `http://localhost:8809`로 접속 |
 
 ```powershell
@@ -108,22 +108,29 @@ bash skills/install/scripts/run.sh status  #    이후: status | stop | restart
 powershell -ExecutionPolicy Bypass -File skills\install\scripts\install-wsl.ps1
 ```
 
-Claude Code에 스킬이 설치돼 있으면(이 저장소는 플러그인입니다) *"ANA 설치해줘"* 라고만 하면 됩니다. 에이전트가 같은 단계를 수행하고, 최초 1회 Claude 로그인(`tmux attach -t ana` → `Ctrl-b d`로 빠져나오기)이 필요할 때 알려 줍니다.
+Claude Code에 스킬이 설치돼 있으면(이 저장소는 플러그인입니다) *"ANA 설치해줘"* 라고만 하면 됩니다. 에이전트가 같은 단계를 수행하고, 최초 1회 Claude 로그인(`tmux attach -t base-ana-claude` → `Ctrl-b d`로 빠져나오기)이 필요할 때 알려 줍니다.
 
 ### 수동 실행
 
 ```bash
-git clone https://github.com/tykimos/agent-native-agent
-cd agent-native-agent
+git clone https://github.com/tykimos/agent-native-agent ~/ana/base-ana
+cd ~/ana/base-ana
 
 # 1) tmux 안에서 코딩 에이전트를 먼저 띄웁니다
-tmux new -s ana          # 세션 안에서 실행:  claude   (또는 아무 에이전트 CLI)
+tmux new -s base-ana-claude   # 세션 안에서 실행:  claude   (또는 아무 에이전트 CLI)
 
 # 2) 다른 터미널에서 ANA 서버를 띄웁니다
 node server.js           # → http://localhost:8809
 ```
 
 **http://localhost:8809**을 열고 채팅 버튼을 누르세요. 서버는 **별도 실행 스크립트가 필요 없습니다**(`run.sh`는 편의용). 연결할 때 tmux 페인을 스스로 설정합니다(스크롤백 보존). 런타임 상태는 `.ana/`에 저장됩니다(git 제외). 처음 실행하면 작은 예제 흐름 두 개가 들어 있습니다(`ANA_SEED=0`이면 빈 보드로 시작).
+
+### 이름 규칙
+
+- **폴더 → ANA 이름.** 모든 ANA는 `~/ana/<xxx>-ana`(또는 `/ana/<xxx>-ana`)에 설치하고, 그 폴더명이 ANA의 이름입니다. `<xxx>`에는 하이픈이 들어가도 됩니다(`~/ana/sales-team-ana` → `sales-team-ana`). 샘플은 `~/ana/base-ana`이고, 폴더명이 `-ana`로 끝나지 않으면 `base-ana`로 간주합니다.
+- **tmux → `<xxx>-ana-<yyy>`.** 에이전트 세션은 ANA 이름 뒤에 에이전트 라벨을 붙입니다: `base-ana-claude`, `base-ana-codex`, 또는 하이픈이 들어간 아무 라벨(`base-ana-review-2`). 기본 세션은 `<xxx>-ana-claude`입니다.
+- **채팅의 세션 목록.** 채팅의 세션 선택 목록에는 이 ANA의 `<xxx>-ana-<yyy>` 세션(과 지금 연결된 세션)만 보입니다. `run.sh`의 서버 세션은 `srv-…`로 이름 지어 목록에 뜨지 않습니다.
+- **덮어쓰기.** `ANA_NAME`은 이름을, `TMUX_SESSION`은 기본 세션을 지정하고(기존 배포는 그대로 동작), `ANA_TMUX_ALL=1`이면 모든 tmux 세션을 보여 줍니다.
 
 ---
 
@@ -231,7 +238,7 @@ const path = require('node:path');
 const core = require('./channel-core.js');
 const app = core.createChannelServer({
   PORT: 8809, BIND: '127.0.0.1',
-  SESSION: process.env.TMUX_SESSION || 'ana',
+  SESSION: core.defaultSession(__dirname, process.env),   // TMUX_SESSION || <ANA 이름>-claude
   SOCKET: process.env.TMUX_SOCKET || '',
   TARGET: core.resolveTarget(__dirname, process.env),
   FEED_FILE: path.join(__dirname, '.ana', 'transcript.jsonl'),

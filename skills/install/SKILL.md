@@ -9,18 +9,20 @@ ANA needs three things at runtime: **Node ≥ 24**, **tmux**, and a **coding-age
 
 ```
 check-env.sh ──► install.sh ──► run.sh start ──► http://localhost:8809
- (report only)    (missing only,     tmux "ana"         (dashboard)
-                   idempotent)       tmux "ana-server"
+ (report only)    (missing only,     tmux "base-ana-claude"      (dashboard)
+                   idempotent)       tmux "srv-base-ana-claude"
 Windows: install-wsl.ps1 ──► WSL Ubuntu ──► install.sh + run.sh (inside WSL)
 ```
 
 All scripts live in `skills/install/scripts/`, and every one is safe to re-run.
 
+**Naming convention.** Every ANA lives in `~/ana/<xxx>-ana` (or `/ana/<xxx>-ana`); that folder name is the ANA's name (`<xxx>` may contain hyphens). The sample is `~/ana/base-ana`. Agent tmux sessions are `<xxx>-ana-<yyy>` (`yyy` = `claude`, `codex`, or any hyphenated label), and only those appear in the chat's session list. A folder that doesn't end in `-ana` (e.g. a plain `git clone` into `agent-native-agent`) falls back to the name `base-ana`. Overrides: `ANA_NAME`, `TMUX_SESSION`, `ANA_TMUX_ALL=1` (list every tmux session).
+
 | Script | Does | Changes the machine? |
 |---|---|---|
 | `check-env.sh [PORT]` | Reports platform, package manager, node/tmux/git/curl/claude, repo location, port, existing session. Last line: `ANA_ENV platform=… missing=… ready=yes\|no` | No |
 | `install.sh` | Installs only what's missing, installs Claude Code, clones the repo if run outside it | Yes (asks for sudo/brew) |
-| `run.sh [start\|stop\|status\|restart]` | Starts the agent in tmux `ana` and the server in tmux `ana-server`, picks a free port, health-checks | Starts processes only |
+| `run.sh [start\|stop\|status\|restart]` | Starts the agent in tmux `<name>-claude` and the server in tmux `srv-<name>-claude`, picks a free port, health-checks | Starts processes only |
 | `install-wsl.ps1` | Windows PowerShell: installs WSL + Ubuntu if absent, otherwise runs install + run inside WSL | Yes (Windows features) |
 
 ## Workflow (follow in order)
@@ -58,7 +60,7 @@ bash skills/install/scripts/install.sh
 | Arch / openSUSE / Alpine | `pacman` / `zypper` / `apk` |
 | All | Claude Code via `curl -fsSL https://claude.ai/install.sh \| bash` (skip with `SKIP_CLAUDE=1` if you use another agent CLI) |
 
-The script needs `sudo` (Linux) or your password (Homebrew). This is interactive: if you are an agent running it, tell the user it will prompt, or have them run it with `! bash skills/install/scripts/install.sh`. Outside the repo it clones into `ANA_DIR` (default `~/ana/agent-native-agent`; override `ANA_REPO` / `ANA_DIR`). Re-run `check-env.sh` afterwards; it must say `ready=yes`.
+The script needs `sudo` (Linux) or your password (Homebrew). This is interactive: if you are an agent running it, tell the user it will prompt, or have them run it with `! bash skills/install/scripts/install.sh`. Outside the repo it clones into `ANA_DIR` (default `~/ana/base-ana`; override `ANA_REPO` / `ANA_DIR`, keeping the `~/ana/<xxx>-ana` form). Re-run `check-env.sh` afterwards; it must say `ready=yes`.
 
 ### 3. Run
 
@@ -68,10 +70,10 @@ bash skills/install/scripts/run.sh status     # agent/server sessions + URL + he
 bash skills/install/scripts/run.sh stop
 ```
 
-- The agent runs in tmux `ana` (the `claude` command), and the server runs in tmux `ana-server` (`PORT=… TMUX_SESSION=ana node server.js`).
+- The agent runs in tmux `<name>-claude` (the `claude` command; `base-ana-claude` for `~/ana/base-ana`), and the server runs in tmux `srv-<name>-claude` (`PORT=… ANA_NAME=<name> TMUX_SESSION=<name>-claude node server.js`). The `srv-` prefix keeps the server out of the chat's session list. A server still running under the old name `<session>-server` is reused.
 - If 8809 is busy, the next free port is used. `status` prints the real URL.
-- Env overrides: `TMUX_SESSION=name` (for several ANAs side by side), `PORT`, `AGENT_CMD="codex"` (any agent CLI), `BIND`.
-- **First run:** Claude Code needs a one-time login and a folder-trust confirmation. Tell the user to run `tmux attach -t ana`, finish it, then detach with `Ctrl-b d`. Until then the dashboard loads but the agent can't answer.
+- Env overrides: `ANA_NAME`, `TMUX_SESSION=name`, `PORT`, `AGENT_CMD="codex"` (any agent CLI), `BIND`. A second agent for the same ANA: `AGENT_CMD=codex TMUX_SESSION=base-ana-codex bash run.sh`.
+- **First run:** Claude Code needs a one-time login and a folder-trust confirmation. Tell the user to run `tmux attach -t base-ana-claude` (or `<name>-claude`), finish it, then detach with `Ctrl-b d`. Until then the dashboard loads but the agent can't answer.
 
 ### 4. Verify, then hand off
 
@@ -79,7 +81,7 @@ bash skills/install/scripts/run.sh stop
 
 1. **Open the dashboard:** `http://localhost:<port>`
 2. **Chat:** the chat icon (bottom right) is always there. Turn on **Chip** (top right) to click dashboard elements into context chips.
-3. **Watch the agent directly:** `tmux attach -t ana`
+3. **Watch the agent directly:** `tmux attach -t base-ana-claude`
 
 ## Windows (WSL)
 
@@ -90,19 +92,19 @@ tmux does not run natively on Windows. ANA runs **inside WSL**, and the Windows 
    powershell -ExecutionPolicy Bypass -File skills\install\scripts\install-wsl.ps1
    ```
 2. If WSL/Ubuntu isn't installed yet, the script runs `wsl --install -d Ubuntu`. **Reboot if asked**, open "Ubuntu" from the Start menu once to create the Linux user, then **run the script again**. No admin is needed the second time.
-3. On the second run it goes into Ubuntu, installs git, clones the repo into `~/ana/agent-native-agent` (the Linux home, not `/mnt/c`), runs `install.sh`, then `run.sh start`.
-4. Open `http://localhost:8809` in the Windows browser. Log the agent in with `wsl -d Ubuntu -- tmux attach -t ana`.
+3. On the second run it goes into Ubuntu, installs git, clones the repo into `~/ana/base-ana` (the Linux home, not `/mnt/c`), runs `install.sh`, then `run.sh start`.
+4. Open `http://localhost:8809` in the Windows browser. Log the agent in with `wsl -d Ubuntu -- tmux attach -t base-ana-claude`.
 
 Manual equivalent (already inside an Ubuntu/WSL shell):
 
 ```bash
 sudo apt-get update && sudo apt-get install -y git curl
-git clone https://github.com/tykimos/agent-native-agent ~/ana/agent-native-agent
-cd ~/ana/agent-native-agent
+git clone https://github.com/tykimos/agent-native-agent ~/ana/base-ana
+cd ~/ana/base-ana
 bash skills/install/scripts/install.sh && bash skills/install/scripts/run.sh
 ```
 
-Parameters: `-Distro Ubuntu-24.04`, `-Repo <fork url>`, `-Dir ~/somewhere`.
+Parameters: `-Distro Ubuntu-24.04`, `-Repo <fork url>`, `-Dir ~/ana/<xxx>-ana`.
 
 WSL notes:
 - Keep the repo in the Linux filesystem (`~`). Under `/mnt/c/...` file I/O is slow and `check-env.sh` warns about it.
@@ -116,10 +118,10 @@ WSL notes:
 | `tmux: command not found` | Run `install.sh`. On Windows you must be inside WSL. |
 | `node` too old (< 24) | `install.sh` upgrades via NodeSource/brew. With nvm: `nvm install 24`. |
 | `claude: command not found` right after install | New PATH not loaded: `export PATH="$HOME/.local/bin:$PATH"` or open a new shell. |
-| Dashboard loads but the agent never replies | Agent not logged in or stuck on the trust prompt: `tmux attach -t ana`. |
+| Dashboard loads but the agent never replies | Agent not logged in or stuck on the trust prompt: `tmux attach -t base-ana-claude`. |
 | Port already in use | Another ANA or app. `run.sh` picks the next port. Read it from `run.sh status`. |
-| Want two ANAs on one machine | `TMUX_SESSION=ana2 bash run.sh`: separate tmux sessions, next free port. |
-| Server crashed | `tmux attach -t ana-server` to read the error, then `run.sh restart`. |
+| Want two ANAs on one machine | Clone a second folder `~/ana/<other>-ana` and run its `run.sh`: separate tmux sessions (`<other>-ana-claude`), next free port. |
+| Server crashed | `tmux attach -t srv-base-ana-claude` to read the error, then `run.sh restart`. |
 | Server must be reachable from other devices | `BIND=0.0.0.0` has **no auth**. Use a trusted network only, or put it behind a gateway (see the `cloud-setting` skill for Cloudflare Tunnel). |
 
 ## Related skills

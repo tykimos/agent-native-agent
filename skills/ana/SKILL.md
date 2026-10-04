@@ -29,7 +29,7 @@ const path = require('node:path');
 const core = require('./channel-core.js');
 const app = core.createChannelServer({
   PORT: 8809, BIND: '127.0.0.1',
-  SESSION: process.env.TMUX_SESSION || 'ana',
+  SESSION: core.defaultSession(__dirname, process.env),   // TMUX_SESSION || <ANA name>-claude
   SOCKET: process.env.TMUX_SOCKET || '',          // default tmux socket
   TARGET: core.resolveTarget(__dirname, process.env),
   FEED_FILE: path.join(__dirname, '.ana', 'transcript.jsonl'),
@@ -53,9 +53,11 @@ app.listen(() => console.log('ANA → http://localhost:8809'));
 ## Run
 
 ```bash
-tmux new -s ana        # inside it, start your agent:  claude
-node server.js         # → http://localhost:8809 , open in a browser
+tmux new -s base-ana-claude   # inside it, start your agent:  claude
+node server.js                # → http://localhost:8809 , open in a browser
 ```
+
+Session name = `<ANA name>-claude`. The ANA name is your project folder when it is `<xxx>-ana` (e.g. `~/ana/shop-ana` → `shop-ana-claude`), otherwise `base-ana`. The chat's session list shows only `<ANA name>-<yyy>` sessions (`-codex`, `-review`, …); `ANA_NAME`, `TMUX_SESSION` and `ANA_TMUX_ALL=1` override.
 
 That's it — type in the page, the agent answers in the page.
 

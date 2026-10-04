@@ -89,10 +89,10 @@ There is **no bridge and no MCP**. The browser posts to the server, the server i
 The **[`install` skill](skills/install/SKILL.md)** takes a fresh machine to a running dashboard. It checks the environment first, installs only what's missing (Node ≥ 24, tmux, git, curl, Claude Code) plus the npm dependency, then starts the agent and the server in tmux and health-checks them. Every script is safe to re-run.
 
 ```bash
-git clone https://github.com/tykimos/agent-native-agent && cd agent-native-agent
+git clone https://github.com/tykimos/agent-native-agent ~/ana/base-ana && cd ~/ana/base-ana
 bash skills/install/scripts/check-env.sh   # 1) analyze — reports only, changes nothing
 bash skills/install/scripts/install.sh     # 2) install what's missing (brew / apt / dnf / pacman …)
-bash skills/install/scripts/run.sh         # 3) tmux "ana" (agent) + "ana-server" (server) → URL printed
+bash skills/install/scripts/run.sh         # 3) tmux "base-ana-claude" (agent) + "srv-base-ana-claude" (server) → URL printed
 bash skills/install/scripts/run.sh status  #    later: status | stop | restart
 ```
 
@@ -100,7 +100,7 @@ bash skills/install/scripts/run.sh status  #    later: status | stop | restart
 |---|---|
 | `check-env.sh` | Detects macOS / Linux / WSL / Git Bash and checks node, tmux, git, curl, claude, repo location and port. Ends with `ANA_ENV … ready=yes\|no` |
 | `install.sh` | Installs only what's missing (Homebrew on macOS, the system package manager + NodeSource on Linux/WSL) plus the Claude Code CLI, and clones the repo if run outside it |
-| `run.sh` | Starts or reuses the tmux sessions, picks a free port when 8809 is taken, runs a health check. `TMUX_SESSION`, `PORT` and `AGENT_CMD` override the defaults |
+| `run.sh` | Starts or reuses the tmux sessions, picks a free port when 8809 is taken, runs a health check. `ANA_NAME`, `TMUX_SESSION`, `PORT` and `AGENT_CMD` override the defaults |
 | `install-wsl.ps1` | **Windows:** tmux only runs inside WSL. This installs WSL + Ubuntu (reboot, run again), then installs and starts ANA inside WSL. Open `http://localhost:8809` from the Windows browser |
 
 ```powershell
@@ -108,22 +108,29 @@ bash skills/install/scripts/run.sh status  #    later: status | stop | restart
 powershell -ExecutionPolicy Bypass -File skills\install\scripts\install-wsl.ps1
 ```
 
-With the skill installed in Claude Code (this repo is a plugin), just ask: *"install ANA"* / *"ANA 설치해줘"*. The agent runs the same steps and tells you when to finish the one-time Claude login (`tmux attach -t ana`, detach with `Ctrl-b d`).
+With the skill installed in Claude Code (this repo is a plugin), just ask: *"install ANA"* / *"ANA 설치해줘"*. The agent runs the same steps and tells you when to finish the one-time Claude login (`tmux attach -t base-ana-claude`, detach with `Ctrl-b d`).
 
 ### Manual run
 
 ```bash
-git clone https://github.com/tykimos/agent-native-agent
-cd agent-native-agent
+git clone https://github.com/tykimos/agent-native-agent ~/ana/base-ana
+cd ~/ana/base-ana
 
 # 1) start your coding agent inside tmux
-tmux new -s ana          # inside the session, run:  claude   (or any agent CLI)
+tmux new -s base-ana-claude   # inside the session, run:  claude   (or any agent CLI)
 
 # 2) in another terminal, start ANA
 node server.js           # → http://localhost:8809
 ```
 
 Open **http://localhost:8809** and tap the chat button. The server needs **no launcher** (`run.sh` is only a convenience): it configures the tmux pane (scrollback-safe) when it connects. Runtime state lives in `.ana/` (git-ignored). On first run the board is seeded with two small example flows (`ANA_SEED=0` to start empty).
+
+### Naming convention
+
+- **Folder → ANA name.** Every ANA lives in `~/ana/<xxx>-ana` (or `/ana/<xxx>-ana`), and that folder name is the ANA's name. `<xxx>` may contain hyphens (`~/ana/sales-team-ana` → `sales-team-ana`). The sample is `~/ana/base-ana`; a folder that doesn't end in `-ana` falls back to `base-ana`.
+- **tmux → `<xxx>-ana-<yyy>`.** Agent sessions are named after the ANA plus an agent label: `base-ana-claude`, `base-ana-codex`, or any hyphenated label (`base-ana-review-2`). The default session is `<xxx>-ana-claude`.
+- **Chat session list.** The chat's session picker shows only this ANA's `<xxx>-ana-<yyy>` sessions (plus the one it is connected to). `run.sh` names its server session `srv-…`, so it stays out of the list.
+- **Overrides.** `ANA_NAME` sets the name, `TMUX_SESSION` sets the default session (existing deployments keep working), `ANA_TMUX_ALL=1` lists every tmux session.
 
 ---
 
@@ -228,7 +235,7 @@ const path = require('node:path');
 const core = require('./channel-core.js');
 const app = core.createChannelServer({
   PORT: 8809, BIND: '127.0.0.1',
-  SESSION: process.env.TMUX_SESSION || 'ana',
+  SESSION: core.defaultSession(__dirname, process.env),   // TMUX_SESSION || <ANA name>-claude
   SOCKET: process.env.TMUX_SOCKET || '',
   TARGET: core.resolveTarget(__dirname, process.env),
   FEED_FILE: path.join(__dirname, '.ana', 'transcript.jsonl'),

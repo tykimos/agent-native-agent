@@ -500,7 +500,8 @@ const MIME = {
 // ---------- 채널 서버 빌더 ----------
 // opts: { PORT, BIND, SESSION, SOCKET, TARGET, HISTORY_LINES, MAX_TEXT, POLL_MS, FEED_FILE, ROOT,
 //         SERVABLE(Set), defaultDoc, readyGuard, extraApi(req,res,url,ctx)->bool|Promise<bool>,
-//         snapshotExtra()->obj, testMode, userKey(req)->string, TARGETS_FILE, IDLE_MS }
+//         snapshotExtra()->obj, testMode, userKey(req)->string, TARGETS_FILE, IDLE_MS,
+//         ANA_NAME(기본: ROOT 폴더명 규칙), TMUX_ALL(true면 세션 목록을 거르지 않음) }
 //
 // 세션별 러너: tmux 타깃(세션/팬)마다 원장·폴 상태·SSE 구독자·주입 큐를 따로 둔다. 세션을 바꾸면 그 세션의
 // 대화 이력이 통째로 보이고, 두 사람이 서로 다른 세션을 동시에 볼 수 있다.
@@ -518,6 +519,9 @@ function createChannelServer(opts) {
     READY_TIMEOUT = Number(process.env.ANA_READY_TIMEOUT || 5000),
   } = opts;
   const DEFAULT_TARGET = opts.TARGET;
+  // 세션 목록은 이 ANA의 세션(<ANA_NAME>-<yyy>)만 보여 준다. ANA_TMUX_ALL=1이면 전부.
+  const ANA_NAME = opts.ANA_NAME || anaNameOf(ROOT, process.env);
+  const TMUX_ALL = opts.TMUX_ALL !== undefined ? !!opts.TMUX_ALL : process.env.ANA_TMUX_ALL === '1';
   const FEED_DIR = path.dirname(opts.FEED_FILE);
   const TARGETS_FILE = opts.TARGETS_FILE || path.join(FEED_DIR, 'targets.json');
   const IDLE_MS = Number(opts.IDLE_MS || 10 * 60 * 1000);   // 보는 사람 없는 비기본 세션은 이 시간 뒤 폴 중단
@@ -844,7 +848,7 @@ function createChannelServer(opts) {
           command = (await tmux(['display-message', '-p', '-t', r.target, '#{pane_current_command}'])).trim();
           size = (await tmux(['display-message', '-p', '-t', r.target, '#{pane_width}x#{pane_height}'])).trim();
         }
-        const base = { server: true, session: alive, name: SESSION, target: r.target, you: keyOf(req), command, size, ready: r.lastReady, dialog: r.lastDialog, dialogInfo: r.dialogInfo, messages: feed.length, busy: r.lastBusy, build: buildId() };
+        const base = { server: true, session: alive, name: SESSION, ana: ANA_NAME, target: r.target, you: keyOf(req), command, size, ready: r.lastReady, dialog: r.lastDialog, dialogInfo: r.dialogInfo, messages: feed.length, busy: r.lastBusy, build: buildId() };
         return sendJson(res, 200, snapshotExtra ? { ...base, ...snapshotExtra() } : base);
       }
 
@@ -855,6 +859,12 @@ function createChannelServer(opts) {
           const out = await tmux(['list-sessions', '-F', '#{session_name}\t#{session_windows}\t#{?session_attached,attached,}\t#{session_activity}']);
           sessions = out.trim().split('\n').filter(Boolean).map((l) => { const [name, windows, attached, activity] = l.split('\t'); return { name, windows: Number(windows) || 1, attached: !!attached, activity: Number(activity) || 0 }; });
         } catch {}
+        // 이름 규칙에 맞는 세션만. 지금 연결된·기본 세션은 규칙 밖이어도 남긴다(기존 배포가 연결을 잃지 않게).
+        // run.sh의 서버 세션은 srv-<세션>이라 규칙에 걸리지 않는다.
+        if (!TMUX_ALL) {
+          const keep = new Set([r.target, DEFAULT_TARGET, SESSION]);
+          sessions = sessions.filter((s) => keep.has(s.name) || isAnaSession(s.name, ANA_NAME));
+        }
         for (const s of sessions) {
           // 각 세션의 활성 팬 명령(에이전트/셸 구분용), 원장 크기, 이 세션을 고른 사람·지금 보는 사람
           try { s.command = (await tmux(['display-message', '-p', '-t', s.name, '#{pane_current_command}'])).trim(); } catch {}
@@ -864,7 +874,7 @@ function createChannelServer(opts) {
           s.online = rr ? [...new Set(rr.clientUsers.values())] : [];
         }
         const mine = targets.users[keyOf(req)] || null;
-        return sendJson(res, 200, { target: r.target, session: SESSION, default: DEFAULT_TARGET, you: keyOf(req), recent: mine, sessions });
+        return sendJson(res, 200, { target: r.target, session: SESSION, default: DEFAULT_TARGET, ana: ANA_NAME, all: TMUX_ALL, you: keyOf(req), recent: mine, sessions });
       }
       if (p === '/api/config' && req.method === 'POST') {
         if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' });
@@ -996,8 +1006,26 @@ function createChannelServer(opts) {
   };
 }
 
+// ---------- 이름 규칙 ----------
+// 모든 ANA는 ~/ana/<xxx>-ana (또는 /ana/<xxx>-ana) 폴더에 설치하고, 그 폴더명 <xxx>-ana가 ANA 이름이다.
+// 폴더명이 -ana로 끝나지 않으면(예: git clone 기본 폴더 agent-native-agent) 샘플 이름 base-ana를 쓴다.
+// 에이전트 tmux 세션은 <ANA 이름>-<yyy>(yyy = claude·codex 등, 하이픈 포함 가능)이고 채팅의 세션 목록엔 이것만 보인다.
+function anaNameOf(ROOT, env = process.env) {
+  if (env.ANA_NAME && String(env.ANA_NAME).trim()) return String(env.ANA_NAME).trim();
+  const b = path.basename(path.resolve(ROOT || '.'));
+  return /^.+-ana$/.test(b) ? b : 'base-ana';
+}
+// 기본 에이전트 세션 = <ANA 이름>-claude. TMUX_SESSION을 주면 그대로 쓴다(기존 배포 호환).
+function defaultSession(ROOT, env = process.env) {
+  return env.TMUX_SESSION || `${anaNameOf(ROOT, env)}-claude`;
+}
+// 세션 이름이 이 ANA의 것인가: <ANA 이름>-<yyy>, yyy는 비어 있지 않다
+function isAnaSession(name, anaName) {
+  return typeof name === 'string' && !!anaName && name.length > anaName.length + 1 && name.startsWith(`${anaName}-`);
+}
+
 // 기본 pane 타깃 해석(공유): ANA_PANE_ID > .ana_pane_id 파일(검증) > 세션명
-// 기본 세션명은 README의 퀵스타트(`tmux new -s ana`)와 일치해야 한다. 다른 세션·팬을 쓰려면
+// 기본 세션명은 README의 퀵스타트(`tmux new -s base-ana-claude`)처럼 <ANA 이름>-claude다. 다른 세션·팬을 쓰려면
 // TMUX_SESSION/ANA_PANE_ID 또는 설정 페이지(/api/config)에서 지정한다.
 function resolveTarget(ROOT, env) {
   if (env.ANA_PANE_ID) return env.ANA_PANE_ID;
@@ -1007,7 +1035,7 @@ function resolveTarget(ROOT, env) {
       if (/^%\d+$/.test(id)) return id;
     } catch {}
   }
-  return env.TMUX_SESSION || 'ana';
+  return defaultSession(ROOT, env);
 }
 
 module.exports = {
@@ -1015,7 +1043,7 @@ module.exports = {
   displayWidth, stripBottomUI, parseTranscript, extractDraft, detectBusy, inputBoxReady, dialogOpen, parseDialog, strip, norm,
   writeJsonAtomic, readJsonStrict,
   // 팩토리
-  createChannel, createChannelServer, resolveTarget,
+  createChannel, createChannelServer, resolveTarget, anaNameOf, defaultSession, isAnaSession,
   // 유틸
   KEYS, csrfOk, sendJson, readBody, jsonBody, MIME, SEP_RE,
 };

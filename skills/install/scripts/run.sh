@@ -1,19 +1,24 @@
 #!/usr/bin/env bash
-# ANA 실행 — tmux 세션 2개를 띄운다: 에이전트(<S>)와 서버(<S>-server). 이미 떠 있으면 재사용.
+# ANA 실행 — tmux 세션 2개를 띄운다: 에이전트(<S>)와 서버(srv-<S>). 이미 떠 있으면 재사용.
 # Usage: bash run.sh [start|stop|status|restart]
-# Env:   TMUX_SESSION (기본 ana) · PORT (기본 8809, 사용 중이면 다음 빈 포트) · AGENT_CMD (기본 claude)
+# 이름 규칙: 폴더 ~/ana/<xxx>-ana → ANA 이름 <xxx>-ana(아니면 base-ana), 에이전트 세션 <ANA 이름>-claude.
+#        서버 세션은 srv-<S>라 채팅의 세션 목록(<ANA 이름>-<yyy>)에 뜨지 않는다.
+# Env:   ANA_NAME · TMUX_SESSION (기본 <ANA 이름>-claude) · PORT (기본 8809, 사용 중이면 다음 빈 포트) · AGENT_CMD (기본 claude)
 #        BIND (기본 127.0.0.1 — 0.0.0.0은 인증이 없으므로 신뢰망에서만)
 set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
-S=${TMUX_SESSION:-ana}; SRV="$S-server"
+NAME=$(basename "$ROOT"); case "$NAME" in ?*-ana) ;; *) NAME=base-ana ;; esac; NAME=${ANA_NAME:-$NAME}
+S=${TMUX_SESSION:-$NAME-claude}; SRV="srv-$S"
 AGENT_CMD=${AGENT_CMD:-claude}
 BIND=${BIND:-127.0.0.1}
 export PATH="$HOME/.local/bin:$PATH"
 say() { printf '\033[36m[ana]\033[0m %s\n' "$*"; }
 busy() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
-alive() { tmux has-session -t "$1" 2>/dev/null; }
+alive() { tmux has-session -t "=$1" 2>/dev/null; }   # = : 정확한 이름만(접두어 매칭 금지)
 command -v tmux >/dev/null && command -v node >/dev/null || { echo "tmux/node missing — run: bash $ROOT/skills/install/scripts/install.sh" >&2; exit 1; }
 [ -f "$ROOT/server.js" ] || { echo "server.js not found under $ROOT" >&2; exit 1; }
+# 예전 이름(<S>-server)으로 떠 있는 서버는 그대로 이어 쓴다
+alive "$S-server" && SRV="$S-server"
 [ -d "$ROOT/node_modules/@tykimos/noderel" ] || { say "Installing npm dependencies"; (cd "$ROOT" && npm install --no-audit --no-fund --silent); }
 
 # run.sh가 띄운 세션은 ANA_PORT를 기록해 둔다. 손으로 띄운 세션이면 서버 시작 로그(ANA → http://host:port)에서 읽는다.
@@ -43,7 +48,7 @@ start() {
     P=${PORT:-8809}; while busy "$P"; do P=$((P + 1)); done
     tmux new-session -d -s "$SRV" -c "$ROOT"
     tmux set-environment -t "$SRV" ANA_PORT "$P"
-    tmux send-keys -t "$SRV" "PORT=$P BIND=$BIND TMUX_SESSION=$S node server.js" Enter
+    tmux send-keys -t "$SRV" "PORT=$P BIND=$BIND ANA_NAME=$NAME TMUX_SESSION=$S node server.js" Enter
     for _ in $(seq 1 20); do curl -fsS -o /dev/null "http://127.0.0.1:$P/" 2>/dev/null && break; sleep 0.5; done
     say "started server in tmux '$SRV' on port $P"
   else say "server tmux '$SRV' already running — reusing"; fi

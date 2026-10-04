@@ -5,6 +5,19 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.4.1] — Unreleased
+
+One naming rule for every ANA: the folder gives the name, and the name gives the tmux sessions.
+
+### Changed
+
+- **Folder → ANA name.** Every ANA lives in `~/ana/<xxx>-ana` (or `/ana/<xxx>-ana`), and the folder name is the ANA's name. `<xxx>` may contain hyphens. This repo's sample is `base-ana`: install into `~/ana/base-ana`. A folder that doesn't end in `-ana` falls back to `base-ana`; `ANA_NAME` overrides.
+- **Default tmux session is `<name>-claude`** (was `ana`), e.g. `base-ana-claude`. `TMUX_SESSION` still overrides it, so existing deployments keep their session.
+- **Chat session list shows only this ANA's sessions:** `<xxx>-ana-<yyy>`, where `yyy` is the agent label (`claude`, `codex`, or any hyphenated label). The connected and default sessions always stay listed. `ANA_TMUX_ALL=1` lists every tmux session. `/api/config` and `/api/health` now report `ana`.
+- **Install scripts.** `install.sh` and `install-wsl.ps1` clone into `~/ana/base-ana`. `run.sh` and `check-env.sh` derive the session from the folder, and `run.sh` names its server session `srv-<session>` so it stays out of the chat list. A server still running as `<session>-server` is reused.
+- `channel-core.js` exports `anaNameOf`, `defaultSession` and `isAnaSession`.
+- README, the `install` skill and the `ana` skill use the new paths and session names, with a short "Naming convention" section.
+
 ## [0.4.0] — 2026-10-02
 
 The base becomes a solo operations board you run with a coding agent. It has three areas, a chat that matches the Claude app, and skills that bring all of this into ANAs that already exist.
@@ -64,5 +77,6 @@ The base becomes a solo operations board you run with a coding agent. It has thr
 
 See the [commit history](https://github.com/tykimos/agent-native-agent/commits/main) up to `d690eda`: workspaces, Chip mode, the install skill, per-session ledgers, and structured AskUserQuestion cards.
 
+[0.4.1]: https://github.com/tykimos/agent-native-agent/compare/v0.4.0...main
 [0.4.0]: https://github.com/tykimos/agent-native-agent/compare/d690eda...v0.4.0
 [0.3.0]: https://github.com/tykimos/agent-native-agent/commits/d690eda

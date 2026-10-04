@@ -5,6 +5,19 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.4.1] — 미출시
+
+모든 ANA에 같은 이름 규칙을 씁니다. 폴더가 이름을 정하고, 이름이 tmux 세션을 정합니다.
+
+### 변경
+
+- **폴더 → ANA 이름.** 모든 ANA는 `~/ana/<xxx>-ana`(또는 `/ana/<xxx>-ana`)에 설치하고, 폴더명이 ANA의 이름입니다. `<xxx>`에는 하이픈이 들어가도 됩니다. 이 저장소의 샘플은 `base-ana`이며 `~/ana/base-ana`에 설치합니다. 폴더명이 `-ana`로 끝나지 않으면 `base-ana`로 보고, `ANA_NAME`으로 덮어쓸 수 있습니다.
+- **기본 tmux 세션이 `<이름>-claude`입니다**(이전 `ana`). 예: `base-ana-claude`. `TMUX_SESSION`은 그대로 우선하므로 기존 배포는 세션이 바뀌지 않습니다.
+- **채팅의 세션 목록에는 이 ANA의 세션만 보입니다:** `<xxx>-ana-<yyy>`, `yyy`는 에이전트 라벨(`claude`, `codex`, 하이픈이 들어간 아무 라벨). 지금 연결된 세션과 기본 세션은 항상 남습니다. `ANA_TMUX_ALL=1`이면 모든 tmux 세션을 보여 줍니다. `/api/config`와 `/api/health`가 `ana`를 알려 줍니다.
+- **설치 스크립트.** `install.sh`와 `install-wsl.ps1`은 `~/ana/base-ana`로 clone합니다. `run.sh`와 `check-env.sh`는 폴더에서 세션 이름을 정하고, `run.sh`의 서버 세션은 `srv-<세션>`이라 채팅 목록에 뜨지 않습니다. `<세션>-server`로 떠 있는 기존 서버는 그대로 이어 씁니다.
+- `channel-core.js`가 `anaNameOf`, `defaultSession`, `isAnaSession`을 내보냅니다.
+- README, `install` 스킬, `ana` 스킬을 새 경로·세션 이름으로 고치고 짧은 "이름 규칙" 절을 넣었습니다.
+
 ## [0.4.0] — 2026-10-02
 
 base가 코딩 에이전트와 함께 운영하는 1인 업무 보드가 되었습니다. 화면은 세 영역으로 나뉘고, 채팅은 Claude 앱과 같은 모습입니다. 이미 있는 ANA에도 이 기능들을 가져갈 수 있는 스킬이 함께 들어갑니다.
@@ -64,5 +77,6 @@ base가 코딩 에이전트와 함께 운영하는 1인 업무 보드가 되었�
 
 `d690eda`까지의 [커밋 기록](https://github.com/tykimos/agent-native-agent/commits/main)을 보세요. 워크스페이스, 칩 모드, install 스킬, 세션별 원장, 구조화된 AskUserQuestion 카드가 들어 있습니다.
 
+[0.4.1]: https://github.com/tykimos/agent-native-agent/compare/v0.4.0...main
 [0.4.0]: https://github.com/tykimos/agent-native-agent/compare/d690eda...v0.4.0
 [0.3.0]: https://github.com/tykimos/agent-native-agent/commits/d690eda
