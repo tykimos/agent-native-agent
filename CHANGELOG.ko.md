@@ -5,6 +5,16 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.4.2] — 2026-10-06
+
+### 추가
+
+- **권한 모드 선택.** 채팅의 모델 시트에서 Effort 아래에 **Permissions** 줄이 생겼습니다.
+  - **Claude Code:** Manual · Accept edits · Plan · Auto · Bypass permissions. 현재 모드는 상태줄에서 읽고, 바꿀 때는 그 모드가 보일 때까지 Shift+Tab을 누릅니다. 이 세션에만 적용됩니다.
+  - **Codex:** Ask for approval · Approve for me · Full Access. Codex 자체 `/permissions` 메뉴로 바꾸고, Codex는 이 선택을 기본값으로도 저장합니다.
+  - 확인 없이 실행하는 모드(Bypass, Full Access)는 한 번 더 확인합니다. **System › Safety**는 시작 옵션 대신 지금 모드를 보고합니다.
+  - 새 모듈 `permission-mode.js`, API `/api/agent-permission`.
+
 ## [0.4.1] — 2026-10-04
 
 모든 ANA에 같은 이름 규칙을 씁니다. 폴더가 이름을 정하고, 이름이 tmux 세션을 정합니다.
@@ -84,6 +94,7 @@ base가 코딩 에이전트와 함께 운영하는 1인 업무 보드가 되었�
 
 `d690eda`까지의 [커밋 기록](https://github.com/tykimos/agent-native-agent/commits/main)을 보세요. 워크스페이스, 칩 모드, install 스킬, 세션별 원장, 구조화된 AskUserQuestion 카드가 들어 있습니다.
 
+[0.4.2]: https://github.com/tykimos/agent-native-agent/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/tykimos/agent-native-agent/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/tykimos/agent-native-agent/compare/d690eda...v0.4.0
 [0.3.0]: https://github.com/tykimos/agent-native-agent/commits/d690eda

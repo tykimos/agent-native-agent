@@ -19,6 +19,7 @@ const { execFile } = require('node:child_process');
 const { AsyncLocalStorage } = require('node:async_hooks');
 const relgraph = require('./graph.js');
 const codexSettings = require('./codex-settings.js');
+const permissionMode = require('./permission-mode.js');
 const { createAgentLog } = require('./agent-log.js');
 
 function createDashboardApi(core, opts) {
@@ -32,6 +33,12 @@ function createDashboardApi(core, opts) {
   const SEED = !!opts.SEED;
   // Claude Code 세션의 구조화된 대화 기록(읽기 전용) — 채팅을 Claude 앱과 같은 모양으로 그린다
   const agentLog = createAgentLog({ socket: opts.TMUX_SOCKET || '' });
+  const permOverride = new Map();
+  async function codexDefaultMode(start) {
+    if (/--dangerously-bypass-approvals-and-sandbox|--yolo\b/.test(start || '')) return 'full';
+    let cfg = ''; try { cfg = await fsp.readFile(path.join(process.env.CODEX_HOME || path.join(os.homedir(), '.codex'), 'config.toml'), 'utf8'); } catch {}
+    return /^\s*approvals_reviewer\s*=\s*"auto_review"/m.test(cfg) ? 'auto' : 'ask';
+  }   // Codex: 바꾼 직후 다음 turn_context가 오기 전까지 기억하는 모드
   const { writeJsonAtomic, readJsonStrict, sendJson } = core;
 
   // ---------- 신원 ----------
@@ -320,9 +327,15 @@ function createDashboardApi(core, opts) {
     rel.push({ id: 'waiting', status: pend + openAsk ? 'info' : 'ok', label: 'Waiting on you', value: `${pend} approval${pend === 1 ? '' : 's'} · ${openAsk} request${openAsk === 1 ? '' : 's'}`, detail: pend + openAsk ? 'See Collaborate.' : 'Nothing pending.' });
     // Safety
     const start = where.start || '';
-    const bypass = /--dangerously-skip-permissions|--dangerously-bypass-approvals-and-sandbox|--yolo\b/.test(start);
-    safe.push(bypass ? { id: 'perm', status: 'warn', label: 'The agent runs commands without asking', value: (start.match(/--dangerously-[\w-]+|--yolo/) || [''])[0], detail: 'Permission prompts are off, so nothing stops a destructive command. Keep an eye on the list below, or restart the agent without this flag.' }
-      : { id: 'perm', status: start ? 'ok' : 'info', label: start ? 'The agent asks before risky actions' : 'Permission mode unknown', value: start ? 'permission prompts on' : '', detail: start ? '' : 'Could not read how the agent was started.' });
+    // 지금 권한 모드(Claude: 상태줄, Codex: turn_context). 못 읽으면 시작 옵션으로 짐작한다
+    let mode = '', modeLabel = '';
+    if (where.kind === 'claude') { let sc = ''; try { sc = await ctx.ch.captureScreen(); } catch {} mode = permissionMode.claudeModeOf(sc); modeLabel = (permissionMode.CLAUDE_MODES.find((m) => m.id === mode) || {}).label || ''; }
+    else if (where.kind === 'codex') { const ov = permOverride.get(ctx.target); mode = (ov && (!log || (log.permRev || 0) <= ov.rev) ? ov.mode : permissionMode.codexModeOf(log && log.permTc)) || await codexDefaultMode(start); modeLabel = (permissionMode.CODEX_MODES.find((m) => m.id === mode) || {}).label || ''; }
+    const bypassFlag = /--dangerously-skip-permissions|--dangerously-bypass-approvals-and-sandbox|--yolo\b/.test(start);
+    const unguarded = mode ? (mode === 'bypass' || mode === 'full') : bypassFlag;
+    safe.push(unguarded ? { id: 'perm', status: 'warn', label: 'The agent runs commands without asking', value: modeLabel || (start.match(/--dangerously-[\w-]+|--yolo/) || [''])[0], detail: 'Permission prompts are off, so nothing stops a destructive command. Switch the mode from the model pill in the chat (Permissions), or keep an eye on the list below.' }
+      : mode ? { id: 'perm', status: 'ok', label: 'The agent asks before risky actions', value: modeLabel, detail: bypassFlag ? 'Started with permission prompts off, but the current mode asks.' : '' }
+      : { id: 'perm', status: start ? 'ok' : 'info', label: start ? 'The agent asks before risky actions' : 'Permission mode unknown', value: start ? 'permission prompts on' : '', detail: start ? '' : 'Could not read the current mode.' });
     const risky = [];
     for (const t of tools.concat((log && log.items || []).filter((x) => x.kind === 'tools').flatMap((x) => x.tools).filter((t) => !t.done))) {
       const c = t.cmd || (t.name === 'Bash' ? t.arg : ''); if (!c) continue;
@@ -912,6 +925,44 @@ function createDashboardApi(core, opts) {
       if (!img) return sendJson(res, 404, { error: 'not found' }), true;
       res.writeHead(200, { 'content-type': img.type, 'content-length': img.data.length, 'cache-control': 'private, max-age=86400' });
       return res.end(img.data), true;
+    }
+
+    // 권한 모드(모델 시트 › Permissions) — Claude는 상태줄, Codex는 rollout turn_context로 현재 모드를 읽는다
+    if (p === '/api/agent-permission' && req.method === 'GET') {
+      const where = await agentLog.resolve(ctx.target);
+      if (where.kind === 'claude') {
+        let screen = ''; try { screen = await ctx.ch.captureScreen(); } catch {}
+        const bypassOk = /--dangerously-skip-permissions/.test(where.start || '');
+        return sendJson(res, 200, { kind: 'claude', current: permissionMode.claudeModeOf(screen),
+          options: permissionMode.CLAUDE_MODES.map(({ id, label, desc, risky }) => ({ id, label, desc, risky: !!risky, available: id !== 'bypass' || bypassOk || !where.start })) }), true;
+      }
+      if (where.kind === 'codex') {
+        const log = await agentLog.read(ctx.target, 1e12).catch(() => null);
+        const ov = permOverride.get(ctx.target);
+        let current = ov && (!log || (log.permRev || 0) <= ov.rev) ? ov.mode : permissionMode.codexModeOf(log && log.permTc);
+        if (!current) current = await codexDefaultMode(where.start);   // 첫 대화 전에는 rollout이 없다 → 시작 옵션·설정으로 짐작
+        return sendJson(res, 200, { kind: 'codex', current,
+          options: permissionMode.CODEX_MODES.map(({ id, label, desc, risky }) => ({ id, label, desc, risky: !!risky, available: true })) }), true;
+      }
+      return sendJson(res, 200, { kind: '', current: '', options: [] }), true;
+    }
+    if (p === '/api/agent-permission' && req.method === 'POST') {
+      if (!ctx.csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await ctx.jsonBody(req, res); if (!body) return true;
+      if (body.target && body.target !== ctx.target) return sendJson(res, 409, { error: 'Agent session changed — reopen the model selector' }), true;
+      if (!(await ctx.hasSession()) || !(await ctx.agentAlive())) return sendJson(res, 409, { error: 'Agent is not running' }), true;
+      const where = await agentLog.resolve(ctx.target);
+      const modes = where.kind === 'claude' ? permissionMode.CLAUDE_MODES : where.kind === 'codex' ? permissionMode.CODEX_MODES : [];
+      if (!modes.some((m) => m.id === body.mode)) return sendJson(res, 400, { error: `mode must be ${modes.map((m) => m.id).join('|') || '(no agent)'}` }), true;
+      const out = await ctx.enqueue(async () => {
+        try {
+          const r2 = where.kind === 'claude' ? await permissionMode.changeClaude(ctx, body.mode, where.start) : await permissionMode.changeCodex(ctx, body.mode);
+          if (where.kind === 'codex') { const log = await agentLog.read(ctx.target, 1e12).catch(() => null); permOverride.set(ctx.target, { mode: body.mode, rev: (log && log.rev) || 0 }); }
+          audit(actor(req), 'agent.permission', `${ctx.target}: ${body.mode}`);
+          return { status: 200, body: r2 };
+        } catch (e) { return { status: 409, body: { error: e.message } }; }
+      });
+      return sendJson(res, out.status, out.body), true;
     }
 
     if (p === '/api/agent-models' && req.method === 'GET') {

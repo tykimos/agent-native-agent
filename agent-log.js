@@ -226,6 +226,7 @@ function createAgentLog({ socket = '' } = {}) {
   function ingestCodex(st, j) {
     const p = j.payload || {};
     if (j.type === 'turn_context' && p.model && p.model !== st.model) { st.model = p.model; st.rev++; }
+    if (j.type === 'turn_context') { st.permTc = { approval_policy: p.approval_policy, approvals_reviewer: p.approvals_reviewer, sandbox_policy: p.sandbox_policy }; st.permRev = ++st.rev; }
     if (j.type !== 'event_msg') return;
     if (p.type === 'thread_settings_applied' && p.thread_settings && p.thread_settings.model && p.thread_settings.model !== st.model) { st.model = p.thread_settings.model; st.rev++; }
     if (p.type === 'token_count' && p.rate_limits) { const l = codexLimits(p.rate_limits); if (l) st.limits = l; }
@@ -253,7 +254,7 @@ function createAgentLog({ socket = '' } = {}) {
     if (!r.file) return { available: false };
     const st = update(r.file, r.kind);
     const items = since > 0 ? st.items.filter((x) => x.rev > since) : st.items.slice(-limit);
-    return { available: true, kind: st.kind, session: st.session, title: st.title, model: st.model || '', modelName: st.kind === 'codex' ? codexModelName(st.model) : modelName(st.model), effort: st.effort || '', limits: st.limits || null, cwd: r.cwd, rev: st.rev, reset: since > st.rev, items };
+    return { available: true, kind: st.kind, session: st.session, title: st.title, model: st.model || '', modelName: st.kind === 'codex' ? codexModelName(st.model) : modelName(st.model), effort: st.effort || '', limits: st.limits || null, permTc: st.permTc || null, permRev: st.permRev || 0, cwd: r.cwd, rev: st.rev, reset: since > st.rev, items };
   }
   async function image(target, ref) {
     const r = await resolve(target);

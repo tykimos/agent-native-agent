@@ -17,7 +17,7 @@ An ANA agent often runs with permission prompts off and can reach the user's mac
 | | Interrupted turns | `Interrupted` events in the log | info, warn ≥ 5 |
 | | Plan usage 5-hour / weekly | `/api/limits` data (Claude) or rollout `rate_limits` (Codex) | warn ≥ 80%, risk ≥ 95% |
 | | Waiting on you | pending diff proposals + open requests | info when > 0 |
-| Safety | Permission mode | tmux `#{pane_start_command}`: `--dangerously-skip-permissions`, `--dangerously-bypass-approvals-and-sandbox`, `--yolo` | warn when bypassed |
+| Safety | Permission mode | the **live** mode from `permission-mode.js` (Claude status line, Codex turn_context); falls back to start flags `--dangerously-skip-permissions`, `--dangerously-bypass-approvals-and-sandbox`, `--yolo` | warn on Bypass / Full Access |
 | | Risky commands the agent ran | full Bash/exec command text (`tool.cmd`) matched against `RISKY_CMDS` (rm -rf, reset --hard, force push, git clean -f, killall/kill -9, sudo, chmod 777, curl \| sh, DROP TABLE, dd/mkfs/diskutil erase) | warn if any; list the last 8 |
 | | Data changes go through approval | diff → approve flow present; count waiting | ok |
 | Security | Network exposure | server `BIND` (+`PORT`) | ok on loopback, risk otherwise |

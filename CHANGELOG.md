@@ -5,6 +5,16 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.4.2] — 2026-10-06
+
+### Added
+
+- **Permission mode picker.** The chat's model sheet has a **Permissions** row under Effort.
+  - **Claude Code:** Manual · Accept edits · Plan · Auto · Bypass permissions. The current mode is read from the status line, and switching presses Shift+Tab until it shows. It applies to this session only.
+  - **Codex:** Ask for approval · Approve for me · Full Access, through Codex's own `/permissions` menu. Codex also saves the choice as its default.
+  - Modes that never ask (Bypass, Full Access) need a confirmation. **System › Safety** now reports the live mode instead of the start flags.
+  - New module `permission-mode.js` and API `/api/agent-permission`.
+
 ## [0.4.1] — 2026-10-04
 
 One naming rule for every ANA: the folder gives the name, and the name gives the tmux sessions.
@@ -84,6 +94,7 @@ The base becomes a solo operations board you run with a coding agent. It has thr
 
 See the [commit history](https://github.com/tykimos/agent-native-agent/commits/main) up to `d690eda`: workspaces, Chip mode, the install skill, per-session ledgers, and structured AskUserQuestion cards.
 
+[0.4.2]: https://github.com/tykimos/agent-native-agent/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/tykimos/agent-native-agent/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/tykimos/agent-native-agent/compare/d690eda...v0.4.0
 [0.3.0]: https://github.com/tykimos/agent-native-agent/commits/d690eda

@@ -1033,6 +1033,8 @@ body.sys-mode .ws-combo { display: none; }
 .msheet .meffort .mv { font-size: 14px; color: var(--text-weak); }
 .msheet .meffort .chev { width: 18px; height: 18px; color: var(--text-weak); transition: transform .2s; }
 .msheet .meffort[aria-expanded="true"] .chev { transform: rotate(90deg); }
+.msheet .mrow .mrisk { margin-left: 8px; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 800; color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); vertical-align: 1px; }
+.msheet .mrow.unavail .mt, .msheet .mrow.unavail .md { color: var(--text-weak); }
 .msheet .mnote { margin: 2px 6px 0; font-size: 12px; color: var(--text-weak); }
 </style>
 <script>
@@ -1362,7 +1364,10 @@ body.sys-mode .ws-combo { display: none; }
   <div class="mgroup" id="mList" role="radiogroup" aria-label="Model"></div>
   <button class="mgroup mrow meffort" id="mEffortBtn" aria-expanded="false"><span class="mt">Effort</span><span class="mv" id="mEffortVal"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
   <div class="mgroup" id="mEffortList" role="radiogroup" aria-label="Effort" hidden></div>
-  <p class="mnote">Also becomes the default for new Claude Code sessions.</p>
+  <!-- 권한 모드: Claude는 Shift+Tab 순환, Codex는 /permissions 메뉴로 바꾼다(permission-mode.js) -->
+  <button class="mgroup mrow meffort" id="mPermBtn" aria-expanded="false"><span class="mt">Permissions</span><span class="mv" id="mPermVal"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+  <div class="mgroup" id="mPermList" role="radiogroup" aria-label="Permissions" hidden></div>
+  <p class="mnote" id="mNote">Also becomes the default for new Claude Code sessions.</p>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <button class="newver" id="newver">New version available — tap to reload</button>
@@ -1945,10 +1950,13 @@ $('evoAnalyze').onclick = () => {
 
 /* ---- 삭제 확인 팝업 ----
    되돌릴 수 없는 삭제 앞에 한 번 세운다. 다른 모달 위에서도 뜨도록 별도 z-index를 쓴다. */
-function confirmDelete(what) {
+function confirmDelete(what) { return confirmAsk({ title: 'Delete?', body: `${what} — this cannot be undone.`, yes: 'Delete' }); }
+// 같은 확인 창을 다른 위험한 일에도 쓴다(권한 모드를 '묻지 않음'으로 바꿀 때 등)
+function confirmAsk({ title, body, yes }) {
   return new Promise((resolve) => {
     const box = $('confirmModal'), scrim = $('scrim');
-    $('cfBody').textContent = `${what} — this cannot be undone.`;
+    $('cfTitle').textContent = title; $('cfYes').textContent = yes;
+    $('cfBody').textContent = body;
     const wasOpen = modalCur;                    // 다른 모달 위에서 열렸는지 기억
     scrim.classList.add('on', 'hard'); box.classList.add('on');
     const done = (v) => {
@@ -2685,6 +2693,38 @@ const sheetModels = () => logKind === 'codex' ? codexModels.map(m => [m.id, m.na
 const sheetEfforts = () => logKind === 'codex' ? ((codexModels.find(m => m.name === logModel) || {}).efforts || []).map(e => [e, { xhigh: 'Extra high' }[e] || e[0].toUpperCase() + e.slice(1)]) : EFFORTS;
 const EFFORTS = [['low', 'Low'], ['medium', 'Medium'], ['high', 'High'], ['xhigh', 'Extra high'], ['max', 'Max']];
 const CHECK = '<svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+let permInfo = null, permBusy = false;
+function renderPerm() {
+  const box = $('mPermList'), btn = $('mPermBtn');
+  btn.hidden = !permInfo || !permInfo.options.length;
+  if (!permInfo) { box.hidden = true; return; }
+  const cur = permInfo.options.find((o) => o.id === permInfo.current);
+  $('mPermVal').textContent = cur ? cur.label : 'Unknown';
+  box.innerHTML = permInfo.options.map((o) => `<button class="mrow${o.available ? '' : ' unavail'}" role="radio" data-perm="${o.id}" aria-checked="${o.id === permInfo.current}"${permBusy || !o.available ? ' disabled' : ''}>
+    <span class="mtx"><span class="mt">${escapeHtml(o.label)}${o.risky ? '<span class="mrisk">No prompts</span>' : ''}</span><span class="md">${escapeHtml(o.available ? o.desc : o.desc + ' — start the agent with --dangerously-skip-permissions to use it')}</span></span>${CHECK}</button>`).join('');
+  $('mNote').textContent = permInfo.kind === 'codex'
+    ? 'Codex also saves the model and permission choice as its defaults.'
+    : 'Model and effort also become the default for new Claude Code sessions. Permissions apply to this session only.';
+}
+async function loadPerm(target) {
+  try { const d = await getJSON('/api/agent-permission'); if (target === (health && health.target)) { permInfo = d; renderPerm(); } } catch { permInfo = null; renderPerm(); }
+}
+async function applyPerm(id) {
+  if (permBusy || !permInfo || id === permInfo.current) return;
+  const opt = permInfo.options.find((o) => o.id === id); if (!opt || !opt.available) return;
+  if (opt.risky && !(await confirmAsk({ title: `Switch to ${opt.label}?`, body: `${opt.desc}. Nothing will stop a destructive command until you switch back. System › Safety will flag it.`, yes: 'Switch' }))) return;
+  const target = modelSheetTarget;
+  permBusy = true; renderPerm();
+  let r; try { r = await post('/api/agent-permission', { mode: id, target }); } catch { r = null; }
+  permBusy = false;
+  if (target !== (health && health.target)) return;
+  if (!r || !r.ok) { let e = {}; try { e = await r.json(); } catch {} renderPerm(); showErr(e.error || 'Could not change the permission mode'); return; }
+  permInfo.current = id; renderPerm(); toast(`Permissions: ${opt.label}`);
+  if ($('safetyView').classList.contains('on')) refreshTrust();
+}
+$('mPermBtn').onclick = () => { const open = $('mPermList').hidden; $('mPermList').hidden = !open; $('mPermBtn').setAttribute('aria-expanded', String(open)); };
+$('mPermList').onclick = (e) => { const b = e.target.closest('[data-perm]'); if (b) applyPerm(b.dataset.perm); };
+
 function renderModelSheet() {
   const cur = (sheetModels().find(m => logKind === 'codex' ? logModel === m[1] : logModel && logModel.startsWith(m[1].split(' ')[0])) || [])[0];
   $('mList').innerHTML = sheetModels().map(([k, n, d]) => `<button class="mrow" role="radio" data-model="${k}" aria-checked="${k === cur}"${msheetBusy ? ' disabled' : ''}><span class="mtx"><span class="mt">${escapeHtml(n)}</span><span class="md">${escapeHtml(d)}</span></span>${CHECK}</button>`).join('');
@@ -2702,6 +2742,7 @@ async function openModelSheet() {
     } catch (e) { showErr(e.message || 'Could not load models'); return; }
   }
   modelSheetTarget = target;
+  permInfo = null; renderPerm(); loadPerm(target);
   renderModelSheet();
   $('msheet').hidden = false; void $('msheet').offsetWidth;
   $('msheet').classList.add('on'); $('msheetScrim').classList.add('on');

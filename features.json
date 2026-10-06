@@ -90,6 +90,23 @@
       ]
     },
     {
+      "id": "chat-permissions",
+      "title": "Permission mode picker (Claude Code + Codex)",
+      "skill": "chat-window",
+      "summary": "Model sheet › Permissions shows the agent's current permission mode and switches it. Claude Code: reads the status line and presses Shift+Tab until the wanted mode shows (manual · accept edits · plan · auto · bypass). Codex: /permissions menu (Ask for approval · Approve for me · Full Access) with its extra confirmation. Modes without prompts ask first; System › Safety uses the live mode.",
+      "copy": [
+        "permission-mode.js"
+      ],
+      "anchors": [
+        "permission-mode.js",
+        "/api/agent-permission",
+        "function applyPerm",
+        "function renderPerm",
+        "mPermList",
+        "function confirmAsk"
+      ]
+    },
+    {
       "id": "chat-limits",
       "title": "Plan usage rings (5-hour · weekly)",
       "skill": "chat-window",

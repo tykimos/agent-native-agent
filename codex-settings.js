@@ -15,6 +15,13 @@ function menuRows(screen) {
   return screen.split('\n').map(line => /^\s*(›)?\s*(\d+)\.\s+(.+?)\s*$/.exec(line)).filter(Boolean)
     .map(m => ({ selected: !!m[1], label: m[3] }));
 }
+// Codex가 일하는 중이거나 메뉴가 열려 있거나 입력칸에 쓰던 글이 있으면 명령을 보내지 않는다(placeholder 문구는 빈 입력으로 본다)
+const PLACEHOLDERS = ['Ask Codex to do anything', 'Find and fix a bug in @filename', 'Explain this codebase', 'Implement {feature}', 'Improve documentation in @filename', 'Write tests for @filename', 'Summarize recent commits', 'Run /review on my current changes'];
+function assertIdle(screen, what) {
+  if (/esc to interrupt|Select Model|Select Reasoning|Update Model Permissions|Enable full access|Press enter to confirm/i.test(screen)) throw new Error('Wait for Codex to finish or close its current menu');
+  const input = [...screen.matchAll(/^\s*›\s*(.*)$/gm)].pop();
+  if (!input || (input[1].trim() && !PLACEHOLDERS.includes(input[1].trim()))) throw new Error(`Clear the Codex input before changing its ${what}`);
+}
 async function change(ctx, model, effort) {
   const key = (...keys) => ctx.ch.tmux(['send-keys', '-t', ctx.target, ...keys]);
   const wait = async predicate => {
@@ -28,9 +35,7 @@ async function change(ctx, model, effort) {
     await key('Enter');
   };
   const before = await ctx.ch.captureScreen();
-  if (/esc to interrupt|Select Model|Select Reasoning|Press enter to confirm/i.test(before)) throw new Error('Wait for Codex to finish or close its current menu');
-  const input = [...before.matchAll(/^\s*›\s*(.*)$/gm)].pop();
-  if (!input || (input[1].trim() && !['Ask Codex to do anything', 'Find and fix a bug in @filename', 'Explain this codebase', 'Implement {feature}', 'Improve documentation in @filename', 'Write tests for @filename', 'Summarize recent commits', 'Run /review on my current changes'].includes(input[1].trim()))) throw new Error('Clear the Codex input before changing its model');
+  assertIdle(before, 'model');
   // Type the command: pasted slash commands may be treated as ordinary prompts.
   await ctx.ch.tmux(['send-keys', '-t', ctx.target, '-l', '/model']);
   await ctx.ch.delay(200); await key('Enter');
@@ -42,4 +47,4 @@ async function change(ctx, model, effort) {
   await wait(s => !s.includes('Select Reasoning Level') && s.split(confirmation).length > before.split(confirmation).length);
   return { ok: true, model: { changed: true, id: model.id, name: model.name }, effort: { changed: true, level: effort } };
 }
-module.exports = { models, change, menuRows };
+module.exports = { models, change, menuRows, assertIdle };
