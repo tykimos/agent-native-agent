@@ -6,7 +6,10 @@
 // (사용자 말풍선 · 응답 본문 · 'Ran 3 commands ›' 도구 묶음 · 이미지)으로 그릴 수 있다.
 // 주입·바쁨·다이얼로그는 여전히 채널 코어가 맡는다 — 여기는 읽기 전용 표시 계층이다.
 //
-// 세션 찾기: tmux 팬의 현재 경로 → ~/.claude/projects/<경로의 비영숫자를 '-'로> → 가장 최근에 바뀐 *.jsonl
+// 세션 찾기: tmux 팬의 현재 경로 → ~/.claude/projects/<경로의 비영숫자를 '-'로> → 그 팬의 대화 *.jsonl.
+//   어느 대화인가: ① 팬에서 도는 claude 프로세스의 ~/.claude/sessions/<pid>.json(Claude Code가 남기는 sessionId)
+//   ② 팬 옵션 @ana_session_id(실행기가 남긴 것) ③ 둘 다 없으면 그 폴더에서 가장 최근에 바뀐 *.jsonl.
+//   한 폴더에서 Claude 세션 여럿(예: <이름>-ana-claude-1·-2, 사람별 세션)이 돌 때 ③만 쓰면 모든 세션이 같은 대화를 보였다.
 // Codex 세션이면 ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl(첫 줄 session_meta.cwd가 팬 경로와 같은 가장 최근 파일)을
 // 같은 항목 모양으로 바꾼다 — 사용자 메시지·응답·명령 실행·파일 변경·웹 검색, 그리고 token_count의 요금제 한도.
 // 증분 읽기: 파일 오프셋을 기억해 새로 붙은 줄만 파싱한다. 항목이 나중에 바뀌면(도구 결과 도착) rev를 올려
@@ -19,6 +22,7 @@ const { execFile } = require('node:child_process');
 
 const MAX_RESULT = 4000;          // 도구 결과 본문 상한(화면용)
 const PROJECTS = path.join(os.homedir(), '.claude', 'projects');
+const CLAUDE_SESSIONS = path.join(os.homedir(), '.claude', 'sessions');   // <pid>.json — 실행 중인 Claude Code 프로세스의 sessionId
 const CODEX_SESSIONS = path.join(os.homedir(), '.codex', 'sessions');
 
 const VERB = {
@@ -92,13 +96,30 @@ function createAgentLog({ socket = '' } = {}) {
 
   function tmuxInfo(target) {
     return new Promise((resolve) => {
-      const args = [...(socket ? ['-L', socket] : []), 'display-message', '-p', '-t', target, '#{pane_current_path}\t#{pane_current_command}\t#{pane_start_command}'];
+      const args = [...(socket ? ['-L', socket] : []), 'display-message', '-p', '-t', target, '#{pane_current_path}\t#{pane_current_command}\t#{pane_start_command}\t#{pane_pid}\t#{@ana_session_id}'];
       execFile('tmux', args, { timeout: 3000 }, (err, out) => {
         if (err) return resolve(null);
-        const [cwd, cmd, start] = String(out).trim().split('\t');
-        resolve({ cwd, cmd, start: start || '' });
+        const [cwd, cmd, start, pid, sid] = String(out).replace(/\n$/, '').split('\t');
+        resolve({ cwd, cmd, start: start || '', pid: pid || '', sid: sid || '' });
       });
     });
+  }
+  // 팬에서 도는 Claude Code의 sessionId — 팬 프로세스와 그 자식들 중 ~/.claude/sessions/<pid>.json 이 있는 것.
+  // (셸에서 claude 를 친 팬이면 claude 는 셸의 자식이다. 실행기가 exec 하면 팬 프로세스 자신이다.)
+  function childPids(pid) {
+    return new Promise((resolve) => execFile('pgrep', ['-P', String(pid)], { timeout: 2000 }, (err, out) => resolve(err ? [] : String(out).split(/\s+/).filter(Boolean))));
+  }
+  async function claudeSessionId(panePid, cwd) {
+    if (!/^\d+$/.test(String(panePid || ''))) return '';
+    const kids = await childPids(panePid);
+    const grand = (await Promise.all(kids.map(childPids))).flat();
+    for (const pid of [panePid, ...kids, ...grand]) {
+      try {
+        const j = JSON.parse(fs.readFileSync(path.join(CLAUDE_SESSIONS, `${pid}.json`), 'utf8'));
+        if (j && j.sessionId && (!j.cwd || !cwd || j.cwd === cwd)) return String(j.sessionId);
+      } catch {}
+    }
+    return '';
   }
   // 대상 세션의 기록 파일. Claude Code가 아니면 null(→ 화면은 기존 원장으로 그린다)
   async function resolve(target) {
@@ -111,7 +132,11 @@ function createAgentLog({ socket = '' } = {}) {
     } else if (info && /claude/i.test(info.cmd || '') && info.cwd) {
       kind = 'claude';
       const dir = path.join(PROJECTS, info.cwd.replace(/[^A-Za-z0-9]/g, '-'));
-      try {
+      // 이 팬의 대화부터 — 같은 폴더의 다른 Claude 세션 기록을 집지 않게. 아직 한 마디도 안 한 새 세션은 파일이 없는데,
+      // 그때도 그 경로를 쓴다(없으면 빈 대화) — 최근 파일로 넘어가면 남의 대화가 보인다.
+      const sid = [await claudeSessionId(info.pid, info.cwd), info.sid].find((x) => /^[0-9a-f-]{8,}$/i.test(x || ''));
+      if (sid) file = path.join(dir, `${sid}.jsonl`);
+      if (!file) try {
         file = fs.readdirSync(dir).filter((f) => f.endsWith('.jsonl'))
           .map((f) => ({ f: path.join(dir, f), m: fs.statSync(path.join(dir, f)).mtimeMs }))
           .sort((a, b) => b.m - a.m)[0]?.f || null;

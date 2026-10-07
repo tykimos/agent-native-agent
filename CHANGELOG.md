@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [Unreleased]
+
+### Fixed
+
+- **Chat history now follows the selected tmux session when several Claude sessions share one folder.** The chat used to read the newest conversation file in that folder, so every session (for example `<name>-ana-claude-1` and `-2`, or one session per person) showed the same conversation. It now reads the conversation of the Claude process running in that pane, from `~/.claude/sessions/<pid>.json`, then the pane's `@ana_session_id` tag, and only then the newest file. A new session that hasn't been used yet now shows an empty chat instead of another session's conversation (`agent-log.js`).
+
 ## [0.4.2] — 2026-10-06
 
 ### Added
