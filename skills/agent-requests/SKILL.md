@@ -18,6 +18,21 @@ All three live under **Collaborate** (see app-shell):
 | **Evolve** | agent → the app | "Add a due-date filter to Tasks" (the agent proposes; the user approves; the agent implements) |
 | **Requests** | agent → the user | "Which calendar should I sync?", "Grant access to the shared drive", "Confirm the budget" |
 
+## Four lists in every tab
+
+Each Collaborate tab has a status filter, **Waiting · In progress · Done · Cancelled**, with a count on each (`ST_BUCKETS`, `BUCKET_OF`, `renderStSeg`). The pick is remembered per tab in `localStorage ana-collab-filter`. Waiting and In progress list oldest first; Done and Cancelled list newest first, with the time.
+
+| Tab | Waiting | In progress | Done | Cancelled |
+|---|---|---|---|---|
+| Evolve | `new` | `doing` | `done` | `dismissed` |
+| Approvals / Requests | `open` | `answered` (the agent has your answer) | `done` | `dismissed` |
+| Approvals › data changes | `pending` | `applying` | `applied` | `rejected` |
+
+Card actions follow the list:
+- **Evolve:** Waiting has Discuss / Do it / Ignore. In progress has Discuss / Mark done / Cancel. Done has Reopen. Cancelled has Restore. `POST /api/evolve-act` accepts `reopen`, and every action stamps `updatedAt`.
+- **Data changes:** `GET /api/proposals` returns every diff proposal of the workspace (last 100). Approve and reject stamp `decidedAt`.
+- **Badges** count Waiting only.
+
 ## Requests
 
 - **Kinds:** `approval` (Approval), `decision` (Decision), `access` (Access) → **Approvals** tab. `action` (To do), `info` (Needs info) → **Requests** tab (`APPROVAL_KINDS` splits them; `renderReqBox(prefix, list)` renders each box). Each card has a badge, title, why it's needed, optional `options` (buttons that send that answer), and actions.

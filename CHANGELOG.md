@@ -7,9 +7,22 @@ To bring an existing ANA up to date with these changes, use the [`ana-update`](s
 
 ## [Unreleased]
 
+### Added
+
+- **Collaborate lists by status.** Evolve, Approvals and Requests each have a filter: **Waiting · In progress · Done · Cancelled**, with counts. The choice is remembered per tab.
+  - Finished and cancelled items are no longer hidden; they list newest first, with the time.
+  - **Evolve:** cards in progress get *Mark done* and *Cancel*. Done ones can be *Reopened* and cancelled ones *Restored* (`/api/evolve-act` → `reopen`).
+  - **Approvals:** data changes now include applied and rejected ones (`GET /api/proposals`).
+
+- **Permission shield in the composer.** Next to the model pill: a shield that shows the agent's permission mode at a glance. It turns red with "!" when the agent runs without asking (Bypass, Full Access). Tap it for a permissions-only sheet.
+
 ### Fixed
 
 - **Chat history now follows the selected tmux session when several Claude sessions share one folder.** The chat used to read the newest conversation file in that folder, so every session (for example `<name>-ana-claude-1` and `-2`, or one session per person) showed the same conversation. It now reads the conversation of the Claude process running in that pane, from `~/.claude/sessions/<pid>.json`, then the pane's `@ana_session_id` tag, and only then the newest file. A new session that hasn't been used yet now shows an empty chat instead of another session's conversation (`agent-log.js`).
+
+- **Codex chat showed no replies, no model name and no usage** once its session had been running for more than a week. Codex keeps writing to the log in the folder of the day the session started, but the lookup only searched the last 7 day folders. It now picks the most recently modified log for the folder.
+
+- **The model name in the composer was cut off** ("Opus 5…") in the desktop chat panel and on narrow phones, once the shield and usage rings were added. The pill no longer shrinks. The round controls size to the composer's own width (container queries: 40 → 34 → 31 px), so the desktop panel and phones follow one rule.
 
 ## [0.4.2] — 2026-10-06
 

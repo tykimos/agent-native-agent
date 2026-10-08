@@ -23,7 +23,7 @@ const { execFile } = require('node:child_process');
 const MAX_RESULT = 4000;          // 도구 결과 본문 상한(화면용)
 const PROJECTS = path.join(os.homedir(), '.claude', 'projects');
 const CLAUDE_SESSIONS = path.join(os.homedir(), '.claude', 'sessions');   // <pid>.json — 실행 중인 Claude Code 프로세스의 sessionId
-const CODEX_SESSIONS = path.join(os.homedir(), '.codex', 'sessions');
+const CODEX_SESSIONS = path.join(process.env.CODEX_HOME || path.join(os.homedir(), '.codex'), 'sessions');
 
 const VERB = {
   Bash: ['Ran', 'command', 'commands'], Read: ['Read', 'file', 'files'], Edit: ['Edited', 'file', 'files'], MultiEdit: ['Edited', 'file', 'files'],
@@ -71,21 +71,33 @@ function codexLimits(rl) {
   }
   return out.fiveHour || out.week ? out : null;
 }
-// 이 경로(cwd)에서 가장 최근에 쓰인 Codex rollout — 최근 7일 폴더만 본다
-function findCodexRollout(cwd) {
+// 이 경로(cwd)에서 가장 최근에 쓰인 Codex rollout.
+// Codex는 세션을 '시작한 날짜' 폴더(YYYY/MM/DD)에 파일을 만들고 그 뒤로도 같은 파일에 이어 쓴다. 그래서 날짜 폴더가
+// 아니라 파일 수정 시각으로 찾는다(예전엔 최근 7일 폴더만 봐서, 일주일 넘게 켜 둔 세션의 대화·모델·사용량이 사라졌다).
+function codexRolloutFiles() {
   const files = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(Date.now() - i * 86400000);
-    const dir = path.join(CODEX_SESSIONS, String(d.getFullYear()), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0'));
-    let names = []; try { names = fs.readdirSync(dir); } catch { continue; }
-    for (const n of names) if (n.startsWith('rollout-') && n.endsWith('.jsonl')) { try { files.push({ f: path.join(dir, n), m: fs.statSync(path.join(dir, n)).mtimeMs }); } catch {} }
-  }
-  files.sort((a, b) => b.m - a.m);
-  for (const { f } of files) {
-    let first = '';
-    try { const fd = fs.openSync(f, 'r'); try { const buf = Buffer.alloc(64 * 1024); const n = fs.readSync(fd, buf, 0, buf.length, 0); first = buf.toString('utf8', 0, n).split('\n')[0]; } finally { fs.closeSync(fd); } } catch { continue; }
-    try { const j = JSON.parse(first); if (j.type === 'session_meta' && j.payload && j.payload.cwd === cwd) return f; } catch {}
-  }
+  const ls = (d) => { try { return fs.readdirSync(d, { withFileTypes: true }); } catch { return []; } };
+  for (const y of ls(CODEX_SESSIONS)) if (y.isDirectory()) for (const m of ls(path.join(CODEX_SESSIONS, y.name))) if (m.isDirectory())
+    for (const d of ls(path.join(CODEX_SESSIONS, y.name, m.name))) if (d.isDirectory()) {
+      const dir = path.join(CODEX_SESSIONS, y.name, m.name, d.name);
+      for (const f of ls(dir)) if (f.isFile() && f.name.startsWith('rollout-') && f.name.endsWith('.jsonl')) {
+        try { files.push({ f: path.join(dir, f.name), m: fs.statSync(path.join(dir, f.name)).mtimeMs }); } catch {}
+      }
+    }
+  return files.sort((a, b) => b.m - a.m);
+}
+function rolloutCwd(f) {
+  // 첫 줄(session_meta)은 지시문까지 담겨 길 수 있다 → 앞부분에서 cwd만 뽑는다
+  try {
+    const fd = fs.openSync(f, 'r');
+    try { const buf = Buffer.alloc(64 * 1024); const n = fs.readSync(fd, buf, 0, buf.length, 0); const head = buf.toString('utf8', 0, n);
+      if (!/^\{"timestamp":[^\n]*"type":"session_meta"|^\{[^\n]*"type":"session_meta"/.test(head)) return null;
+      const m = /"cwd":"((?:[^"\\]|\\.)*)"/.exec(head); return m ? JSON.parse(`"${m[1]}"`) : null; }
+    finally { fs.closeSync(fd); }
+  } catch { return null; }
+}
+function findCodexRollout(cwd) {
+  for (const { f } of codexRolloutFiles()) if (rolloutCwd(f) === cwd) return f;
   return null;
 }
 const resultText = (c) => (typeof c === 'string' ? c : Array.isArray(c) ? c.filter((x) => x.type === 'text').map((x) => x.text).join('\n') : '');
@@ -297,4 +309,4 @@ function createAgentLog({ socket = '' } = {}) {
   return { read, image, resolve };
 }
 
-module.exports = { createAgentLog, toolLabel, cleanUser, modelName, codexModelName, codexLimits };
+module.exports = { createAgentLog, toolLabel, cleanUser, modelName, codexModelName, codexLimits, findCodexRollout };

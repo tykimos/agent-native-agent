@@ -592,7 +592,23 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 .prop .acts button { flex: 1; height: 40px; border-radius: var(--r-sm); font-weight: 800; font-size: 13.5px; }
 .prop .ok { background: var(--blue); color: var(--white); } .prop .no { background: var(--surface); box-shadow: var(--sh-card); }
 .prop .state { margin-top: 9px; font-size: 12.5px; font-weight: 800; display: none; }
-.prop.applied .acts, .prop.rejected .acts { display: none; }
+.prop.applied .acts, .prop.rejected .acts, .prop.applying .acts { display: none; }
+.prop.applying .state { display: block; color: var(--warm-fg); }
+/* 협업 목록의 상태 필터(대기 · 처리 중 · 완료 · 취소) */
+.stseg { display: flex; gap: 6px; margin: 4px 0 14px; overflow-x: auto; scrollbar-width: none; }
+.stseg::-webkit-scrollbar { display: none; }
+.stseg button { flex: 0 0 auto; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px; border-radius: 999px; font-size: 13px; font-weight: 800;
+  color: var(--text-sub); background: var(--surface-2); box-shadow: 0 0 0 1px var(--line-2); }
+.stseg button .n { min-width: 18px; padding: 0 5px; border-radius: 999px; font-size: 11.5px; line-height: 18px; text-align: center; background: var(--surface); color: var(--text-sub); }
+.stseg button.on { color: var(--white); background: var(--text); box-shadow: none; }
+.stseg button.on .n { background: color-mix(in srgb, var(--white) 22%, transparent); color: var(--white); }
+@media (max-width: 480px) {   /* 휴대폰 폭에서도 네 버튼이 한 줄에 다 보이게 */
+  .stseg { gap: 4px; } .stseg button { flex: 1 1 auto; justify-content: center; gap: 4px; padding: 0 7px; font-size: 12px; }
+  .stseg button .n { min-width: 16px; padding: 0 4px; font-size: 11px; line-height: 16px; }
+}
+@media (max-width: 380px) { .stseg button { padding: 0 5px; gap: 3px; font-size: 11.5px; letter-spacing: -0.01em; } .stseg button .n { min-width: 15px; padding: 0 3px; } }
+.evo-when { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--text-weak); white-space: nowrap; }
+.evo-card.done .evo-t, .evo-card.dismissed .evo-t { color: var(--text-sub); }
 .prop.applied .state, .prop.rejected .state { display: block; }
 .prop.applied .state { color: var(--green); } .prop.rejected .state { color: var(--text-weak); }
 
@@ -906,6 +922,35 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
 .composer .inputwrap textarea:focus { background: none; }
 .composer #ghost { inset: 0; padding: 6px 8px 2px; font-size: 16px; line-height: 1.5; }
 .cbar { display: flex; align-items: center; gap: 8px; }
+.perm-btn { width: 40px; height: 40px; border-radius: 999px; background: var(--surface-2); color: var(--text-sub); display: grid; place-items: center; flex: 0 0 auto; }
+.perm-btn[hidden] { display: none; }
+.perm-btn svg { width: 21px; height: 21px; grid-area: 1 / 1; }
+.perm-btn .si-off { display: none; }
+.perm-btn.open-mode { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, var(--surface-2)); }
+.perm-btn.open-mode .si-ok { display: none; } .perm-btn.open-mode .si-off { display: block; }
+.perm-btn.plan-mode { color: var(--blue); }
+/* 입력창 컨트롤 크기는 화면 폭이 아니라 '입력창 자신의 폭'에 맞춘다(PC의 좁은 채팅 패널도 같은 규칙).
+   모델명 알약은 줄어들지 않는다 — 대신 둥근 버튼과 간격이 단계적으로 작아진다 */
+.chat-dock .composer { container-type: inline-size; container-name: composer; }
+.cbar > * { flex-shrink: 0; }
+.cbar .sp { flex: 1 1 0; min-width: 0; }
+.cbar .agent-pill { max-width: none; }
+@container composer (max-width: 420px) {
+  .composer .cbar { gap: 5px; }
+  .composer .cbar .attach, .composer .cbar .perm-btn, .composer .cbar .limit-ring, .composer .cbar .mic, .composer .cbar #send { width: 34px; height: 34px; }
+  .composer .cbar .agent-pill { height: 34px; padding: 0 11px; font-size: 13.5px; }
+  .composer .cbar .attach svg, .composer .cbar .mic svg { width: 18px; height: 18px; }
+  .composer .cbar .limit-ring svg { width: 26px; height: 26px; } .composer .cbar .limit-ring .rl { font-size: 8.5px; }
+  .composer .cbar .perm-btn svg { width: 18px; height: 18px; } .composer .cbar #send svg { width: 15px; height: 15px; } .composer .cbar #send.stop svg { width: 16px; height: 16px; }
+}
+@container composer (max-width: 330px) {
+  .composer .cbar { gap: 3px; }
+  .composer .cbar .attach, .composer .cbar .perm-btn, .composer .cbar .limit-ring, .composer .cbar .mic, .composer .cbar #send { width: 31px; height: 31px; }
+  .composer .cbar .agent-pill { height: 31px; padding: 0 9px; font-size: 13px; }
+  .composer .cbar .limit-ring svg { width: 24px; height: 24px; }
+}
+/* 권한만 보는 시트(입력창의 방패 아이콘) — 모델·Effort 줄은 숨기고 권한 목록만 펼친다 */
+.msheet.perm-only #mList, .msheet.perm-only #mEffortBtn, .msheet.perm-only #mEffortList, .msheet.perm-only #mPermBtn { display: none; }
 .cbar .sp { flex: 1; }
 /* 한도 원형 차트 — 쓴 비율만큼 호가 찬다. 80%↑ 주황, 95%↑ 빨강 */
 .limit-ring { position: relative; width: 40px; height: 40px; border-radius: 999px; background: var(--surface-2); display: grid; place-items: center; flex: 0 0 auto; }
@@ -1223,20 +1268,21 @@ body.sys-mode .ws-combo { display: none; }
   <section class="view" id="requestsView" role="tabpanel"><div class="wrap">
     <div class="evo-head"><span class="evo-lead">Work the agent is asking you to do — things only you can do, and information it is missing</span></div>
     <div class="evo-cta"><button id="reqAsk">Ask the agent what it needs</button></div>
+    <div class="stseg" data-stseg="req" role="tablist" aria-label="Request status"></div>
     <div id="reqList"></div>
-    <div class="empty" id="reqEmpty">No open requests — try [Ask the agent what it needs]</div>
-    <details class="req-closed" id="reqClosedBox" hidden><summary id="reqClosedSum">Closed</summary><div id="reqClosed"></div></details>
+    <div class="empty" id="reqEmpty"></div>
   </div></section>
 
   <!-- 협업 › 승인: 에이전트가 일을 하려면 사용자 승인이 필요한 것(데이터 변경 제안 · 결정 · 접근 · 승인 요청) -->
   <section class="view" id="approvalsView" role="tabpanel"><div class="wrap">
     <div class="evo-head"><span class="evo-lead">What the agent needs your OK for before it goes on — data changes, decisions, access</span></div>
     <div class="evo-cta"><button id="apprAsk">Ask the agent what needs my approval</button></div>
+    <div class="stseg" data-stseg="appr" role="tablist" aria-label="Approval status"></div>
     <div class="sec-head" id="apprDiffHead" hidden><h2>Data changes</h2><span class="cnt" id="apprDiffCnt"></span></div>
     <div id="apprDiffs"></div>
+    <div class="sec-head" id="apprReqHead" hidden><h2>Requests</h2><span class="cnt" id="apprReqCnt"></span></div>
     <div id="apprList"></div>
-    <div class="empty" id="apprEmpty">Nothing waiting for your approval</div>
-    <details class="req-closed" id="apprClosedBox" hidden><summary id="apprClosedSum">Closed</summary><div id="apprClosed"></div></details>
+    <div class="empty" id="apprEmpty"></div>
   </div></section>
 
   <!-- 시스템 › 신뢰성 · 안전 · 보안 — 서버가 실제 상태로 계산한 점검(/api/trust) -->
@@ -1257,8 +1303,9 @@ body.sys-mode .ws-combo { display: none; }
   <section class="view" id="evolveView" role="tabpanel"><div class="wrap">
     <div class="evo-head"><span class="evo-lead">How the agent thinks this app should evolve — from its features, your data and how you use it. Approve one and the agent builds it</span></div>
     <div class="evo-cta"><button id="evoAnalyze">Ask the agent to analyze</button></div>
+    <div class="stseg" data-stseg="evo" role="tablist" aria-label="Proposal status"></div>
     <div id="evoList"></div>
-    <div class="empty" id="evoEmpty">No proposals yet — try [Ask the agent to analyze]</div>
+    <div class="empty" id="evoEmpty"></div>
   </div></section>
 </div>
 
@@ -1326,6 +1373,8 @@ body.sys-mode .ws-combo { display: none; }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
       <button class="agent-pill" id="agentPill" title="Choose the agent session">Agent</button>
+      <!-- 권한 모드: 방패 ✓ = 묻고 진행, 빨간 방패 ! = 묻지 않고 실행(Bypass · Full Access). 누르면 권한 목록 시트 -->
+      <button class="perm-btn" id="permBtn" hidden aria-label="Permission mode"><svg class="si-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg><svg class="si-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></button>
       <!-- 요금제 한도: 5시간 · 주간 — 원형 차트가 쓴 만큼 찬다 -->
       <button class="limit-ring" id="ring5h" data-limit="fiveHour" hidden aria-label="5-hour limit"><svg viewBox="0 0 36 36" aria-hidden="true"><circle class="trk" cx="18" cy="18" r="14"/><circle class="val" cx="18" cy="18" r="14" pathLength="100"/></svg><span class="rl">5h</span></button>
       <button class="limit-ring" id="ringWeek" data-limit="week" hidden aria-label="Weekly limit"><svg viewBox="0 0 36 36" aria-hidden="true"><circle class="trk" cx="18" cy="18" r="14"/><circle class="val" cx="18" cy="18" r="14" pathLength="100"/></svg><span class="rl">7d</span></button>
@@ -1453,7 +1502,7 @@ let sessionAlive = false, busy = false, atBottom = true;
 // 선언줄 이전에 읽으면 던지고, 그러면 이후 스크립트 전체가 중단된다(실제로 그런 사고가 있었다).
 let contextChips = [], attachments = [];
 // 대화 기록 모드(Claude Code JSONL) 상태 — pollHealth가 부트스트랩 중에 부르므로 여기서 먼저 선언한다
-let logMode = false, logRev = 0, logSession = '', logTimer = null, logBusy = false, logModel = '', logServerModel = '', logServerEffort = '', logEffort = '', msheetBusy = false, logKind = '', limits = null, trustRisk = 0, apprOpenReqs = 0, apprLive = 0;
+let logMode = false, logRev = 0, logSession = '', logTimer = null, logBusy = false, logModel = '', logServerModel = '', logServerEffort = '', logEffort = '', msheetBusy = false, logKind = '', limits = null, trustRisk = 0, permInfo = null, permBusy = false, permPollAt = 0;
 const logOpen = new Set();          // 사용자가 펼쳐 둔 도구 묶음(다시 그려도 유지)   // attachments: {name, size, path, pending}
 
 /* ================= 데이터 (할일 + 일정) ================= */
@@ -1803,39 +1852,81 @@ function reqCard(r, closed) {
     <span class="req-kind ${kind}">${REQ_KIND[kind]}</span><span class="req-t">${escapeHtml(r.title)}</span><span class="req-when">#${Number(r.id) || 0}</span></div>
     ${r.desc ? `<div class="evo-d">${escapeHtml(r.desc)}</div>` : ''}${refChip}${closed ? '' : ans}${body}</div>`;
 }
+/* ---- 협업 목록: 대기 · 처리 중 · 완료 · 취소 ----
+   세 탭(Evolve · Approvals · Requests)이 같은 네 상태로 나뉜다. 탭마다 고른 상태를 기억한다. */
+const ST_BUCKETS = [['wait', 'Waiting'], ['doing', 'In progress'], ['done', 'Done'], ['cancel', 'Cancelled']];
+const BUCKET_OF = {
+  evo: { new: 'wait', doing: 'doing', done: 'done', dismissed: 'cancel' },
+  req: { open: 'wait', answered: 'doing', done: 'done', dismissed: 'cancel' },
+  diff: { pending: 'wait', applying: 'doing', applied: 'done', rejected: 'cancel' },
+};
+const ST_EMPTY = {
+  evo: { wait: 'No new proposals — try [Ask the agent to analyze]', doing: 'Nothing being built right now', done: 'No finished proposals yet', cancel: 'Nothing ignored' },
+  appr: { wait: 'Nothing waiting for your approval', doing: 'Nothing in progress', done: 'Nothing approved or resolved yet', cancel: 'Nothing rejected or dismissed' },
+  req: { wait: 'No open requests — try [Ask the agent what it needs]', doing: 'Nothing in progress — answered requests show here until they are done', done: 'Nothing done yet', cancel: 'Nothing dismissed' },
+};
+let stFilter = { evo: 'wait', appr: 'wait', req: 'wait' };
+try { Object.assign(stFilter, JSON.parse(localStorage.getItem('ana-collab-filter') || '{}')); } catch {}
+let diffCache = [], evoCache = [];
+const recent = (x) => String(x.updatedAt || x.closedAt || x.decidedAt || x.answeredAt || x.at || '');
+function bucketList(list, map) {
+  const out = { wait: [], doing: [], done: [], cancel: [] };
+  for (const x of list) { const b = map[x.status]; if (b) out[b].push(x); }
+  out.wait.sort((a, b) => a.id - b.id); out.doing.sort((a, b) => a.id - b.id);          // 할 일은 오래된 것부터
+  out.done.sort((a, b) => recent(b).localeCompare(recent(a))); out.cancel.sort((a, b) => recent(b).localeCompare(recent(a)));   // 끝난 것은 최근 것부터
+  return out;
+}
+function renderStSeg(key, counts) {
+  const el = document.querySelector(`[data-stseg="${key}"]`);
+  el.innerHTML = ST_BUCKETS.map(([b, l]) => `<button role="tab" data-b="${b}" aria-selected="${stFilter[key] === b}" class="${stFilter[key] === b ? 'on' : ''}">${l}<span class="n">${counts[b] || 0}</span></button>`).join('');
+}
+document.querySelectorAll('[data-stseg]').forEach((el) => el.addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-b]'); if (!b) return;
+  const key = el.dataset.stseg; stFilter[key] = b.dataset.b;
+  try { localStorage.setItem('ana-collab-filter', JSON.stringify(stFilter)); } catch {}
+  if (key === 'evo') renderEvolve(); else renderRequestsAll();
+}));
+const whenTxt = (x) => { const t = recent(x); return t ? fmtWhen(t) : ''; };
+
 async function refreshRequests() {
-  let d; try { d = await (await getJSON('/api/requests')); } catch { return; }
-  requestsCache = d.requests || [];
+  const [d, pd] = await Promise.all([getJSON('/api/requests').catch(() => null), getJSON('/api/proposals').catch(() => null)]);
+  if (d) requestsCache = d.requests || [];
+  if (pd) { diffCache = pd.proposals || []; diffCache.forEach((p) => proposals.set(p.id, p)); }
+  renderRequestsAll();
+}
+// Approvals(승인 계열 요청 + 데이터 변경)와 Requests(action·info)를 각각 고른 상태로 그린다
+function renderRequestsAll() {
   const isAppr = (r) => APPROVAL_KINDS.includes(r.kind);
-  const openAppr = renderReqBox('appr', requestsCache.filter(isAppr));
-  const openReq = renderReqBox('req', requestsCache.filter((r) => !isAppr(r)));
-  $('reqBadge').textContent = openReq; $('reqBadge').classList.toggle('show', openReq > 0);
-  apprOpenReqs = openAppr; renderApprovals();
+  const req = bucketList(requestsCache.filter((r) => !isAppr(r)), BUCKET_OF.req);
+  const apprReq = bucketList(requestsCache.filter(isAppr), BUCKET_OF.req);
+  const diffs = bucketList([...new Map([...diffCache, ...[...proposals.values()]].map((p) => [p.id, p])).values()], BUCKET_OF.diff);
+  renderReqBox('req', req);
+  // Approvals
+  const ak = stFilter.appr;
+  renderStSeg('appr', Object.fromEntries(ST_BUCKETS.map(([b]) => [b, apprReq[b].length + diffs[b].length])));
+  $('apprDiffHead').hidden = !diffs[ak].length; $('apprDiffCnt').textContent = diffs[ak].length || '';
+  $('apprDiffs').innerHTML = diffs[ak].map((p) => propCard(p.id, p.text || 'Change proposal')).join('');
+  renderReqBox('appr', apprReq, { head: !!diffs[ak].length });
+  const emptyA = !apprReq[ak].length && !diffs[ak].length;
+  $('apprEmpty').textContent = ST_EMPTY.appr[ak]; $('apprEmpty').style.display = emptyA ? 'block' : 'none';
+  // 배지 = 대기 수
+  $('reqBadge').textContent = req.wait.length; $('reqBadge').classList.toggle('show', req.wait.length > 0);
+  const nA = apprReq.wait.length + diffs.wait.length;
+  $('apprBadge').textContent = nA; $('apprBadge').classList.toggle('show', nA > 0); updateSysBadge();
 }
-// 한 상자(prefix: req | appr)에 열린 요청과 닫힌 요청을 그린다. 답을 쓰던 칸은 다시 그려도 지우지 않는다. 반환: 열린 수
-function renderReqBox(prefix, list) {
-  const listEl = $(prefix + 'List');
+// 한 상자(prefix: req | appr)에 고른 상태의 요청만 그린다. 답을 쓰던 칸은 다시 그려도 지우지 않는다
+function renderReqBox(prefix, buckets, opt = {}) {
+  const listEl = $(prefix + 'List'), key = prefix;
   const drafts = {}; listEl.querySelectorAll('.req-card').forEach((c) => { const t = c.querySelector('textarea'); if (t && t.value) drafts[c.dataset.rid] = t.value; });
-  const live = list.filter((x) => x.status === 'open' || x.status === 'answered').sort((a, b) => (a.status === b.status ? a.id - b.id : a.status === 'open' ? -1 : 1));
-  const closed = list.filter((x) => x.status === 'done' || x.status === 'dismissed').sort((a, b) => String(b.closedAt || '').localeCompare(String(a.closedAt || ''))).slice(0, 20);
-  listEl.innerHTML = live.map((r) => reqCard(r, false)).join('');
+  const k = stFilter[key], list = buckets[k];
+  if (prefix === 'req') renderStSeg('req', Object.fromEntries(ST_BUCKETS.map(([b]) => [b, buckets[b].length])));
+  listEl.innerHTML = list.map((r) => reqCard(r, k === 'done' || k === 'cancel')).join('');
   Object.entries(drafts).forEach(([id, v]) => { const t = listEl.querySelector(`.req-card[data-rid="${id}"] textarea`); if (t) t.value = v; });
-  if (prefix === 'req') $('reqEmpty').style.display = live.length ? 'none' : 'block';
-  $(prefix + 'ClosedBox').hidden = !closed.length;
-  $(prefix + 'ClosedSum').textContent = `Closed (${closed.length})`;
-  $(prefix + 'Closed').innerHTML = closed.map((r) => reqCard(r, true)).join('');
-  if (prefix === 'appr') apprLive = live.length;
-  return live.filter((x) => x.status === 'open').length;
+  if (prefix === 'req') { $('reqEmpty').textContent = ST_EMPTY.req[k]; $('reqEmpty').style.display = list.length ? 'none' : 'block'; }
+  if (prefix === 'appr') { $('apprReqHead').hidden = !(opt.head && list.length); $('apprReqCnt').textContent = list.length || ''; }
 }
-// 승인 탭: 대기 중인 데이터 변경(diff→approve) + 승인 계열 요청
-function renderApprovals() {
-  const pend = [...proposals.values()].filter((p) => p.status === 'pending').sort((a, b) => a.id - b.id);
-  $('apprDiffHead').hidden = !pend.length; $('apprDiffCnt').textContent = pend.length ? String(pend.length) : '';
-  $('apprDiffs').innerHTML = pend.map((p) => propCard(p.id, p.text || 'Change proposal')).join('');
-  $('apprEmpty').style.display = pend.length || apprLive ? 'none' : 'block';
-  const n = pend.length + apprOpenReqs;
-  $('apprBadge').textContent = n; $('apprBadge').classList.toggle('show', n > 0); updateSysBadge();
-}
+// 데이터 변경이 실시간으로 들어오면(proposal 이벤트) 다시 그린다
+function renderApprovals() { renderRequestsAll(); }
 $('apprDiffs').addEventListener('click', (e) => {
   const pbtn = e.target.closest('.prop button'); if (!pbtn) return;
   const decision = pbtn.classList.contains('ok') ? 'approve' : 'reject'; const pid = Number(pbtn.closest('.prop').dataset.pid);
@@ -1874,7 +1965,7 @@ async function reqAnswer(card, answer) {
   post('/api/chat', { text: msg, force: true }).then((x) => { if (!x.ok) x.json().then((e) => showErr(e.error || 'Could not send the answer to the agent')).catch(() => {}); })
     .catch(() => showErr('Could not send the answer to the agent'));
 }
-['reqList', 'reqClosed', 'apprList', 'apprClosed'].forEach((box) => $(box).addEventListener('click', (e) => {
+['reqList', 'apprList'].forEach((box) => $(box).addEventListener('click', (e) => {
   const card = e.target.closest('.req-card'), btn = e.target.closest('button');
   if (!card || !btn || document.body.classList.contains('ana-mode') && !btn) return;
   const id = Number(card.dataset.rid);
@@ -1909,20 +2000,29 @@ Register: curl -s -X POST http://${h}/api/requests -H 'content-type: application
 
 /* ---- 진화 ---- */
 async function refreshEvolve() {
-  let ev; try { ev = await (await getJSON('/api/evolve')); } catch { return; }
-  const live = (ev.proposals || []).filter((x) => x.status !== 'dismissed');
-  const nw = live.filter((x) => x.status === 'new').length;
-  $('evoBadge').textContent = nw; $('evoBadge').classList.toggle('show', nw > 0); updateSysBadge();
+  let ev; try { ev = await getJSON('/api/evolve'); } catch { return; }
+  evoCache = ev.proposals || [];
+  renderEvolve();
+}
+function renderEvolve() {
+  const B = bucketList(evoCache, BUCKET_OF.evo), k = stFilter.evo;
+  renderStSeg('evo', Object.fromEntries(ST_BUCKETS.map(([b]) => [b, B[b].length])));
+  $('evoBadge').textContent = B.wait.length; $('evoBadge').classList.toggle('show', B.wait.length > 0); updateSysBadge();
   const TYPES = { improve: 'improve', add: 'add', remove: 'remove' };
-  $('evoList').innerHTML = live.map((p) => {
+  const ACTS = {
+    wait: '<button class="talk">Discuss</button><button class="do">Do it</button><button class="ignore">Ignore</button>',
+    doing: '<button class="talk">Discuss</button><button class="done">Mark done</button><button class="ignore">Cancel</button>',
+    done: '<button class="reopen">Reopen</button>',
+    cancel: '<button class="reopen">Restore</button>',
+  };
+  $('evoList').innerHTML = B[k].map((p) => {
     const type = TYPES[p.type] || 'improve'; const id = Number(p.id) || 0;
-    return `<div class="evo-card card" data-eid="${id}"><div class="evo-top">
-      <span class="evo-type ${type}">${type}</span><span class="evo-t">${escapeHtml(p.title)}</span>
-      ${p.status === 'doing' ? '<span class="evo-st">In progress</span>' : ''}</div>
+    return `<div class="evo-card card ${escapeHtml(p.status)}" data-eid="${id}"><div class="evo-top">
+      <span class="evo-type ${type}">${type}</span><span class="evo-t">${escapeHtml(p.title)}</span><span class="evo-when">#${id}${k !== 'wait' && whenTxt(p) ? ' · ' + whenTxt(p) : ''}</span></div>
       ${p.desc ? `<div class="evo-d">${escapeHtml(p.desc)}</div>` : ''}
-      ${p.status === 'new' ? `<div class="evo-acts"><button class="talk">Discuss</button><button class="do">Do it</button><button class="ignore">Ignore</button></div>` : ''}
+      <div class="evo-acts">${ACTS[k]}</div>
     </div>`; }).join('');
-  $('evoEmpty').style.display = live.length ? 'none' : 'block';
+  $('evoEmpty').textContent = ST_EMPTY.evo[k]; $('evoEmpty').style.display = B[k].length ? 'none' : 'block';
 }
 $('evoList').addEventListener('click', (e) => {
   const card = e.target.closest('.evo-card'); const btn = e.target.closest('button');
@@ -1931,7 +2031,7 @@ $('evoList').addEventListener('click', (e) => {
   const title = card.querySelector('.evo-t')?.textContent || '';
   const desc = card.querySelector('.evo-d')?.textContent || '';
   if (btn.classList.contains('talk')) { addChip('Proposal', title); openChat(); setTimeout(() => $('input').focus(), 60); return; } // 제안을 컨텍스트 칩으로 등록
-  const action = btn.classList.contains('do') ? 'do' : 'ignore';
+  const action = ['do', 'done', 'reopen', 'ignore'].find((a) => btn.classList.contains(a)) || 'ignore';
   post('/api/evolve-act', { id, action }).then((r) => { if (!r.ok) showErr('Failed to process the proposal'); refreshEvolve(); }).catch(() => showErr('Failed to process the proposal'));
   // '수행'은 상태만 바꾸지 않고 코딩 에이전트에게 실제 구현을 지시 + 채팅을 연다(대화가 시작됨).
   if (action === 'do') {
@@ -2693,7 +2793,32 @@ const sheetModels = () => logKind === 'codex' ? codexModels.map(m => [m.id, m.na
 const sheetEfforts = () => logKind === 'codex' ? ((codexModels.find(m => m.name === logModel) || {}).efforts || []).map(e => [e, { xhigh: 'Extra high' }[e] || e[0].toUpperCase() + e.slice(1)]) : EFFORTS;
 const EFFORTS = [['low', 'Low'], ['medium', 'Medium'], ['high', 'High'], ['xhigh', 'Extra high'], ['max', 'Max']];
 const CHECK = '<svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-let permInfo = null, permBusy = false;
+// 입력창의 방패 아이콘 — 지금 권한 모드를 색과 모양으로 보여 준다
+function renderPermBtn() {
+  const b = $('permBtn'), ok = logMode && ['claude', 'codex'].includes(logKind) && permInfo && permInfo.options && permInfo.options.length;
+  b.hidden = !ok; if (!ok) return;
+  const cur = permInfo.options.find((o) => o.id === permInfo.current);
+  b.classList.toggle('open-mode', !!(cur && cur.risky)); b.classList.toggle('plan-mode', permInfo.current === 'plan');
+  const label = cur ? cur.label : 'Unknown';
+  b.title = `Permissions: ${label}${cur && cur.risky ? ' — runs without asking' : ''}`; b.setAttribute('aria-label', b.title);
+}
+async function pollPerm(force) {
+  const t = health && health.target;
+  if (!t || !logMode || document.hidden || (!force && Date.now() - permPollAt < 15000)) return;
+  permPollAt = Date.now();
+  try { const d = await getJSON('/api/agent-permission'); if (t === (health && health.target) && !permBusy) { permInfo = d; renderPermBtn(); if (!$('msheet').hidden) renderPerm(); } } catch {}
+}
+setInterval(() => pollPerm(false), 5000);
+async function openPermSheet() {
+  modelSheetTarget = health && health.target;
+  $('msheet').classList.add('perm-only'); $('msheetTitle').textContent = 'Permissions';
+  renderPerm(); $('mPermList').hidden = false;
+  $('msheet').hidden = false; void $('msheet').offsetWidth;
+  $('msheet').classList.add('on'); $('msheetScrim').classList.add('on');
+  await pollPerm(true); renderPerm(); $('mPermList').hidden = false;
+  setTimeout(() => ($('mPermList').querySelector('[aria-checked="true"]') || $('msheetClose')).focus(), 60);
+}
+$('permBtn').addEventListener('click', (e) => { e.stopPropagation(); openPermSheet(); });
 function renderPerm() {
   const box = $('mPermList'), btn = $('mPermBtn');
   btn.hidden = !permInfo || !permInfo.options.length;
@@ -2707,7 +2832,7 @@ function renderPerm() {
     : 'Model and effort also become the default for new Claude Code sessions. Permissions apply to this session only.';
 }
 async function loadPerm(target) {
-  try { const d = await getJSON('/api/agent-permission'); if (target === (health && health.target)) { permInfo = d; renderPerm(); } } catch { permInfo = null; renderPerm(); }
+  try { const d = await getJSON('/api/agent-permission'); if (target === (health && health.target)) { permInfo = d; renderPerm(); renderPermBtn(); } } catch { renderPerm(); }
 }
 async function applyPerm(id) {
   if (permBusy || !permInfo || id === permInfo.current) return;
@@ -2719,7 +2844,7 @@ async function applyPerm(id) {
   permBusy = false;
   if (target !== (health && health.target)) return;
   if (!r || !r.ok) { let e = {}; try { e = await r.json(); } catch {} renderPerm(); showErr(e.error || 'Could not change the permission mode'); return; }
-  permInfo.current = id; renderPerm(); toast(`Permissions: ${opt.label}`);
+  permInfo.current = id; renderPerm(); renderPermBtn(); toast(`Permissions: ${opt.label}`);
   if ($('safetyView').classList.contains('on')) refreshTrust();
 }
 $('mPermBtn').onclick = () => { const open = $('mPermList').hidden; $('mPermList').hidden = !open; $('mPermBtn').setAttribute('aria-expanded', String(open)); };
@@ -2742,7 +2867,8 @@ async function openModelSheet() {
     } catch (e) { showErr(e.message || 'Could not load models'); return; }
   }
   modelSheetTarget = target;
-  permInfo = null; renderPerm(); loadPerm(target);
+  $('msheet').classList.remove('perm-only'); $('msheetTitle').textContent = 'Model'; $('mPermList').hidden = true; $('mPermBtn').setAttribute('aria-expanded', 'false');
+  renderPerm(); loadPerm(target);
   renderModelSheet();
   $('msheet').hidden = false; void $('msheet').offsetWidth;
   $('msheet').classList.add('on'); $('msheetScrim').classList.add('on');
@@ -2792,10 +2918,10 @@ function diffRows(diff) {
 }
 function propCard(pid, text) {
   const pr = proposals.get(pid); const st = pr ? pr.status : 'pending';
-  return `<div class="prop ${st === 'applied' ? 'applied' : st === 'rejected' ? 'rejected' : ''}" data-pid="${pid}">
+  return `<div class="prop ${st === 'applied' ? 'applied' : st === 'rejected' ? 'rejected' : st === 'applying' ? 'applying' : ''}" data-pid="${pid}">
     <div class="pt">${escapeHtml(text)}</div>${pr ? diffRows(pr.diff || {}) : ''}
     <div class="acts"><button class="ok">Approve</button><button class="no">Reject</button></div>
-    <div class="state">${st === 'applied' ? '✓ Applied' : 'Rejected'}</div></div>`;
+    <div class="state">${st === 'applied' ? '✓ Applied' : st === 'applying' ? 'Applying…' : 'Rejected'}</div></div>`;
 }
 function refreshPropCards() { document.querySelectorAll('[data-prop]').forEach((el) => { const pid = Number(el.dataset.prop); const pt = el.querySelector('.pt'); el.innerHTML = propCard(pid, pt ? pt.textContent : 'Change proposal'); }); }
 /* ================= 대화 기록 모드 (Claude Code JSONL) =================
@@ -2805,7 +2931,7 @@ function refreshPropCards() { document.querySelectorAll('[data-prop]').forEach((
 // logMode·logRev 등 상태 변수는 부트스트랩보다 먼저 쓰이므로 스크립트 맨 앞(contextChips 옆)에 선언한다.
 // 원장 메시지: 기록 모드에서는 승인 카드처럼 원장에만 있는 것만 그린다
 const ledgerHtml = (msgs) => (logMode ? msgs.filter((m) => m.role === 'proposal') : msgs).map(msgHtml).join('');
-function logReset() { logRev = 0; logSession = ''; logKind = ''; limits = null; renderLimits(); logModel = ''; logServerModel = ''; logServerEffort = ''; if (logMode) { logMode = false; } }
+function logReset() { permInfo = null; permPollAt = 0; try { renderPermBtn(); } catch {} logRev = 0; logSession = ''; logKind = ''; limits = null; renderLimits(); logModel = ''; logServerModel = ''; logServerEffort = ''; if (logMode) { logMode = false; } }
 function pollLogSoon() { clearTimeout(logTimer); logTimer = setTimeout(pollLog, 250); }
 async function pollLog() {
   clearTimeout(logTimer);
@@ -2824,7 +2950,7 @@ async function pollLog() {
   if (fresh && logSession && (d.session !== logSession || d.reset)) { logRev = 0; logSession = ''; return pollLog(); }
   if (!logMode) { logMode = true; renderResync(); $('msgs').innerHTML = ''; renderPending([]); pollLimits(); }
   logSession = d.session; logRev = d.rev;
-  if (d.kind !== logKind) { logKind = d.kind || ''; pollLimits(); }
+  if (d.kind !== logKind) { logKind = d.kind || ''; pollLimits(); pollPerm(true); }
   // 입력창 하단에 실제 모델명 — 시트에서 바꾼 값은 서버 기록이 바뀔 때까지 유지한다
   if ((d.modelName || '') !== logServerModel) { logServerModel = d.modelName || ''; logModel = logServerModel; renderStatus(); }
   if (d.effort && d.effort !== logServerEffort) { logServerEffort = d.effort; logEffort = d.effort; }

@@ -24,7 +24,7 @@ UI/UX is the point of this skill. Match the spec below exactly; it came from sid
 │               ( ↓ )                      │  jump-to-bottom, dot when new messages arrive below
 │ ╭──────────────────────────────────────╮ │
 │ │ Message ANA — Enter to send          │ │  floating, blurred, translucent card
-│ │ (+) (Opus 5.5) (5h)(7d)      (🎤) (↑) │ │  send = theme accent; stop = light circle + 18px ■
+│ │ (+) (Opus 5.5) (🛡)(5h)(7d)  (🎤) (↑) │ │  send = theme accent; stop = light circle + 18px ■; 🛡 = permission mode
 │ ╰──────────────────────────────────────╯ │
 └──────────────────────────────────────────┘
 ```
@@ -32,6 +32,7 @@ UI/UX is the point of this skill. Match the spec below exactly; it came from sid
 - **Session combo:** dot (green alive / red not connected) + session name, ▾ at the right edge. The popup is exactly the combo's width, with 10px screen margins. Rows show the name, the agent (Claude Code / Codex, from the process or session name; strip `.exe`), msg count, and **You** only on the session *this screen* views. Elsewhere show "Open in another tab" / "Your last pick".
 - **Model pill:** shows the real model from the log (`Opus 5.5`, `GPT-6 Astra`). Tap opens the **model sheet**. Without a log it opens the session list.
 - **Model sheet:** bottom sheet with a grab bar, ✕, and title "Model". There's one rounded group of models (name + one-line description, ✓ on the current one), then an **Effort ›** row that expands the levels, then a note: "Also becomes the default for new Claude Code sessions."
+- **Shield icon (permission mode):** right after the model pill. Neutral shield ✓ = asks before acting, blue = Plan, **red shield !** = never asks (Bypass / Full Access). Tap opens the sheet with only the permission list (`perm-only`). Refreshed every 15 s while the chat is visible. Below 380 px the round controls shrink to 36 px so the model name still fits.
 - **Permissions row:** under Effort in the model sheet. It shows the agent's current permission mode; the rows have descriptions, and modes that never ask carry a red "No prompts" tag and a confirm dialog first.
   - Claude Code: Manual · Accept edits · Plan · Auto · Bypass permissions. Bypass is greyed out unless the session was started with `--dangerously-skip-permissions`.
   - Codex: Ask for approval · Approve for me · Full Access.
@@ -45,7 +46,7 @@ UI/UX is the point of this skill. Match the spec below exactly; it came from sid
 
 | Piece | Where | Notes |
 |---|---|---|
-| Structured log | `agent-log.js` (copy whole) | Finds the log for a tmux target from the pane's cwd. **Claude Code:** `~/.claude/projects/<cwd with non-alnum→'-'>/*.jsonl` (newest). **Codex:** `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` whose first-line `session_meta.cwd` matches. Incremental reads by byte offset; items get a `rev`; clients poll `since=rev` and replace by `id`. |
+| Structured log | `agent-log.js` (copy whole) | Finds the log for a tmux target from the pane's cwd. **Claude Code:** `~/.claude/projects/<cwd with non-alnum→'-'>/*.jsonl` (newest). **Codex:** the most recently *modified* `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` whose first-line `session_meta.cwd` matches — the date folder is the day the session *started*, and Codex keeps appending to that file, so never limit the search to recent date folders. Incremental reads by byte offset; items get a `rev`; clients poll `since=rev` and replace by `id`. |
 | Log API | `GET /api/agentlog?target=&since=` → `{available, kind, model, modelName, effort, limits, rev, items}`; `GET /api/agentlog/img?target=&ref=` | Images are re-read from the JSONL line by reference, never cached in memory. |
 | Model/effort | `POST /api/agent-setting {model?, effort?, target}`; `GET /api/agent-models` (Codex catalog) | **Claude:** whitelist `opus/fable/sonnet/haiku` and `low…max`. Inject `/model x` / `/effort y` with `ctx.injectText(cmd, true, true)` (no sender prefix, or the slash command breaks). Then read the screen: "Set model to …" = ok, "Kept model as …" = refused (long conversations can refuse Fable). **Codex:** `codex-settings.js` (copy whole). The catalog comes from `~/.codex/models_cache.json`; it types `/model` and walks Codex's own menus, then waits for "Model changed to …". |
 | Permission mode | `GET /api/agent-permission` → `{kind, current, options[{id,label,desc,risky,available}]}`; `POST /api/agent-permission {mode, target}` | `permission-mode.js` (copy whole). **Claude:** current mode = the bottom status line (`⏵⏵ auto mode on`, `⏸ plan mode on`, … — only lines starting with ⏵⏵/⏸, never reply text). Switch = `BTab` one press at a time, re-reading the status line after each, at most one lap; settings files are not touched. **Codex:** current = rollout `turn_context` (`approval_policy` + `sandbox_policy` + `approvals_reviewer`); before the first turn, start flags / `config.toml`. Switch = type `/permissions`, pick the row, confirm "Enable full access?", wait for "Permissions updated to …". Codex writes `approvals_reviewer` to `~/.codex/config.toml`. |

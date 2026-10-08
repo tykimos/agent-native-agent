@@ -513,6 +513,24 @@ t('F2 ana-diff.mjs: 자기 자신과 비교하면 전부 present·runtime same, 
   assert.ok(r.features.every((f) => f.modules.every((x) => x.state === 'same')));
 });
 
+t('L3 agent-log(Codex): 일주일 넘게 켜 둔 세션도 rollout을 찾는다(날짜 폴더가 아니라 수정 시각 기준)', () => {
+  const os = require('node:os');
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-home-'));
+  const mk = (day, name, cwd, ageMs) => {
+    const dir = path.join(home, 'sessions', '2026', day.slice(0, 2), day.slice(3)); fs.mkdirSync(dir, { recursive: true });
+    const f = path.join(dir, name);
+    fs.writeFileSync(f, JSON.stringify({ timestamp: 't', type: 'session_meta', payload: { cwd, base_instructions: { text: 'x'.repeat(70000) } } }) + '\n');
+    const t = (Date.now() - ageMs) / 1000; fs.utimesSync(f, t, t); return f;
+  };
+  const old = mk('01/02', 'rollout-old.jsonl', '/w/base-ana', 0);              // 오래전 날짜 폴더, 방금 수정됨(계속 쓰는 중)
+  mk('01/09', 'rollout-other.jsonl', '/w/other', 0);
+  mk('01/08', 'rollout-stale.jsonl', '/w/base-ana', 3600e3);                    // 같은 폴더지만 더 예전에 끝난 세션
+  const { execFileSync } = require('node:child_process');
+  const got = execFileSync(process.execPath, ['-e', "console.log(require('./agent-log.js').findCodexRollout('/w/base-ana'))"], { cwd: __dirname, env: { ...process.env, CODEX_HOME: home }, encoding: 'utf8' }).trim();
+  assert.equal(got, old);
+  fs.rmSync(home, { recursive: true, force: true });
+});
+
 t('D3 앵커 정렬은 화면 유래 항목만 사용 (src:api 리치 항목이 앵커를 깨지 않음)', () => {
   srv.feed.length = 0;
   srv.feed.push(

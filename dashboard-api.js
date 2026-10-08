@@ -769,7 +769,7 @@ function createDashboardApi(core, opts) {
         let result;
         try { result = applyDiff(pr.diff, pr.ws || DEFAULT_WS); }
         catch (e) { pr.status = 'pending'; saveProposals(ps); return sendJson(res, 500, { error: 'apply failed', detail: e.message }), true; }
-        pr.status = 'applied'; saveProposals(ps);
+        pr.status = 'applied'; pr.decidedAt = new Date().toISOString(); saveProposals(ps);
         const entry = commit({ role: 'system', text: `Changes applied (+${result.summary.added} ~${result.summary.updated} -${result.summary.removed}, v${result.version})`, src: 'api' });
         broadcast({ kind: 'commit', messages: [entry] });
         broadcast({ kind: 'proposal', proposal: pr });
@@ -778,7 +778,7 @@ function createDashboardApi(core, opts) {
         const notified = await tryDeliver(ctx);
         return sendJson(res, 200, { ok: true, applied: true, version: result.version, notified, notifyId: n.id }), true;
       }
-      pr.status = 'rejected'; saveProposals(ps);
+      pr.status = 'rejected'; pr.decidedAt = new Date().toISOString(); saveProposals(ps);
       const entry = commit({ role: 'system', text: `Proposal #${pr.id} was rejected.`, src: 'api' });
       broadcast({ kind: 'commit', messages: [entry] });
       broadcast({ kind: 'proposal', proposal: pr });
@@ -1087,6 +1087,11 @@ function createDashboardApi(core, opts) {
 
     // 진화 제안 조회
     if (p === '/api/evolve' && req.method === 'GET') return sendJson(res, 200, loadEvolve()), true;
+    // 데이터 변경 제안 전체(대기·적용 중·적용됨·거절됨) — 협업 › Approvals의 네 목록용. 이 워크스페이스, 최근 100개
+    if (p === '/api/proposals' && req.method === 'GET') {
+      const ws = curWs();
+      return sendJson(res, 200, { proposals: loadProposals().proposals.filter((x) => (x.ws || DEFAULT_WS) === ws).slice(-100) }), true;
+    }
 
     // 진화 제안 등록 (에이전트 curl)
     if (p === '/api/evolve' && req.method === 'POST') {
@@ -1120,11 +1125,12 @@ function createDashboardApi(core, opts) {
     if (p === '/api/evolve-act' && req.method === 'POST') {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
       const body = await jsonBody(req, res); if (!body) return true;
-      if (!['do', 'done', 'ignore'].includes(body.action)) return sendJson(res, 400, { error: 'action must be do|done|ignore' }), true;
+      if (!['do', 'done', 'ignore', 'reopen'].includes(body.action)) return sendJson(res, 400, { error: 'action must be do|done|ignore|reopen' }), true;
       const ev = loadEvolve();
       const pr = ev.proposals.find((x) => x.id === body.id);
       if (!pr) return sendJson(res, 404, { error: 'not found' }), true;
-      pr.status = body.action === 'do' ? 'doing' : body.action === 'done' ? 'done' : 'dismissed';
+      pr.status = { do: 'doing', done: 'done', ignore: 'dismissed', reopen: 'new' }[body.action];
+      pr.updatedAt = new Date().toISOString();   // 협업 목록(대기·처리 중·완료·취소)에서 최근 것부터 보이게
       ev.version = (ev.version || 1) + 1; saveEvolve(ev);
       broadcast({ kind: 'evolve', version: ev.version });
       let notified;

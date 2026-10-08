@@ -69,7 +69,9 @@
         "function pollLog",
         "function logItemHtml",
         "function mdHtml",
-        "codexModelName"
+        "codexModelName",
+        "function codexRolloutFiles",
+        "findCodexRollout"
       ]
     },
     {
@@ -93,7 +95,7 @@
       "id": "chat-permissions",
       "title": "Permission mode picker (Claude Code + Codex)",
       "skill": "chat-window",
-      "summary": "Model sheet › Permissions shows the agent's current permission mode and switches it. Claude Code: reads the status line and presses Shift+Tab until the wanted mode shows (manual · accept edits · plan · auto · bypass). Codex: /permissions menu (Ask for approval · Approve for me · Full Access) with its extra confirmation. Modes without prompts ask first; System › Safety uses the live mode.",
+      "summary": "Model sheet › Permissions shows the agent's current permission mode and switches it. Claude Code: reads the status line and presses Shift+Tab until the wanted mode shows (manual · accept edits · plan · auto · bypass). Codex: /permissions menu (Ask for approval · Approve for me · Full Access) with its extra confirmation. Modes without prompts ask first; System › Safety uses the live mode. A shield icon in the composer shows the mode at a glance (red with \"!\" when it never asks) and opens a permissions-only sheet.",
       "copy": [
         "permission-mode.js"
       ],
@@ -103,7 +105,10 @@
         "function applyPerm",
         "function renderPerm",
         "mPermList",
-        "function confirmAsk"
+        "function confirmAsk",
+        "permBtn",
+        "function openPermSheet",
+        "function renderPermBtn"
       ]
     },
     {
@@ -223,7 +228,7 @@
       "id": "agent-requests",
       "title": "Approvals & Requests (agent → user)",
       "skill": "agent-requests",
-      "summary": "Collaborate › Approvals: what the agent needs your OK for — pending data-change diffs plus approval / decision / access requests. Collaborate › Requests: work only you can do (action) and missing information (info). Answer, mark done or dismiss.",
+      "summary": "Collaborate › Approvals: what the agent needs your OK for — pending data-change diffs plus approval / decision / access requests. Collaborate › Requests: work only you can do (action) and missing information (info). Answer, mark done or dismiss. Each tab is split into Waiting · In progress · Done · Cancelled with counts.",
       "anchors": [
         "/api/requests",
         "/api/request-act",
@@ -233,7 +238,11 @@
         "function renderReqBox",
         "function renderApprovals",
         "APPROVAL_KINDS",
-        "function reqCard"
+        "function reqCard",
+        "/api/proposals",
+        "function renderRequestsAll",
+        "ST_BUCKETS",
+        "data-stseg"
       ]
     },
     {
@@ -245,7 +254,9 @@
         "/api/evolve",
         "/api/evolve-act",
         "evolveView",
-        "function refreshEvolve"
+        "function refreshEvolve",
+        "function renderEvolve",
+        "reopen: 'new'"
       ]
     },
     {
