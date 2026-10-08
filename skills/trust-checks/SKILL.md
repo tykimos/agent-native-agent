@@ -1,6 +1,6 @@
 ---
 name: trust-checks
-description: Port ANA's System › Reliability · Safety · Security tabs — checks computed on the server from real state (agent running, structured log, tool failure rate, interruptions, plan usage; permission-bypass flags, risky commands the agent actually ran, approval gate; bind address, sign-in, CSRF, token handling, credential file mode, secrets saved in the user's data) shown as ok / info / warn / risk cards with a risk badge. Use when the user says "AI 신뢰성", "안전", "보안", "trust", "위험한 명령", "보안 점검", "reliability tab", or when ana-update reports system-trust missing.
+description: Port ANA's System › Trustworthiness · Safety · Security tabs — checks computed on the server from real state (agent running, structured log, tool failure rate, interruptions, plan usage; permission-bypass flags, risky commands the agent actually ran, approval gate; bind address, sign-in, CSRF, token handling, credential file mode, secrets saved in the user's data) shown as ok / info / warn / risk cards with a risk badge. Use when the user says "AI 신뢰성", "안전", "보안", "trust", "위험한 명령", "보안 점검", "reliability tab", or when ana-update reports system-trust missing.
 ---
 
 # trust-checks — can I rely on this agent, and is it safe?
@@ -11,7 +11,7 @@ An ANA agent often runs with permission prompts off and can reach the user's mac
 
 | Tab | Check | Source | Status rule |
 |---|---|---|---|
-| Reliability | Agent is running | `ctx.hasSession()` + `ctx.agentAlive()` | risk if down |
+| Trustworthiness | Agent is running | `ctx.hasSession()` + `ctx.agentAlive()` | risk if down |
 | | Chat comes from the agent's own log | `agentLog.read(target)` available | warn if screen-mirror only |
 | | Tool calls that failed | `isError` over recent tool calls in the log | warn ≥ 10%, risk ≥ 30% |
 | | Interrupted turns | `Interrupted` events in the log | info, warn ≥ 5 |
@@ -28,7 +28,7 @@ An ANA agent often runs with permission prompts off and can reach the user's mac
 | | Remote control | `--remote-control` in the start command | info |
 | | Secrets in your data | `SECRET_PATTERNS` over notes/tasks/events (API keys, tokens, private keys, `password:`) | warn; list **where** (kind + title), never the value |
 
-Add checks that matter for the target's domain. For example, das-ana could flag "disk nearly full" and "SMART warnings" under Reliability, or "volume shared to the network" under Security. Keep the same shape: `{id, status, label, value?, detail?, items?}`.
+Add checks that matter for the target's domain. For example, das-ana could flag "disk nearly full" and "SMART warnings" under Trustworthiness, or "volume shared to the network" under Security. Keep the same shape: `{id, status, label, value?, detail?, items?}`.
 
 ## Pieces (upstream)
 
@@ -43,7 +43,7 @@ Add checks that matter for the target's domain. For example, das-ana could flag 
 
 ## Verify
 
-- Stop the agent → Reliability shows "Agent is not running" as risk, and the System badge shows 1.
+- Stop the agent → Trustworthiness shows "Agent is not running" as risk, and the System badge shows 1.
 - In a throwaway tmux session (never the live one), run `echo rm -rf /tmp/x-test` through the agent → Safety lists it.
 - Put `sk-ant-test0123456789abcdef` in a note → Security warns and names the note, but not the key. Remove it.
 - `BIND=0.0.0.0` on a test port → Security shows risk. Never leave a real server bound like that.

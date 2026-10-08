@@ -144,7 +144,7 @@ The base is a solo operations board: notes, tasks and a calendar you run togethe
 |---|---|---|
 | **Workspace** | Tasks · Calendar · Notes | your own data, per workspace (switch, add, rename, reorder) |
 | **Collaborate** | Evolve · Approvals · Requests | the agent and you working together. The badge counts what is waiting on you |
-| **System** | Stats · Relations · Reliability · Safety · Security | how the system is doing and whether you can trust it. The badge counts checks at risk |
+| **System** | Stats · Relations · Trustworthiness · Safety · Security | how the system is doing and whether you can trust it. The badge counts checks at risk |
 
 ### Chat — like the Claude app
 
@@ -195,11 +195,11 @@ Links show as chips on both ends; clicking one jumps to that item. **System › 
 
 Each tab has a button that asks the agent to fill it. The agent registers items with `POST /api/requests {requests:[{kind, title, desc?, options?, ref?}]}` (`ref` = a task/event/note id shown as a link). Your answer goes straight to the agent in chat. *I did it* / *Not now* notify it (`POST /api/request-act {id, action: answer|done|dismiss|reopen}`).
 
-### System — Reliability · Safety · Security
+### System — Trustworthiness · Safety · Security
 
 Checks computed from real state (`GET /api/trust`), not static text:
 
-- **Reliability:** is the agent running, is the chat read from its own log, the tool-call failure rate, interrupted turns, plan usage, what is waiting on you.
+- **Trustworthiness:** is the agent running, is the chat read from its own log, the tool-call failure rate, interrupted turns, plan usage, what is waiting on you.
 - **Safety:** does the agent run with permission prompts off (`--dangerously-skip-permissions`, `--dangerously-bypass-approvals-and-sandbox`)? Which risky commands has it actually run (rm -rf, reset --hard, force push, killall, sudo, curl | sh, DROP TABLE, disk writes)? It also confirms data changes go through approval.
 - **Security:**
   - who can reach the server (bind address) and whether people sign in
@@ -269,7 +269,7 @@ claude plugin install ana@agent-native-agent          # later: claude plugin upd
 | [`relations`](skills/relations/SKILL.md) | NodeRel item relations, relation chips, the Relations tab |
 | [`app-shell`](skills/app-shell/SKILL.md) | Workspace / Collaborate / System areas, bottom menu, workspace combo |
 | [`agent-requests`](skills/agent-requests/SKILL.md) | Collaborate: Evolve, Approvals, Requests |
-| [`trust-checks`](skills/trust-checks/SKILL.md) | System: Reliability, Safety, Security checks |
+| [`trust-checks`](skills/trust-checks/SKILL.md) | System: Trustworthiness, Safety, Security checks |
 
 ### Updating an existing ANA
 

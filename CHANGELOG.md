@@ -9,12 +9,24 @@ To bring an existing ANA up to date with these changes, use the [`ana-update`](s
 
 ### Added
 
-- **Collaborate lists by status.** Evolve, Approvals and Requests each have a filter: **Waiting · In progress · Done · Cancelled**, with counts. The choice is remembered per tab.
+- **Collaborate lists by status.** Evolve, Approvals and Requests each have a filter: **Waiting · In progress · Done · Failed · Cancelled**, with counts. The choice is remembered per tab. Phones show it as a five-column grid.
+  - **Failed:** in-progress proposals and requests get a *Failed* button, and the agent can report a failure with a reason (`action: fail`). A data change that can't be applied now stays as **Failed** with the error, instead of silently going back to waiting. *Try again* retries it.
   - Finished and cancelled items are no longer hidden; they list newest first, with the time.
   - **Evolve:** cards in progress get *Mark done* and *Cancel*. Done ones can be *Reopened* and cancelled ones *Restored* (`/api/evolve-act` → `reopen`).
   - **Approvals:** data changes now include applied and rejected ones (`GET /api/proposals`).
 
 - **Permission shield in the composer.** Next to the model pill: a shield that shows the agent's permission mode at a glance. It turns red with "!" when the agent runs without asking (Bypass, Full Access). Tap it for a permissions-only sheet.
+
+- **System › Update.** *Check for updates* compares this ANA with the latest agent-native-agent on GitHub, feature by feature, and lists what's worth bringing in: missing or partial features, newer modules, a newer shared runtime.
+  - *Update* hands the item to the agent with the exact skill, the missing parts and the upstream checkout. The agent ports it and reports done or failed.
+  - *Cancel* hides that item from later checks.
+  - Items use the same five lists: Waiting · In progress · Done · Failed · Cancelled.
+  - `ANA_UPDATE_TARGET` / `ANA_UPSTREAM_URL` change what is compared.
+- On phones the System tab bar scrolls to the selected tab and fades its edge where more tabs are hidden.
+
+### Changed
+
+- **System › Reliability is now Trustworthiness.** Same checks; the tab and docs use the new name.
 
 ### Fixed
 

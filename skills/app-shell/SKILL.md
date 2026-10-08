@@ -9,7 +9,8 @@ Three areas, so the user's own work, working with the agent, and running the sys
 
 - **Workspace:** the domain tabs (base: Tasks · Calendar · Notes). The header shows the **workspace combo**.
 - **Collaborate:** Evolve · Approvals · Requests (see agent-requests). Badge = new proposals + things waiting for approval + open work requests.
-- **System:** Stats · Relations · Reliability · Safety · Security (see trust-checks). Badge = checks at **risk**.
+- **System:** Stats · Relations · Trustworthiness · Safety · Security · Update (see trust-checks, ana-update). Badge = checks at **risk** + updates waiting.
+- On phones the System tab bar scrolls. The selected tab scrolls into view (`revealTab`), and the edge fades where more tabs are hidden (`.tabstrip.more-l / .more-r`).
 
 The workspace combo shows only in Workspace.
 

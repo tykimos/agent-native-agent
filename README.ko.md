@@ -144,7 +144,7 @@ base는 혼자 쓰는 업무 운영 보드입니다. 메모, 할일, 일정을 �
 |---|---|---|
 | **Workspace** | Tasks · Calendar · Notes | 내 데이터. 워크스페이스별로 관리(전환, 추가, 이름 바꾸기, 순서 변경) |
 | **Collaborate** | Evolve · Approvals · Requests | 에이전트와 함께 일하는 곳. 배지는 나를 기다리는 것의 수 |
-| **System** | Stats · Relations · Reliability · Safety · Security | 시스템이 잘 돌아가는지, 믿을 수 있는지. 배지는 위험 점검의 수 |
+| **System** | Stats · Relations · Trustworthiness · Safety · Security | 시스템이 잘 돌아가는지, 믿을 수 있는지. 배지는 위험 점검의 수 |
 
 ### 채팅 — Claude 앱처럼
 
@@ -199,7 +199,7 @@ Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           due / date에서 파�
 
 고정된 문구가 아니라 실제 상태로 계산한 점검입니다(`GET /api/trust`).
 
-- **Reliability(신뢰성):** 에이전트가 돌고 있는지, 채팅을 자체 기록으로 읽는지, 도구 호출 실패율, 중단된 작업, 요금제 사용량, 나를 기다리는 것
+- **Trustworthiness(신뢰성):** 에이전트가 돌고 있는지, 채팅을 자체 기록으로 읽는지, 도구 호출 실패율, 중단된 작업, 요금제 사용량, 나를 기다리는 것
 - **Safety(안전):**
   - 에이전트가 권한 확인 없이 도는지(`--dangerously-skip-permissions`, `--dangerously-bypass-approvals-and-sandbox`)
   - 실제로 실행한 위험 명령(rm -rf, reset --hard, 강제 push, killall, sudo, curl | sh, DROP TABLE, 디스크 쓰기)

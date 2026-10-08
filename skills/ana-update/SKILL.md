@@ -18,6 +18,25 @@ ana-diff.mjs ──► report (✓ present · ◐ partial · ✗ missing · modu
 
 The feature list lives in upstream **`features.json`**. Each feature has anchors (element ids, function names, API routes), the skill that ports it, modules to copy as-is, and npm deps.
 
+## In the app: System › Update
+
+ANAs that have the `system-update` feature can run this whole flow from the dashboard.
+- **Check for updates:**
+  - Clones or fetches upstream into `.ana/upstream` (`ANA_UPSTREAM_URL` to change the source).
+  - Runs `ana-diff.mjs` against the ANA (`ANA_UPDATE_TARGET` to compare another folder).
+  - Lists one item per missing or partial feature, newer module, and the shared runtime (`/api/update/check`, stored in `.ana/updates.json`).
+- **Update:**
+  - Marks the item *In progress*.
+  - Sends the agent a chat instruction with the skill to follow, the missing anchors, modules, npm deps and the upstream checkout path.
+  - The agent ports it, verifies, and reports with `POST /api/update-act {id, action: done|fail, reason?}`.
+  - The shared runtime asks for confirmation first.
+- **Statuses:** items follow Waiting · In progress · Done · Failed · Cancelled.
+  - **Cancel** hides the item from every later check (until *Restore*).
+  - Done or failed items come back only when upstream has moved to a new commit.
+  - Items that are already in the ANA move to Done by themselves.
+
+When you, the agent, receive an `[Update]` instruction, do exactly the porting steps below for that one feature and report back with the curl in the instruction.
+
 ## 0. Get the latest skills (once per machine, then just update)
 
 The per-feature skills ship with the upstream repo as a Claude Code plugin. Install them so this ANA's agent can load them:

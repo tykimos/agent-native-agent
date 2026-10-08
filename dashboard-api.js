@@ -28,6 +28,11 @@ function createDashboardApi(core, opts) {
   const PROPOSALS_FILE = opts.PROPOSALS_FILE || path.join(ROOT, 'data', 'proposals.json');
   const EVOLVE_FILE = opts.EVOLVE_FILE || path.join(ROOT, 'data', 'evolve.json');
   const REQUESTS_FILE = opts.REQUESTS_FILE || path.join(path.dirname(EVOLVE_FILE), 'requests.json');
+  // 시스템 › Update — 업스트림(agent-native-agent)과 기능 단위 비교 결과와 그 처리 상태
+  const UPDATES_FILE = opts.UPDATES_FILE || path.join(path.dirname(EVOLVE_FILE), 'updates.json');
+  const UPSTREAM_DIR = opts.UPSTREAM_DIR || path.join(path.dirname(EVOLVE_FILE), 'upstream');
+  const UPSTREAM_URL = opts.UPSTREAM_URL || 'https://github.com/tykimos/agent-native-agent';
+  const UPDATE_TARGET = opts.UPDATE_TARGET || ROOT;   // 비교할 ANA 폴더(기본: 이 ANA). 시험·호스트용으로 바꿀 수 있다
   const NOTIFY_AGENT = opts.NOTIFY_AGENT !== false;
   const MAX_TEXT = opts.MAX_TEXT || 8000;
   const SEED = !!opts.SEED;
@@ -181,6 +186,56 @@ function createDashboardApi(core, opts) {
   // {id, kind, title, desc, options[], ref, ws, status: open|answered|done|dismissed, answer, at, closedAt}
   // approval·decision·access → 협업 › Approvals, action·info → 협업 › Requests
   const REQ_KINDS = ['info', 'decision', 'action', 'access', 'approval'];
+  function loadUpdates() {
+    const u = readJsonStrict(UPDATES_FILE, () => ({ next: 1, items: [], lastCheck: null }));
+    if (!u || typeof u !== 'object' || !Array.isArray(u.items)) return { next: 1, items: [], lastCheck: null };
+    return u;
+  }
+  const saveUpdates = (u) => { u.version = (u.version || 1) + 1; writeJsonAtomic(UPDATES_FILE, u); };
+  const run = (cmd, args, o = {}) => new Promise((resolve, reject) => execFile(cmd, args, { timeout: 120000, maxBuffer: 32 * 1024 * 1024, ...o },
+    (e, out, err) => (e ? reject(new Error(String(err || e.message).trim().split('\n').slice(-3).join(' '))) : resolve(String(out)))));
+  // 업스트림을 .ana/upstream에 받아 두고(처음 clone, 그다음은 fetch + 맞춤) ana-diff.mjs로 이 ANA와 비교한다.
+  // 항목 키 = 기능 id / 'module:<파일>' / 'runtime'. 취소(dismissed)한 키는 다시 올리지 않는다.
+  let updateChecking = false;
+  async function runUpdateCheck() {
+    if (require('node:fs').existsSync(path.join(UPSTREAM_DIR, '.git'))) {
+      await run('git', ['-C', UPSTREAM_DIR, 'fetch', '-q', 'origin', 'main']);
+      await run('git', ['-C', UPSTREAM_DIR, 'reset', '-q', '--hard', 'origin/main']);   // 우리 전용 캐시 폴더라 되돌려도 안전
+    } else {
+      await fsp.mkdir(path.dirname(UPSTREAM_DIR), { recursive: true });
+      await run('git', ['clone', '-q', '--filter=blob:none', UPSTREAM_URL, UPSTREAM_DIR]);
+    }
+    const script = path.join(UPSTREAM_DIR, 'skills', 'ana-update', 'scripts', 'ana-diff.mjs');
+    const report = JSON.parse(await run(process.execPath, [script, '--target', UPDATE_TARGET, '--upstream', UPSTREAM_DIR, '--json']));
+    let manifest = { features: [] }; try { manifest = JSON.parse(await fsp.readFile(path.join(UPSTREAM_DIR, 'features.json'), 'utf8')); } catch {}
+    const meta = Object.fromEntries((manifest.features || []).map((f) => [f.id, f]));
+    const found = [];
+    for (const f of report.features) {
+      const outdated = f.modules.filter((m) => m.state === 'differs').map((m) => m.file);
+      if (f.status !== 'present') found.push({ key: f.id, kind: f.status, title: f.title, skill: f.skill, summary: (meta[f.id] || {}).summary || '', missing: f.missingAnchors, modules: f.modules.filter((m) => m.state !== 'same').map((m) => m.file), npm: f.npm });
+      else for (const file of outdated) found.push({ key: `module:${file}`, kind: 'outdated', title: `Newer ${file}`, skill: f.skill, summary: `The upstream copy of ${file} (used by ${f.title}) is newer than this ANA's.`, missing: [], modules: [file], npm: [] });
+    }
+    if (report.runtime && report.runtime.state === 'differs') found.push({ key: 'runtime', kind: 'runtime', title: 'Newer shared runtime (channel-core.js)', skill: 'ana-update',
+      summary: 'channel-core.js differs from upstream. It is shared by every ANA on this host — replacing it affects all of them.', missing: [], modules: ['channel-core.js'], npm: [] });
+    const u = loadUpdates(), now = new Date().toISOString();
+    let added = 0;
+    for (const x of found) {
+      const prev = u.items.filter((i) => i.key === x.key).pop();
+      if (prev && prev.status === 'dismissed') continue;                            // 취소한 것은 다시 나오지 않는다
+      if (prev && (prev.status === 'new' || prev.status === 'doing')) { Object.assign(prev, x, { upstreamCommit: report.upstreamCommit }); continue; }
+      if (prev && (prev.status === 'done' || prev.status === 'failed') && prev.upstreamCommit === report.upstreamCommit) continue;   // 같은 업스트림에서 이미 처리함
+      u.items.push({ id: u.next++, ...x, status: 'new', upstreamCommit: report.upstreamCommit, at: now }); added++;
+    }
+    // 이미 반영된(이번 비교에서 사라진) 대기 항목은 완료로 옮긴다
+    const live = new Set(found.map((x) => x.key));
+    for (const i of u.items) if ((i.status === 'new' || i.status === 'doing') && !live.has(i.key)) { i.status = 'done'; i.updatedAt = now; i.note = 'Already in this ANA'; }
+    while (u.items.length > 200) { const k = u.items.findIndex((i) => i.status !== 'new' && i.status !== 'doing'); u.items.splice(k < 0 ? 0 : k, 1); }
+    u.lastCheck = { at: now, upstream: UPSTREAM_URL, commit: report.upstreamCommit, changes: report.changesSinceLastSync || [], runtime: report.runtime && report.runtime.state,
+      present: report.features.filter((f) => f.status === 'present').length, total: report.features.length, found: found.length, added };
+    saveUpdates(u);
+    return u;
+  }
+
   function loadRequests() {
     const s = readJsonStrict(REQUESTS_FILE, () => ({ next: 1, requests: [] }));
     if (!s || typeof s !== 'object' || !Array.isArray(s.requests)) return { next: 1, requests: [] };
@@ -283,7 +338,7 @@ function createDashboardApi(core, opts) {
     if (!raw) raw = await fsp.readFile(path.join(os.homedir(), '.claude', '.credentials.json'), 'utf8').catch(() => '');
     try { return (JSON.parse(raw) || {}).claudeAiOauth || null; } catch { return null; }
   }
-  // ---- 시스템 › Reliability · Safety · Security ----
+  // ---- 시스템 › Trustworthiness · Safety · Security ----
   // 실제 상태에서 계산한 점검 목록. status: ok | info | warn | risk. 비밀값은 값이 아니라 '어디에 있는지'만 알린다.
   const RISKY_CMDS = [
     [/\brm\s+-[a-z]*r[a-z]*f|\brm\s+-[a-z]*f[a-z]*r/i, 'Recursive force delete (rm -rf)'],
@@ -304,7 +359,7 @@ function createDashboardApi(core, opts) {
     const where = await agentLog.resolve(ctx.target).catch(() => ({}));
     let log = null; try { log = await agentLog.read(ctx.target, 0, 400); } catch {}
     const agentName = where.kind === 'codex' ? 'Codex' : where.kind === 'claude' ? 'Claude Code' : 'Agent';
-    // Reliability
+    // Trustworthiness
     rel.push(alive ? { id: 'agent', status: 'ok', label: 'Agent is running', value: `${agentName}${log && log.modelName ? ' · ' + log.modelName : ''} in ${ctx.target}` }
       : { id: 'agent', status: 'risk', label: 'Agent is not running', value: ctx.target, detail: 'Start the coding agent in its tmux session — chat and approvals wait until it is back.' });
     rel.push(log && log.available ? { id: 'log', status: 'ok', label: 'Chat comes from the agent\'s own log', value: where.kind === 'codex' ? 'Codex rollout' : 'Claude Code transcript', detail: 'Replies and tool results are recorded exactly, not scraped from the screen.' }
@@ -760,7 +815,7 @@ function createDashboardApi(core, opts) {
       if (body.decision !== 'approve' && body.decision !== 'reject') return sendJson(res, 400, { error: "decision must be 'approve' or 'reject'" }), true;
       const ps = loadProposals();
       const pr = ps.proposals.find((x) => x.id === body.pid);
-      if (!pr || pr.status !== 'pending') return sendJson(res, 400, { error: 'invalid or already-decided proposal' }), true;
+      if (!pr || (pr.status !== 'pending' && pr.status !== 'failed')) return sendJson(res, 400, { error: 'invalid or already-decided proposal' }), true;   // 실패한 것은 다시 시도·거절할 수 있다
       if (body.decision === 'approve') {
         // 제안이 만들어진 워크스페이스가 그새 삭제됐으면 적용하지 않는다(빈 폴더가 되살아나지 않게)
         if (!wsExists(pr.ws || DEFAULT_WS)) return sendJson(res, 409, { error: 'The workspace for this proposal was deleted' }), true;
@@ -768,8 +823,13 @@ function createDashboardApi(core, opts) {
         pr.status = 'applying'; saveProposals(ps);
         let result;
         try { result = applyDiff(pr.diff, pr.ws || DEFAULT_WS); }
-        catch (e) { pr.status = 'pending'; saveProposals(ps); return sendJson(res, 500, { error: 'apply failed', detail: e.message }), true; }
-        pr.status = 'applied'; pr.decidedAt = new Date().toISOString(); saveProposals(ps);
+        catch (e) {   // 실패는 '대기'로 조용히 되돌리지 않고 Failed로 남긴다(이유와 함께) — 다시 시도하거나 거절할 수 있다
+          pr.status = 'failed'; pr.failReason = String(e.message || e).replace(/'\/[^']*\/([^'/]+)'/g, "'$1'").replace(/(^|\s)\/\S*\/([^\s/]+)/g, '$1$2').slice(0, 300);   // 긴 절대 경로는 파일 이름만
+          pr.decidedAt = new Date().toISOString(); saveProposals(ps);
+          broadcast({ kind: 'proposal', proposal: pr });
+          return sendJson(res, 500, { error: 'apply failed', detail: e.message }), true;
+        }
+        pr.status = 'applied'; pr.failReason = ''; pr.decidedAt = new Date().toISOString(); saveProposals(ps);
         const entry = commit({ role: 'system', text: `Changes applied (+${result.summary.added} ~${result.summary.updated} -${result.summary.removed}, v${result.version})`, src: 'api' });
         broadcast({ kind: 'commit', messages: [entry] });
         broadcast({ kind: 'proposal', proposal: pr });
@@ -1064,7 +1124,7 @@ function createDashboardApi(core, opts) {
     if (p === '/api/request-act' && req.method === 'POST') {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
       const body = await jsonBody(req, res); if (!body) return true;
-      if (!['answer', 'done', 'dismiss', 'reopen'].includes(body.action)) return sendJson(res, 400, { error: 'action must be answer|done|dismiss|reopen' }), true;
+      if (!['answer', 'done', 'fail', 'dismiss', 'reopen'].includes(body.action)) return sendJson(res, 400, { error: 'action must be answer|done|fail|dismiss|reopen' }), true;
       const rq = loadRequests();
       const r2 = rq.requests.find((x) => x.id === body.id);
       if (!r2) return sendJson(res, 404, { error: 'not found' }), true;
@@ -1072,17 +1132,45 @@ function createDashboardApi(core, opts) {
         const answer = String(body.answer || '').trim();
         if (!answer) return sendJson(res, 400, { error: 'answer required' }), true;
         r2.answer = answer.slice(0, 4000); r2.status = 'answered'; r2.answeredAt = new Date().toISOString();
-      } else if (body.action === 'reopen') { r2.status = 'open'; r2.closedAt = ''; }
-      else { r2.status = body.action === 'done' ? 'done' : 'dismissed'; r2.closedAt = new Date().toISOString(); }
+      } else if (body.action === 'reopen') { r2.status = 'open'; r2.closedAt = ''; r2.failReason = ''; }
+      else {
+        r2.status = { done: 'done', fail: 'failed', dismiss: 'dismissed' }[body.action]; r2.closedAt = new Date().toISOString();
+        if (body.action === 'fail') r2.failReason = String(body.reason || '').trim().slice(0, 1000);
+      }
       audit(actor(req), `request.${body.action}`, r2.title.slice(0, 80));
       rq.version = (rq.version || 1) + 1; saveRequests(rq);
       broadcast({ kind: 'requests', version: rq.version });
       let notified;
-      if (body.action === 'done' || body.action === 'dismiss') {
-        queueNotify(`request.${body.action}`, `Request #${r2.id} "${r2.title.replace(/[\r\n]+/g, ' ')}" was ${body.action === 'done' ? 'marked done by the user' : 'dismissed by the user (not now)'}.`);
+      if (body.action === 'done' || body.action === 'dismiss' || body.action === 'fail') {
+        const what = { done: 'marked done by the user', dismiss: 'dismissed by the user (not now)', fail: `marked failed${r2.failReason ? ': ' + r2.failReason.replace(/[\r\n]+/g, ' ') : ''}` }[body.action];
+        queueNotify(`request.${body.action}`, `Request #${r2.id} "${r2.title.replace(/[\r\n]+/g, ' ')}" was ${what}.`);
         notified = await tryDeliver(ctx);
       }
       return sendJson(res, 200, { ok: true, status: r2.status, version: rq.version, notified }), true;
+    }
+
+    // 업데이트(시스템 › Update)
+    if (p === '/api/updates' && req.method === 'GET') return sendJson(res, 200, { ...loadUpdates(), checking: updateChecking, upstreamDir: UPSTREAM_DIR }), true;
+    if (p === '/api/update/check' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      if (updateChecking) return sendJson(res, 409, { error: 'A check is already running' }), true;
+      updateChecking = true;
+      try { const u = await runUpdateCheck(); audit(actor(req), 'update.check', `${u.lastCheck.found} found`); broadcast({ kind: 'updates', version: u.version }); return sendJson(res, 200, { ok: true, lastCheck: u.lastCheck }), true; }
+      catch (e) { return sendJson(res, 502, { error: `Update check failed — ${e.message}` }), true; }
+      finally { updateChecking = false; }
+    }
+    if (p === '/api/update-act' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      if (!['do', 'done', 'fail', 'ignore', 'reopen'].includes(body.action)) return sendJson(res, 400, { error: 'action must be do|done|fail|ignore|reopen' }), true;
+      const u = loadUpdates(); const it = u.items.find((x) => x.id === body.id);
+      if (!it) return sendJson(res, 404, { error: 'not found' }), true;
+      it.status = { do: 'doing', done: 'done', fail: 'failed', ignore: 'dismissed', reopen: 'new' }[body.action];
+      it.updatedAt = new Date().toISOString();
+      it.failReason = body.action === 'fail' ? String(body.reason || '').trim().slice(0, 1000) : '';
+      saveUpdates(u); audit(actor(req), `update.${body.action}`, it.title.slice(0, 80));
+      broadcast({ kind: 'updates', version: u.version });
+      return sendJson(res, 200, { ok: true, status: it.status, item: it, upstreamDir: UPSTREAM_DIR }), true;
     }
 
     // 진화 제안 조회
@@ -1125,17 +1213,18 @@ function createDashboardApi(core, opts) {
     if (p === '/api/evolve-act' && req.method === 'POST') {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
       const body = await jsonBody(req, res); if (!body) return true;
-      if (!['do', 'done', 'ignore', 'reopen'].includes(body.action)) return sendJson(res, 400, { error: 'action must be do|done|ignore|reopen' }), true;
+      if (!['do', 'done', 'fail', 'ignore', 'reopen'].includes(body.action)) return sendJson(res, 400, { error: 'action must be do|done|fail|ignore|reopen' }), true;
       const ev = loadEvolve();
       const pr = ev.proposals.find((x) => x.id === body.id);
       if (!pr) return sendJson(res, 404, { error: 'not found' }), true;
-      pr.status = { do: 'doing', done: 'done', ignore: 'dismissed', reopen: 'new' }[body.action];
+      pr.status = { do: 'doing', done: 'done', fail: 'failed', ignore: 'dismissed', reopen: 'new' }[body.action];
+      pr.failReason = body.action === 'fail' ? String(body.reason || '').trim().slice(0, 1000) : body.action === 'reopen' || body.action === 'do' ? '' : (pr.failReason || '');
       pr.updatedAt = new Date().toISOString();   // 협업 목록(대기·처리 중·완료·취소)에서 최근 것부터 보이게
       ev.version = (ev.version || 1) + 1; saveEvolve(ev);
       broadcast({ kind: 'evolve', version: ev.version });
       let notified;
       if (body.action === 'do') {
-        const n = queueNotify('evolve.do', `Evolve proposal #${pr.id} requested — [${pr.type}] ${pr.title.replace(/[\r\n]+/g, ' ')}. After applying, mark it done with POST /api/evolve-act {"id":${pr.id},"action":"done"}.`);
+        const n = queueNotify('evolve.do', `Evolve proposal #${pr.id} requested — [${pr.type}] ${pr.title.replace(/[\r\n]+/g, ' ')}. After applying, mark it done with POST /api/evolve-act {"id":${pr.id},"action":"done"}; if it can't be done, POST {"id":${pr.id},"action":"fail","reason":"why"}.`);
         notified = await tryDeliver(ctx);
         return sendJson(res, 200, { ok: true, status: pr.status, version: ev.version, notified, notifyId: n.id }), true;
       }

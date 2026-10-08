@@ -200,7 +200,7 @@
       "id": "app-areas",
       "title": "Workspace / Collaborate / System areas",
       "skill": "app-shell",
-      "summary": "Mobile bottom nav (Workspace | Collaborate | System), desktop segmented switch next to the logo. Workspace = your data tabs + workspace combo; Collaborate = Evolve · Approvals · Requests; System = Stats · Relations · Reliability · Safety · Security. Badges on Collaborate (things waiting on you) and System (checks at risk).",
+      "summary": "Mobile bottom nav (Workspace | Collaborate | System), desktop segmented switch next to the logo. Workspace = your data tabs + workspace combo; Collaborate = Evolve · Approvals · Requests; System = Stats · Relations · Trustworthiness · Safety · Security. Badges on Collaborate (things waiting on you) and System (checks at risk).",
       "anchors": [
         "bottomnav",
         "modeseg",
@@ -228,7 +228,7 @@
       "id": "agent-requests",
       "title": "Approvals & Requests (agent → user)",
       "skill": "agent-requests",
-      "summary": "Collaborate › Approvals: what the agent needs your OK for — pending data-change diffs plus approval / decision / access requests. Collaborate › Requests: work only you can do (action) and missing information (info). Answer, mark done or dismiss. Each tab is split into Waiting · In progress · Done · Cancelled with counts.",
+      "summary": "Collaborate › Approvals: what the agent needs your OK for — pending data-change diffs plus approval / decision / access requests. Collaborate › Requests: work only you can do (action) and missing information (info). Answer, mark done or dismiss. Each tab is split into Waiting · In progress · Done · Failed · Cancelled with counts.",
       "anchors": [
         "/api/requests",
         "/api/request-act",
@@ -261,9 +261,9 @@
     },
     {
       "id": "system-trust",
-      "title": "Reliability · Safety · Security checks",
+      "title": "Trustworthiness · Safety · Security checks",
       "skill": "trust-checks",
-      "summary": "System tabs computed from real state by /api/trust: agent running, structured log, tool failure rate, interruptions, plan usage (Reliability); permission-bypass flags, risky commands the agent ran, approval gate (Safety); bind address, sign-in, CSRF, token handling, credential file mode, secrets saved in notes/tasks (Security). Risk count badges System.",
+      "summary": "System tabs computed from real state by /api/trust: agent running, structured log, tool failure rate, interruptions, plan usage (Trustworthiness); permission-bypass flags, risky commands the agent ran, approval gate (Safety); bind address, sign-in, CSRF, token handling, credential file mode, secrets saved in notes/tasks (Security). Risk count badges System.",
       "anchors": [
         "/api/trust",
         "function collectTrust",
@@ -273,6 +273,20 @@
         "reliabilityView",
         "safetyView",
         "securityView"
+      ]
+    },
+    {
+      "id": "system-update",
+      "title": "Update tab (check upstream, port with the agent)",
+      "skill": "ana-update",
+      "summary": "System › Update: Check for updates fetches agent-native-agent into .ana/upstream and runs ana-diff.mjs against this ANA. Each missing or partial feature, newer module and shared-runtime difference becomes an item (Waiting · In progress · Done · Failed · Cancelled). Update sends the agent a porting instruction with the skill, missing anchors and the upstream path; the agent reports done/fail via /api/update-act. Cancelled items stay hidden from later checks.",
+      "anchors": [
+        "/api/update/check",
+        "/api/update-act",
+        "function runUpdateCheck",
+        "updateView",
+        "function renderUpdates",
+        "UPDATES_FILE"
       ]
     }
   ]

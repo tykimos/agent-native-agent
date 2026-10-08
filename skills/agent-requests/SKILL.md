@@ -20,16 +20,18 @@ All three live under **Collaborate** (see app-shell):
 
 ## Four lists in every tab
 
-Each Collaborate tab has a status filter, **Waiting · In progress · Done · Cancelled**, with a count on each (`ST_BUCKETS`, `BUCKET_OF`, `renderStSeg`). The pick is remembered per tab in `localStorage ana-collab-filter`. Waiting and In progress list oldest first; Done and Cancelled list newest first, with the time.
+Each Collaborate tab has a status filter (five equal columns on phones, label above count), **Waiting · In progress · Done · Failed · Cancelled**, with a count on each (`ST_BUCKETS`, `BUCKET_OF`, `renderStSeg`). The pick is remembered per tab in `localStorage ana-collab-filter`. Waiting and In progress list oldest first; Done and Cancelled list newest first, with the time.
 
-| Tab | Waiting | In progress | Done | Cancelled |
-|---|---|---|---|---|
-| Evolve | `new` | `doing` | `done` | `dismissed` |
-| Approvals / Requests | `open` | `answered` (the agent has your answer) | `done` | `dismissed` |
-| Approvals › data changes | `pending` | `applying` | `applied` | `rejected` |
+| Tab | Waiting | In progress | Done | Failed | Cancelled |
+|---|---|---|---|---|---|
+| Evolve | `new` | `doing` | `done` | `failed` | `dismissed` |
+| Approvals / Requests | `open` | `answered` (the agent has your answer) | `done` | `failed` | `dismissed` |
+| Approvals › data changes | `pending` | `applying` | `applied` | `failed` (apply threw) | `rejected` |
 
 Card actions follow the list:
-- **Evolve:** Waiting has Discuss / Do it / Ignore. In progress has Discuss / Mark done / Cancel. Done has Reopen. Cancelled has Restore. `POST /api/evolve-act` accepts `reopen`, and every action stamps `updatedAt`.
+- **Evolve:** Waiting has Discuss / Do it / Ignore. In progress has Discuss / Mark done / **Failed** / Cancel. Done has Reopen. Failed has Discuss / Try again. Cancelled has Restore. `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen, reason?}`; the agent reports a failure with `fail` + `reason`, and every action stamps `updatedAt`.
+- **Requests:** in progress (answered) cards get **Failed**. `POST /api/request-act` accepts `fail` + optional `reason` (the reply box text), and the agent is notified.
+- **Failed data change:** if applying the diff throws, the proposal is kept as `failed` with a short `failReason` (absolute paths shortened to file names) instead of silently going back to pending. *Try again* re-approves it; Reject cancels it.
 - **Data changes:** `GET /api/proposals` returns every diff proposal of the workspace (last 100). Approve and reject stamp `decidedAt`.
 - **Badges** count Waiting only.
 

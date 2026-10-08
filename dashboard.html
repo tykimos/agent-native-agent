@@ -73,6 +73,10 @@ input { font-family: inherit; }
 .topnav .tab .tbadge.show { display: inline-block; }
 /* 탭이 늘어나도 브랜드·ANA 토글은 고정되고 탭만 가로로 밀린다(좁은 폭 대응) */
 .tabstrip { flex: 1 1 auto; min-width: 0; display: flex; align-items: stretch; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+/* 탭이 옆으로 더 있으면 그쪽 가장자리를 흐리게 — 밀어 보면 더 있다는 표시 */
+.tabstrip.more-r { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+.tabstrip.more-l { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); }
+.tabstrip.more-l.more-r { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
 .tabstrip::-webkit-scrollbar { display: none; }
 .topnav .tab { flex: 0 0 auto; white-space: nowrap; }
 .topnav .sp { flex: 1; }
@@ -490,6 +494,15 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
   .topnav-brand { padding: 0 6px; }
   .topnav-brand .bname { display: none; }
   .topnav .tab { padding: 0 10px; white-space: nowrap; }
+}
+/* System은 탭이 다섯 개(Trustworthiness가 길다) — 폰 폭에서도 한 줄에 다 보이게 탭 간격과 글자를 조금 줄인다 */
+@media (max-width: 430px) {
+  .topnav .tab { padding: 0 6px; font-size: 13.5px; }
+}
+@media (max-width: 370px) {
+  .topnav .tab { padding: 0 5px; font-size: 12.5px; }
+}
+@media (max-width: 768px) {
   .mode-toggle { gap: 6px; padding: 0 11px 0 5px; margin-right: 6px; }
   body.ana-mode .mode-toggle, .chip-scan, .draw-btn { margin-right: 6px; }
   /* 모바일 2단: 1단 = 로고·워크스페이스·Chip·프로필, 2단 = 탭 전체 폭 */
@@ -594,6 +607,18 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 .prop .state { margin-top: 9px; font-size: 12.5px; font-weight: 800; display: none; }
 .prop.applied .acts, .prop.rejected .acts, .prop.applying .acts { display: none; }
 .prop.applying .state { display: block; color: var(--warm-fg); }
+.sec-head[hidden] { display: none; }
+.upd-last { margin: -2px 2px 12px; font-size: 12.5px; color: var(--text-weak); line-height: 1.5; }
+.upd-last b { color: var(--text-sub); }
+.upd-last details summary { cursor: pointer; font-weight: 700; color: var(--text-sub); }
+.upd-last ul { margin: 6px 0 0; padding-left: 18px; font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; }
+.upd-kind { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; white-space: nowrap; background: var(--blue-weak); color: var(--blue-700); }
+.upd-kind.partial { background: var(--warm-bg); color: var(--warm-fg); }
+.upd-kind.runtime { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.upd-miss { margin-top: 6px; font-size: 12px; color: var(--text-weak); }
+.upd-miss code { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; }
+.fail-why { margin-top: 8px; padding: 8px 10px; border-radius: 10px; font-size: 12.5px; font-weight: 700; color: var(--danger); background: color-mix(in srgb, var(--danger) 9%, transparent); overflow-wrap: anywhere; }
+.req-st.failed { color: var(--danger); }
 /* 협업 목록의 상태 필터(대기 · 처리 중 · 완료 · 취소) */
 .stseg { display: flex; gap: 6px; margin: 4px 0 14px; overflow-x: auto; scrollbar-width: none; }
 .stseg::-webkit-scrollbar { display: none; }
@@ -602,11 +627,12 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 .stseg button .n { min-width: 18px; padding: 0 5px; border-radius: 999px; font-size: 11.5px; line-height: 18px; text-align: center; background: var(--surface); color: var(--text-sub); }
 .stseg button.on { color: var(--white); background: var(--text); box-shadow: none; }
 .stseg button.on .n { background: color-mix(in srgb, var(--white) 22%, transparent); color: var(--white); }
-@media (max-width: 480px) {   /* 휴대폰 폭에서도 네 버튼이 한 줄에 다 보이게 */
-  .stseg { gap: 4px; } .stseg button { flex: 1 1 auto; justify-content: center; gap: 4px; padding: 0 7px; font-size: 12px; }
-  .stseg button .n { min-width: 16px; padding: 0 4px; font-size: 11px; line-height: 16px; }
+@media (max-width: 520px) {   /* 휴대폰 폭: 다섯 칸 격자 — 글자 위, 개수 아래 */
+  .stseg { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; overflow: visible; }
+  .stseg button { flex-direction: column; justify-content: center; gap: 2px; height: 46px; padding: 0 2px; border-radius: 12px; font-size: 11px; letter-spacing: -0.01em; }
+  .stseg button .n { min-width: 0; padding: 0; background: none; font-size: 14px; line-height: 16px; color: var(--text); }
+  .stseg button.on .n { background: none; color: var(--white); }
 }
-@media (max-width: 380px) { .stseg button { padding: 0 5px; gap: 3px; font-size: 11.5px; letter-spacing: -0.01em; } .stseg button .n { min-width: 15px; padding: 0 3px; } }
 .evo-when { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--text-weak); white-space: nowrap; }
 .evo-card.done .evo-t, .evo-card.dismissed .evo-t { color: var(--text-sub); }
 .prop.applied .state, .prop.rejected .state { display: block; }
@@ -989,7 +1015,7 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
 .modeseg .tbadge, .bottomnav .tbadge { min-width: 17px; height: 17px; margin-left: 5px; padding: 0 5px; border-radius: 999px; background: var(--c-1); color: #fff; font-size: 10.5px; line-height: 17px; font-weight: 800; display: none; }
 .modeseg .tbadge.show, .bottomnav .tbadge.show { display: inline-block; }
 body.sys-mode .ws-combo { display: none; }
-/* 점검 카드(Reliability · Safety · Security) */
+/* 점검 카드(Trustworthiness · Safety · Security) */
 .trust-sum { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 12px; font-size: 13px; font-weight: 700; color: var(--text-sub); }
 .trust-sum .pill { padding: 4px 10px; border-radius: 999px; background: var(--surface-2); }
 .trust-sum .pill.risk { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
@@ -1159,9 +1185,10 @@ body.sys-mode .ws-combo { display: none; }
       <button class="tab" data-view="requests" data-group="collab" role="tab" aria-selected="false">Requests<span class="tbadge" id="reqBadge">0</span></button>
       <button class="tab" data-view="stats" data-group="sys" role="tab" aria-selected="false">Stats</button>
       <button class="tab" data-view="relations" data-group="sys" role="tab" aria-selected="false">Relations</button>
-      <button class="tab" data-view="reliability" data-group="sys" role="tab" aria-selected="false">Reliability</button>
+      <button class="tab" data-view="reliability" data-group="sys" role="tab" aria-selected="false">Trustworthiness</button>
       <button class="tab" data-view="safety" data-group="sys" role="tab" aria-selected="false">Safety</button>
       <button class="tab" data-view="security" data-group="sys" role="tab" aria-selected="false">Security</button>
+      <button class="tab" data-view="update" data-group="sys" role="tab" aria-selected="false">Update<span class="tbadge" id="updBadge">0</span></button>
     </div>
     <button id="modeToggle" class="mode-toggle" role="switch" aria-checked="false" aria-label="Chip mode">
       <span class="knob"></span>Chip
@@ -1287,7 +1314,7 @@ body.sys-mode .ws-combo { display: none; }
 
   <!-- 시스템 › 신뢰성 · 안전 · 보안 — 서버가 실제 상태로 계산한 점검(/api/trust) -->
   <section class="view trust-view" id="reliabilityView" role="tabpanel"><div class="wrap">
-    <div class="evo-head"><span class="evo-lead">Can you rely on the agent right now — is it running, reading its own log, succeeding at its tools, within its plan limits</span></div>
+    <div class="evo-head"><span class="evo-lead">Can you trust the agent right now — is it running, reading its own log, succeeding at its tools, within its plan limits</span></div>
     <div class="trust-sum" data-trust-sum="reliability"></div><div class="trust-list" data-trust="reliability"></div>
   </div></section>
   <section class="view trust-view" id="safetyView" role="tabpanel"><div class="wrap">
@@ -1297,6 +1324,16 @@ body.sys-mode .ws-combo { display: none; }
   <section class="view trust-view" id="securityView" role="tabpanel"><div class="wrap">
     <div class="evo-head"><span class="evo-lead">Who can reach this ANA and what it keeps — network exposure, sign-in, credentials, secrets in your data</span></div>
     <div class="trust-sum" data-trust-sum="security"></div><div class="trust-list" data-trust="security"></div>
+  </div></section>
+
+  <!-- 시스템 › 업데이트: GitHub의 agent-native-agent와 기능 단위로 비교 → 이 ANA에 들일 만한 것을 목록으로 -->
+  <section class="view" id="updateView" role="tabpanel"><div class="wrap">
+    <div class="evo-head"><span class="evo-lead">What's new in agent-native-agent that this ANA doesn't have yet. Update hands it to the agent to port into this ANA; Cancel hides it from later checks</span></div>
+    <div class="evo-cta"><button id="updCheck">Check for updates</button></div>
+    <div class="upd-last" id="updLast"></div>
+    <div class="stseg" data-stseg="upd" role="tablist" aria-label="Update status"></div>
+    <div id="updList"></div>
+    <div class="empty" id="updEmpty"></div>
   </div></section>
 
   <!-- 진화 -->
@@ -1839,10 +1876,10 @@ function reqCard(r, closed) {
   const ans = r.answer ? `<div class="req-ans"><b>You:</b>${escapeHtml(r.answer)}</div>` : '';
   let body = '';
   if (closed) {
-    body = `<div class="evo-acts"><span class="req-st">${r.status === 'done' ? '✓ Done' : 'Not now'}</span><button class="reopen">Reopen</button></div>`;
+    body = `${r.status === 'failed' && r.failReason ? `<div class="fail-why">✗ ${escapeHtml(r.failReason)}</div>` : ''}<div class="evo-acts"><span class="req-st ${r.status}">${r.status === 'done' ? '✓ Done' : r.status === 'failed' ? '✗ Failed' : 'Not now'}</span><button class="reopen">${r.status === 'failed' ? 'Try again' : 'Reopen'}</button></div>`;
   } else if (r.status === 'answered') {
     body = `<div class="req-wait">Sent to the agent — it will act on your answer</div>
-      <div class="evo-acts"><button class="done">Mark done</button><button class="talk">Discuss</button><button class="reopen">Answer again</button></div>`;
+      <div class="evo-acts"><button class="done">Mark done</button><button class="fail">Failed</button><button class="talk">Discuss</button><button class="reopen">Answer again</button></div>`;
   } else {
     body = `${(r.options || []).length ? `<div class="req-opts">${r.options.map((o) => `<button class="opt" data-opt="${escapeHtml(o)}">${escapeHtml(o)}</button>`).join('')}</div>` : ''}
       <div class="req-reply"><textarea rows="1" placeholder="${r.kind === 'action' ? 'Anything the agent should know? (optional)' : 'Reply to the agent…'}" aria-label="Reply"></textarea><button class="send">Send</button></div>
@@ -1854,26 +1891,28 @@ function reqCard(r, closed) {
 }
 /* ---- 협업 목록: 대기 · 처리 중 · 완료 · 취소 ----
    세 탭(Evolve · Approvals · Requests)이 같은 네 상태로 나뉜다. 탭마다 고른 상태를 기억한다. */
-const ST_BUCKETS = [['wait', 'Waiting'], ['doing', 'In progress'], ['done', 'Done'], ['cancel', 'Cancelled']];
+const ST_BUCKETS = [['wait', 'Waiting'], ['doing', 'In progress'], ['done', 'Done'], ['fail', 'Failed'], ['cancel', 'Cancelled']];
 const BUCKET_OF = {
-  evo: { new: 'wait', doing: 'doing', done: 'done', dismissed: 'cancel' },
-  req: { open: 'wait', answered: 'doing', done: 'done', dismissed: 'cancel' },
-  diff: { pending: 'wait', applying: 'doing', applied: 'done', rejected: 'cancel' },
+  evo: { new: 'wait', doing: 'doing', done: 'done', failed: 'fail', dismissed: 'cancel' },
+  req: { open: 'wait', answered: 'doing', done: 'done', failed: 'fail', dismissed: 'cancel' },
+  diff: { pending: 'wait', applying: 'doing', applied: 'done', failed: 'fail', rejected: 'cancel' },
+  upd: { new: 'wait', doing: 'doing', done: 'done', failed: 'fail', dismissed: 'cancel' },
 };
 const ST_EMPTY = {
-  evo: { wait: 'No new proposals — try [Ask the agent to analyze]', doing: 'Nothing being built right now', done: 'No finished proposals yet', cancel: 'Nothing ignored' },
-  appr: { wait: 'Nothing waiting for your approval', doing: 'Nothing in progress', done: 'Nothing approved or resolved yet', cancel: 'Nothing rejected or dismissed' },
-  req: { wait: 'No open requests — try [Ask the agent what it needs]', doing: 'Nothing in progress — answered requests show here until they are done', done: 'Nothing done yet', cancel: 'Nothing dismissed' },
+  evo: { wait: 'No new proposals — try [Ask the agent to analyze]', doing: 'Nothing being built right now', done: 'No finished proposals yet', fail: 'Nothing failed', cancel: 'Nothing ignored' },
+  appr: { wait: 'Nothing waiting for your approval', doing: 'Nothing in progress', done: 'Nothing approved or resolved yet', fail: 'Nothing failed', cancel: 'Nothing rejected or dismissed' },
+  upd: { wait: 'Nothing new — press [Check for updates]', doing: 'Nothing being updated right now', done: 'No updates applied yet', fail: 'Nothing failed', cancel: 'Nothing cancelled — cancelled updates stay hidden from later checks' },
+  req: { wait: 'No open requests — try [Ask the agent what it needs]', doing: 'Nothing in progress — answered requests show here until they are done', done: 'Nothing done yet', fail: 'Nothing failed', cancel: 'Nothing dismissed' },
 };
-let stFilter = { evo: 'wait', appr: 'wait', req: 'wait' };
+let stFilter = { evo: 'wait', appr: 'wait', req: 'wait', upd: 'wait' };
 try { Object.assign(stFilter, JSON.parse(localStorage.getItem('ana-collab-filter') || '{}')); } catch {}
 let diffCache = [], evoCache = [];
 const recent = (x) => String(x.updatedAt || x.closedAt || x.decidedAt || x.answeredAt || x.at || '');
 function bucketList(list, map) {
-  const out = { wait: [], doing: [], done: [], cancel: [] };
+  const out = { wait: [], doing: [], done: [], fail: [], cancel: [] };
   for (const x of list) { const b = map[x.status]; if (b) out[b].push(x); }
   out.wait.sort((a, b) => a.id - b.id); out.doing.sort((a, b) => a.id - b.id);          // 할 일은 오래된 것부터
-  out.done.sort((a, b) => recent(b).localeCompare(recent(a))); out.cancel.sort((a, b) => recent(b).localeCompare(recent(a)));   // 끝난 것은 최근 것부터
+  for (const k of ['done', 'fail', 'cancel']) out[k].sort((a, b) => recent(b).localeCompare(recent(a)));   // 끝난 것은 최근 것부터
   return out;
 }
 function renderStSeg(key, counts) {
@@ -1884,7 +1923,7 @@ document.querySelectorAll('[data-stseg]').forEach((el) => el.addEventListener('c
   const b = e.target.closest('button[data-b]'); if (!b) return;
   const key = el.dataset.stseg; stFilter[key] = b.dataset.b;
   try { localStorage.setItem('ana-collab-filter', JSON.stringify(stFilter)); } catch {}
-  if (key === 'evo') renderEvolve(); else renderRequestsAll();
+  if (key === 'evo') renderEvolve(); else if (key === 'upd') renderUpdates(); else renderRequestsAll();
 }));
 const whenTxt = (x) => { const t = recent(x); return t ? fmtWhen(t) : ''; };
 
@@ -1920,7 +1959,7 @@ function renderReqBox(prefix, buckets, opt = {}) {
   const drafts = {}; listEl.querySelectorAll('.req-card').forEach((c) => { const t = c.querySelector('textarea'); if (t && t.value) drafts[c.dataset.rid] = t.value; });
   const k = stFilter[key], list = buckets[k];
   if (prefix === 'req') renderStSeg('req', Object.fromEntries(ST_BUCKETS.map(([b]) => [b, buckets[b].length])));
-  listEl.innerHTML = list.map((r) => reqCard(r, k === 'done' || k === 'cancel')).join('');
+  listEl.innerHTML = list.map((r) => reqCard(r, k === 'done' || k === 'fail' || k === 'cancel')).join('');
   Object.entries(drafts).forEach(([id, v]) => { const t = listEl.querySelector(`.req-card[data-rid="${id}"] textarea`); if (t) t.value = v; });
   if (prefix === 'req') { $('reqEmpty').textContent = ST_EMPTY.req[k]; $('reqEmpty').style.display = list.length ? 'none' : 'block'; }
   if (prefix === 'appr') { $('apprReqHead').hidden = !(opt.head && list.length); $('apprReqCnt').textContent = list.length || ''; }
@@ -1933,7 +1972,7 @@ $('apprDiffs').addEventListener('click', (e) => {
   post('/api/approve', { pid, decision }).then((r) => { if (!r.ok) r.json().then((x) => showErr(x.error || 'Approval failed')).catch(() => {}); }).catch(() => showErr('Approval failed'));
 });
 
-/* ---- System › Reliability · Safety · Security ---- 서버가 계산한 점검(/api/trust)을 카드로. 1분마다, 보일 때만 */
+/* ---- System › Trustworthiness · Safety · Security ---- 서버가 계산한 점검(/api/trust)을 카드로. 1분마다, 보일 때만 */
 const TRUST_ICON = { ok: '✓', info: 'i', warn: '!', risk: '!' };
 async function refreshTrust() {
   let d; try { d = await (await getJSON('/api/trust')); } catch { return; }
@@ -1951,8 +1990,8 @@ async function refreshTrust() {
   trustRisk = (d.reliability.risk || 0) + (d.safety.risk || 0) + (d.security.risk || 0); updateSysBadge();
 }
 setInterval(() => { if (!document.hidden) refreshTrust(); }, 60000);
-async function reqAct(id, action, answer) {
-  let r; try { r = await post('/api/request-act', { id, action, answer }); } catch { showErr('Failed to update the request'); return false; }
+async function reqAct(id, action, answer, reason) {
+  let r; try { r = await post('/api/request-act', { id, action, answer, reason }); } catch { showErr('Failed to update the request'); return false; }
   if (!r.ok) { showErr((await r.json().catch(() => ({}))).error || 'Failed to update the request'); return false; }
   refreshRequests(); return true;
 }
@@ -1972,6 +2011,7 @@ async function reqAnswer(card, answer) {
   if (btn.classList.contains('opt')) reqAnswer(card, btn.dataset.opt);
   else if (btn.classList.contains('send')) reqAnswer(card, card.querySelector('textarea').value);
   else if (btn.classList.contains('done')) reqAct(id, 'done');
+  else if (btn.classList.contains('fail')) reqAct(id, 'fail', undefined, (card.querySelector('textarea') || {}).value);
   else if (btn.classList.contains('ignore')) reqAct(id, 'dismiss');
   else if (btn.classList.contains('reopen')) reqAct(id, 'reopen');
   else if (btn.classList.contains('talk')) { addChip('Request', `#${id} ${card.querySelector('.req-t').textContent}`); openChat(); setTimeout(() => $('input').focus(), 60); }
@@ -2011,7 +2051,8 @@ function renderEvolve() {
   const TYPES = { improve: 'improve', add: 'add', remove: 'remove' };
   const ACTS = {
     wait: '<button class="talk">Discuss</button><button class="do">Do it</button><button class="ignore">Ignore</button>',
-    doing: '<button class="talk">Discuss</button><button class="done">Mark done</button><button class="ignore">Cancel</button>',
+    doing: '<button class="talk">Discuss</button><button class="done">Mark done</button><button class="fail">Failed</button><button class="ignore">Cancel</button>',
+    fail: '<button class="talk">Discuss</button><button class="reopen">Try again</button>',
     done: '<button class="reopen">Reopen</button>',
     cancel: '<button class="reopen">Restore</button>',
   };
@@ -2020,6 +2061,7 @@ function renderEvolve() {
     return `<div class="evo-card card ${escapeHtml(p.status)}" data-eid="${id}"><div class="evo-top">
       <span class="evo-type ${type}">${type}</span><span class="evo-t">${escapeHtml(p.title)}</span><span class="evo-when">#${id}${k !== 'wait' && whenTxt(p) ? ' · ' + whenTxt(p) : ''}</span></div>
       ${p.desc ? `<div class="evo-d">${escapeHtml(p.desc)}</div>` : ''}
+      ${p.status === 'failed' ? `<div class="fail-why">✗ Failed${p.failReason ? ' — ' + escapeHtml(p.failReason) : ''}</div>` : ''}
       <div class="evo-acts">${ACTS[k]}</div>
     </div>`; }).join('');
   $('evoEmpty').textContent = ST_EMPTY.evo[k]; $('evoEmpty').style.display = B[k].length ? 'none' : 'block';
@@ -2031,7 +2073,7 @@ $('evoList').addEventListener('click', (e) => {
   const title = card.querySelector('.evo-t')?.textContent || '';
   const desc = card.querySelector('.evo-d')?.textContent || '';
   if (btn.classList.contains('talk')) { addChip('Proposal', title); openChat(); setTimeout(() => $('input').focus(), 60); return; } // 제안을 컨텍스트 칩으로 등록
-  const action = ['do', 'done', 'reopen', 'ignore'].find((a) => btn.classList.contains(a)) || 'ignore';
+  const action = ['do', 'done', 'fail', 'reopen', 'ignore'].find((a) => btn.classList.contains(a)) || 'ignore';
   post('/api/evolve-act', { id, action }).then((r) => { if (!r.ok) showErr('Failed to process the proposal'); refreshEvolve(); }).catch(() => showErr('Failed to process the proposal'));
   // '수행'은 상태만 바꾸지 않고 코딩 에이전트에게 실제 구현을 지시 + 채팅을 연다(대화가 시작됨).
   if (action === 'do') {
@@ -2047,6 +2089,65 @@ $('evoAnalyze').onclick = () => {
   post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Analyze request failed')).catch(() => {}); else openChat(); })
     .catch(() => showErr('Analyze request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
 };
+
+/* ---- 시스템 › Update ---- 업스트림과 비교한 항목을 다섯 상태로. Update는 에이전트에게 이식을 맡긴다 */
+let updCache = { items: [], lastCheck: null, upstreamDir: '' };
+async function refreshUpdates() {
+  try { updCache = await getJSON('/api/updates'); } catch { return; }
+  renderUpdates();
+}
+const UPD_KIND = { missing: 'New', partial: 'Partly here', outdated: 'Newer module', runtime: 'Shared runtime' };
+function renderUpdates() {
+  const B = bucketList(updCache.items || [], BUCKET_OF.upd), k = stFilter.upd;
+  renderStSeg('upd', Object.fromEntries(ST_BUCKETS.map(([b]) => [b, B[b].length])));
+  $('updBadge').textContent = B.wait.length; $('updBadge').classList.toggle('show', B.wait.length > 0); updateSysBadge();
+  const lc = updCache.lastCheck;
+  $('updLast').innerHTML = !lc ? 'Not checked yet.' : `Checked <b>${escapeHtml(fmtWhen(lc.at))}</b> against <b>agent-native-agent @ ${escapeHtml(String(lc.commit || '').slice(0, 7))}</b> · ${lc.present}/${lc.total} features here${lc.runtime === 'differs' ? ' · shared runtime differs' : ''}${lc.added ? ` · <b>${lc.added} new</b>` : ''}${
+    (lc.changes || []).length ? `<details><summary>${lc.changes.length} upstream change${lc.changes.length === 1 ? '' : 's'} since the last sync</summary><ul>${lc.changes.slice(0, 30).map((c) => `<li>${escapeHtml(c)}</li>`).join('')}</ul></details>` : ''}`;
+  const ACTS = {
+    wait: '<button class="talk">Discuss</button><button class="do">Update</button><button class="ignore">Cancel</button>',
+    doing: '<button class="talk">Discuss</button><button class="done">Mark done</button><button class="fail">Failed</button><button class="ignore">Cancel</button>',
+    done: '<button class="reopen">Reopen</button>',
+    fail: '<button class="talk">Discuss</button><button class="reopen">Try again</button>',
+    cancel: '<button class="reopen">Restore</button>',
+  };
+  $('updList').innerHTML = B[k].map((x) => `<div class="evo-card card upd-card ${escapeHtml(x.status)}" data-uid="${Number(x.id) || 0}"><div class="evo-top">
+      <span class="upd-kind ${escapeHtml(x.kind)}">${UPD_KIND[x.kind] || 'Update'}</span><span class="evo-t">${escapeHtml(x.title)}</span><span class="evo-when">#${Number(x.id) || 0}${k !== 'wait' && whenTxt(x) ? ' · ' + whenTxt(x) : ''}</span></div>
+      ${x.summary ? `<div class="evo-d">${escapeHtml(x.summary)}</div>` : ''}
+      ${(x.missing || []).length && x.kind === 'partial' ? `<div class="upd-miss">Missing here: ${x.missing.slice(0, 6).map((m) => `<code>${escapeHtml(m)}</code>`).join(' · ')}</div>` : ''}
+      ${x.note ? `<div class="upd-miss">${escapeHtml(x.note)}</div>` : ''}
+      ${x.status === 'failed' ? `<div class="fail-why">✗ Failed${x.failReason ? ' — ' + escapeHtml(x.failReason) : ''}</div>` : ''}
+      <div class="evo-acts">${ACTS[k]}</div></div>`).join('');
+  $('updEmpty').textContent = ST_EMPTY.upd[k]; $('updEmpty').style.display = B[k].length ? 'none' : 'block';
+}
+$('updCheck').onclick = async () => {
+  const b = $('updCheck'); b.disabled = true; const orig = b.textContent; b.textContent = 'Checking GitHub…';
+  try {
+    const r = await post('/api/update/check', {}); const d = await r.json().catch(() => ({}));
+    if (!r.ok) showErr(d.error || 'Update check failed');
+    else { stFilter.upd = 'wait'; toast(d.lastCheck.added ? `${d.lastCheck.added} new update${d.lastCheck.added === 1 ? '' : 's'}` : 'No new updates'); }
+  } catch { showErr('Update check failed'); }
+  b.disabled = false; b.textContent = orig; refreshUpdates();
+};
+$('updList').addEventListener('click', async (e) => {
+  const card = e.target.closest('.upd-card'), btn = e.target.closest('button'); if (!card || !btn) return;
+  const id = Number(card.dataset.uid), it = (updCache.items || []).find((x) => x.id === id); if (!it) return;
+  if (btn.classList.contains('talk')) { addChip('Update', `#${id} ${it.title}`); openChat(); setTimeout(() => $('input').focus(), 60); return; }
+  const action = ['do', 'done', 'fail', 'reopen', 'ignore'].find((a) => btn.classList.contains(a)); if (!action) return;
+  if (action === 'do' && it.kind === 'runtime' && !(await confirmAsk({ title: 'Update the shared runtime?', body: 'channel-core.js is shared by every ANA on this host. Replacing it changes all of them at once.', yes: 'Update' }))) return;
+  let r; try { r = await post('/api/update-act', { id, action }); } catch { r = null; }
+  if (!r || !r.ok) { showErr('Could not update this item'); return; }
+  const d = await r.json().catch(() => ({}));
+  refreshUpdates();
+  if (action === 'do') {
+    const h = location.host, up = d.upstreamDir || updCache.upstreamDir;
+    const text = `[Update] Bring "${it.title}" (${it.key}) from the latest agent-native-agent into this ANA.
+Upstream checkout: ${up} @ ${String(it.upstreamCommit || '').slice(0, 7)} — follow ${up}/skills/${it.skill}/SKILL.md (Porting) and the rules in ${up}/skills/ana-update/SKILL.md: port into this ANA's own files, keep its domain code${it.kind === 'runtime' ? '; this item IS the shared runtime — replace channel-core.js whole, never patch it' : ', never patch channel-core.js'}.
+${(it.missing || []).length ? `Missing here: ${it.missing.join(', ')}.\n` : ''}${(it.modules || []).length ? `Modules: ${it.modules.join(', ')}.\n` : ''}${(it.npm || []).length ? `npm: ${it.npm.join(', ')}.\n` : ''}Verify with the tests and a look at the page. Then report: curl -s -X POST http://${h}/api/update-act -H 'content-type: application/json' -d '{"id":${id},"action":"done"}' — or if it can't be done: -d '{"id":${id},"action":"fail","reason":"why"}'.`;
+    openChat();
+    post('/api/chat', { text, force: true }).then((x) => { if (!x.ok) x.json().then((e) => showErr(e.error || 'Could not send it to the agent')).catch(() => {}); }).catch(() => showErr('Could not send it to the agent'));
+  }
+});
 
 /* ---- 삭제 확인 팝업 ----
    되돌릴 수 없는 삭제 앞에 한 번 세운다. 다른 모달 위에서도 뜨도록 별도 z-index를 쓴다. */
@@ -2347,16 +2448,27 @@ function selectTab(b) {
     if (b.dataset.group && b.dataset.group !== appMode) applyArea(b.dataset.group);
     if ($('memoView').classList.contains('on') && b.dataset.view !== 'memo') cleanupEmptyMemos(); // 메모 탭 이탈 시 빈 메모 정리(진화 #3)
     document.querySelectorAll('.topnav .tab').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
-    ['todo', 'schedule', 'memo', 'evolve', 'approvals', 'requests', 'stats', 'relations', 'reliability', 'safety', 'security'].forEach((v) => $(v + 'View').classList.toggle('on', b.dataset.view === v));
+    ['todo', 'schedule', 'memo', 'evolve', 'approvals', 'requests', 'stats', 'relations', 'reliability', 'safety', 'security', 'update'].forEach((v) => $(v + 'View').classList.toggle('on', b.dataset.view === v));
     lastTab[appMode] = b.dataset.view;
+    revealTab(b);
     try { localStorage.setItem('ana-area-tabs', JSON.stringify(lastTab)); } catch {}
     if (b.dataset.view === 'evolve') refreshEvolve();
     if (b.dataset.view === 'requests' || b.dataset.view === 'approvals') refreshRequests();
     if (['reliability', 'safety', 'security'].includes(b.dataset.view)) refreshTrust();
+    if (b.dataset.view === 'update') refreshUpdates();
     if (b.dataset.view === 'stats') renderStats();
     if (b.dataset.view === 'relations') renderRelations();
 }
 document.querySelectorAll('.topnav .tab').forEach((b) => { b.onclick = () => selectTab(b); });
+// 고른 탭이 가려져 있으면 보이게 밀고, 양옆에 더 있는지 가장자리 흐림으로 알린다
+function tabEdges() {
+  const t = document.querySelector('.tabstrip'); if (!t) return;
+  t.classList.toggle('more-r', t.scrollLeft + t.clientWidth < t.scrollWidth - 2);
+  t.classList.toggle('more-l', t.scrollLeft > 2);
+}
+function revealTab(b) { try { b.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' }); } catch {} setTimeout(tabEdges, 350); }
+document.querySelector('.tabstrip').addEventListener('scroll', tabEdges, { passive: true });
+window.addEventListener('resize', tabEdges);
 function applyArea(mode) {
   appMode = AREAS.includes(mode) ? mode : 'ws';
   document.body.classList.toggle('sys-mode', appMode !== 'ws');   // 워크스페이스 콤보는 Workspace 영역에서만
@@ -2376,7 +2488,7 @@ const badgeN = (id) => (Number($(id).textContent) || 0) * $(id).classList.contai
 function setAreaBadge(attr, n) { document.querySelectorAll(`[${attr}]`).forEach((x) => { x.textContent = n > 9 ? '9+' : String(n); x.classList.toggle('show', n > 0); }); }
 function updateSysBadge() {
   setAreaBadge('data-collabbadge', badgeN('reqBadge') + badgeN('apprBadge') + badgeN('evoBadge'));
-  setAreaBadge('data-sysbadge', trustRisk);
+  setAreaBadge('data-sysbadge', trustRisk + badgeN('updBadge'));
 }
 // 영역 적용은 스크립트가 다 읽힌 뒤에 — 탭 클릭이 아래쪽에서 선언되는 상태 변수를 건드려도 TDZ에 걸리지 않게
 document.querySelectorAll('.topnav .tab[data-group]').forEach((t) => { t.hidden = t.dataset.group !== appMode; });
@@ -2918,9 +3030,10 @@ function diffRows(diff) {
 }
 function propCard(pid, text) {
   const pr = proposals.get(pid); const st = pr ? pr.status : 'pending';
-  return `<div class="prop ${st === 'applied' ? 'applied' : st === 'rejected' ? 'rejected' : st === 'applying' ? 'applying' : ''}" data-pid="${pid}">
+  return `<div class="prop ${st === 'applied' ? 'applied' : st === 'rejected' ? 'rejected' : st === 'applying' ? 'applying' : st === 'failed' ? 'failed' : ''}" data-pid="${pid}">
     <div class="pt">${escapeHtml(text)}</div>${pr ? diffRows(pr.diff || {}) : ''}
-    <div class="acts"><button class="ok">Approve</button><button class="no">Reject</button></div>
+    ${st === 'failed' ? `<div class="fail-why">✗ Could not apply${pr && pr.failReason ? ' — ' + escapeHtml(pr.failReason) : ''}</div>` : ''}
+    <div class="acts"><button class="ok">${st === 'failed' ? 'Try again' : 'Approve'}</button><button class="no">Reject</button></div>
     <div class="state">${st === 'applied' ? '✓ Applied' : st === 'applying' ? 'Applying…' : 'Rejected'}</div></div>`;
 }
 function refreshPropCards() { document.querySelectorAll('[data-prop]').forEach((el) => { const pid = Number(el.dataset.prop); const pt = el.querySelector('.pt'); el.innerHTML = propCard(pid, pt ? pt.textContent : 'Change proposal'); }); }
@@ -3226,6 +3339,7 @@ function connect() {
       case 'target': if (d.user === youKey && d.target !== streamTarget) switchStream(); break;
       case 'evolve': if ($('evolveView').classList.contains('on')) refreshEvolve(); else refreshEvolve(); break;
       case 'requests': refreshRequests(); break;
+      case 'updates': refreshUpdates(); break;
     }
   };
   stream.onerror = () => {
@@ -3377,6 +3491,7 @@ initCal(); connect();
 loadWorkspaces().finally(() => { refreshData(); });
 refreshEvolve();
 refreshRequests();
+refreshUpdates();   // System 배지에 대기 중인 업데이트 수
 setInterval(async () => {
   if (document.hidden) return;
   const gen = streamGen;
