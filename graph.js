@@ -8,8 +8,9 @@
 // 관계 어휘(흐름형):
 //   Note ─SPAWNED──────▶ Task | Event    메모에서 나온 할일·일정            (명시)
 //   Task ─SCHEDULED_AS─▶ Event           할일을 실제로 할 시간을 잡은 일정  (명시)
-//   Note|Task|Event ─REFERS_TO─▶ Note|Task|Event   수동 참조              (명시)
+//   Note|Task|Event ─REFERS_TO─▶ Note|Task|Event|Item   수동 참조 (Item = 재고 물품, 주문 할일 → 물품)  (명시)
 //   Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           due/date 필드에서 파생 (자동)
+//   Item ─EXPIRES_ON─▶ Day                          재고 물품의 유효기간(expiresAt)에서 파생 (자동)
 //
 // 지식그래프(Relations › Analyze의 최신 완료 결과)도 같은 스코프에 얹는다 — 개체는 id `kg:<개체 id>`, kind는 온톨로지 클래스,
 // 사실은 온톨로지 관계 id를 타입으로, 근거는 개체 ─MENTIONED_IN─▶ Note|Task|Event. 그래서 메모 하나에서 출발해
@@ -35,23 +36,25 @@ const WORK = ['Note', 'Task', 'Event'];
 const RULES = {
   SPAWNED: { from: ['Note'], to: ['Task', 'Event'] },
   SCHEDULED_AS: { from: ['Task'], to: ['Event'] },
-  REFERS_TO: { from: WORK, to: WORK },
+  REFERS_TO: { from: WORK, to: [...WORK, 'Item'] },
 };
 const EXPLICIT = Object.keys(RULES);
 const MEANINGS = {
   SPAWNED: 'The note is where this task or event came from',
   SCHEDULED_AS: 'The task is worked on during this calendar event (time block)',
-  REFERS_TO: 'Manual reference between two notes, tasks or events',
+  REFERS_TO: 'Manual reference between two notes, tasks or events, or to an inventory item (e.g. an order task)',
   DUE_ON: 'The task is due on this day (derived from Task.due)',
   ON: 'The event happens on this day (derived from Event.date)',
+  EXPIRES_ON: 'The inventory item expires on this day (derived from Item.expiresAt)',
 };
-const BASE_KINDS = new Set(['Note', 'Task', 'Event', 'Day']);
+const BASE_KINDS = new Set(['Note', 'Task', 'Event', 'Day', 'Item']);
 const BASE_TYPES = new Set(Object.keys(MEANINGS));
 const KG_PREFIX = 'kg:';
 const kgKind = (c) => (!c ? 'Entity' : BASE_KINDS.has(c) ? `${c}Entity` : c);          // 기본 kind와 겹치지 않게
 const kgType = (r) => (BASE_TYPES.has(r) || r === 'MENTIONED_IN' ? `kg_${r}` : r);
+const invOf = (s) => (Array.isArray(s.inventory) ? s.inventory : []);
 const KG_MENTIONED = 'The knowledge-graph entity was found in this note, task or event (derived from the latest analysis)';
-const TITLES = { Note: 'Note title (or its first line)', Task: 'Task title', Event: 'Event title', Day: 'Date YYYY-MM-DD' };
+const TITLES = { Note: 'Note title (or its first line)', Task: 'Task title', Event: 'Event title', Day: 'Date YYYY-MM-DD', Item: 'Inventory item name' };
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const dayId = (d) => `day:${d}`;
 
@@ -59,6 +62,7 @@ function kindOf(s, id) {
   if (s.items.some((x) => x.id === id)) return 'Task';
   if (s.events.some((x) => x.id === id)) return 'Event';
   if (s.notes.some((x) => x.id === id)) return 'Note';
+  if (invOf(s).some((x) => x.id === id)) return 'Item';
   return '';
 }
 const noteTitle = (n) => (n.title || '').trim() || (n.text || '').trim().split('\n')[0].slice(0, 60) || 'Untitled';
@@ -81,6 +85,11 @@ function snapshot(s, scope, kg) {
     if (DATE.test(e.date || '')) { days.add(e.date); edge(e.id, dayId(e.date), 'ON'); }
   }
   for (const n of s.notes) node({ id: n.id, kind: 'Note', scope, no: '', title: noteTitle(n), status: '', updated_at: n.updatedAt || '' });
+  for (const v of invOf(s)) {
+    const low = (v.minQty > 0 && v.qty <= v.minQty) || v.qty <= 0;
+    node({ id: v.id, kind: 'Item', scope, no: v.barcode || '', title: String(v.name || ''), status: low ? 'low' : 'ok', updated_at: v.updatedAt || '' });
+    if (DATE.test(v.expiresAt || '')) { days.add(v.expiresAt); edge(v.id, dayId(v.expiresAt), 'EXPIRES_ON'); }
+  }
   for (const d of [...days].sort()) node({ id: dayId(d), kind: 'Day', scope, no: d, title: d, status: '', updated_at: '' });
   for (const l of s.links || []) if (EXPLICIT.includes(l.type)) edge(l.from, l.to, l.type, l.at ? { at: l.at } : {});
   if (kg && kg.graph) {
@@ -204,7 +213,7 @@ function removeLink(s, { from, to, type }) {
 // 끝점이 사라진 관계는 저장 직전에 걷어낸다(어느 경로로 지웠든).
 function pruneLinks(s) {
   if (!Array.isArray(s.links)) { s.links = []; return; }
-  const ids = new Set([...s.items, ...s.events, ...s.notes].map((x) => x.id));
+  const ids = new Set([...s.items, ...s.events, ...s.notes, ...invOf(s)].map((x) => x.id));
   s.links = s.links.filter((l) => ids.has(l.from) && ids.has(l.to));
 }
 

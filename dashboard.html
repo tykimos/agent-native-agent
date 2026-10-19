@@ -187,6 +187,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .rel .rk { flex: 0 0 auto; font-weight: 800; color: var(--blue-700); }
 .rel.k-Note .rk { color: var(--warm-fg); }
 .rel.k-Event .rk { color: var(--success); }
+.rel.k-Item .rk { color: var(--danger); }
 .rel .rt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 240px; }
 .rel .rx { flex: 0 0 auto; width: 16px; height: 16px; border-radius: 999px; color: var(--text-weak); font-size: 11px; line-height: 16px; display: none; }
 .rel:hover .rx, .rel:focus-within .rx { display: inline-block; }
@@ -638,6 +639,127 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 .prop.applied .state, .prop.rejected .state { display: block; }
 .prop.applied .state { color: var(--green); } .prop.rejected .state { color: var(--text-weak); }
 
+/* ---- 재고 ---- */
+.inv-alert[hidden], #invExpAlert[hidden], .inv-cam[hidden], .inv-scan .cam[hidden], .inv-lightbox[hidden], .inv-err[hidden], .inv-btn[hidden], #ivDel[hidden] { display: none; }
+.inv-alert { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 9px clamp(14px, 4vw, 28px); background: var(--danger-bg); color: var(--danger); font-size: 13px; font-weight: 700; cursor: pointer; }
+.inv-alert .ia-txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inv-alert.exp { background: var(--warm-bg); color: var(--warm-fg); }
+.inv-alert.exp button { color: var(--warm-fg); }
+.inv-alert button { flex: 0 0 auto; color: var(--danger); font-size: 15px; width: 28px; height: 28px; border-radius: 999px; }
+.inv-scan { display: flex; gap: 8px; padding: 12px; margin-bottom: 14px; align-items: center; }
+.inv-scan input { flex: 1; min-width: 0; height: 48px; border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 0 14px; font-size: 16px; color: var(--text); background: var(--surface-2); outline: none; }
+.inv-scan input:focus { border-color: var(--blue); background: var(--surface); }
+.inv-scan .cam { flex: 0 0 auto; width: 48px; height: 48px; border-radius: var(--r-sm); background: var(--surface-2); color: var(--text-sub); display: grid; place-items: center; }
+.inv-scan .cam svg { width: 22px; height: 22px; }
+.inv-cam { position: relative; margin-bottom: 14px; overflow: hidden; }
+.inv-cam video { display: block; width: 100%; max-height: 50vh; object-fit: cover; background: #000; }
+.inv-cam button { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 16px; }
+.inv-hit { padding: 16px; margin-bottom: 14px; border: 2px solid var(--blue); }
+.inv-hit.low { border-color: var(--danger); }
+.inv-hit .ih-name { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.inv-hit .ih-code { font-size: 12px; color: var(--text-weak); font-weight: 700; margin-top: 2px; font-family: ui-monospace, monospace; }
+.inv-hit .ih-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 12px; }
+.inv-hit .ih-grid div { background: var(--surface-2); border-radius: var(--r-xs); padding: 10px 12px; }
+.inv-hit .ih-grid b { display: block; font-size: 11.5px; color: var(--text-weak); font-weight: 800; margin-bottom: 4px; }
+.inv-hit .ih-grid span { font-size: 16px; font-weight: 800; }
+.inv-hit .ih-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.inv-btn { height: 36px; padding: 0 14px; border-radius: 999px; background: var(--surface-2); color: var(--text); font-weight: 800; font-size: 13.5px; }
+.inv-btn.pri { background: var(--blue); color: #fff; }
+.inv-btn:disabled { opacity: .5; cursor: default; }
+.ih-qty { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.ih-qty input { width: 96px; height: 40px; border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 0 12px; font-size: 16px; font-weight: 800; color: var(--text); background: var(--surface-2); outline: none; text-align: right; }
+.ih-qty input:focus { border-color: var(--blue); background: var(--surface); }
+.ih-qty .ih-unit { font-size: 13.5px; font-weight: 700; color: var(--text-sub); margin-right: 4px; }
+.ih-qty .inv-btn { height: 40px; padding: 0 18px; }
+.ih-qty .ih-hint { flex-basis: 100%; font-size: 11.5px; color: var(--text-weak); font-weight: 600; }
+.iv-code { display: flex; gap: 8px; }
+.ih-sec { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line-2); }
+.ih-sec h4 { font-size: 13px; font-weight: 800; color: var(--text-sub); margin-bottom: 8px; }
+.ih-order { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; border-radius: var(--r-sm); background: var(--danger-bg); color: var(--danger); font-size: 13px; font-weight: 700; }
+.ih-order .sp { flex: 1; }
+.ih-order.ordered { background: var(--surface-2); color: var(--text-sub); }
+.ih-usage { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+.ih-usage small { display: block; font-size: 11.5px; color: var(--text-weak); font-weight: 600; margin-top: 2px; }
+.ih-bars { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; align-items: end; height: 92px; margin-bottom: 12px; }
+.ih-bars .b { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 3px; min-width: 0; }
+.ih-bars .bar { width: 70%; max-width: 34px; min-height: 2px; border-radius: 4px 4px 0 0; background: var(--blue); }
+.ih-bars .b.zero .bar { background: var(--line); }
+.ih-bars .v { font-size: 11px; font-weight: 800; color: var(--text-sub); font-variant-numeric: tabular-nums; }
+.ih-bars .m { font-size: 11px; font-weight: 700; color: var(--text-weak); }
+.ih-log { display: flex; flex-direction: column; }
+.ih-log .lr { display: grid; grid-template-columns: 92px 64px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 2px; border-bottom: 1px solid var(--line-2); font-size: 12.5px; }
+.ih-log .lr:last-child { border-bottom: 0; }
+.ih-log .lt { color: var(--text-weak); font-weight: 600; font-variant-numeric: tabular-nums; }
+.ih-log .ld { font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+.ih-log .ld.use { color: var(--danger); } .ih-log .ld.in { color: var(--success); }
+.ih-log .lk { color: var(--text-sub); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ih-log .lb { color: var(--text-weak); font-weight: 600; font-size: 11.5px; }
+.ih-empty { font-size: 12.5px; color: var(--text-weak); font-weight: 600; }
+.ir-exp { font-weight: 800; color: var(--warm-fg); }
+.ir-exp.expired { color: var(--danger); }
+.inv-hit .ih-grid div.exp-soon { background: var(--warm-bg); } .inv-hit .ih-grid div.exp-soon span { color: var(--warm-fg); }
+.inv-hit .ih-grid div.exp-expired { background: var(--danger-bg); } .inv-hit .ih-grid div.exp-expired span { color: var(--danger); }
+.inv-hit .ih-grid small { display: block; font-size: 11.5px; font-weight: 800; margin-top: 2px; }
+.cal-cell .dot-x { width: 5px; height: 5px; transform: rotate(45deg); border-radius: 1px; background: var(--danger); }
+.ev-item .ebadge.exp { background: var(--danger-bg); color: var(--danger); }
+.ev-item[data-kind="exp"] { cursor: pointer; }
+.up-item.exp .mark { border-radius: 1px; transform: rotate(45deg); background: var(--danger); }
+.inv-row .ir-order { flex: 0 0 auto; height: 28px; padding: 0 10px; border-radius: 999px; background: var(--danger-bg); color: var(--danger); font-size: 12px; font-weight: 800; }
+.inv-row .ir-order.ordered { background: var(--surface-2); color: var(--text-weak); }
+@media (max-width: 768px) { .ih-log .lr { grid-template-columns: 88px 52px minmax(0, 1fr); } .ih-log .lb { display: none; } }
+.iv-code input { flex: 1; min-width: 0; }
+.iv-code .cam { flex: 0 0 auto; width: 48px; height: 48px; border-radius: var(--r-sm); background: var(--surface-2); color: var(--text-sub); display: grid; place-items: center; }
+.iv-code .cam svg { width: 22px; height: 22px; }
+.iv-code-msg { margin-top: 6px; font-size: 12.5px; font-weight: 700; color: var(--text-sub); }
+.iv-code-msg.err { color: var(--danger); } .iv-code-msg.ok { color: var(--success); }
+.iv-code-msg[hidden] { display: none; }
+.inv-search { width: 100%; height: 40px; border: 1.5px solid var(--line); border-radius: 999px; padding: 0 14px; font-size: 14px; color: var(--text); background: var(--surface); outline: none; margin-bottom: 10px; }
+.inv-search:focus { border-color: var(--blue); }
+.inv-row { display: flex; align-items: center; gap: 12px; padding: 12px 15px; margin-bottom: 8px; cursor: pointer; }
+.inv-row .ir-body { flex: 1; min-width: 0; }
+.inv-row .ir-name { display: block; font-size: 14.5px; font-weight: 700; overflow-wrap: anywhere; }
+.inv-row .ir-meta { display: block; font-size: 12px; color: var(--text-weak); font-weight: 600; margin-top: 3px; overflow-wrap: anywhere; }
+.inv-row .ir-qty { flex: 0 0 auto; text-align: right; font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.inv-row .ir-qty small { display: block; font-size: 11px; font-weight: 700; color: var(--text-weak); }
+.inv-row.low .ir-qty, .inv-row.low .ir-qty small { color: var(--danger); }
+.inv-row .ir-step { flex: 0 0 auto; display: flex; gap: 4px; }
+.inv-row .ir-step button { width: 30px; height: 30px; border-radius: 999px; background: var(--surface-2); font-size: 16px; font-weight: 800; color: var(--text-sub); }
+.kpi.low .n { color: var(--danger); } .kpi.out .n { color: var(--warm-fg); }
+.inv-err { color: var(--danger); font-size: 12.5px; font-weight: 700; margin: -4px 0 10px; }
+.fld-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.inv-wrap { max-width: 1120px; }
+.inv-layout { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 16px; align-items: start; }
+.inv-cats { position: sticky; top: 16px; padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+.inv-cats button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; border-radius: var(--r-sm); text-align: left; font-size: 14px; font-weight: 700; color: var(--text-sub); }
+.inv-cats button:hover { background: var(--surface-2); }
+.inv-cats button.on { background: var(--acc-weak); color: var(--acc-strong); font-weight: 800; }
+.inv-cats button .ic-n { margin-left: auto; font-size: 12px; font-weight: 800; color: var(--text-weak); font-variant-numeric: tabular-nums; }
+.inv-cats button.on .ic-n { color: inherit; }
+.inv-cats button[data-cat="low"] .ic-n.has, .inv-cats button[data-cat="exp"] .ic-n.has { color: var(--danger); }
+.inv-cats .ic-sep { height: 1px; margin: 6px 8px; background: var(--line-2); }
+.inv-cats .ic-head { padding: 4px 12px 2px; font-size: 11.5px; font-weight: 800; color: var(--text-weak); }
+.fld select { width: 100%; height: 48px; border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 0 12px; font-size: 15px; color: var(--text); background: var(--surface-2); outline: none; }
+.fld select:focus { border-color: var(--blue); background: var(--surface); }
+.iv-photo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.iv-photo img { width: 72px; height: 72px; object-fit: cover; border-radius: var(--r-sm); background: var(--surface-2); }
+.iv-photo .ph-none { width: 72px; height: 72px; border-radius: var(--r-sm); background: var(--surface-2); color: var(--text-weak); display: grid; place-items: center; font-size: 11.5px; font-weight: 700; }
+.inv-hit .ih-top { display: flex; gap: 14px; align-items: flex-start; }
+.inv-hit .ih-top > div { flex: 1; min-width: 0; }
+.inv-hit .ih-photo { flex: 0 0 auto; width: 132px; height: 132px; border-radius: var(--r-sm); object-fit: cover; cursor: zoom-in; background: var(--surface-2); }
+.inv-hit .ih-cat { display: inline-block; margin-top: 6px; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); color: var(--text-sub); font-size: 11.5px; font-weight: 800; }
+.inv-row .ir-thumb { flex: 0 0 auto; width: 44px; height: 44px; border-radius: var(--r-xs); object-fit: cover; background: var(--surface-2); }
+.inv-row .ir-thumb.none { display: grid; place-items: center; color: var(--text-weak); font-size: 18px; }
+.inv-lightbox { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.82); display: grid; place-items: center; padding: 24px; cursor: zoom-out; }
+.inv-lightbox img { max-width: 100%; max-height: 100%; border-radius: var(--r-sm); }
+@media (max-width: 768px) {
+  .inv-layout { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .inv-cats { position: static; flex-direction: row; overflow-x: auto; scrollbar-width: none; padding: 6px; }
+  .inv-cats::-webkit-scrollbar { display: none; }
+  .inv-cats button { flex: 0 0 auto; width: auto; white-space: nowrap; padding: 8px 12px; }
+  .inv-cats .ic-sep, .inv-cats .ic-head { display: none; }
+  .inv-cats button.loc::before { content: "📍"; margin-right: -2px; font-size: 12px; }
+  .inv-hit .ih-photo { width: 96px; height: 96px; }
+}
 .errbar { display: none; align-items: center; gap: 8px; margin: 0 14px 8px; padding: 8px 12px; background: var(--danger-bg); border-radius: var(--r-xs); color: var(--danger); font-size: 12.5px; font-weight: 700; }
 .errbar button { margin-left: auto; font-size: 15px; color: var(--danger); }
 /* 터미널 다이얼로그 안내 카드(권한/확인 창이 열렸을 때) */
@@ -1121,6 +1243,7 @@ body.sys-mode .ws-combo { display: none; }
 .rel-graph .node text { font-size: 11.5px; font-weight: 700; fill: var(--text); }
 .rel-graph .node.k-Note rect { fill: var(--warm-bg); stroke: color-mix(in srgb, var(--warm-fg) 40%, transparent); }
 .rel-graph .node.k-Task rect { fill: var(--blue-weak); stroke: color-mix(in srgb, var(--blue) 40%, transparent); }
+.rel-graph .node.k-Item rect { fill: var(--danger-bg); stroke: color-mix(in srgb, var(--danger) 40%, transparent); }
 .rel-graph .node.k-Event rect { fill: var(--success-bg); stroke: color-mix(in srgb, var(--success) 40%, transparent); }
 .rel-graph .node.done text { fill: var(--text-weak); text-decoration: line-through; }
 .rel-graph .node { cursor: pointer; }
@@ -1252,40 +1375,41 @@ body.sys-mode .ws-combo { display: none; }
     <div class="topnav-brand"><img src="/ana-logo.png" alt="ANA logo"><span class="bname">ANA</span></div>
     <!-- 영역 전환(PC) — 모바일에서는 하단 메뉴(.bottomnav)가 같은 일을 한다 -->
     <div class="seg modeseg" role="tablist" aria-label="Area">
-      <button data-area="ws" class="on" role="tab">Workspace</button><button data-area="collab" role="tab">Collaborate<span class="tbadge" data-collabbadge>0</span></button><button data-area="sys" role="tab">System<span class="tbadge" data-sysbadge>0</span></button>
+      <button data-area="ws" class="on" role="tab">워크스페이스</button><button data-area="collab" role="tab">협업<span class="tbadge" data-collabbadge>0</span></button><button data-area="sys" role="tab">시스템<span class="tbadge" data-sysbadge>0</span></button>
     </div>
     <div class="ws-combo" id="wsCombo">
       <button class="ws-btn" id="wsBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Workspace">
         <span class="wsn" id="wsName">Base Workspace</span><span class="caret">▼</span></button>
       <div class="ws-menu" id="wsMenu" hidden>
-        <div class="ws-label">Workspace</div>
+        <div class="ws-label">워크스페이스</div>
         <div class="ws-list" id="wsList" role="listbox" aria-label="Workspaces"></div>
-        <button class="ws-add" id="wsAddBtn">＋ Add workspace</button>
+        <button class="ws-add" id="wsAddBtn">＋ 워크스페이스 추가</button>
         <form class="ws-new" id="wsNew" hidden>
-          <input id="wsNewName" maxlength="60" placeholder="Workspace name" autocomplete="off" aria-label="New workspace name">
-          <button type="submit">Add</button>
+          <input id="wsNewName" maxlength="60" placeholder="워크스페이스 이름" autocomplete="off" aria-label="New workspace name">
+          <button type="submit">추가</button>
         </form>
         <div class="ws-err" id="wsErr" hidden></div>
       </div>
     </div>
     <div class="tabstrip">
-      <button class="tab on" data-view="todo" data-group="ws" role="tab" aria-selected="true">Tasks</button>
-      <button class="tab" data-view="schedule" data-group="ws" role="tab" aria-selected="false">Calendar</button>
-      <button class="tab" data-view="memo" data-group="ws" role="tab" aria-selected="false">Notes</button>
-      <button class="tab" data-view="evolve" data-group="collab" role="tab" aria-selected="false">Evolve<span class="tbadge" id="evoBadge">0</span></button>
-      <button class="tab" data-view="approvals" data-group="collab" role="tab" aria-selected="false">Approvals<span class="tbadge" id="apprBadge">0</span></button>
-      <button class="tab" data-view="requests" data-group="collab" role="tab" aria-selected="false">Requests<span class="tbadge" id="reqBadge">0</span></button>
-      <button class="tab" data-view="requirements" data-group="collab" role="tab" aria-selected="false">Requirements</button>
-      <button class="tab" data-view="files" data-group="sys" role="tab" aria-selected="false">Files</button>
-      <button class="tab" data-view="stats" data-group="sys" role="tab" aria-selected="false">Stats</button>
-      <button class="tab" data-view="relations" data-group="sys" role="tab" aria-selected="false">Relations</button>
-      <button class="tab" data-view="reliability" data-group="sys" role="tab" aria-selected="false">Trustworthiness</button>
-      <button class="tab" data-view="safety" data-group="sys" role="tab" aria-selected="false">Safety</button>
-      <button class="tab" data-view="security" data-group="sys" role="tab" aria-selected="false">Security</button>
-      <button class="tab" data-view="update" data-group="sys" role="tab" aria-selected="false">Update<span class="tbadge" id="updBadge">0</span></button>
+      <button class="tab on" data-view="todo" data-group="ws" role="tab" aria-selected="true">할일</button>
+      <button class="tab" data-view="schedule" data-group="ws" role="tab" aria-selected="false">일정</button>
+      <button class="tab" data-view="memo" data-group="ws" role="tab" aria-selected="false">메모</button>
+      <button class="tab" data-view="inventory" data-group="ws" role="tab" aria-selected="false">재고<span class="tbadge" id="invBadge">0</span></button>
+      <button class="tab" data-view="evolve" data-group="collab" role="tab" aria-selected="false">진화<span class="tbadge" id="evoBadge">0</span></button>
+      <button class="tab" data-view="approvals" data-group="collab" role="tab" aria-selected="false">승인<span class="tbadge" id="apprBadge">0</span></button>
+      <button class="tab" data-view="requests" data-group="collab" role="tab" aria-selected="false">요청<span class="tbadge" id="reqBadge">0</span></button>
+      <button class="tab" data-view="requirements" data-group="collab" role="tab" aria-selected="false">요구사항</button>
+      <button class="tab" data-view="files" data-group="sys" role="tab" aria-selected="false">파일</button>
+      <button class="tab" data-view="stats" data-group="sys" role="tab" aria-selected="false">통계</button>
+      <button class="tab" data-view="relations" data-group="sys" role="tab" aria-selected="false">관계</button>
+      <button class="tab" data-view="reliability" data-group="sys" role="tab" aria-selected="false">신뢰성</button>
+      <button class="tab" data-view="safety" data-group="sys" role="tab" aria-selected="false">안전</button>
+      <button class="tab" data-view="security" data-group="sys" role="tab" aria-selected="false">보안</button>
+      <button class="tab" data-view="update" data-group="sys" role="tab" aria-selected="false">업데이트<span class="tbadge" id="updBadge">0</span></button>
     </div>
     <button id="modeToggle" class="mode-toggle" role="switch" aria-checked="false" aria-label="Chip mode">
-      <span class="knob"></span>Chip
+      <span class="knob"></span>칩
     </button>
     <button id="drawBtn" class="chip-scan draw-btn" aria-label="Draw on the screen and attach it to the chat" title="Draw on the screen — circle what you mean">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
@@ -1298,15 +1422,19 @@ body.sys-mode .ws-combo { display: none; }
   <div class="me-menu" id="meMenu" role="menu" hidden>
     <button id="menuEditInfo" role="menuitem">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      Edit My Info</button>
+      내 정보 수정</button>
     <button id="menuSettings" role="menuitem">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      Settings</button>
+      설정</button>
     <div class="mm-sep" role="separator"></div>
     <button id="menuLogout" role="menuitem">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       <span>Log out<span class="mm-hint" id="menuLogoutHint" hidden></span></span></button>
   </div>
+
+  <!-- 재고 부족 알림 — 어느 탭에 있든 항상 보인다 -->
+  <div class="inv-alert exp" id="invExpAlert" role="alert" hidden><span aria-hidden="true">⏳</span><span class="ia-txt" id="invExpAlertTxt"></span><button id="invExpAlertClose" aria-label="알림 닫기" title="목록이 바뀔 때까지 숨기기">✕</button></div>
+  <div class="inv-alert" id="invAlert" role="alert" hidden><span aria-hidden="true">⚠</span><span class="ia-txt" id="invAlertTxt"></span><button id="invAlertClose" aria-label="알림 닫기" title="목록이 바뀔 때까지 숨기기">✕</button></div>
 
   <!-- 할일 -->
   <section class="view on" id="todoView" role="tabpanel"><div class="wrap">
@@ -1456,6 +1584,31 @@ body.sys-mode .ws-combo { display: none; }
     <div class="empty" id="updEmpty"></div>
   </div></section>
 
+  <!-- 재고 -->
+  <section class="view" id="inventoryView" role="tabpanel"><div class="wrap inv-wrap">
+    <div class="inv-layout">
+    <nav class="inv-cats card" id="invCats" aria-label="재고 카테고리"></nav>
+    <div class="inv-main">
+    <div class="kpis">
+      <div class="kpi card total"><div class="n" id="ivTotal">0</div><div class="l">전체 품목</div></div>
+      <div class="kpi card low"><div class="n" id="ivLow">0</div><div class="l">재고 부족</div></div>
+      <div class="kpi card out"><div class="n" id="ivOut">0</div><div class="l">재고 없음</div></div>
+    </div>
+    <form class="inv-scan card" id="invScanForm" autocomplete="off">
+      <input id="invScan" placeholder="바코드를 찍거나 입력 후 Enter" aria-label="바코드" inputmode="text" enterkeyhint="search">
+      <button type="button" class="cam" id="invCamBtn" aria-label="카메라로 바코드 찍기" title="카메라로 바코드 찍기" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="8" x2="7" y2="16"/><line x1="11" y1="8" x2="11" y2="16"/><line x1="14" y1="8" x2="14" y2="16"/><line x1="17" y1="8" x2="17" y2="16"/></svg></button>
+    </form>
+    <div class="inv-cam card" id="invCam" hidden><video id="invVideo" playsinline muted></video><button id="invCamClose" aria-label="카메라 닫기">✕</button></div>
+    <div id="invHit"></div>
+        <div class="sec-head"><h2 id="invTitle">전체 물품</h2><span class="cnt" id="invMeta"></span><span class="sp"></span>
+          <button class="add-btn" id="addInvBtn">＋ 물품</button></div>
+        <input class="inv-search" id="invQ" placeholder="이름·바코드·위치로 찾기" aria-label="재고 검색" autocomplete="off">
+        <div id="invList"></div>
+        <div class="empty" id="invEmpty">등록된 물품이 없습니다 — ＋ 물품으로 추가하거나 바코드를 찍어 보세요</div>
+    </div>
+    </div>
+  </div></section>
+
   <!-- 진화 -->
   <section class="view" id="evolveView" role="tabpanel"><div class="wrap">
     <div class="evo-head"><span class="evo-lead">How the agent thinks this app should evolve — from its features, your data and how you use it. Approve one and the agent builds it</span></div>
@@ -1557,9 +1710,9 @@ body.sys-mode .ws-combo { display: none; }
 </div>
 <!-- 하단 메뉴(모바일): Workspace = 할일·일정·메모 / System = 통계·요청·진화·관계 -->
 <nav class="bottomnav" aria-label="Area">
-  <button data-area="ws" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Workspace</button>
-  <button data-area="collab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Collaborate<span class="tbadge" data-collabbadge>0</span></button>
-  <button data-area="sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>System<span class="tbadge" data-sysbadge>0</span></button>
+  <button data-area="ws" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>워크스페이스</button>
+  <button data-area="collab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>협업<span class="tbadge" data-collabbadge>0</span></button>
+  <button data-area="sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>시스템<span class="tbadge" data-sysbadge>0</span></button>
 </nav>
 <!-- 모델 선택 시트(Claude Code 세션) — Claude 앱과 같은 모양 -->
 <div class="limit-pop" id="limitPop" role="status" hidden></div>
@@ -1575,6 +1728,7 @@ body.sys-mode .ws-combo { display: none; }
   <div class="mgroup" id="mPermList" role="radiogroup" aria-label="Permissions" hidden></div>
   <p class="mnote" id="mNote">Also becomes the default for new Claude Code sessions.</p>
 </div>
+<div class="inv-lightbox" id="invLightbox" role="dialog" aria-label="물품 사진" hidden><img id="invLightboxImg" alt=""></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <button class="newver" id="newver">New version available — tap to reload</button>
 <div class="chat-scrim" id="chatScrim"></div>
@@ -1617,6 +1771,36 @@ body.sys-mode .ws-combo { display: none; }
   <div class="fld"><label>Title</label><input id="tTitle" placeholder="e.g. Review the proposal" autocomplete="off"></div>
   <div class="fld"><label>Due date (optional)</label><input id="tDue" type="date"></div>
   <div class="modal-acts"><button class="cancel" data-close>Cancel</button><button class="save" id="tSave">Add</button></div>
+</div>
+<!-- 모달: 재고 물품 추가/수정 -->
+<div class="modal" id="invModal" role="dialog" aria-modal="true" aria-labelledby="ivmTitle">
+  <h3 id="ivmTitle">물품 추가</h3>
+  <div class="fld"><label for="ivName">물품 이름</label><input id="ivName" placeholder="예: 에탄올 99.5% 500mL" autocomplete="off"></div>
+  <div class="fld"><label for="ivCat">카테고리</label><select id="ivCat"></select></div>
+  <div class="fld"><label for="ivCode">바코드</label>
+    <div class="iv-code"><input id="ivCode" placeholder="스캐너로 찍거나 직접 입력" autocomplete="off">
+      <button type="button" class="cam" id="ivCodeCam" aria-label="바코드 사진을 찍어 번호 읽기" title="바코드 사진을 찍어 번호 읽기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+      <input type="file" id="ivCodeFile" accept="image/*" capture="environment" hidden></div>
+    <div class="iv-code-msg" id="ivCodeMsg" role="status" hidden></div></div>
+  <div class="fld-row">
+    <div class="fld"><label for="ivQty">수량</label><input id="ivQty" type="number" min="0" step="any" inputmode="decimal" value="0"></div>
+    <div class="fld"><label for="ivUnit">단위</label><input id="ivUnit" placeholder="개, 병, 박스…" autocomplete="off"></div>
+  </div>
+  <div class="fld-row">
+    <div class="fld"><label for="ivMin">알림 기준 수량</label><input id="ivMin" type="number" min="0" step="any" inputmode="decimal" value="0" title="수량이 이 값 이하로 떨어지면 알림"></div>
+    <div class="fld"><label for="ivDate">구입 날짜</label><input id="ivDate" type="date"></div>
+  </div>
+  <div class="fld-row">
+    <div class="fld"><label for="ivOpened">개봉일 (선택)</label><input id="ivOpened" type="date"></div>
+    <div class="fld"><label for="ivExpires">유효기간 (선택)</label><input id="ivExpires" type="date" title="이 날짜 30일 전부터 만료 임박으로 알립니다"></div>
+  </div>
+  <div class="fld"><label for="ivLoc">보관 위치 (선택)</label><input id="ivLoc" placeholder="예: 시약장 B-2" autocomplete="off" list="ivLocList"><datalist id="ivLocList"></datalist></div>
+  <div class="fld"><label>사진 (선택)</label>
+    <div class="iv-photo"><span id="ivPhotoPrev"></span>
+      <button type="button" class="inv-btn" id="ivPhotoPick">사진 선택</button><button type="button" class="inv-btn" id="ivPhotoClear" hidden>사진 삭제</button>
+      <input type="file" id="ivPhotoFile" accept="image/*" hidden></div></div>
+  <div class="inv-err" id="ivErr" hidden></div>
+  <div class="modal-acts"><button class="cancel" id="ivDel" hidden>삭제</button><button class="cancel" data-close>취소</button><button class="save" id="ivSave">저장</button></div>
 </div>
 <!-- 모달: 참조 연결(REFERS_TO) -->
 <div class="modal" id="linkModal" role="dialog" aria-modal="true" aria-labelledby="lkTitle">
@@ -1676,16 +1860,16 @@ let logMode = false, logRev = 0, logSession = '', logTimer = null, logBusy = fal
 const logOpen = new Set();          // 사용자가 펼쳐 둔 도구 묶음(다시 그려도 유지)   // attachments: {name, size, path, pending}
 
 /* ================= 데이터 (할일 + 일정) ================= */
-let dataVersion = 0, items = [], events = [], notes = [], graphLinks = [];
+let dataVersion = 0, items = [], events = [], notes = [], inventory = [], graphLinks = [];
 const proposals = new Map();
 async function refreshData() {
   let s;
   try { s = await (await getJSON('/api/state')); } catch { return; }
   dataVersion = s.version || 1;
-  items = s.items || []; events = s.events || []; notes = s.notes || [];
+  items = s.items || []; events = s.events || []; notes = s.notes || []; inventory = s.inventory || [];
   graphLinks = (s.graph && s.graph.links) || [];   // NodeRel이 만든 관계(파생 DUE_ON/ON 포함)
   (s.proposals || []).forEach((p) => proposals.set(p.id, p)); renderApprovals();
-  renderTodos(); renderCalendar(); renderDay(); renderUpcoming(); renderMemos();
+  renderTodos(); renderCalendar(); renderDay(); renderUpcoming(); renderMemos(); renderInventory();
   if ($('relationsView').classList.contains('on')) renderRelations();
   refreshPropCards();
 }
@@ -1707,6 +1891,8 @@ function nodeOf(id) {
   if (x) return { id, kind: 'Event', x, title: x.title, label: `${mdDate(x.date)}${x.time ? ' ' + x.time : ''} · ${x.title}` };
   x = notes.find((n) => n.id === id);
   if (x) return { id, kind: 'Note', x, title: noteTitle(x), label: noteTitle(x) };
+  x = inventory.find((v) => v.id === id);
+  if (x) return { id, kind: 'Item', x, title: x.name, label: `재고 · ${x.name}` };
   return null;
 }
 function relsOf(id) {
@@ -1737,6 +1923,7 @@ function gotoNode(id) {
   const q = (v) => (window.CSS && CSS.escape ? CSS.escape(v) : v);
   if (n.kind === 'Task') { showTab('todo'); flash(`#todoList .item[data-id="${q(id)}"]`); }
   else if (n.kind === 'Event') { showTab('schedule'); gotoDate(n.x.date); flash(`#dayList .ev-item[data-id="${q(id)}"]:not([data-kind])`); }
+  else if (n.kind === 'Item') { showTab('inventory'); invHitId = id; renderInvHit(); flash('#invHit .inv-hit'); }
   else { showTab('memo'); cleanupEmptyMemos(id); memoSel = id; renderMemos(); flash('#memoEditor'); }
 }
 document.addEventListener('click', (e) => {
@@ -1795,6 +1982,403 @@ $('todoList').addEventListener('keydown', (e) => {
   const el = e.target.closest('.item'); if (!el) return; e.preventDefault(); toggleTodo(el);
 });
 
+/* ---- 재고 ----
+   바코드 스캐너(USB·블루투스)는 키보드처럼 글자를 빠르게 치고 Enter를 누른다. 재고 탭의 입력칸에서 받고,
+   다른 곳에 포커스가 없을 때 빠르게 들어온 키 묶음도 스캔으로 본다. 카메라 스캔은 BarcodeDetector가 있는 브라우저에서만. */
+const invLow = (v) => (v.minQty > 0 && v.qty <= v.minQty) || v.qty <= 0;
+// 유효기간 — 지났으면 expired, 30일 이내면 soon. days: 오늘 기준 남은 날(음수 = 지난 날)
+const INV_EXP_DAYS = 30;
+function invExp(v) {
+  if (!v.expiresAt) return { state: '', days: null };
+  const [y, m, d] = v.expiresAt.split('-').map(Number), t = new Date(); t.setHours(0, 0, 0, 0);
+  const days = Math.round((new Date(y, m - 1, d) - t) / 864e5);
+  return { state: days < 0 ? 'expired' : days <= INV_EXP_DAYS ? 'soon' : '', days };
+}
+const invExpiring = (v) => !!invExp(v).state;
+const invDday = (v) => { const e = invExp(v); return e.days === null ? '' : e.days < 0 ? `만료 ${-e.days}일 지남` : e.days === 0 ? '오늘 만료' : `D-${e.days}`; };
+const INV_CATS = [['solvent', '용매'], ['reagent', '시약'], ['consumable', '소모품'], ['tool', '기구'], ['equipment', '장비']];
+const invCatName = (c) => (INV_CATS.find((x) => x[0] === c) || [, ''])[1];
+let invCat = 'all';   // 'all' | 'low' | 카테고리 코드
+try { invCat = localStorage.getItem('ana-inv-cat') || 'all'; } catch {}
+$('ivCat').innerHTML = '<option value="">미분류</option>' + INV_CATS.map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
+function renderInvCats() {
+  const n = (f) => inventory.filter(f).length;
+  const nLow = n(invLow);
+  const nExp = n(invExpiring);
+  // 보관 위치 — 입력된 위치를 모아 자동으로 만든다('loc:<위치>', 위치가 빈 물품은 'loc:' = 위치 미지정)
+  const locs = invLocations(), nNoLoc = n((v) => !v.location);
+  const locRows = locs.length ? ['위치', ...locs.map((l) => ['loc:' + l, l, n((v) => v.location === l)]), ...(nNoLoc ? [['loc:', '위치 미지정', nNoLoc]] : [])] : [];
+  const rows = [['all', '전체 물품', inventory.length], ['low', '부족한 물품', nLow], ['exp', '만료 임박', nExp], null, ...INV_CATS.map(([k, name]) => [k, name, n((v) => v.category === k)]), ...(locRows.length ? [null, ...locRows] : [])];
+  $('invCats').innerHTML = rows.map((r) => !r ? '<div class="ic-sep"></div>' : typeof r === 'string' ? `<div class="ic-head">보관 ${r}</div>`
+    : `<button data-cat="${escapeHtml(r[0])}" class="${invCat === r[0] ? 'on' : ''} ${r[0].startsWith('loc:') ? 'loc' : ''}" aria-pressed="${invCat === r[0]}">${escapeHtml(r[1])}<span class="ic-n ${(r[0] === 'low' && nLow) || (r[0] === 'exp' && nExp) ? 'has' : ''}">${r[2]}</span></button>`).join('');
+  const cur = rows.find((r) => Array.isArray(r) && r[0] === invCat);
+  $('invTitle').textContent = cur ? (invCat.startsWith('loc:') && invCat !== 'loc:' ? `📍 ${cur[1]}` : cur[1]) : '전체 물품';
+  $('ivLocList').innerHTML = locs.map((l) => `<option value="${escapeHtml(l)}"></option>`).join('');
+}
+const invLocations = () => [...new Set(inventory.map((v) => (v.location || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+$('invCats').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-cat]'); if (!b) return;
+  if (b.dataset.cat !== invCat) invHitId = '';   // 다른 분류로 가면 열어 둔 물품 카드는 닫는다
+  invCat = b.dataset.cat; try { localStorage.setItem('ana-inv-cat', invCat); } catch {}
+  renderInventory();
+});
+const invQtyText = (v) => `${+v.qty.toFixed(3)}${v.unit ? ' ' + v.unit : ''}`;
+let invHitId = '', invEditId = '', invAlertHidden = '';
+function renderInventory() {
+  const low = inventory.filter(invLow);
+  $('ivTotal').textContent = inventory.length;
+  $('ivLow').textContent = low.length;
+  $('ivOut').textContent = inventory.filter((v) => v.qty <= 0).length;
+  const exp = inventory.filter(invExpiring), nAlert = inventory.filter((v) => invLow(v) || invExpiring(v)).length;
+  $('invBadge').textContent = nAlert > 9 ? '9+' : nAlert; $('invBadge').classList.toggle('show', nAlert > 0);
+  if (!['all', 'low', 'exp', ...INV_CATS.map((x) => x[0])].includes(invCat)
+    && !(invCat.startsWith('loc:') && (invCat === 'loc:' ? inventory.some((v) => !v.location) : invLocations().includes(invCat.slice(4))))) invCat = 'all';
+  renderInvCats();
+  const q = $('invQ').value.trim().toLowerCase();
+  const list = inventory.filter((v) => invCat === 'all' || (invCat === 'low' ? invLow(v) : invCat === 'exp' ? invExpiring(v)
+      : invCat.startsWith('loc:') ? (v.location || '').trim() === invCat.slice(4) : v.category === invCat))
+    .filter((v) => !q || [v.name, v.barcode, v.location].some((x) => String(x || '').toLowerCase().includes(q)))
+    .sort(invCat === 'exp' ? (a, b) => a.expiresAt.localeCompare(b.expiresAt) : (a, b) => (invLow(b) - invLow(a)) || a.name.localeCompare(b.name, 'ko'));
+  $('invMeta').textContent = `${list.length}개`;
+  $('invList').innerHTML = list.map((v) => `
+    <div class="inv-row card ${invLow(v) ? 'low' : ''}" data-id="${escapeHtml(v.id)}" role="button" tabindex="0">
+      ${v.photo ? `<img class="ir-thumb" src="${escapeHtml(v.photo)}" alt="" loading="lazy">` : '<span class="ir-thumb none" aria-hidden="true">▢</span>'}
+      <span class="ir-body"><span class="ir-name">${escapeHtml(v.name)}</span>
+        <span class="ir-meta">${invExpiring(v) ? `<span class="ir-exp ${invExp(v).state}">${escapeHtml(invDday(v))}</span> · ` : ''}${[invCatName(v.category), v.barcode && '▮ ' + v.barcode, v.purchasedAt && '구입 ' + v.purchasedAt, v.expiresAt && '유효 ' + v.expiresAt, v.location].filter(Boolean).map(escapeHtml).join(' · ') || '바코드 없음'}</span></span>
+      <span class="ir-qty">${escapeHtml(invQtyText(v))}<small>${invLow(v) ? (v.qty <= 0 ? '재고 없음' : '부족') : v.minQty > 0 ? '기준 ' + escapeHtml(String(v.minQty)) : ''}</small></span>
+      ${invOpenOrder(v) ? '<button class="ir-order ordered" data-row-go-order title="주문 할일 보기">주문됨</button>' : invLow(v) ? '<button class="ir-order" data-row-order title="주문 할일 만들기">주문</button>' : ''}
+      <span class="ir-step"><button data-adj="-1" aria-label="1 사용">−</button><button data-adj="1" aria-label="1 입고">＋</button></span>
+    </div>`).join('');
+  $('invEmpty').style.display = list.length ? 'none' : 'block';
+  $('invEmpty').textContent = !inventory.length ? '등록된 물품이 없습니다 — ＋ 물품으로 추가하거나 바코드를 찍어 보세요'
+    : invCat === 'low' && !q ? '부족한 물품이 없습니다' : invCat === 'exp' && !q ? `${INV_EXP_DAYS}일 안에 만료되는 물품이 없습니다` : '이 분류에 해당하는 물품이 없습니다';
+  renderInvHit(); renderInvAlert(low, exp);
+}
+function renderInvHit() {
+  const v = inventory.find((x) => x.id === invHitId);
+  if (!v) { $('invHit').innerHTML = ''; return; }
+  $('invHit').innerHTML = `<div class="inv-hit card ${invLow(v) ? 'low' : ''}" data-id="${escapeHtml(v.id)}">
+    <div class="ih-top">${v.photo ? `<img class="ih-photo" src="${escapeHtml(v.photo)}" alt="${escapeHtml(v.name)} 사진" data-zoom title="크게 보기">` : ''}
+      <div><div class="ih-name">${escapeHtml(v.name)}</div><div class="ih-code">${escapeHtml(v.barcode || '바코드 없음')}</div>
+      ${v.category ? `<span class="ih-cat">${invCatName(v.category)}</span>` : ''}</div></div>
+    <div class="ih-grid"><div><b>수량</b><span>${escapeHtml(invQtyText(v))}</span></div>
+      <div><b>구입 날짜</b><span>${escapeHtml(v.purchasedAt || '—')}</span></div>
+      ${v.openedAt ? `<div><b>개봉일</b><span>${escapeHtml(v.openedAt)}</span></div>` : ''}
+      ${v.expiresAt ? `<div class="${invExp(v).state ? 'exp-' + invExp(v).state : ''}"><b>유효기간</b><span>${escapeHtml(v.expiresAt)}</span><small>${escapeHtml(invDday(v))}</small></div>` : ''}
+      ${v.location ? `<div><b>보관 위치</b><span>${escapeHtml(v.location)}</span></div>` : ''}
+      ${v.minQty > 0 ? `<div><b>알림 기준</b><span>${escapeHtml(String(v.minQty))}</span></div>` : ''}</div>
+    <div class="ih-qty"><input id="ihQty" type="text" inputmode="decimal" value="1" aria-label="사용 또는 입고할 수량" autocomplete="off">
+      <span class="ih-unit">${escapeHtml(v.unit || '개')}</span>
+      <button class="inv-btn pri" data-use>사용</button><button class="inv-btn" data-restock>입고</button>
+      <span class="ih-hint">수량을 적고 Enter = 사용 · Shift+Enter = 입고</span></div>
+    ${invOrderBox(v)}
+    <div class="ih-acts"><button class="inv-btn" data-edit>수정</button><button class="inv-btn" data-close-hit>닫기</button></div>
+    <div class="ih-sec" id="ihHist"><h4>입출고 이력</h4><div class="ih-empty">불러오는 중…</div></div></div>`;
+  invLoadHistory(v.id);
+}
+// 주문 — 이 물품을 가리키는 열린 주문 할일(orderFor). 부족할 때 만들 수 있고, 입고하면 서버가 완료 처리한다.
+const invOpenOrder = (v) => items.find((t) => t.orderFor === v.id && !t.done);
+function invOrderBox(v) {
+  const o = invOpenOrder(v);
+  if (o) return `<div class="ih-order ordered"><span>주문 할일 진행 중 — 입고하면 자동 완료됩니다</span><span class="sp"></span><button class="inv-btn" data-go-task="${escapeHtml(o.id)}">할일 보기</button></div>`;
+  if (!invLow(v)) return '';
+  return `<div class="ih-order"><span>${v.qty <= 0 ? '재고가 없습니다' : '재고가 부족합니다'}</span><span class="sp"></span><button class="inv-btn pri" data-order>주문 할일 만들기</button></div>`;
+}
+async function invOrder(id) {
+  const r = await invPost({ action: 'order', id });
+  if (r.error) { toast(r.error); return; }
+  toast(r.existed ? '이미 열린 주문 할일이 있습니다' : '주문 할일을 만들었습니다 — 할일 탭에서 볼 수 있습니다');
+}
+// 입출고 이력 — 물품을 고르거나 데이터가 바뀔 때만 다시 받는다
+let invHist = { id: '', ver: -1, data: null };
+const INV_KIND = { add: '등록', use: '사용', restock: '입고', edit: '수정' };
+async function invLoadHistory(id) {
+  if (invHist.id === id && invHist.ver === dataVersion && invHist.data) { renderInvHistory(); return; }
+  const ver = dataVersion;
+  let d = null; try { const r = await fetch('/api/inventory/history?id=' + encodeURIComponent(id)); if (r.ok) d = await r.json(); } catch {}
+  if (invHitId !== id) return;
+  invHist = { id, ver, data: d };
+  renderInvHistory();
+}
+function renderInvHistory() {
+  const box = $('ihHist'); if (!box) return;
+  const d = invHist.data, v = inventory.find((x) => x.id === invHist.id);
+  if (!d || !v) { box.innerHTML = '<h4>입출고 이력</h4><div class="ih-empty">이력을 불러오지 못했습니다</div>'; return; }
+  const unit = v.unit ? ' ' + v.unit : '', fmt = (n) => String(+(+n).toFixed(2));
+  const u = d.usage || {};
+  const est = u.perMonth > 0
+    ? `월평균 약 ${fmt(u.perMonth)}${unit} 사용${u.daysLeft !== null ? ` · 지금 재고로 약 ${u.daysLeft >= 60 ? Math.round(u.daysLeft / 30) + '개월' : u.daysLeft + '일'}` : ''}`
+    : '아직 사용 기록이 없어 소진 시점을 계산할 수 없습니다';
+  const max = Math.max(...d.months.map((m) => m.used), 0);
+  const bars = d.months.map((m) => `<div class="b ${m.used ? '' : 'zero'}" title="${m.month} 사용 ${fmt(m.used)}${unit} · 입고 ${fmt(m.restocked)}${unit}">
+      <span class="v">${m.used ? fmt(m.used) : ''}</span><span class="bar" style="height:${max ? Math.max(2, Math.round(m.used / max * 56)) : 2}px"></span><span class="m">${+m.month.slice(5)}월</span></div>`).join('');
+  const when = (iso) => { const t = new Date(iso); return `${t.getMonth() + 1}/${t.getDate()} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`; };
+  const rows = d.entries.map((e) => `<div class="lr"><span class="lt">${when(e.at)}</span>
+      <span class="ld ${e.delta < 0 ? 'use' : e.delta > 0 ? 'in' : ''}">${e.delta > 0 ? '+' : ''}${fmt(e.delta)}</span>
+      <span class="lk">${INV_KIND[e.kind] || e.kind} → ${fmt(e.qty)}${unit}</span><span class="lb">${escapeHtml(displayName(e.by))}</span></div>`).join('');
+  box.innerHTML = `<h4>월별 사용량 (최근 6개월)</h4>
+    <div class="ih-usage">${est}<small>${u.spanDays ? `최근 ${u.spanDays}일 기록 기준` : ''}</small></div>
+    <div class="ih-bars" role="img" aria-label="월별 사용량">${bars}</div>
+    <h4>최근 입출고</h4>${rows ? `<div class="ih-log">${rows}</div>` : '<div class="ih-empty">기록이 없습니다 — 사용·입고를 하면 여기에 쌓입니다</div>'}`;
+}
+// 카드의 수량칸으로 사용(-)·입고(+). 스캐너로 다음 바코드를 찍으면 이 칸에 번호가 들어오므로,
+// 숫자 6자리 이하만 수량으로 보고 그보다 길거나 글자가 섞이면 바코드로 처리한다.
+function invQtyFromBox() {
+  const raw = ($('ihQty') && $('ihQty').value || '').trim();
+  if (!/^\d{1,6}(\.\d{1,3})?$/.test(raw)) return { code: raw };
+  const n = Number(raw);
+  return n > 0 ? { n } : { bad: true };
+}
+async function invApplyQty(sign) {
+  const v = inventory.find((x) => x.id === invHitId); if (!v) return;
+  const q = invQtyFromBox();
+  if (q.code) { invScan(q.code); return; }
+  if (q.bad) { toast('0보다 큰 수량을 입력하세요'); $('ihQty').select(); return; }
+  const over = sign < 0 && q.n > v.qty, before = invQtyText(v);
+  document.querySelectorAll('#invHit [data-use], #invHit [data-restock]').forEach((b) => { b.disabled = true; });
+  const r = await invPost({ action: 'adjust', id: v.id, delta: sign * q.n });
+  if (r.error) { toast(r.error); renderInvHit(); return; }
+  toast(over ? `${v.name} ${q.n} 사용 — 재고(${before})보다 많아 0이 되었습니다` : `${v.name} ${q.n} ${sign < 0 ? '사용' : '입고'}${r.ordersDone ? ' — 주문 할일 완료' : ''}`);
+  setTimeout(() => { if ($('ihQty')) { $('ihQty').focus(); $('ihQty').select(); } }, 0);
+}
+$('invHit').addEventListener('keydown', (e) => {
+  if (e.target.id !== 'ihQty' || e.key !== 'Enter') return;
+  e.preventDefault(); invApplyQty(e.shiftKey ? 1 : -1);
+});
+let invExpHidden = '';
+function renderInvAlert(low, exp) {
+  exp = exp || [];
+  const ek = exp.map((v) => v.id + ':' + v.expiresAt + ':' + invExp(v).state).join(',');
+  const eshow = exp.length > 0 && ek !== invExpHidden;
+  $('invExpAlert').hidden = !eshow;
+  if (eshow) {
+    const sorted = [...exp].sort((a, b) => a.expiresAt.localeCompare(b.expiresAt)), nx = exp.filter((v) => invExp(v).state === 'expired').length;
+    $('invExpAlertTxt').textContent = `${nx ? `만료 ${nx}건` : ''}${nx && exp.length > nx ? ' · ' : ''}${exp.length > nx ? `만료 임박 ${exp.length - nx}건` : ''} — `
+      + sorted.slice(0, 4).map((v) => `${v.name} (${invDday(v)})`).join(', ') + (exp.length > 4 ? ` 외 ${exp.length - 4}건` : '');
+  }
+  const key = low.map((v) => v.id + ':' + v.qty).join(',');
+  const show = low.length > 0 && key !== invAlertHidden;
+  $('invAlert').hidden = !show;
+  if (show) $('invAlertTxt').textContent = `재고 부족 ${low.length}건 — ` + low.slice(0, 4).map((v) => `${v.name} (${invQtyText(v)})`).join(', ') + (low.length > 4 ? ` 외 ${low.length - 4}건` : '');
+  invNotify(low, exp);
+}
+$('invExpAlert').onclick = (e) => {
+  if (e.target.closest('#invExpAlertClose')) { invExpHidden = inventory.filter(invExpiring).map((v) => v.id + ':' + v.expiresAt + ':' + invExp(v).state).join(','); $('invExpAlert').hidden = true; return; }
+  if (invCat !== 'exp') invHitId = '';
+  invCat = 'exp'; showTab('inventory'); $('invQ').value = ''; renderInventory();
+};
+// 새로 부족해진 물품은 브라우저 알림으로도 알린다(권한을 준 경우). 처음 불러올 때는 배너만.
+let invLowSeen = null, invExpSeen = null;
+function invNotify(low, exp) {
+  const ids = new Set(low.map((v) => v.id)), eids = new Set(exp.map((v) => v.id + ':' + invExp(v).state));
+  if (invLowSeen && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    const fresh = low.filter((v) => !invLowSeen.has(v.id));
+    if (fresh.length) try { new Notification('재고 부족', { body: fresh.map((v) => `${v.name}: ${invQtyText(v)}`).join('\n'), tag: 'ana-inventory' }); } catch {}
+    const efresh = exp.filter((v) => !invExpSeen.has(v.id + ':' + invExp(v).state));
+    if (efresh.length) try { new Notification('유효기간 알림', { body: efresh.map((v) => `${v.name}: ${invDday(v)} (${v.expiresAt})`).join('\n'), tag: 'ana-inventory-exp' }); } catch {}
+  }
+  invLowSeen = ids; invExpSeen = eids;
+}
+$('invAlert').onclick = (e) => {
+  if (e.target.closest('#invAlertClose')) { invAlertHidden = inventory.filter(invLow).map((v) => v.id + ':' + v.qty).join(','); $('invAlert').hidden = true; return; }
+  showTab('inventory'); $('invQ').value = ''; renderInventory();
+  if (typeof Notification !== 'undefined' && Notification.permission === 'default') try { Notification.requestPermission(); } catch {}
+};
+async function invPost(body) {
+  const r = await post('/api/inventory', body).catch(() => null);
+  const j = r ? await r.json().catch(() => ({})) : { error: '서버에 연결하지 못했습니다' };
+  if (!r || !r.ok) return { error: j.error || '저장하지 못했습니다' };
+  await refreshData(); return j;
+}
+function invScan(code) {
+  code = String(code || '').trim(); if (!code) return;
+  const v = inventory.find((x) => x.barcode === code);
+  showTab('inventory');
+  $('invScan').value = '';
+  if (v) { invHitId = v.id; renderInvHit(); flash('#invHit .inv-hit'); setTimeout(() => { $('ihQty').focus(); $('ihQty').select(); }, 0); }
+  else { invHitId = ''; renderInvHit(); toast(`등록되지 않은 바코드: ${code}`); openInvModal('', code); }
+}
+function openInvModal(id, code) {
+  const v = inventory.find((x) => x.id === id);
+  invEditId = v ? v.id : '';
+  $('ivmTitle').textContent = v ? '물품 수정' : '물품 추가';
+  $('ivName').value = v ? v.name : ''; $('ivCode').value = v ? v.barcode : (code || '');
+  $('ivQty').value = v ? v.qty : 0; $('ivUnit').value = v ? v.unit : '';
+  $('ivMin').value = v ? v.minQty : 0; $('ivDate').value = v ? v.purchasedAt : today();
+  $('ivLoc').value = v ? v.location : (invCat.startsWith('loc:') ? invCat.slice(4) : '');
+  $('ivOpened').value = v ? (v.openedAt || '') : ''; $('ivExpires').value = v ? (v.expiresAt || '') : '';
+  $('ivCat').value = v ? (v.category || '') : (invCat !== 'all' && invCat !== 'low' ? invCat : '');
+  invPhoto = v ? (v.photo || '') : ''; invPhotoShow();
+  $('ivDel').hidden = !v; $('ivErr').hidden = true; ivCodeMsg('');
+  openModal('invModal');
+}
+$('ivSave').onclick = async () => {
+  const name = $('ivName').value.trim(); if (!name) { $('ivName').focus(); return; }
+  if (invPhotoBusy) { toast('사진을 올리는 중입니다'); return; }
+  const body = { name, category: $('ivCat').value, photo: invPhoto, barcode: $('ivCode').value, qty: $('ivQty').value || 0, unit: $('ivUnit').value, minQty: $('ivMin').value || 0, purchasedAt: $('ivDate').value, openedAt: $('ivOpened').value, expiresAt: $('ivExpires').value, location: $('ivLoc').value };
+  const r = await invPost(invEditId ? { action: 'update', id: invEditId, ...body } : { action: 'add', ...body });
+  if (r.error) { $('ivErr').textContent = r.error === 'An item with that barcode already exists' ? '같은 바코드의 물품이 이미 있습니다' : r.error; $('ivErr').hidden = false; return; }
+  closeModal(); invHitId = r.id; renderInvHit(); toast('저장했습니다');
+};
+// 사진 — 브라우저에서 긴 변 1280px JPEG로 줄여 /api/upload에 올리고, 그 경로(/uploads/…)를 물품에 저장한다
+let invPhoto = '', invPhotoBusy = false;
+function invPhotoShow() {
+  $('ivPhotoPrev').innerHTML = invPhotoBusy ? '<span class="ph-none">올리는 중…</span>' : invPhoto ? `<img src="${escapeHtml(invPhoto)}" alt="물품 사진 미리보기">` : '<span class="ph-none">사진 없음</span>';
+  $('ivPhotoClear').hidden = !invPhoto || invPhotoBusy;
+  $('ivPhotoPick').textContent = invPhoto ? '사진 바꾸기' : '사진 선택';
+}
+function shrinkImage(file, max) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      resolve(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
+$('ivPhotoPick').onclick = () => $('ivPhotoFile').click();
+$('ivPhotoClear').onclick = () => { invPhoto = ''; invPhotoShow(); };
+$('ivPhotoFile').onchange = async () => {
+  const f = $('ivPhotoFile').files[0]; $('ivPhotoFile').value = ''; if (!f) return;
+  invPhotoBusy = true; invPhotoShow();
+  const data = await shrinkImage(f, 1280);
+  let r = null;
+  if (data) r = await post('/api/upload', { name: 'inventory.jpg', data }).then((x) => x.ok ? x.json() : null).catch(() => null);
+  invPhotoBusy = false;
+  if (r && r.path) invPhoto = '/uploads/' + encodeURIComponent(r.path.split(/[\\/]/).pop());
+  else toast(data ? '사진을 올리지 못했습니다' : '이미지 파일을 읽지 못했습니다');
+  invPhotoShow();
+};
+$('invLightbox').onclick = () => { $('invLightbox').hidden = true; $('invLightboxImg').src = ''; };
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('invLightbox').hidden) $('invLightbox').onclick(); });
+$('ivDel').onclick = () => {
+  const v = inventory.find((x) => x.id === invEditId); if (!v) return;
+  closeModal();
+  confirmDelete(`물품 "${v.name}"`).then(async (ok) => { if (!ok) return; const r = await invPost({ action: 'remove', id: v.id }); if (r.error) toast(r.error); });
+};
+// 바코드 칸에서 Enter를 누르면 스캐너가 보낸 키 묶음과 같은 효과
+$('ivCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('ivQty').focus(); } });
+$('invScanForm').addEventListener('submit', (e) => { e.preventDefault(); invScan($('invScan').value); });
+$('invQ').addEventListener('input', renderInventory);
+$('addInvBtn').onclick = () => openInvModal('');
+async function invAdjust(id, delta) { const r = await invPost({ action: 'adjust', id, delta }); if (r.error) toast(r.error); else if (r.ordersDone) toast('입고 — 주문 할일을 완료 처리했습니다'); }
+$('invList').addEventListener('click', (e) => {
+  const row = e.target.closest('.inv-row'); if (!row) return;
+  const adj = e.target.closest('[data-adj]');
+  if (adj) { invAdjust(row.dataset.id, Number(adj.dataset.adj)); return; }
+  if (e.target.closest('[data-row-order]')) { invOrder(row.dataset.id); return; }
+  if (e.target.closest('[data-row-go-order]')) { const o = invOpenOrder(inventory.find((x) => x.id === row.dataset.id) || {}); if (o) gotoNode(o.id); return; }
+  invHitId = row.dataset.id; renderInvHit(); $('invHit').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  setTimeout(() => { $('ihQty').focus({ preventScroll: true }); $('ihQty').select(); }, 0);
+});
+$('invList').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' || !e.target.classList.contains('inv-row')) return;
+  e.preventDefault(); invHitId = e.target.dataset.id; renderInvHit();
+});
+$('invHit').addEventListener('click', (e) => {
+  const card = e.target.closest('.inv-hit'); if (!card) return;
+  const adj = e.target.closest('[data-adj]');
+  if (adj) invAdjust(card.dataset.id, Number(adj.dataset.adj));
+  else if (e.target.closest('[data-order]')) invOrder(card.dataset.id);
+  else if (e.target.closest('[data-go-task]')) gotoNode(e.target.closest('[data-go-task]').dataset.goTask);
+  else if (e.target.closest('[data-use]')) invApplyQty(-1);
+  else if (e.target.closest('[data-restock]')) invApplyQty(1);
+  else if (e.target.closest('[data-edit]')) openInvModal(card.dataset.id);
+  else if (e.target.closest('[data-zoom]')) { $('invLightboxImg').src = e.target.closest('[data-zoom]').src; $('invLightbox').hidden = false; }
+  else if (e.target.closest('[data-close-hit]')) { invHitId = ''; renderInvHit(); $('invScan').focus(); }
+});
+// 입력칸 밖에서 스캐너가 친 키 묶음(글자 간격 50ms 미만, 4자 이상 + Enter)을 잡는다 — 어느 탭에 있든 재고 탭으로 간다
+(() => {
+  let buf = '', last = 0;
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (e.ctrlKey || e.metaKey || e.altKey || modalCur || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) { buf = ''; return; }
+    const now = performance.now();
+    if (now - last > 50) buf = '';
+    last = now;
+    if (e.key === 'Enter') { if (buf.length >= 4) { e.preventDefault(); invScan(buf); } buf = ''; return; }
+    if (e.key.length === 1) buf += e.key;
+  }, true);
+})();
+// 바코드 인식 — 브라우저 내장 BarcodeDetector(안드로이드·맥 크롬 등)가 있으면 그것을, 없으면(아이폰·윈도우 등)
+// ZXing을 처음 필요할 때 한 번 CDN에서 불러와 쓴다. 사진은 세로로 찍혀도 읽히도록 90° 돌려 한 번 더 본다.
+const ZXING_URL = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/+esm';
+let zxingLib = null;
+async function barcodeFrom(src, thorough) {
+  if ('BarcodeDetector' in window) {
+    try { const f = await new BarcodeDetector().detect(src); if (f.length && f[0].rawValue) return f[0].rawValue; if (!thorough) return ''; } catch {}
+  }
+  if (!zxingLib) zxingLib = import(ZXING_URL).catch((e) => { zxingLib = null; throw e; });
+  const Z = await zxingLib;
+  const w = src.videoWidth || src.naturalWidth || src.width, h = src.videoHeight || src.naturalHeight || src.height;
+  if (!w || !h) return '';
+  const k = Math.min(1, 1600 / Math.max(w, h)), cw = Math.round(w * k), ch = Math.round(h * k);
+  const reader = new Z.MultiFormatReader();
+  reader.setHints(new Map([[Z.DecodeHintType.TRY_HARDER, true]]));
+  for (const rot of thorough ? [0, 90] : [0]) {
+    const c = document.createElement('canvas'); c.width = rot ? ch : cw; c.height = rot ? cw : ch;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    if (rot) { g.translate(ch, 0); g.rotate(Math.PI / 2); }
+    g.drawImage(src, 0, 0, cw, ch);
+    try { return reader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(c)))).getText(); } catch {}
+  }
+  return '';
+}
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image')); };
+    img.src = url;
+  });
+}
+// 물품 추가·수정 창 — 바코드 사진을 찍으면(PC에서는 사진 파일 선택) 번호를 읽어 바코드 칸에 넣는다
+function ivCodeMsg(text, kind) { $('ivCodeMsg').textContent = text; $('ivCodeMsg').className = 'iv-code-msg' + (kind ? ' ' + kind : ''); $('ivCodeMsg').hidden = !text; }
+$('ivCodeCam').onclick = () => $('ivCodeFile').click();
+$('ivCodeFile').onchange = async () => {
+  const f = $('ivCodeFile').files[0]; $('ivCodeFile').value = ''; if (!f) return;
+  ivCodeMsg('바코드를 읽는 중…'); $('ivCodeCam').disabled = true;
+  let code = '';
+  try { code = await barcodeFrom(await loadImage(f), true); }
+  catch (e) { $('ivCodeCam').disabled = false; ivCodeMsg(e.message === 'image' ? '이미지 파일을 읽지 못했습니다' : '바코드 인식기를 불러오지 못했습니다 — 인터넷 연결을 확인해 주세요', 'err'); return; }
+  $('ivCodeCam').disabled = false;
+  if (!code) { ivCodeMsg('바코드를 찾지 못했습니다 — 바코드가 화면에 크고 선명하게 나오도록 다시 찍어 주세요', 'err'); return; }
+  $('ivCode').value = code;
+  const dup = inventory.find((x) => x.barcode === code && x.id !== invEditId);
+  ivCodeMsg(dup ? `이미 "${dup.name}"에 등록된 바코드입니다` : `읽었습니다: ${code}`, dup ? 'err' : 'ok');
+};
+// 카메라 스캔(재고 탭 위쪽 버튼) — 카메라가 있으면 보이고, 같은 인식기로 화면을 계속 본다
+let invStream = null, invCamTimer = 0;
+if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) $('invCamBtn').hidden = false;
+function invCamStop() {
+  clearTimeout(invCamTimer);
+  if (invStream) invStream.getTracks().forEach((t) => t.stop());
+  invStream = null; $('invCam').hidden = true;
+}
+$('invCamClose').onclick = invCamStop;
+$('invCamBtn').onclick = async () => {
+  if (invStream) { invCamStop(); return; }
+  if (!('BarcodeDetector' in window)) {
+    try { if (!zxingLib) zxingLib = import(ZXING_URL).catch((e) => { zxingLib = null; throw e; }); await zxingLib; }
+    catch { toast('바코드 인식기를 불러오지 못했습니다 — 인터넷 연결을 확인해 주세요'); return; }
+  }
+  try { invStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); }
+  catch { toast('카메라를 열지 못했습니다 — 권한을 확인해 주세요'); return; }
+  const vid = $('invVideo'); vid.srcObject = invStream; $('invCam').hidden = false;
+  try { await vid.play(); } catch {}
+  const tick = async () => {
+    if (!invStream) return;
+    let code = ''; try { code = await barcodeFrom(vid, false); } catch {}
+    if (code) { invCamStop(); invScan(code); return; }
+    invCamTimer = setTimeout(tick, 'BarcodeDetector' in window ? 250 : 400);
+  };
+  tick();
+};
+
 /* ---- 일정 (달력) ---- */
 let calY, calM, selDate; // calM: 0-11
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
@@ -1808,6 +2392,8 @@ function renderCalendar() {
   const days = new Date(calY, calM + 1, 0).getDate();
   const byDate = {};
   events.forEach((e) => { (byDate[e.date] = byDate[e.date] || []).push(e); });
+  const expByDate = {};
+  inventory.forEach((v) => { if (v.expiresAt) (expByDate[v.expiresAt] = expByDate[v.expiresAt] || []).push(v); });
   const todoByDate = {};
   items.forEach((t) => { if (t.due) (todoByDate[t.due] = todoByDate[t.due] || []).push(t); });
   let html = DOW.map((d, i) => `<div class="cal-dow ${i===0?'sun':i===6?'sat':''}">${d}</div>`).join('');
@@ -1817,7 +2403,7 @@ function renderCalendar() {
     const dow = new Date(calY, calM, d).getDay();
     const evs = byDate[date] || [];
     const tds = todoByDate[date] || [];
-    const dots = evs.slice(0, 3).map((e) => `<span class="dot-e ${e.done?'done':''}"></span>`).join('')
+    const dots = (expByDate[date] || []).slice(0, 2).map(() => '<span class="dot-x"></span>').join('') + evs.slice(0, 3).map((e) => `<span class="dot-e ${e.done?'done':''}"></span>`).join('')
       + tds.slice(0, 3).map((t) => `<span class="dot-t ${t.done?'done':''}"></span>`).join('');
     html += `<div class="cal-cell ${dow===0?'sun':dow===6?'sat':''} ${date===today()?'today':''} ${date===selDate?'sel':''}" data-date="${date}">
       <span class="dnum">${d}</span><div class="dots">${dots}</div></div>`;
@@ -1831,8 +2417,9 @@ $('calGrid').addEventListener('click', (e) => {
 function renderDay() {
   const evs = events.filter((e) => e.date === selDate).sort((a, b) => (a.time || '99').localeCompare(b.time || '99'));
   const dues = items.filter((x) => x.due === selDate);
+  const exps = inventory.filter((v) => v.expiresAt === selDate);
   const [y, m, d] = selDate.split('-');
-  $('dayHead').textContent = `${MONTHS[+m - 1]} ${+d} · ${evs.length} event${evs.length === 1 ? '' : 's'}${dues.length ? ` · ${dues.length} due` : ''}`;
+  $('dayHead').textContent = `${MONTHS[+m - 1]} ${+d} · ${evs.length} event${evs.length === 1 ? '' : 's'}${dues.length ? ` · ${dues.length} due` : ''}${exps.length ? ` · 만료 ${exps.length}` : ''}`;
   const evHtml = evs.map((e) => `
     <div class="ev-item card ${e.done ? 'done' : ''}" data-id="${escapeHtml(e.id)}">
       <span class="chk" data-toggle><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#fff;stroke-width:3;fill:none;opacity:${e.done?1:0}"><path d="M4 12l5 5L20 6"/></svg></span>
@@ -1846,11 +2433,17 @@ function renderDay() {
       <span class="ebadge">Task due</span>
       <span class="etitle">${escapeHtml(x.title || x.text || '')}${relChips(x.id)}</span>
     </div>`).join('');
-  $('dayList').innerHTML = (evHtml + dueHtml) || `<div class="empty" style="padding:24px 0">No events on this day</div>`;
+  const expHtml = exps.map((v) => `
+    <div class="ev-item card" data-id="${escapeHtml(v.id)}" data-kind="exp" role="button" tabindex="0" title="재고에서 보기">
+      <span class="ebadge exp">유효기간 만료</span>
+      <span class="etitle">${escapeHtml(v.name)} <span class="ir-exp ${invExp(v).state}">${escapeHtml(invDday(v))}</span></span>
+    </div>`).join('');
+  $('dayList').innerHTML = (evHtml + dueHtml + expHtml) || `<div class="empty" style="padding:24px 0">No events on this day</div>`;
 }
 $('dayList').addEventListener('click', (e) => {
   const el = e.target.closest('.ev-item'); if (!el) return;
   const id = el.dataset.id;
+  if (el.dataset.kind === 'exp') { gotoNode(id); return; }
   if (el.dataset.kind === 'todo') {
     if (e.target.closest('[data-toggle]')) { post('/api/done', { id, done: !el.classList.contains('done') }).then((r) => { if (!r.ok) refreshData(); }); el.classList.toggle('done'); }
     return;
@@ -1870,9 +2463,10 @@ function renderUpcoming() {
   const ups = [
     ...events.filter((e) => !e.done && e.date >= t).map((e) => ({ kind: 'event', date: e.date, time: e.time || '', title: e.title })),
     ...items.filter((x) => !x.done && x.due && x.due >= t).map((x) => ({ kind: 'todo', date: x.due, time: '', title: x.title || x.text || '' })),
+    ...inventory.filter((v) => v.expiresAt && v.expiresAt >= t).map((v) => ({ kind: 'exp', date: v.expiresAt, time: '', title: `만료: ${v.name}` })),
   ].sort((a, b) => (a.date + (a.time || '99:99')).localeCompare(b.date + (b.time || '99:99'))).slice(0, 15);
   $('upList').innerHTML = ups.length ? ups.map((u) => `
-    <div class="up-item ${u.kind === 'todo' ? 'todo' : ''}" data-date="${u.date}" role="button" tabindex="0" title="${escapeHtml(u.title)}">
+    <div class="up-item ${u.kind === 'todo' ? 'todo' : u.kind === 'exp' ? 'exp' : ''}" data-date="${u.date}" role="button" tabindex="0" title="${escapeHtml(u.title)}">
       <span class="mark"></span>
       <span class="ud">${+u.date.slice(5, 7)}/${+u.date.slice(8, 10)}</span>
       <span class="ut">${escapeHtml(u.title)}${u.time ? ` · ${escapeHtml(u.time)}` : ''}</span>
@@ -2781,9 +3375,10 @@ setInterval(() => { if (!document.hidden && anaJob && anaJob.status === 'running
 const REL_INFO = [
   ['SPAWNED', 'Note', 'Task · Event', 'Where a task or event came from', true],
   ['SCHEDULED_AS', 'Task', 'Event', 'Time blocked to work on the task', true],
-  ['REFERS_TO', 'Note · Task · Event', 'Note · Task · Event', 'Manual reference between two items', true],
+  ['REFERS_TO', 'Note · Task · Event', 'Note · Task · Event · Item', 'Manual reference between two items (an order task → its inventory item)', true],
   ['DUE_ON', 'Task', 'Day', 'The task is due that day (from its due date)', false],
   ['ON', 'Event', 'Day', 'The event happens that day (from its date)', false],
+  ['EXPIRES_ON', 'Item', 'Day', 'The inventory item expires that day (from its 유효기간)', false],
 ];
 async function renderRelations() {
   refreshAnalysis();
@@ -2796,14 +3391,18 @@ async function renderRelations() {
   drawRelGraph();
 }
 function drawRelGraph() {
-  const days = [...new Set(graphLinks.filter((l) => l.type === 'DUE_ON' || l.type === 'ON').map((l) => l.to))].sort();
+  const days = [...new Set(graphLinks.filter((l) => l.type === 'DUE_ON' || l.type === 'ON' || l.type === 'EXPIRES_ON').map((l) => l.to))].sort();
   const cols = [
     ['Notes', notes.map((n) => ({ id: n.id, kind: 'Note', title: noteTitle(n) }))],
     ['Tasks', items.map((t) => ({ id: t.id, kind: 'Task', title: t.title || t.text || '', done: t.done }))],
     ['Events', events.map((e) => ({ id: e.id, kind: 'Event', title: `${mdDate(e.date)} ${e.title}`, done: e.done }))],
     ['Days', days.map((dd) => ({ id: dd, kind: 'Day', title: mdDate(dd.slice(4)) }))],
   ];
-  const W = Math.max(560, $('relGraph').clientWidth - 24), gap = 26, nw = (W - gap * 3) / 4, nh = 28, vg = 8, top = 26;
+  // 재고 물품은 관계가 있는 것만 다섯째 칸에(주문 할일 → 물품)
+  const linkedInv = inventory.filter((v) => graphLinks.some((l) => l.to === v.id || l.from === v.id));
+  if (linkedInv.length) cols.push(['Items', linkedInv.map((v) => ({ id: v.id, kind: 'Item', title: v.name }))]);
+  const nc = cols.length;
+  const W = Math.max(560, $('relGraph').clientWidth - 24), gap = 26, nw = (W - gap * (nc - 1)) / nc, nh = 28, vg = 8, top = 26;
   const pos = new Map();
   cols.forEach(([, list], c) => list.forEach((n, i) => pos.set(n.id, { x: c * (nw + gap), y: top + i * (nh + vg), n })));
   const H = top + Math.max(1, ...cols.map(([, l]) => l.length)) * (nh + vg);
@@ -2919,7 +3518,7 @@ function selectTab(b) {
     if (b.dataset.group && b.dataset.group !== appMode) applyArea(b.dataset.group);
     if ($('memoView').classList.contains('on') && b.dataset.view !== 'memo') cleanupEmptyMemos(); // 메모 탭 이탈 시 빈 메모 정리(진화 #3)
     document.querySelectorAll('.topnav .tab').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
-    ['todo', 'schedule', 'memo', 'evolve', 'approvals', 'requests', 'requirements', 'stats', 'relations', 'reliability', 'safety', 'security', 'update', 'files'].forEach((v) => $(v + 'View').classList.toggle('on', b.dataset.view === v));
+    ['todo', 'schedule', 'memo', 'inventory', 'evolve', 'approvals', 'requests', 'requirements', 'stats', 'relations', 'reliability', 'safety', 'security', 'update', 'files'].forEach((v) => $(v + 'View').classList.toggle('on', b.dataset.view === v));
     lastTab[appMode] = b.dataset.view;
     revealTab(b);
     try { localStorage.setItem('ana-area-tabs', JSON.stringify(lastTab)); } catch {}
@@ -2931,6 +3530,7 @@ function selectTab(b) {
     if (b.dataset.view === 'files') loadFiles(filesPath);
     if (b.dataset.view === 'stats') renderStats();
     if (b.dataset.view === 'relations') renderRelations();
+    if (b.dataset.view === 'inventory') setTimeout(() => $('invScan').focus(), 30);
 }
 document.querySelectorAll('.topnav .tab').forEach((b) => { b.onclick = () => selectTab(b); });
 // 고른 탭이 가려져 있으면 보이게 밀고, 양옆에 더 있는지 가장자리 흐림으로 알린다

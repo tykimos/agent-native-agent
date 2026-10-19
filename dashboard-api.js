@@ -152,6 +152,8 @@ function createDashboardApi(core, opts) {
       throw new Error(`state.json shape invalid (${file})`);
     if (!Array.isArray(s.events)) s.events = []; // 일정(달력) — 할일(items)과 별도
     if (!Array.isArray(s.notes)) s.notes = []; // 메모 — {id, title, text, updatedAt}
+    if (!Array.isArray(s.inventoryLog)) s.inventoryLog = []; // 재고 입출고 이력 — {item, at, kind:add|use|restock|edit, delta, qty, by}
+    if (!Array.isArray(s.inventory)) s.inventory = []; // 재고 — {id, barcode, name, category, qty, unit, minQty, purchasedAt, openedAt, expiresAt, location, photo, updatedAt}
     if (!Array.isArray(s.links)) s.links = []; // 명시적 관계 — {from, to, type, at, by} (graph.js 참고)
     if (typeof s.version !== 'number' || !Number.isFinite(s.version)) s.version = 1;
     return s;
@@ -590,6 +592,8 @@ function createDashboardApi(core, opts) {
     return out;
   }
 
+  const INV_CATEGORIES = ['solvent', 'reagent', 'consumable', 'tool', 'equipment'];
+
   // ---- 라우트 ----
   // 모든 라우트를 요청의 워크스페이스 범위 안에서 실행한다(await를 건너도 범위가 유지되도록 AsyncLocalStorage).
   const extraApi = (req, res, url, ctx) => wsStore.run(resolveWs(req, url), () => routes(req, res, url, ctx));
@@ -788,6 +792,7 @@ function createDashboardApi(core, opts) {
       const ps = loadProposals();
       const ws = curWs();
       let g; try { g = graph.view(ws, s); } catch (e) { g = { links: [], error: e.message }; }
+      delete s.inventoryLog;   // 이력은 /api/inventory/history로 물품별로만 내려준다(매 갱신마다 통째로 보내지 않게)
       return sendJson(res, 200, { ...s, workspace: ws, graph: g,
         proposals: ps.proposals.filter((x) => x.status === 'pending' && (x.ws || DEFAULT_WS) === ws).slice(-50) }), true;
     }
@@ -818,7 +823,7 @@ function createDashboardApi(core, opts) {
       const body = await jsonBody(req, res); if (!body) return true;
       let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
       const link = { from: body.from, to: body.to, type: body.type };
-      const nameOf = (id) => { const x = [...s.items, ...s.events, ...s.notes].find((y) => y.id === id); return x ? String(x.title || x.text || '(untitled)').split('\n')[0].slice(0, 30) : id; };
+      const nameOf = (id) => { const x = [...s.items, ...s.events, ...s.notes, ...s.inventory].find((y) => y.id === id); return x ? String(x.title || x.text || x.name || '(untitled)').split('\n')[0].slice(0, 30) : id; };
       const label = () => `${link.type} ${nameOf(link.from)} → ${nameOf(link.to)}`;
       if (body.action === 'add') {
         const err = relgraph.addLink(s, link, actor(req));
@@ -1077,6 +1082,128 @@ function createDashboardApi(core, opts) {
       s.version = (s.version || 1) + 1; saveData(s);
       broadcast({ kind: 'data', version: s.version });
       return sendJson(res, 200, { ok: true, version: s.version, id: noteId }), true;
+    }
+
+    // 재고 입출고 이력 — ?id=<물품>. 최근 기록 20개 + 최근 6개월 월별 사용·입고량 + 최근 90일 기준 소진 예상.
+    if (p === '/api/inventory/history' && req.method === 'GET') {
+      let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
+      const id = String(url.searchParams.get('id') || '');
+      const it = s.inventory.find((x) => x.id === id);
+      if (!it) return sendJson(res, 404, { error: 'not found' }), true;
+      const log = s.inventoryLog.filter((e) => e.item === id);
+      const now = new Date(), ym = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const months = [];
+      for (let i = 5; i >= 0; i--) months.push({ month: ym(new Date(now.getFullYear(), now.getMonth() - i, 1)), used: 0, restocked: 0 });
+      const since90 = now.getTime() - 90 * 864e5;
+      let used90 = 0, first = null;
+      for (const e of log) {
+        const t = new Date(e.at); if (!first || t < first) first = t;
+        const m = months.find((x) => x.month === ym(t));
+        if (e.kind === 'use') { if (m) m.used += -e.delta; if (t.getTime() >= since90) used90 += -e.delta; }
+        if (e.kind === 'restock' && m) m.restocked += e.delta;
+      }
+      const r3 = (n) => Math.round(n * 1000) / 1000;
+      months.forEach((m) => { m.used = r3(m.used); m.restocked = r3(m.restocked); });
+      // 기록이 90일보다 짧으면 실제 기간(최소 7일)으로 나눠 하루 사용량을 잡는다
+      const spanDays = first ? Math.max(7, Math.min(90, (now - first) / 864e5)) : 0;
+      const perDay = spanDays && used90 ? used90 / spanDays : 0;
+      return sendJson(res, 200, { id, entries: log.slice(-20).reverse(), months,
+        usage: { used90: r3(used90), spanDays: Math.round(spanDays), perMonth: r3(perDay * 30), daysLeft: perDay ? Math.floor(it.qty / perDay) : null } }), true;
+    }
+
+    // 재고 CRUD — {action:'add'|'update'|'adjust'|'remove'|'order', ...}. 바코드는 워크스페이스 안에서 하나뿐.
+    // order: 주문 할일을 만들고 할일 ─REFERS_TO─▶ 물품으로 잇는다(열린 주문 할일이 있으면 그것을 돌려준다).
+    // 입고(adjust +, 또는 수정으로 수량 증가)하면 그 물품의 열린 주문 할일(orderFor)을 완료 처리한다.
+    // category: solvent(용매)·reagent(시약)·consumable(소모품)·tool(기구)·equipment(장비) 또는 ''(미분류)
+    if (p === '/api/inventory' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
+      const num = (v) => { const n = Number(v); return Number.isFinite(n) && n >= 0 ? Math.min(n, 1e9) : null; };
+      const fields = (it, b) => {
+        if (b.barcode !== undefined) it.barcode = String(b.barcode).trim().slice(0, 100);
+        if (b.name !== undefined) it.name = String(b.name).trim().slice(0, 200);
+        if (b.unit !== undefined) it.unit = String(b.unit).trim().slice(0, 20);
+        if (b.location !== undefined) it.location = String(b.location).trim().slice(0, 100);
+        if (b.category !== undefined) {
+          const c = String(b.category || '');
+          if (c && !INV_CATEGORIES.includes(c)) return `category must be one of ${INV_CATEGORIES.join('|')}`;
+          it.category = c;
+        }
+        if (b.photo !== undefined) {                  // /api/upload로 올린 파일만(/uploads/<이름>)
+          const ph = String(b.photo || '');
+          if (ph && !/^\/uploads\/[^/\\]{1,200}$/.test(ph)) return 'photo must be an /uploads/ path';
+          it.photo = ph;
+        }
+        if (b.qty !== undefined) { const n = num(b.qty); if (n === null) return 'qty must be a number ≥ 0'; it.qty = n; }
+        if (b.minQty !== undefined) { const n = num(b.minQty); if (n === null) return 'minQty must be a number ≥ 0'; it.minQty = n; }
+        for (const k of ['purchasedAt', 'openedAt', 'expiresAt']) {      // 구입일·개봉일·유효기간
+          if (b[k] === undefined) continue;
+          const d = String(b[k] || '');
+          if (d && !/^\d{4}-\d{2}-\d{2}$/.test(d)) return `${k} must be YYYY-MM-DD`;
+          it[k] = d;
+        }
+        if (!it.name) return 'name required';
+        if (it.barcode && s.inventory.some((x) => x.id !== it.id && x.barcode === it.barcode)) return 'An item with that barcode already exists';
+        return '';
+      };
+      const logQty = (item, kind, delta) => {
+        if (!delta && kind !== 'add') return;
+        s.inventoryLog.push({ item: item.id, at: new Date().toISOString(), kind, delta, qty: item.qty, by: actor(req) });
+        if (s.inventoryLog.length > 20000) s.inventoryLog.splice(0, s.inventoryLog.length - 20000);
+      };
+      const openOrders = (item) => s.items.filter((t) => t.orderFor === item.id && !t.done);
+      let it, ordersDone = 0, orderId = '';
+      const closeOrders = (item) => { for (const t of openOrders(item)) { t.done = true; ordersDone++; audit(actor(req), 'todo.done', String(t.title).slice(0, 80)); } };
+      if (body.action === 'order') {
+        it = s.inventory.find((x) => x.id === body.id);
+        if (!it) return sendJson(res, 404, { error: 'not found' }), true;
+        const open = openOrders(it)[0];
+        if (open) return sendJson(res, 200, { ok: true, version: s.version, id: it.id, task: open.id, existed: true }), true;
+        const unit = it.unit ? ' ' + it.unit : '';
+        const title = `주문: ${it.name} (현재 ${it.qty}${unit}${it.minQty > 0 ? `, 기준 ${it.minQty}${unit}` : ''})`.slice(0, 200);
+        const t = { id: newId('a'), title, done: false, by: actor(req), orderFor: it.id };
+        s.items.push(t);
+        const err = relgraph.addLink(s, { from: t.id, to: it.id, type: 'REFERS_TO' }, actor(req));
+        if (err) return sendJson(res, 400, { error: err }), true;
+        orderId = t.id;
+        touchUser(actor(req)); audit(actor(req), 'todo.add', title.slice(0, 80));
+      } else if (body.action === 'add') {
+        if (s.inventory.length >= 5000) return sendJson(res, 413, { error: 'too many items (>5000)' }), true;
+        it = { id: newId('v'), barcode: '', name: '', category: '', qty: 0, unit: '', minQty: 0, purchasedAt: '', openedAt: '', expiresAt: '', location: '', photo: '', by: actor(req) };
+        const err = fields(it, body); if (err) return sendJson(res, 400, { error: err }), true;
+        s.inventory.push(it);
+        logQty(it, 'add', it.qty);
+        touchUser(actor(req)); audit(actor(req), 'inventory.add', it.name.slice(0, 80));
+      } else if (body.action === 'update' || body.action === 'adjust' || body.action === 'remove') {
+        it = s.inventory.find((x) => x.id === body.id);
+        if (!it) return sendJson(res, 404, { error: 'not found' }), true;
+        if (body.action === 'remove') {
+          s.inventory = s.inventory.filter((x) => x !== it);
+          s.inventoryLog = s.inventoryLog.filter((e) => e.item !== it.id);
+          audit(actor(req), 'inventory.remove', it.name.slice(0, 80));
+        } else if (body.action === 'adjust') {          // 입고(+)·사용(-) — 0 아래로는 내려가지 않는다
+          const d = Number(body.delta);
+          if (!Number.isFinite(d)) return sendJson(res, 400, { error: 'delta must be a number' }), true;
+          const before = it.qty;
+          it.qty = Math.max(0, Math.round((it.qty + d) * 1000) / 1000);
+          logQty(it, d < 0 ? 'use' : 'restock', Math.round((it.qty - before) * 1000) / 1000);
+          if (d > 0) closeOrders(it);
+          audit(actor(req), 'inventory.adjust', `${it.name.slice(0, 60)} ${d >= 0 ? '+' : ''}${d}`);
+        } else {
+          const copy = { ...it }; const err = fields(copy, body); if (err) return sendJson(res, 400, { error: err }), true;
+          const before = it.qty;
+          Object.assign(it, copy);
+          logQty(it, 'edit', Math.round((it.qty - before) * 1000) / 1000);
+          if (it.qty > before) closeOrders(it);
+          audit(actor(req), 'inventory.update', it.name.slice(0, 80));
+        }
+      } else return sendJson(res, 400, { error: 'action must be add|update|adjust|remove|order' }), true;
+      if (body.action !== 'remove' && body.action !== 'order') it.updatedAt = new Date().toISOString();
+      s.version = (s.version || 1) + 1; saveData(s);
+      broadcast({ kind: 'data', version: s.version });
+      return sendJson(res, 200, { ok: true, version: s.version, id: it.id, item: body.action === 'remove' ? null : it,
+        ...(orderId ? { task: orderId } : {}), ...(ordersDone ? { ordersDone } : {}) }), true;
     }
 
     // 에이전트 대화 기록(Claude Code JSONL) — {available, title, rev, items}. 없으면 화면은 채널 원장으로 그린다.
