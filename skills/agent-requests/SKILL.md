@@ -20,6 +20,8 @@ All three live under **Collaborate** (see app-shell):
 
 ## Requirements (user → system)
 
+**Loop with Evolve:** a requirement judged *Not reflected* or *Partly* gets **Propose this** (`POST /api/requirements {action:'propose', id}`). It registers an Evolve proposal `Requirement #id: …` with `reqId` and the analysis's next step and reason; only one proposal stays open per requirement. When that proposal is marked done (`/api/evolve-act done`), the requirement gets `recheck {proposalId}` and its analysis is marked stale. The card says *Proposal #N is done — check again*, and re-analyzing clears it. The agent can also link a proposal it registers with `reqId` in `POST /api/evolve`.
+
 **Collaborate › Requirements** runs the other direction from Requests: the **user** writes what they want this ANA to do, and the agent reports how far the system already does it.
 
 - **Store:** `requirements.json` holds one list for the whole ANA, not per workspace: `{items:[{id, title, detail, by, at, analysis}], jobs:[…]}`. `POST /api/requirements {action: add|update|remove}` edits it. Editing the title or details marks the analysis `stale` ("Changed since — analyze again").

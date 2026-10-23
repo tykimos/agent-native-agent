@@ -57,3 +57,28 @@ test('file browser HTTP: round trip, confinement, no overwrites, validation', as
     assert.equal(fs.existsSync(path.join(root,'large')),false);
   });
 });
+
+test('file browser roots: default files folder, read-only chat folder, project blocks .ana/.git', async t => {
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'ana-roots-'));
+  const proj = path.join(temp, 'proj'); fs.mkdirSync(path.join(proj, '.ana', 'uploads'), { recursive: true }); fs.mkdirSync(path.join(proj, '.git'));
+  fs.writeFileSync(path.join(proj, '.ana', 'uploads', 'shot.png'), 'png');
+  const route = createFileBrowser({
+    files: { dir: path.join(proj, '.ana', 'files'), label: 'Files', write: true, mkdir: true },
+    chat: { dir: path.join(proj, '.ana', 'uploads'), label: 'From chat', write: false },
+    project: { dir: proj, label: 'proj', write: true, deny: ['.ana', '.git'] },
+  }, core);
+  const server = http.createServer((req, res) => route(req, res, new URL(req.url, 'http://localhost')).then(h => { if (!h) { res.writeHead(404); res.end(); } }));
+  await new Promise(r => server.listen(0, '127.0.0.1', r));
+  t.after(async () => { await new Promise(r => server.close(r)); fs.rmSync(temp, { recursive: true, force: true }); });
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const list = async (root, p = '') => (await fetch(`${origin}/api/files?root=${root}&path=${encodeURIComponent(p)}`)).json();
+  const up = (root, p, name) => fetch(`${origin}/api/files/upload?root=${root}&path=${encodeURIComponent(p)}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, data: 'aGk=' }) });
+  let d = await list(''); assert.deepEqual([d.rootKey, d.root, d.writable], ['files', 'Files', true], 'default is the files folder (created)');
+  assert.deepEqual(d.roots.map(r => [r.key, r.writable]), [['files', true], ['chat', false], ['project', true]]);
+  assert.equal((await up('files', '', 'a.txt')).status, 201); assert.ok(fs.existsSync(path.join(proj, '.ana', 'files', 'a.txt')));
+  d = await list('chat'); assert.deepEqual(d.entries.map(e => e.name), ['shot.png']); assert.equal(d.writable, false);
+  assert.equal((await up('chat', '', 'b.txt')).status, 403, 'chat folder is read-only');
+  assert.equal((await list('project', '.ana')).writable, false);
+  assert.equal((await up('project', '.ana', 'c.txt')).status, 403); assert.equal((await up('project', '.git', 'c.txt')).status, 403);
+  assert.equal((await up('project', '', 'ok.txt')).status, 201);
+});

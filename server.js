@@ -27,6 +27,10 @@ const { createDashboardApi } = require('./dashboard-api.js');
 const ROOT = __dirname;
 const env = process.env;
 const PORT = Number(env.PORT || 8809);
+// 오프라인 모드(ANA_OFFLINE=1): LLM·tmux·인터넷 없이 메모·할일·일정·관계·파일·요구사항 기록만 쓴다.
+// 에이전트 화면은 숨기고, 런타임의 tmux 폴링은 사실상 멈추며(tmux가 없는 Windows에서도 프로세스를 계속 띄우지 않게),
+// 인터넷이나 에이전트가 필요한 라우트는 503으로 거절한다.
+const OFFLINE = env.ANA_OFFLINE === '1';
 const BIND = env.BIND || '127.0.0.1';
 const ANA_NAME = core.anaNameOf(ROOT, env);         // 폴더명 <xxx>-ana(아니면 base-ana), ANA_NAME으로 덮어씀
 const SESSION = core.defaultSession(ROOT, env);      // TMUX_SESSION || `<ANA_NAME>-claude`
@@ -37,7 +41,7 @@ try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch {}
 
 const apiOpts = {
   ROOT,
-  FILES_ROOT: env.ANA_FILES_ROOT || ROOT,
+  FILES_ROOT: env.ANA_FILES_ROOT || '',                // 비우면 <데이터 폴더>/files (시스템 › Files의 기본 폴더)
   DATA_FILE: env.DATA_FILE || path.join(DATA_DIR, 'state.json'),
   PROPOSALS_FILE: env.PROPOSALS_FILE || path.join(DATA_DIR, 'proposals.json'),
   EVOLVE_FILE: env.EVOLVE_FILE || path.join(DATA_DIR, 'evolve.json'),
@@ -47,7 +51,8 @@ const apiOpts = {
   USERS_FILE: env.USERS_FILE || path.join(DATA_DIR, 'users.json'),
   AUDIT_FILE: env.AUDIT_FILE || path.join(DATA_DIR, 'audit.jsonl'),
   UPLOAD_DIR: env.UPLOAD_DIR || path.join(DATA_DIR, 'uploads'),
-  NOTIFY_AGENT: env.NOTIFY_AGENT !== '0',
+  NOTIFY_AGENT: env.NOTIFY_AGENT !== '0' && !OFFLINE,
+  OFFLINE,
   MAX_TEXT: Number(env.MAX_TEXT || 8000),
   UPDATE_TARGET: env.ANA_UPDATE_TARGET || '',          // 시스템 › Update가 비교할 ANA 폴더(기본: 이 폴더)
   UPSTREAM_URL: env.ANA_UPSTREAM_URL || '',
@@ -63,7 +68,7 @@ const opts = {
   TMUX_ALL: env.ANA_TMUX_ALL === '1',                 // 채팅 세션 목록에 <ANA_NAME>-* 밖의 tmux 세션도 보이기
   HISTORY_LINES: Number(env.HISTORY_LINES || 10000),
   MAX_TEXT: apiOpts.MAX_TEXT,
-  POLL_MS: Number(env.POLL_MS || 300),
+  POLL_MS: OFFLINE ? 24 * 3600 * 1000 : Number(env.POLL_MS || 300),
   FEED_FILE: env.TRANSCRIPT_FILE || path.join(DATA_DIR, 'transcript.jsonl'),
   readyGuard: env.ANA_READY_GUARD !== '0',
   autoConfigPane: env.ANA_AUTOCONFIG !== '0',         // apply alternate-screen off + fixed size on connect
@@ -96,8 +101,19 @@ if (env.ANA_TEST) {
   api.bootstrap(app.ch.feed);
   app.listen(() => {
     const host = BIND === '0.0.0.0' ? 'localhost' : BIND;
-    console.log(`\nANA → http://${host}:${PORT}   (ana: ${ANA_NAME}, tmux target: ${TARGET})`);
-    console.log(`Run your agent in tmux first:  tmux new -s ${SESSION}   then inside it:  claude`);
+    // ANA_OPEN=1: 뜨자마자 기본 브라우저로 연다(오프라인 패키지의 start.bat이 쓴다)
+    if (env.ANA_OPEN === '1') {
+      const u = `http://${host}:${PORT}/`;
+      const [cmd, args] = process.platform === 'win32' ? ['cmd', ['/c', 'start', '', u]] : process.platform === 'darwin' ? ['open', [u]] : ['xdg-open', [u]];
+      try { require('node:child_process').spawn(cmd, args, { stdio: 'ignore', detached: true, windowsHide: true }).on('error', () => {}).unref(); } catch {}
+    }
+    if (OFFLINE) {
+      console.log(`\nANA (offline) → http://${host}:${PORT}   data: ${DATA_DIR}`);
+      console.log('No AI agent: chat, Analyze, Evolve and Requirements analysis are off. Press Ctrl+C to stop.');
+    } else {
+      console.log(`\nANA → http://${host}:${PORT}   (ana: ${ANA_NAME}, tmux target: ${TARGET})`);
+      console.log(`Run your agent in tmux first:  tmux new -s ${SESSION}   then inside it:  claude`);
+    }
     if (BIND === '0.0.0.0') console.error('[ana] warning: 0.0.0.0 bind — trusted network only (no auth).');
   });
 }

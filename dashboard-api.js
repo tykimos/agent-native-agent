@@ -24,7 +24,12 @@ const { createAgentLog } = require('./agent-log.js');
 
 function createDashboardApi(core, opts) {
   const { ROOT } = opts;
-  const fileApi = require('./file-browser.js').createFileBrowser(opts.FILES_ROOT || ROOT, core);
+  // 시스템 › Files: 기본은 전용 폴더(올리기 가능), 채팅 첨부는 읽기 전용, 저장소 전체는 따로 골라야 보이고 .ana/.git에는 못 쓴다
+  const fileApi = require('./file-browser.js').createFileBrowser({
+    files: { dir: opts.FILES_ROOT || path.join(path.dirname(opts.DATA_FILE || path.join(ROOT, '.ana', 'state.json')), 'files'), label: 'Files', write: true, mkdir: true },
+    chat: { dir: opts.UPLOAD_DIR || path.join(ROOT, '.ana', 'uploads'), label: 'From chat', write: false, mkdir: true },
+    project: { dir: ROOT, label: path.basename(ROOT), write: true, deny: ['.ana', '.git'] },
+  }, core, { onUpload: (req, root, size) => audit(actor(req), 'files.upload', `${root} ${size}`) });
   const DATA_FILE = opts.DATA_FILE || path.join(ROOT, 'data', 'state.json');
   const PROPOSALS_FILE = opts.PROPOSALS_FILE || path.join(ROOT, 'data', 'proposals.json');
   const EVOLVE_FILE = opts.EVOLVE_FILE || path.join(ROOT, 'data', 'evolve.json');
@@ -145,8 +150,13 @@ function createDashboardApi(core, opts) {
   // ---- 상태 파일 (원자적 + shape 검증) ----
   function loadData(ws) {
     const file = dataFileOf(ws || curWs());
-    // 처음 뜬 기본 워크스페이스에는 관계를 바로 볼 수 있는 예제 두 개를 넣는다(opts.SEED, 파일이 없을 때 한 번만).
-    if (SEED && (ws || curWs()) === DEFAULT_WS && !require('node:fs').existsSync(file)) writeJsonAtomic(file, require('./seed.js').seedState());
+    // 처음 뜬 기본 워크스페이스에는 관계를 바로 볼 수 있는 예제 두 개를 넣는다(opts.SEED, 평생 한 번만).
+    // 넣었다는 표시(.seeded)를 남겨, 사용자가 지우거나 상태 파일을 지워도 예제가 다시 생기지 않게 한다.
+    const fsm = require('node:fs'), mark = path.join(path.dirname(file), '.seeded');
+    if (SEED && (ws || curWs()) === DEFAULT_WS && !fsm.existsSync(file) && !fsm.existsSync(mark)) {
+      writeJsonAtomic(file, require('./seed.js').seedState());
+      try { fsm.writeFileSync(mark, new Date().toISOString() + '\n'); } catch {}
+    }
     const s = readJsonStrict(file, () => ({ version: 1, items: [], events: [], notes: [] }));
     if (!s || typeof s !== 'object' || Array.isArray(s) || !Array.isArray(s.items))
       throw new Error(`state.json shape invalid (${file})`);
@@ -157,6 +167,8 @@ function createDashboardApi(core, opts) {
     return s;
   }
   const newId = (p) => p + Date.now().toString(36) + crypto.randomBytes(2).toString('hex');
+  const CLIENT_EVENTS = { 'tab.view': /^[a-z]{2,20}$/, 'ontoair.open': /^\d{1,6}$/, 'ttl.download': /^\d{1,6}$/ };
+  const isExample = (x) => /^[nae]-ex-/.test(String((x && x.id) || ''));   // seed.js의 예제 id
   const saveData = (s, ws) => { relgraph.pruneLinks(s); writeJsonAtomic(dataFileOf(ws || curWs()), s); };
   // 관계 그래프 — state.json에서 파생되는 NodeRel 인덱스(워크스페이스마다 graph.sqlite)
   // 지식그래프 = 그 워크스페이스의 최신 완료 분석(Relations › Analyze). loadAnalysis는 아래에 정의돼 있지만 요청 때만 불린다.
@@ -593,8 +605,25 @@ function createDashboardApi(core, opts) {
   // ---- 라우트 ----
   // 모든 라우트를 요청의 워크스페이스 범위 안에서 실행한다(await를 건너도 범위가 유지되도록 AsyncLocalStorage).
   const extraApi = (req, res, url, ctx) => wsStore.run(resolveWs(req, url), () => routes(req, res, url, ctx));
+  const OFFLINE = !!opts.OFFLINE;
+  // 오프라인에서 거절하는 라우트: 인터넷(사용량 조회·업데이트 확인)이나 에이전트(설정·분석 지시)가 있어야 하는 것
+  const OFFLINE_BLOCKED = ['/api/limits', '/api/update/check', '/api/update-act', '/api/agent-setting', '/api/agent-models', '/api/agent-permission',
+    '/api/analysis/start', '/api/analysis/share', '/api/requirements/analyze', '/api/agentlog'];
+  // 요구사항(협업 › Requirements) — 진화 제안과 이어지므로(제안 완료 → 다시 확인) 라우트 밖에서도 읽고 쓴다
+  const loadRequirements = () => { const r = readJsonStrict(REQUIREMENTS_FILE, () => ({ next: 1, items: [], jobNext: 1, jobs: [] })); return r && Array.isArray(r.items) ? r : { next: 1, items: [], jobNext: 1, jobs: [] }; };
+  const saveRequirements = (r, broadcast) => { r.version = (r.version || 1) + 1; writeJsonAtomic(REQUIREMENTS_FILE, r); broadcast({ kind: 'requirements', version: r.version }); };
   async function routes(req, res, url, ctx) {
     const p = url.pathname;
+    if (OFFLINE) {
+      // 페이지에 오프라인 표시를 심어 보낸다 — JS가 돌기 전부터 에이전트 화면이 숨겨지게
+      if ((p === '/' || p === '/dashboard.html') && (req.method === 'GET' || req.method === 'HEAD')) {
+        const html = Buffer.from(require('node:fs').readFileSync(path.join(__dirname, 'dashboard.html'), 'utf8').replace('<html', '<html data-offline="1"'));
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'content-length': html.length, 'cache-control': 'no-store' });
+        return res.end(req.method === 'HEAD' ? undefined : html), true;
+      }
+      if (OFFLINE_BLOCKED.some((x) => p === x || p.startsWith(x + '/')))
+        return sendJson(res, 503, { error: 'Offline mode — this needs an AI agent or the internet' }), true;
+    }
     if (await fileApi(req, res, url)) return true;
     const { commit, broadcast, csrfOk, jsonBody } = ctx;
 
@@ -708,6 +737,15 @@ function createDashboardApi(core, opts) {
       return sendJson(res, 200, { users: Object.values(loadUsers().users) }), true;
     }
     // ---- 활동 이력 / 통계 ----
+    // 화면 안에서만 일어나는 일(탭 열기, OntoAir 열기, .ttl 받기) — 종류와 대상 id만, 정해 둔 것만 받는다
+    if (p === '/api/activity' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      const rule = CLIENT_EVENTS[body.action], target = String(body.target == null ? '' : body.target);
+      if (!rule || !rule.test(target)) return sendJson(res, 400, { error: 'unknown event' }), true;
+      audit(actor(req), body.action, target);
+      return sendJson(res, 200, { ok: true }), true;
+    }
     if (p === '/api/activity' && req.method === 'GET') {
       const me = who(req);
       const mine = url.searchParams.get('mine') === '1';
@@ -783,6 +821,22 @@ function createDashboardApi(core, opts) {
       return sendJson(res, 200, usageCache.data), true;
     }
 
+    // 예제 정리: 첫 실행 예제(id가 n-/a-/e-ex-로 시작)를 지우거나(clear) 그대로 두기로(keep) 한다
+    if (p === '/api/examples' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
+      if (body.action === 'keep') s.examplesKept = true;
+      else if (body.action === 'clear') {
+        const before = s.items.length + s.events.length + s.notes.length;
+        s.items = s.items.filter((x) => !isExample(x)); s.events = s.events.filter((x) => !isExample(x)); s.notes = s.notes.filter((x) => !isExample(x));
+        audit(actor(req), 'examples.clear', `${before - s.items.length - s.events.length - s.notes.length} items`);
+        try { require('node:fs').writeFileSync(path.join(path.dirname(dataFileOf(curWs())), '.seeded'), new Date().toISOString() + '\n'); } catch {}   // 예전에 넣은 예제도 다시 생기지 않게
+      } else return sendJson(res, 400, { error: 'action must be clear|keep' }), true;
+      s.version = (s.version || 1) + 1; saveData(s);   // saveData가 끝점이 사라진 관계도 걷어 낸다
+      broadcast({ kind: 'data', version: s.version });
+      return sendJson(res, 200, { ok: true, version: s.version }), true;
+    }
     if (p === '/api/state' && req.method === 'GET') {
       let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
       const ps = loadProposals();
@@ -850,6 +904,7 @@ function createDashboardApi(core, opts) {
         await fsp.mkdir(UPLOAD_DIR, { recursive: true });
         await fsp.writeFile(file, buf);
       } catch (e) { return sendJson(res, 500, { error: `Save failed: ${e.message}` }), true; }
+      audit(actor(req), 'upload.attach', `${(path.extname(name) || '?').toLowerCase()} ${buf.length}`);   // 종류·크기만(파일 이름은 남기지 않는다)
       return sendJson(res, 200, { ok: true, path: file, name, size: buf.length }), true;
     }
 
@@ -922,6 +977,7 @@ function createDashboardApi(core, opts) {
       const ps = loadProposals();
       const pr = ps.proposals.find((x) => x.id === body.pid);
       if (!pr || (pr.status !== 'pending' && pr.status !== 'failed')) return sendJson(res, 400, { error: 'invalid or already-decided proposal' }), true;   // 실패한 것은 다시 시도·거절할 수 있다
+      audit(actor(req), `approval.${body.decision}`, `#${pr.id}`);
       if (body.decision === 'approve') {
         // 제안이 만들어진 워크스페이스가 그새 삭제됐으면 적용하지 않는다(빈 폴더가 되살아나지 않게)
         if (!wsExists(pr.ws || DEFAULT_WS)) return sendJson(res, 409, { error: 'The workspace for this proposal was deleted' }), true;
@@ -1084,6 +1140,10 @@ function createDashboardApi(core, opts) {
       const target = String(url.searchParams.get('target') || '');
       if (!/^[\w.:@%+-]{1,100}$/.test(target)) return sendJson(res, 400, { error: 'target required' }), true;
       if (p === '/api/agentlog') {
+        // prefetch=1: 세션 콤보를 열었을 때 미리 읽기 시작만 하고 바로 돌아온다(크기·읽는 중 여부)
+        if (url.searchParams.get('prefetch') === '1') {
+          try { return sendJson(res, 200, await agentLog.prefetch(target)), true; } catch (e) { return sendJson(res, 200, { available: false, error: e.message }), true; }
+        }
         const before = url.searchParams.has('before') ? Number(url.searchParams.get('before')) : undefined;
         try { return sendJson(res, 200, await agentLog.read(target, Number(url.searchParams.get('since')) || 0, url.searchParams.get('limit') || 40, before)), true; }
         catch (e) { return sendJson(res, 200, { available: false, error: e.message }), true; }
@@ -1244,7 +1304,7 @@ function createDashboardApi(core, opts) {
         r2.status = { done: 'done', fail: 'failed', dismiss: 'dismissed' }[body.action]; r2.closedAt = new Date().toISOString();
         if (body.action === 'fail') r2.failReason = String(body.reason || '').trim().slice(0, 1000);
       }
-      audit(actor(req), `request.${body.action}`, r2.title.slice(0, 80));
+      audit(actor(req), `request.${body.action}`, `#${r2.id}`);
       rq.version = (rq.version || 1) + 1; saveRequests(rq);
       broadcast({ kind: 'requests', version: rq.version });
       let notified;
@@ -1282,9 +1342,8 @@ function createDashboardApi(core, opts) {
 
     // ---- 요구사항(Requirements): 사용자가 적고, 에이전트가 반영 여부·방법·안 된 이유를 분석 ----
     if (p.startsWith('/api/requirements')) {
-      const load = () => { const r = readJsonStrict(REQUIREMENTS_FILE, () => ({ next: 1, items: [], jobNext: 1, jobs: [] })); return r && Array.isArray(r.items) ? r : { next: 1, items: [], jobNext: 1, jobs: [] }; };
-      const save = (r) => { r.version = (r.version || 1) + 1; writeJsonAtomic(REQUIREMENTS_FILE, r); broadcast({ kind: 'requirements', version: r.version }); };
-      const rq = load(); rq.jobs = rq.jobs || []; rq.jobNext = rq.jobNext || 1;
+      const save = (r) => saveRequirements(r, broadcast);
+      const rq = loadRequirements(); rq.jobs = rq.jobs || []; rq.jobNext = rq.jobNext || 1;
       const now = new Date().toISOString(), cut = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
       const jobOf = (id) => rq.jobs.find((j) => j.id === Number(id));
       if (p === '/api/requirements' && req.method === 'GET') return sendJson(res, 200, { items: rq.items, job: rq.jobs[rq.jobs.length - 1] || null }), true;
@@ -1308,10 +1367,27 @@ function createDashboardApi(core, opts) {
           const changed = title !== it.title || cut(body.detail ?? it.detail, 4000) !== it.detail;
           it.title = title; it.detail = cut(body.detail ?? it.detail, 4000); it.updatedAt = now;
           if (changed && it.analysis) it.analysis.stale = true;      // 내용이 바뀌면 이전 분석은 '다시 분석 필요'
-          save(rq); return sendJson(res, 200, { ok: true, item: it }), true;
+          save(rq); audit(actor(req), 'requirement.update', `#${it.id}`); return sendJson(res, 200, { ok: true, item: it }), true;
         }
         if (body.action === 'remove') { rq.items = rq.items.filter((x) => x !== it); save(rq); audit(actor(req), 'requirement.remove', it.title.slice(0, 80)); return sendJson(res, 200, { ok: true }), true; }
-        return sendJson(res, 400, { error: 'action must be add|update|remove' }), true;
+        // 반영 안 됨·일부 반영을 진화 제안으로 — 분석의 '다음 단계'를 그대로 옮기고 요구사항 번호를 단다.
+        // 그 제안이 완료되면(evolve-act done) 이 요구사항은 '다시 확인 필요'가 된다: 요구사항 → 제안 → 승인 → 재확인
+        if (body.action === 'propose') {
+          const a = it.analysis;
+          if (!a || !['missing', 'partial'].includes(a.status)) return sendJson(res, 409, { error: 'Only a requirement that is not (fully) reflected can become a proposal' }), true;
+          const ev = loadEvolve();
+          const open = ev.proposals.find((x) => x.reqId === it.id && ['new', 'doing'].includes(x.status));
+          if (open) return sendJson(res, 200, { ok: true, proposal: open, existing: true }), true;
+          const desc = [a.next && `Next step: ${a.next}`, a.why && `Why not yet: ${a.why}`, it.detail && `Requirement: ${it.detail}`].filter(Boolean).join('\n');
+          const pr = { id: ev.next++, type: a.status === 'missing' ? 'add' : 'improve', title: `Requirement #${it.id}: ${it.title}`.slice(0, 200), desc: desc.slice(0, 1000),
+            status: 'new', at: now, reqId: it.id, by: actor(req) };
+          ev.proposals.push(pr); if (ev.proposals.length > 50) ev.proposals = ev.proposals.slice(-50);
+          ev.version = (ev.version || 1) + 1; saveEvolve(ev); broadcast({ kind: 'evolve', version: ev.version });
+          it.proposalId = pr.id; it.recheck = null; save(rq);
+          audit(actor(req), 'requirement.propose', `#${it.id} → proposal #${pr.id}`);
+          return sendJson(res, 200, { ok: true, proposal: pr }), true;
+        }
+        return sendJson(res, 400, { error: 'action must be add|update|remove|propose' }), true;
       }
       if (p === '/api/requirements/analyze') {
         if (rq.jobs.some((j) => j.status === 'running')) return sendJson(res, 409, { error: 'An analysis is already running — wait for it or cancel it' }), true;
@@ -1335,6 +1411,7 @@ function createDashboardApi(core, opts) {
           const it = rq.items.find((x) => x.id === Number(r.id)); if (!it) continue;
           it.analysis = { status: r.status, how: cut(r.how, 3000), why: cut(r.why, 3000), next: cut(r.next, 1500),
             evidence: (Array.isArray(r.evidence) ? r.evidence : []).map((e) => cut(e, 300)).filter(Boolean).slice(0, 20), at: now, job: j.id, stale: false };
+          it.recheck = null;                       // 다시 확인했다(제안 완료 뒤의 재확인 끝)
         }
         Object.assign(j, { status: 'done', progress: 100, step: 'Done', summary: cut(body.summary, 2000), analyzed: results.length, updatedAt: now, doneAt: now });
         save(rq); audit(actor(req), 'requirement.analyzed', `${results.length} results`);
@@ -1476,6 +1553,7 @@ function createDashboardApi(core, opts) {
         if (seen.has(title.trim())) continue; // dedup(coding-M6)
         seen.add(title.trim());
         const pr = { id: ev.next++, type: x.type || 'improve', title, desc: String(x.desc || '').slice(0, 1000), status: 'new', at: new Date().toISOString() };
+        if (Number.isInteger(x.reqId) && loadRequirements().items.some((r) => r.id === x.reqId)) pr.reqId = x.reqId;   // 어느 요구사항에서 나온 제안인지
         ev.proposals.push(pr); added.push(pr);
       }
       if (ev.proposals.length > 50) ev.proposals = ev.proposals.slice(-50);
@@ -1495,8 +1573,14 @@ function createDashboardApi(core, opts) {
       pr.status = { do: 'doing', done: 'done', fail: 'failed', ignore: 'dismissed', reopen: 'new' }[body.action];
       pr.failReason = body.action === 'fail' ? String(body.reason || '').trim().slice(0, 1000) : body.action === 'reopen' || body.action === 'do' ? '' : (pr.failReason || '');
       pr.updatedAt = new Date().toISOString();   // 협업 목록(대기·처리 중·완료·취소)에서 최근 것부터 보이게
+      audit(actor(req), `evolve.${body.action}`, `#${pr.id}`);
       ev.version = (ev.version || 1) + 1; saveEvolve(ev);
       broadcast({ kind: 'evolve', version: ev.version });
+      // 요구사항에서 나온 제안이 끝나면 그 요구사항을 '다시 확인 필요'로 — 정말 반영됐는지 다시 분석하게
+      if (pr.reqId && body.action === 'done') {
+        const rq = loadRequirements(), it = rq.items.find((x) => x.id === pr.reqId);
+        if (it) { it.recheck = { proposalId: pr.id, at: pr.updatedAt }; if (it.analysis) it.analysis.stale = true; saveRequirements(rq, broadcast); }
+      }
       let notified;
       if (body.action === 'do') {
         const n = queueNotify('evolve.do', `Evolve proposal #${pr.id} requested — [${pr.type}] ${pr.title.replace(/[\r\n]+/g, ' ')}. After applying, mark it done with POST /api/evolve-act {"id":${pr.id},"action":"done"}; if it can't be done, POST {"id":${pr.id},"action":"fail","reason":"why"}.`);
@@ -1522,7 +1606,15 @@ function createDashboardApi(core, opts) {
   };
   // 채널 코어가 '사람별 최근 세션'을 기억할 때 쓰는 키 — 신원이 없으면 빈 값(단일 사용자)
   const userKey = (req) => who(req);
-  const onChat = (req, text) => { const me = actor(req); touchUser(me); audit(me, 'chat.send', String(text).replace(/\s+/g, ' ').slice(0, 80)); };
+  // 화면 버튼이 대신 보낸 지시문은 채팅이 아니라 그 일의 요청으로 기록한다(사용 기록이 실제 사용을 보여 주게)
+  const INSTR_ACTION = { Analyze: 'analysis.request', Evolve: 'evolve.request', Requirements: 'requirements.request', Update: 'update.request', Requests: 'requests.request', Approvals: 'approvals.request' };
+  const onChat = (req, text) => {
+    const me = actor(req); touchUser(me);
+    const t = String(text), m = /^\[(Analyze|Evolve|Requirements|Update|Requests|Approvals|Request #\d+)\]\s*/.exec(t);
+    // 대화 원문은 에이전트 기록에 이미 있다 — 여기에는 앞 60자와 길이만
+    if (!m) { const one = t.replace(/\s+/g, ' ').trim(); return audit(me, 'chat.send', one.length > 60 ? one.slice(0, 60) + '…' : one, `${t.length} chars`); }
+    audit(me, m[1].startsWith('Request #') ? 'request.answer' : INSTR_ACTION[m[1]], `${m[1].startsWith('Request #') ? m[1].slice(8) + ' ' : ''}${t.slice(m[0].length).split('\n')[0]}`.replace(/\s+/g, ' ').slice(0, 80));
+  };
 
   return {
     extraApi, snapshotExtra, bootstrap, identify, onChat, userKey,

@@ -88,6 +88,10 @@ PC에 WSL·Node·tmux를 설치하지 않고 브라우저에서 ANA를 실행합
 
 **[브라우저 시작 매뉴얼](docs/codespaces.ko.md)** — 환경 자동 설치 → Ports의 **ANA / 8809** 열기 → ANA 채팅에서 Claude 초기 설정. 포트는 **Private**으로 유지합니다. Codespaces 사용량은 Claude 이용료와 별도로 계산되며, Codespace가 중지되면 ANA도 멈춥니다.
 
+## 오프라인판 — LLM·인터넷 없이 (Windows)
+
+인터넷이나 AI 에이전트가 없는 PC에서 ANA를 쓰려면 `node scripts/package-offline.mjs`로 Windows x64용 포터블 zip을 만듭니다(Node 24 LTS 포함). 압축을 풀고 `start.bat`을 더블클릭하면 됩니다. 할일·일정·메모·관계·파일·요구사항을 쓸 수 있고, 에이전트 기능은 숨겨집니다. 설치 안내는 [docs/offline.ko.md](docs/offline.ko.md)에 있습니다.
+
 ## 빠른 시작 — 베이스 실행 (2분)
 
 **사전 요구사항:** Node ≥ 24, tmux, 그리고 코딩 에이전트 CLI(예: [Claude Code](https://claude.com/claude-code)). 런타임(`channel-core.js`)은 의존성이 없고, 베이스 앱은 [NodeRel](https://github.com/tykimos/NodeRel) 하나를 `npm install`로 GitHub에서 받습니다.
@@ -250,9 +254,15 @@ node server.js
 
 ## 파일 탐색기
 
-**System → Files**에서 이 ANA의 프로젝트 폴더와 하위 폴더를 탐색하고 파일을 업로드·다운로드할 수 있습니다. 경로 버튼과 상위 폴더 버튼으로 이동하며, 업로드는 현재 보고 있는 폴더에 저장됩니다. 파일당 최대 25 MB이고 같은 이름의 파일은 덮어쓰지 않습니다.
+**System → Files**에서 파일을 탐색하고 올리고 내려받습니다. 경로 버튼과 상위 폴더 버튼으로 이동하고, 업로드는 지금 보고 있는 폴더에 저장됩니다. 파일당 최대 25 MB이고 같은 이름의 파일은 덮어쓰지 않습니다. 폴더는 세 가지입니다.
 
-기본 기준 폴더는 `server.js`가 있는 폴더입니다. 서버 실행 시 `ANA_FILES_ROOT=/절대/경로`로 기존 폴더를 지정할 수 있습니다. 기준 폴더 밖으로 이동하거나 심볼릭 링크를 따라갈 수 없습니다. 이 메뉴는 ANA 전체에 공통이며 Workspace 선택에 따라 달라지지 않습니다. 변경 적용에는 서버 재시작과 브라우저 새로고침이 필요합니다.
+| 폴더 | 내용 | 올리기 |
+|---|---|---|
+| **Files** (기본) | 내 전용 폴더: `<데이터 폴더>/files`(`.ana/files`), 또는 `ANA_FILES_ROOT=/절대/경로` | 가능 |
+| **From chat** | 채팅에 첨부한 파일(`.ana/uploads`) | 읽기 전용 |
+| **Project files** | ANA 폴더 전체. *Show project files*를 켜야 보임 | 가능. 단 `.ana/`, `.git/` 안은 불가 |
+
+어느 폴더에서든 기준 폴더 밖으로 나가거나 심볼릭 링크를 따라갈 수 없습니다. 이 폴더들은 ANA 전체에 공통이며 Workspace 선택과 무관합니다.
 
 ## 기존 서비스에 ANA 붙이기 (아주 간단)
 

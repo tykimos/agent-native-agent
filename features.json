@@ -324,6 +324,18 @@
         "function renderUpdates",
         "UPDATES_FILE"
       ]
+    },
+    {
+      "id": "offline-edition",
+      "title": "Offline edition (no LLM) and Windows package",
+      "skill": "ana-update",
+      "summary": "ANA_OFFLINE=1 serves the page with data-offline (agent screens hidden), stops tmux polling and answers 503 on agent/internet routes. scripts/package-offline.mjs builds a portable Windows x64 zip (Node 24 LTS + app + node_modules + start.bat, ANA_OPEN=1).",
+      "anchors": [
+        "const OFFLINE_BLOCKED",
+        "html[data-offline]",
+        "OFFLINE_VIEWS",
+        "ANA_OPEN"
+      ]
     }
   ]
 }

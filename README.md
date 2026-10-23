@@ -88,6 +88,10 @@ Run ANA in your browser without installing WSL, Node or tmux on your computer. B
 
 **[Browser quick-start guide](docs/codespaces.md)** — automatic setup → open **ANA / 8809** in Ports → complete Claude setup in ANA chat. Keep the port **Private**. Codespaces usage is billed separately from Claude; ANA stops when the codespace stops.
 
+## Offline edition — no LLM, no internet (Windows)
+
+Need ANA on a PC without internet or an AI agent? `node scripts/package-offline.mjs` builds a portable Windows x64 zip (Node 24 LTS included). Unzip it and double-click `start.bat`. You get tasks, calendar, notes, relations, files and requirements; agent features are hidden. Install guide: [docs/offline.md](docs/offline.md).
+
 ## Quickstart — run the base (2 min)
 
 **Prerequisites:** Node ≥ 24, tmux, and a coding-agent CLI (e.g. [Claude Code](https://claude.com/claude-code)). The runtime (`channel-core.js`) has zero dependencies; the base app has one, [NodeRel](https://github.com/tykimos/NodeRel), installed from GitHub with `npm install`.
@@ -374,6 +378,12 @@ Free to use, modify, and self-host. If you run a modified version as a network s
 
 ## File browser
 
-Open **System → Files** to browse, upload and download files within this ANA’s project directory. Breadcrumbs and the parent button navigate folders; uploads go into the current folder. The limit is 25 MB per file, and existing files are never overwritten.
+Open **System → Files** to browse, upload and download files. Breadcrumbs and the parent button navigate folders; uploads go into the current folder. The limit is 25 MB per file, and existing files are never overwritten. There are three folders:
 
-The default root is the directory containing `server.js`. Set `ANA_FILES_ROOT=/absolute/path` to an existing directory when starting the server to use another root. Parent traversal and symbolic links are blocked. This directory is shared across the ANA’s Workspaces. Restart the server and refresh the browser after installing this change.
+| Folder | What | Uploads |
+|---|---|---|
+| **Files** (default) | your own folder: `<data dir>/files` (`.ana/files`), or `ANA_FILES_ROOT=/absolute/path` | yes |
+| **From chat** | what you attached in the chat (`.ana/uploads`) | read-only |
+| **Project files** | the whole ANA folder, shown only after you tick *Show project files* | yes, except inside `.ana/` and `.git/` |
+
+Parent traversal and symbolic links are blocked in every folder. The folders are shared across the ANA’s Workspaces.

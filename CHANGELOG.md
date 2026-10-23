@@ -5,6 +5,43 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.7.0] — 2026-10-24
+
+### Added
+
+- **Offline edition for Windows x64 (no LLM, no internet, no tmux).** `node scripts/package-offline.mjs` builds `dist/ANA-offline-win-x64-<version>.zip`: a portable Node 24 LTS (checksum-verified), the ANA base, its `node_modules`, and `start.bat`. Unzip it and double-click `start.bat`; the browser opens on `http://127.0.0.1:8809/`. Data stays in `data\`, uploads in `files\`. See [docs/offline.md](docs/offline.md).
+  - `ANA_OFFLINE=1` runs any ANA this way. The page hides chat, Chip and drawing, Analyze, Open in OntoAir, Requirements › Analyze, and the Evolve · Approvals · Requests · Trustworthiness · Safety · Update tabs. tmux polling stops, and routes that need an agent or the internet answer 503.
+  - `ANA_OPEN=1` opens the default browser once the server is up.
+- **Switching sessions shows what it's waiting for.** Picking a session in the chat combo replaces the conversation with a progress card: *Connect to the session* → *Find the conversation log* (Claude Code / Codex and its title) → *Read the log* (MB read, with a bar) → *Show the latest messages* (latest 40 of N), each with its time. Shell sessions say there is no structured log and show the terminal mirror; a session that isn't running says so. Opening the page on a long conversation shows the same card.
+  - While it loads, the chat controls say so too. The input is locked with *Loading <session>…*, the model pill shows a spinner and *Loading…*, the other buttons are dimmed and inactive, the session dot spins, and a bar runs along the top of the composer. Sending is blocked until the conversation is shown.
+- **Fill the suggestion on phones.** The grey suggestion in the chat input (text typed in the terminal but not sent) now has a tappable **Tab** button. On touch screens it's a larger pill; tapping it fills in the text and keeps the keyboard open. The Tab key still works on desktop.
+- **Upload progress.** Attachments show *Uploading 42%* with a fill bar in the chip. A drawing goes *Capturing… → Compressing… → Uploading %* in the same chip.
+
+- **ANA's own instructions show as cards, not your bubbles** (Evolve proposal #1). The long messages the page sends for you are drawn as a one-line card with a tag, what was asked, **Open** (goes to that tab) and *Show instruction* (the full text). This covers `[Analyze]`, `[Evolve]`, `[Requirements]`, `[Update]`, `[Requests]`, `[Approvals]` and `[Request #n]`. Examples: *Asked the agent to analyze 10 items · #1*, *Asked the agent to do proposal #1 · …*, *Answered request #7 · B*. It works both from the agent's log and in the screen mirror. The usage log records them as `analysis.request`, `evolve.request`, `requirements.request`, `update.request`, `requests.request`, `approvals.request` and `request.answer` instead of `chat.send`.
+
+- **Requirement → proposal → re-check** (Evolve proposal #3). A requirement judged *Not reflected* or *Partly* has **Propose this**. It adds an Evolve proposal "Requirement #N: …" that carries the analysis's next step and reason. The requirement card then shows that proposal's status with *Open in Evolve*, and the proposal shows *From requirement #N*. When the proposal is marked done, the requirement says *Proposal #N is done — check again* and its button becomes **Check again**. Only one proposal stays open per requirement.
+- **"These are examples — Clear them"** (Evolve proposal #5). While the first-run example notes, tasks and events are still there, Workspace shows a banner. **Clear them** removes them and their links; **Keep** hides the banner. Examples are seeded only once per install (a `.seeded` marker), so clearing them or deleting the state file never brings them back. `ANA_SEED=0` still skips them entirely.
+- **Files has its own folder** (Evolve proposal #6). System › Files now opens on **Files** (`.ana/files`, or `ANA_FILES_ROOT`). **From chat** shows chat attachments read-only. The whole project appears as **Project files** only after ticking *Show project files*, and uploads into `.ana/` or `.git/` are refused (`?root=files|chat|project`).
+- **The usage log records what you do, not just chats** (Evolve proposal #7). It now covers:
+  - tab visits (`tab.view`, once a minute per tab)
+  - approvals (`approval.approve|reject`) and proposal actions (`evolve.do|done|fail|ignore|reopen`)
+  - request actions (by `#id`) and requirement edits
+  - uploads to Files (`files.upload`, folder and size) and chat attachments (`upload.attach`, type and size, no name)
+  - OntoAir opens and `.ttl` downloads
+
+  `chat.send` keeps only the first 60 characters plus the length. In-page events go through `POST /api/activity`, which accepts a fixed list of event types.
+
+### Changed
+
+- **Annotated screenshots are much smaller.** They're captured at most 1600 px on the long side (at most 2× scale) and saved as JPEG (quality 0.82, or 0.7 if still over 900 KB), instead of a full-resolution PNG. On the same screen: iPhone 497 KB → 62 KB, Retina Mac 285 KB → 61 KB. Pen marks and text stay legible.
+
+- **Long conversations load in the background.** The first read of a large agent log (over 4 MB) is parsed in 4 MB chunks without blocking the server, and `/api/agentlog` answers with `loading {done, total}` until it's ready. Lines are split on bytes, so multi-byte characters at chunk edges stay intact. A 99 MB log reads in about 0.6 s.
+- **Switching is faster.** The log is fetched right after the switch instead of waiting for the next health check, a poll that was still in flight no longer delays the new one by 2 s, and opening the combo pre-reads the other agent sessions' logs (`/api/agentlog?prefetch=1`), so picking one shows it at once. The terminal-mirror history no longer flashes before the log appears.
+
+### Fixed
+
+- The chat's "No agent connected / Start a conversation" line could stay visible above messages: a comment had swallowed the line that hides it.
+
 ## [0.6.0] — 2026-10-15
 
 ### Added
@@ -167,6 +204,7 @@ The base becomes a solo operations board you run with a coding agent. It has thr
 
 See the [commit history](https://github.com/tykimos/agent-native-agent/commits/main) up to `d690eda`: workspaces, Chip mode, the install skill, per-session ledgers, and structured AskUserQuestion cards.
 
+[0.7.0]: https://github.com/tykimos/agent-native-agent/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/tykimos/agent-native-agent/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/tykimos/agent-native-agent/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/tykimos/agent-native-agent/compare/v0.4.2...v0.5.0

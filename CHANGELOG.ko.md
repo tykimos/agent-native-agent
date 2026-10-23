@@ -5,6 +5,74 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.7.0] — 2026-10-24
+
+### 추가
+
+- **Windows x64 오프라인판 (LLM·인터넷·tmux 없이).** `node scripts/package-offline.mjs`로 `dist/ANA-offline-win-x64-<버전>.zip`을 만듭니다. 안에는 체크섬을 확인한 포터블 Node 24 LTS, ANA 베이스, `node_modules`, `start.bat`이 들어 있습니다. 압축을 풀고 `start.bat`을 더블클릭하면 브라우저에 `http://127.0.0.1:8809/`가 열립니다. 데이터는 `data\`, 올린 파일은 `files\`에 저장됩니다. [docs/offline.ko.md](docs/offline.ko.md)를 보세요.
+  - `ANA_OFFLINE=1`을 주면 어떤 ANA든 이렇게 돌릴 수 있습니다. 화면에서는 채팅, Chip과 그리기, Analyze, Open in OntoAir, Requirements › Analyze, 그리고 Evolve · Approvals · Requests · Trustworthiness · Safety · Update 탭이 숨겨집니다. tmux 폴링은 멈추고, 에이전트나 인터넷이 필요한 라우트는 503으로 거절합니다.
+  - `ANA_OPEN=1`을 주면 서버가 뜬 뒤 기본 브라우저를 엽니다.
+- **세션을 바꿀 때 무엇을 기다리는지 보여 줍니다.** 채팅 콤보에서 세션을 고르면 대화 자리에 진행 카드가 뜹니다. 단계마다 걸린 시간이 붙습니다.
+  1. *Connect to the session*: 세션 연결
+  2. *Find the conversation log*: 대화 기록 찾기(Claude Code / Codex와 대화 제목)
+  3. *Read the log*: 기록 읽기(읽은 MB와 진행 막대)
+  4. *Show the latest messages*: 최근 메시지 표시(N개 중 최근 40개)
+
+  셸 세션은 구조화된 기록이 없다고 알리고 터미널 화면 미러를 보여 줍니다. 실행 중이 아닌 세션은 그렇다고 알립니다. 긴 대화가 있는 세션에서 페이지를 처음 열 때도 같은 카드가 뜹니다.
+  - 불러오는 동안에는 채팅 컨트롤도 로딩 중임을 드러냅니다.
+    - 입력창은 *Loading <세션>…*으로 잠깁니다.
+    - 모델 자리에는 스피너와 *Loading…*이 뜹니다.
+    - 나머지 버튼은 흐려지고 눌리지 않습니다.
+    - 세션 점이 돌고, 입력창 위로 진행 막대가 흐릅니다.
+    - 대화가 표시될 때까지 보내기를 막습니다.
+- **휴대폰에서 제안 글 받기.** 채팅 입력창의 회색 제안 글(터미널에 입력만 하고 보내지 않은 글)에 누를 수 있는 **Tab** 버튼이 붙습니다. 터치 화면에서는 더 큰 알약 모양이고, 누르면 그 글이 입력되며 키보드는 그대로 열려 있습니다. 데스크톱에서는 Tab 키도 그대로 됩니다.
+- **업로드 진행률.** 첨부하는 동안 칩에 *Uploading 42%*와 채워지는 막대가 보입니다. 그림은 같은 칩에서 *Capturing… → Compressing… → Uploading %* 순서로 진행됩니다.
+
+- **ANA가 대신 보낸 지시문은 내 말풍선이 아니라 카드로 보입니다** (진화 제안 #1).
+  - 화면이 대신 보내는 긴 지시문은 한 줄 카드로 바뀝니다. 카드에는 태그, 무엇을 시켰는지, 그 탭으로 가는 **Open**, 원문을 펼치는 *Show instruction*이 있습니다.
+  - 대상은 `[Analyze]`, `[Evolve]`, `[Requirements]`, `[Update]`, `[Requests]`, `[Approvals]`, `[Request #n]`입니다.
+  - 예: *Asked the agent to analyze 10 items · #1*, *Asked the agent to do proposal #1 · …*, *Answered request #7 · B*
+  - 에이전트 기록에서 보일 때와 화면 미러에서 보일 때 모두 적용됩니다.
+  - 사용 기록에도 `chat.send` 대신 `analysis.request`, `evolve.request`, `requirements.request`, `update.request`, `requests.request`, `approvals.request`, `request.answer`로 남습니다.
+
+- **요구사항 → 진화 제안 → 다시 확인** (진화 제안 #3).
+  - *반영 안 됨*이나 *일부 반영*으로 판정된 요구사항에 **Propose this**가 생깁니다. 누르면 분석의 다음 단계와 이유를 담은 진화 제안 "Requirement #N: …"이 만들어집니다.
+  - 요구사항 카드에는 그 제안의 상태와 *Open in Evolve*가 보이고, 제안 카드에는 *From requirement #N*이 붙습니다.
+  - 제안이 완료되면 요구사항에 *Proposal #N is done — check again*이 뜨고, 버튼이 **Check again**으로 바뀝니다.
+  - 요구사항마다 열린 제안은 하나만 둡니다.
+- **"These are examples — Clear them"** (진화 제안 #5).
+  - 첫 실행 예제 메모·할일·일정이 남아 있는 동안 Workspace에 배너가 뜹니다.
+  - **Clear them**은 예제와 그 관계를 지우고, **Keep**은 배너만 숨깁니다.
+  - 예제는 설치당 한 번만 넣습니다(`.seeded` 표시). 그래서 지우거나 상태 파일을 지워도 다시 생기지 않습니다.
+  - `ANA_SEED=0`이면 처음부터 넣지 않는 것은 그대로입니다.
+- **Files에 전용 폴더** (진화 제안 #6).
+  - System › Files는 이제 **Files**(`.ana/files`, 또는 `ANA_FILES_ROOT`)에서 열립니다.
+  - **From chat**은 채팅 첨부 파일을 읽기 전용으로 보여 줍니다.
+  - 프로젝트 전체는 *Show project files*를 켜야 **Project files**로 보입니다. `.ana/`와 `.git/` 안에는 올릴 수 없습니다(`?root=files|chat|project`).
+- **사용 기록이 채팅만이 아니라 앱에서 한 일을 남깁니다** (진화 제안 #7). 새로 남기는 것은 다음과 같습니다.
+  - 탭 열기(`tab.view`, 탭마다 1분에 한 번)
+  - 승인·거절(`approval.approve|reject`)과 제안 처리(`evolve.do|done|fail|ignore|reopen`)
+  - 요청 처리(`#id`로)와 요구사항 수정
+  - Files 업로드(`files.upload`, 폴더와 크기)와 채팅 첨부(`upload.attach`, 종류와 크기만, 이름은 남기지 않음)
+  - OntoAir 열기와 `.ttl` 내려받기
+
+  `chat.send`에는 앞 60자와 길이만 남깁니다. 화면 안에서 생기는 일은 `POST /api/activity`로 받는데, 정해 둔 종류만 받습니다.
+
+### 변경
+
+- **그림을 그려 올리는 스크린샷이 훨씬 작아졌습니다.** 원래 해상도 PNG 대신, 긴 변 1600px 이하(최대 2배율)로 찍어 JPEG로 저장합니다. 품질은 0.82이고, 그래도 900KB를 넘으면 0.7로 낮춥니다. 같은 화면에서 iPhone은 497KB에서 62KB로, Retina Mac은 285KB에서 61KB로 줄었습니다. 펜 자국과 글자는 그대로 읽힙니다.
+
+- **긴 대화는 백그라운드에서 읽습니다.** 큰 에이전트 기록(4MB 초과)을 처음 읽을 때 4MB씩 나눠 읽어 서버를 멈추지 않습니다. 다 읽을 때까지 `/api/agentlog`는 `loading {done, total}`을 돌려줍니다. 줄은 바이트 단위로 잘라서, 청크 경계에 걸린 한글 같은 여러 바이트 글자도 깨지지 않습니다. 99MB 기록을 약 0.6초에 읽습니다.
+- **전환이 빨라졌습니다.**
+  - 전환 직후 다음 상태 확인을 기다리지 않고 바로 기록을 받습니다.
+  - 진행 중이던 이전 요청 때문에 2초를 더 기다리던 문제를 없앴습니다.
+  - 콤보를 열면 다른 에이전트 세션의 기록을 미리 읽어 둡니다(`/api/agentlog?prefetch=1`). 그래서 고르는 즉시 보입니다.
+  - 기록이 뜨기 전에 터미널 미러 이력이 잠깐 보였다 바뀌던 깜빡임도 없앴습니다.
+
+### 수정
+
+- 채팅의 "No agent connected / Start a conversation" 안내가 메시지 위에 남을 수 있던 문제. 주석이 그 안내를 숨기는 줄까지 삼키고 있었습니다.
+
 ## [0.6.0] — 2026-10-15
 
 ### 추가
@@ -167,6 +235,7 @@ base가 코딩 에이전트와 함께 운영하는 1인 업무 보드가 되었�
 
 `d690eda`까지의 [커밋 기록](https://github.com/tykimos/agent-native-agent/commits/main)을 보세요. 워크스페이스, 칩 모드, install 스킬, 세션별 원장, 구조화된 AskUserQuestion 카드가 들어 있습니다.
 
+[0.7.0]: https://github.com/tykimos/agent-native-agent/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/tykimos/agent-native-agent/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/tykimos/agent-native-agent/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/tykimos/agent-native-agent/compare/v0.4.2...v0.5.0

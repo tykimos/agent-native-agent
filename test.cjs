@@ -599,6 +599,23 @@ t('L4 agent-log: 최근 40개 먼저, before로 그 앞을 빈틈없이, since�
   assert.equal(pageItems(all, 0, 9999).items.length, 95, '상한 200');
 });
 
+t('L5 agent-log: 큰 기록은 백그라운드로 나눠 읽는다(진행률, 여러 바이트 글자가 청크 경계에 걸려도 그대로)', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ana-l5-')), file = path.join(dir, 's.jsonl');
+  // 한 줄 ~7KB × 1200 ≈ 8.6MB (4MB 넘으므로 백그라운드), 한글로 채워 청크가 글자 중간에서 끊기게
+  const lines = []; for (let i = 0; i < 1200; i++) lines.push(JSON.stringify({ type: 'user', uuid: 'u' + i, message: { role: 'user', content: `${i}번 메시지 ` + '가나다라마바사'.repeat(330) } }));
+  fs.writeFileSync(file, lines.join('\n') + '\n');
+  const { execFileSync } = require('node:child_process');
+  const out = JSON.parse(execFileSync(process.execPath, ['-e', `
+    const a = require('./agent-log.js').createAgentLog(); const f = ${JSON.stringify(file)};
+    const st = a.update(f, 'claude'); const first = st.loading ? { done: st.loading.done, total: st.loading.total } : null;
+    (function wait(n) { if (st.loading) return setImmediate(() => wait(n + 1));
+      console.log(JSON.stringify({ first, ticks: n, count: st.items.length, ok: st.items.every((x, i) => x.text === \`\${i}번 메시지 \` + '가나다라마바사'.repeat(330)) })); })(0);`], { cwd: __dirname, encoding: 'utf8' }));
+  assert.ok(out.first && out.first.done === 0 && out.first.total === fs.statSync(file).size, '처음에는 진행률만');
+  assert.ok(out.ticks >= 2, '여러 번에 나눠 읽음');
+  assert.equal(out.count, 1200); assert.equal(out.ok, true, '글자가 깨지지 않음');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 t('D3 앵커 정렬은 화면 유래 항목만 사용 (src:api 리치 항목이 앵커를 깨지 않음)', () => {
   srv.feed.length = 0;
   srv.feed.push(
@@ -1075,6 +1092,30 @@ async function integration() {
       assert.equal(list.items.length, 1); assert.equal(list.job.status, 'cancelled');
     });
 
+    await ta('C19 요구사항 → 진화 제안 → 완료 → 다시 확인: 한 번에 제안, 열린 제안은 하나, 완료되면 재확인 표시, 재분석하면 풀림', async () => {
+      const it = (await (await post('/api/requirements', { action: 'add', title: 'Dark mode for charts', detail: 'All charts' })).json()).item;
+      let r = await post('/api/requirements', { action: 'propose', id: it.id }); assert.equal(r.status, 409, '분석 전에는 제안 불가');
+      let j = (await (await post('/api/requirements/analyze', { ids: [it.id] })).json()).job;
+      await post('/api/requirements/result', { job: j.id, results: [{ id: it.id, status: 'partial', how: 'Some charts', why: 'Gauges ignore the theme', next: 'Theme the gauges' }] });
+      const pr = (await (await post('/api/requirements', { action: 'propose', id: it.id })).json()).proposal;
+      assert.equal(pr.reqId, it.id); assert.equal(pr.type, 'improve'); assert.match(pr.title, new RegExp(`^Requirement #${it.id}: Dark mode`)); assert.match(pr.desc, /Next step: Theme the gauges/);
+      const again = await (await post('/api/requirements', { action: 'propose', id: it.id })).json();
+      assert.equal(again.existing, true); assert.equal(again.proposal.id, pr.id, '열린 제안은 하나');
+      let item = (await (await fetch(`${api}/api/requirements`)).json()).items.find((x) => x.id === it.id);
+      assert.equal(item.proposalId, pr.id); assert.ok(!item.recheck);
+      await post('/api/evolve-act', { id: pr.id, action: 'done' });
+      item = (await (await fetch(`${api}/api/requirements`)).json()).items.find((x) => x.id === it.id);
+      assert.deepEqual([item.recheck && item.recheck.proposalId, item.analysis.stale], [pr.id, true], '제안이 끝나면 다시 확인 필요');
+      j = (await (await post('/api/requirements/analyze', { ids: [it.id] })).json()).job;
+      await post('/api/requirements/result', { job: j.id, results: [{ id: it.id, status: 'reflected', how: 'All charts follow the theme' }] });
+      item = (await (await fetch(`${api}/api/requirements`)).json()).items.find((x) => x.id === it.id);
+      assert.equal(item.recheck, null); assert.equal(item.analysis.stale, false);
+      const ev = (await (await post('/api/evolve', { proposals: [{ title: 'From agent', reqId: it.id }, { title: 'Bad ref', reqId: 99999 }] })).json());
+      const all = (await (await fetch(`${api}/api/evolve`)).json()).proposals;
+      assert.equal(all.find((x) => x.title === 'From agent').reqId, it.id); assert.equal(all.find((x) => x.title === 'Bad ref').reqId, undefined);
+      assert.equal(ev.added, 2);
+    });
+
     await ta('C15 요청(Requests): 에이전트 등록·중복 방지·kind 검증, 답변→answered, 완료/보류/재개', async () => {
       let r = await post('/api/requests', { requests: [{ kind: 'decision', title: 'Pick one', options: ['A', 'B'] }, { kind: 'access', title: 'Share calendar' }] });
       let j = await r.json(); assert.equal(j.added, 2);
@@ -1133,6 +1174,28 @@ async function integration() {
       // I13 직후: draftbox draft가 여전히 남아 있는 상태
       const r = await fetch(`${api}/api/chat`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: 'forced-msg', force: true }) });
       assert.equal(r.status, 200, `force면 draft 무시하고 200 기대, 실제 ${r.status}`);
+    });
+
+    await ta('I16 사용 기록: 화면 버튼이 보낸 지시문은 chat.send가 아니라 그 일의 요청으로 기록', async () => {
+      const send = (text) => fetch(`${api}/api/chat`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, force: true }) });
+      assert.equal((await send('[Analyze] Build an ontology and a knowledge graph from 3 items of this workspace.\n1) Read them: curl …')).status, 200);
+      assert.equal((await send('[Request #7] You asked: "Pick one"\nMy answer: B\nAct on it, then mark the request done')).status, 200);
+      assert.equal((await send('just chatting')).status, 200);
+      const act = (await (await fetch(`${api}/api/activity`)).json()); const list = act.activity || act;
+      const a = list.find((x) => x.action === 'analysis.request');
+      assert.ok(a && /from 3 items/.test(a.target), JSON.stringify(list.slice(0, 4)));
+      assert.ok(list.some((x) => x.action === 'request.answer' && /^#7 /.test(x.target)));
+      assert.ok(list.some((x) => x.action === 'chat.send' && x.target === 'just chatting'));
+      const long = 'x'.repeat(130);
+      assert.equal((await send(long)).status, 200);
+      const l2 = (await (await fetch(`${api}/api/activity`)).json()).activity.find((x) => x.action === 'chat.send' && x.detail === '130 chars');
+      assert.ok(l2 && l2.target === 'x'.repeat(60) + '…', 'chat.send는 앞 60자 + 길이만');
+      const ev = (b) => fetch(`${api}/api/activity`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b) });
+      assert.equal((await ev({ action: 'tab.view', target: 'relations' })).status, 200);
+      assert.equal((await ev({ action: 'tab.view', target: '../etc' })).status, 400);
+      assert.equal((await ev({ action: 'chat.send', target: 'fake' })).status, 400, '정해 둔 화면 이벤트만');
+      assert.ok((await (await fetch(`${api}/api/activity`)).json()).activity.some((x) => x.action === 'tab.view' && x.target === 'relations'));
+      assert.ok(!list.some((x) => x.action === 'chat.send' && /^\[Analyze\]/.test(x.target)));
     });
   } finally {
     server.kill();

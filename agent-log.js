@@ -177,31 +177,53 @@ function createAgentLog({ socket = '' } = {}) {
   }
 
   function state(file, kind) {
-    if (!logs.has(file)) logs.set(file, { kind: kind || 'claude', offset: 0, rev: 0, items: [], byId: new Map(), tools: new Map(), title: '', session: path.basename(file, '.jsonl'), carry: '' });
+    if (!logs.has(file)) logs.set(file, { kind: kind || 'claude', offset: 0, rev: 0, items: [], byId: new Map(), tools: new Map(), title: '', session: path.basename(file, '.jsonl'), carry: Buffer.alloc(0), loading: null });
     return logs.get(file);
   }
+  // [st.offset, end) 바이트를 읽어 완성된 줄만 넣는다. 줄 경계는 바이트(\n)로 자르므로 청크가 한글 등 여러 바이트 글자 중간에서 끊겨도 깨지지 않는다.
+  function ingestRange(st, fd, end) {
+    const chunk = Buffer.alloc(end - st.offset);
+    fs.readSync(fd, chunk, 0, chunk.length, st.offset);
+    const buf = st.carry.length ? Buffer.concat([st.carry, chunk]) : chunk;
+    let pos = st.offset - st.carry.length, start = 0;
+    for (let nl = buf.indexOf(10, start); nl !== -1; nl = buf.indexOf(10, start)) {
+      const len = nl - start + 1;
+      if (len > 1) { let j; try { j = JSON.parse(buf.toString('utf8', start, nl)); } catch { j = null; } if (j) (st.kind === 'codex' ? ingestCodex : ingest)(st, j, pos, len); }
+      pos += len; start = nl + 1;
+    }
+    st.carry = Buffer.from(buf.subarray(start));       // 아직 다 안 쓰인 마지막 줄
+    st.offset = end;
+  }
   // 새로 붙은 줄만 읽는다. 파일이 줄었으면(교체) 처음부터.
+  // 읽을 양이 크면(처음 여는 긴 대화) 백그라운드에서 4MB씩 나눠 읽는다 — 서버가 멈추지 않고, 그동안 read()는 진행률을 돌려준다.
+  const SYNC_MAX = 4 * 1024 * 1024, CHUNK = 4 * 1024 * 1024;
   function update(file, kind) {
     const st = state(file, kind);
+    if (st.loading) return st;
     let size; try { size = fs.statSync(file).size; } catch { return st; }
     if (size < st.offset) { logs.delete(file); return update(file, kind); }
     if (size === st.offset) return st;
+    if (size - st.offset > SYNC_MAX) { loadInBackground(file, st, size); return st; }
     const fd = fs.openSync(file, 'r');
-    try {
-      const buf = Buffer.alloc(size - st.offset);
-      fs.readSync(fd, buf, 0, buf.length, st.offset);
-      let pos = st.offset - Buffer.byteLength(st.carry);
-      const text = st.carry + buf.toString('utf8');
-      const lines = text.split('\n');
-      st.carry = lines.pop();                         // 아직 다 안 쓰인 마지막 줄
-      for (const line of lines) {
-        const len = Buffer.byteLength(line) + 1;
-        if (line.trim()) { let j; try { j = JSON.parse(line); } catch { j = null; } if (j) (st.kind === 'codex' ? ingestCodex : ingest)(st, j, pos, len); }
-        pos += len;
-      }
-      st.offset = size;
-    } finally { fs.closeSync(fd); }
+    try { ingestRange(st, fd, size); } finally { fs.closeSync(fd); }
     return st;
+  }
+  function loadInBackground(file, st, size) {
+    st.loading = { from: st.offset, done: st.offset, total: size, startedAt: Date.now() };
+    const step = () => {
+      if (logs.get(file) !== st) return;                 // 그사이 파일이 바뀌어 상태를 버렸다
+      let fd;
+      try {
+        fd = fs.openSync(file, 'r');
+        const total = Math.max(st.loading.total, fs.fstatSync(fd).size);   // 읽는 동안 늘어난 만큼도
+        st.loading.total = total;
+        ingestRange(st, fd, Math.min(st.offset + CHUNK, total));
+        st.loading.done = st.offset;
+        if (st.offset >= total) st.loading = null;
+      } catch { st.loading = null; } finally { if (fd !== undefined) fs.closeSync(fd); }
+      if (st.loading) setImmediate(step);
+    };
+    setImmediate(step);
   }
 
   const touch = (st, it) => { it.rev = ++st.rev; };
@@ -310,6 +332,9 @@ function createAgentLog({ socket = '' } = {}) {
     const r = await resolve(target);
     if (!r.file) return { available: false };
     const st = update(r.file, r.kind);
+    // 아직 읽는 중이면 항목 대신 진행률만 — 일부만 읽은 상태로 '최근 40개'를 주면 틀린 대화가 보인다
+    if (st.loading) return { available: true, loading: { done: st.loading.done - st.loading.from, total: st.loading.total - st.loading.from, ms: Date.now() - st.loading.startedAt },
+      kind: st.kind, session: st.session, title: st.title, cwd: r.cwd, rev: 0, items: [] };
     const { items, page } = pageItems(st.items, since, limit, before);
     return { available: true, kind: st.kind, session: st.session, title: st.title, model: st.model || '', modelName: st.kind === 'codex' ? codexModelName(st.model) : modelName(st.model), effort: st.effort || '', limits: st.limits || null, permTc: st.permTc || null, permRev: st.permRev || 0, cwd: r.cwd, rev: st.rev, reset: since > st.rev, ...page, items };
   }
@@ -326,7 +351,15 @@ function createAgentLog({ socket = '' } = {}) {
     if (!src || src.type !== 'base64' || !/^image\//.test(src.media_type || '')) return null;
     return { type: src.media_type, data: Buffer.from(src.data, 'base64') };
   }
-  return { read, image, resolve };
+  // 콤보를 열었을 때 미리 읽어 두기 — 고르는 순간 바로 뜨게. 큰 로그는 백그라운드로 넘어가므로 바로 돌아온다.
+  async function prefetch(target) {
+    const r = await resolve(target);
+    if (!r.file) return { available: false };
+    const st = update(r.file, r.kind);
+    let size = 0; try { size = fs.statSync(r.file).size; } catch {}
+    return { available: true, kind: st.kind, size, loading: !!st.loading, items: st.items.length };
+  }
+  return { read, image, resolve, prefetch, update, logs };
 }
 
 module.exports = { createAgentLog, toolLabel, cleanUser, systemNotice, modelName, codexModelName, codexLimits, findCodexRollout, pageItems };

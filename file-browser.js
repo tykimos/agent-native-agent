@@ -5,8 +5,18 @@ const { pipeline } = require('node:stream');
 const MAX_UPLOAD = 25 * 1024 * 1024;
 const fail = (status, message) => Object.assign(new Error(message), { status });
 
-function createFileBrowser(root, core) {
-  const base = fs.realpathSync(root);
+// roots: a folder path (one writable root), or { key: { dir, label, write, deny: ['.ana', …], mkdir } }.
+// The first key is the default. Requests pick one with ?root=key.
+function createFileBrowser(rootsIn, core, hooks = {}) {
+  const roots = typeof rootsIn === 'string' ? { files: { dir: rootsIn, write: true } } : rootsIn;
+  const keys = Object.keys(roots);
+  const rootOf = (key) => {
+    const k = key && roots[key] ? key : keys[0], r = roots[k];
+    if (r.mkdir) fs.mkdirSync(r.dir, { recursive: true });
+    return { key: k, ...r, base: fs.realpathSync(r.dir) };
+  };
+  if (typeof rootsIn === 'string') rootOf(keys[0]);   // a missing single root still fails at start-up, as before
+  let base;
   // Reject links at every component, including links that currently point inside.
   function resolve(relative = '') {
     if (typeof relative !== 'string' || relative.includes('\\') || relative.includes('\0') || path.isAbsolute(relative)) throw fail(403, 'Access outside the designated folder is not allowed.');
@@ -24,6 +34,7 @@ function createFileBrowser(root, core) {
     const reply = (status, data) => { core.sendJson(res, status, data); return true; };
     try {
       res.setHeader('Cache-Control', 'no-store');
+      const root = rootOf(url.searchParams.get('root')); base = root.base;
       const relative = url.searchParams.get('path') || '';
       if (url.pathname === '/api/files' && req.method === 'GET') {
         const dir = resolve(relative);
@@ -31,7 +42,8 @@ function createFileBrowser(root, core) {
         const entries = fs.readdirSync(dir, { withFileTypes: true }).filter(e => e.isDirectory() || e.isFile()).flatMap(e => {
           try { const st = fs.lstatSync(path.join(dir, e.name)); return st.isSymbolicLink() ? [] : [{ name: e.name, directory: st.isDirectory(), size: st.size, modified: st.mtime.toISOString() }]; } catch { return []; }
         }).sort((a,b) => Number(b.directory) - Number(a.directory) || a.name.localeCompare(b.name));
-        return reply(200, { root: path.basename(base), path: relative, entries, maxUpload: MAX_UPLOAD });
+        return reply(200, { root: root.label || path.basename(base), rootKey: root.key, writable: !!root.write && !(root.deny || []).includes(relative.split('/')[0]),
+          roots: keys.map((k) => ({ key: k, label: roots[k].label || path.basename(roots[k].dir), writable: !!roots[k].write })), path: relative, entries, maxUpload: MAX_UPLOAD });
       }
       if (url.pathname === '/api/files/download' && ['GET', 'HEAD'].includes(req.method)) {
         const target = resolve(relative);
@@ -45,6 +57,8 @@ function createFileBrowser(root, core) {
       }
       if (url.pathname === '/api/files/upload' && req.method === 'POST') {
         if (!core.csrfOk(req)) return reply(403, { error: 'Request not allowed.' });
+        if (!root.write) throw fail(403, 'This folder is read-only.');
+        if ((root.deny || []).includes(relative.split('/')[0])) throw fail(403, `Uploads into ${relative.split('/')[0]}/ are not allowed.`);
         const body = await core.jsonBody(req, res, Math.ceil(MAX_UPLOAD * 4 / 3) + 8192);
         if (!body) return true;
         if (typeof body.name !== 'string' || !body.name || body.name === '.' || body.name === '..' || /[\\/\x00-\x1f\x7f]/.test(body.name)) throw fail(400, 'Invalid file name.');
@@ -56,6 +70,7 @@ function createFileBrowser(root, core) {
         const target = path.join(dir, body.name);
         const fd = fs.openSync(target, 'wx', 0o600);
         try { fs.writeFileSync(fd, data); } catch (e) { try { fs.unlinkSync(target); } catch {} throw e; } finally { fs.closeSync(fd); }
+        try { if (hooks.onUpload) hooks.onUpload(req, root.key, data.length); } catch {}
         return reply(201, { ok: true, name: body.name, size: data.length });
       }
       return reply(405, { error: 'Unsupported request.' });
