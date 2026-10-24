@@ -155,16 +155,21 @@ The base is an operations board: notes, tasks and a calendar you run together wi
 | Scope | Who | Tabs | For |
 |---|---|---|---|
 | **Workspace** (name shown at the top) | members | **Work** (Tasks · Calendar · Notes) · **Knowledge** · **Files** · **Inbox** | the work and data of one workspace |
-| **System** (dark header band) | admin | **Inbox** · **Roadmap** · **Health** | decisions that apply to every workspace |
+| **System** (dark header band) | admin | **Inbox** · **Roadmap** · **Ontology** · **Health** | decisions that apply to every workspace |
 
 On phones the bottom menu follows the scope (Work · Knowledge · Files · Inbox, plus System for the admin; in System: Inbox · Roadmap · Health · Workspace). On desktop a switch next to the logo changes scope.
 
-- **Inbox (Workspace)** is everything waiting on you in this workspace, in one list with *Open / Done*: the agent's questions and work requests, data changes to approve, suggestions for running the workspace better, and what you sent (to the admin, or as a feature request).
-- **Knowledge** is how the workspace's items connect (links, where the flow breaks) and its knowledge graph (Analyze).
+Each page shows one kind of thing at a time; pages with several kinds have sub-tabs, and each list filters *Open / Done*:
+
+- **Inbox (Workspace):** *Approvals* (data changes, analysis results to add to the knowledge graph, decisions, access) · *Work requests* (what the agent needs you to do or tell it) · *Evolve* (suggestions for running this workspace better) · *Sent* (what you asked the admin, your feature requests). The same words as System › Inbox.
+- **Knowledge:** *Links* (how items connect, where the flow breaks) · *Knowledge graph* (this workspace's entities and facts) · *Analysis* (the agent reads your items) · *Ontology* (the shared concepts, read-only).
 - **Files** is the workspace's own folder, plus chat attachments (read-only).
-- **Inbox (System)** holds approval and work requests for the admin, from members, the agent and the system checks.
-- **Roadmap** shows how the system changes, one line per item: **Request → Proposal → Building → Checked**. It covers requirements, system proposals and upstream updates.
-- **Health** puts every check (trustworthiness, safety, security) on one page, riskiest first, with usage stats and activity below.
+- **Inbox (System):** *Approvals* · *Work requests* for the admin, from members, the agent and the system checks.
+- **Roadmap:** *Requirements* · *Evolve* (system proposals) · *Updates* (upstream). Each item is one line with its stage (e.g. Request → Proposal → Building → Checked) and the next action.
+- **Ontology:** *Classes* · *Relations* — the concepts every workspace's knowledge graph uses. The core (Note, Task, Event, Day and the app's relations) is built in; the admin adds the rest, or approves the ones an analysis proposes.
+- **Health:** *Trustworthiness* · *Safety* · *Security* (riskiest first, OK checks folded) · *Tests* (run this ANA's tests and see what failed) · *Usage* (stats and activity).
+
+**Where is Evolve?** Workspace › Inbox › *Evolve* for this workspace (members start them), System › Roadmap › *Evolve* for the system (the admin starts them).
 
 ### Chat — like the Claude app
 
@@ -212,7 +217,7 @@ That graph is the **fixed layer**: the app decides what may link to what. **Rela
 - an **ontology**: the schema. Classes with parents (Client ⊂ Organization ⊂ Agent) and relation types with From → To (`client_of`: Client → Organization).
 - a **knowledge graph**: the data. Entities typed by those classes (Acme is a Client) and facts typed by those relations (Acme `client_of` Our team), each citing the items it came from.
 
-The server checks the result against the ontology (classes and relations must exist, facts must respect From → To, sub-classes count). Facts that don't fit are dropped and reported. The ontology carries over to the next analysis, so concepts keep their names. The knowledge graph is indexed in the same NodeRel graph (`kg:<id>`, `MENTIONED_IN` → source items), so `/api/graph/trace` walks from a note to the people in it. Results open in [OntoAir](https://poc.aifactory.space/ontoair/) as a 3D graph, or download as OWL Turtle.
+The server checks the result against the ontology (classes and relations must exist, facts must respect From → To, sub-classes count). Facts that don't fit are dropped and reported. The ontology carries over to the next analysis, so concepts keep their names. The knowledge graph is indexed in the same NodeRel graph (`kg:<id>`, `MENTIONED_IN` → source items), so `/api/graph/trace` walks from a note to the people in it. Results open in [OntoAir](https://poc.aifactory.space/ontoair/) as a 3D graph, or download as OWL Turtle. The ontology is shared by the whole system (System › Ontology, admin); each workspace keeps its own knowledge graph, which grows when a member approves an analysis result.
 
 → Full write-up, covering both layers, the analysis process, the ontology, the knowledge graph, the checks and export: **[docs/relations.md](docs/relations.md)**
 

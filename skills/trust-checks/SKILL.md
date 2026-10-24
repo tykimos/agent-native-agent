@@ -30,6 +30,10 @@ An ANA agent often runs with permission prompts off and can reach the user's mac
 
 Add checks that matter for the target's domain. For example, das-ana could flag "disk nearly full" and "SMART warnings" under Trustworthiness, or "volume shared to the network" under Security. Keep the same shape: `{id, status, label, value?, detail?, items?}`.
 
+## Tests
+
+System › Health › **Tests** runs the ANA's own test command (`package.json` scripts.test, split on `&&`, only `node <files>` steps, run with this server's Node and a minimal env) — admin only (`POST /api/tests/run`), one run at a time. Each run keeps per-suite pass/fail (node:test `ℹ pass/fail`, `test.cjs` `결과: N passed, M failed`), failing test names and the output tail in `tests.json` (last 10, `GET /api/tests`). A failed last run counts on the Health badge (`testRisk`).
+
 ## Pieces (upstream)
 
 - **Server:** `collectTrust(ctx)`, `RISKY_CMDS`, `SECRET_PATTERNS` in `dashboard-api.js`, route `GET /api/trust` → `{reliability|safety|security: {checks, risk, warn}}`. `server.js` passes `BIND, PORT` in the API options. `agent-log.js` keeps the full command (`tool.cmd`, 600 chars) for Bash (Claude) and exec (Codex), and the pane start command on `resolve()`.

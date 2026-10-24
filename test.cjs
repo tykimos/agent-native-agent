@@ -1008,58 +1008,77 @@ async function integration() {
       assert.equal((await (await fetch(`${api}/api/analysis`)).json()).latest.status, 'cancelled');
     });
 
-    await ta('C18 분석 개선: 온톨로지 틀 검증(domain→range·하위 클래스)·온톨로지 이어 쓰기·NodeRel에 지식그래프·TTL/공유 링크(OntoAir)', async () => {
-      let st = await (await fetch(`${api}/api/analysis`)).json();
-      assert.ok(st.ontology && st.ontology.classes.some((c) => c.id === 'Org'), 'C16 결과가 워크스페이스 온톨로지로 쌓였다');
+    await ta('C18 온톨로지는 시스템, 지식그래프는 워크스페이스: 분석 틀 검증 · 새 개념은 관리자 승인 · 결과는 승인해야 지식그래프에 · 개념 승인 뒤 대기분 반영 · NodeRel · TTL', async () => {
+      // 시스템 온톨로지: 핵심(Note·Task·Event·Day, SPAWNED…)은 고정 + C16이 남긴 Org·client_of는 처음 읽을 때 옮겨 온다
+      let ont = await (await fetch(`${api}/api/ontology`)).json();
+      assert.ok(ont.classes.some((c) => c.id === 'Task' && c.core) && ont.relations.some((r) => r.id === 'SPAWNED' && r.core));
+      // C16 분석이 낸 새 개념(Org)은 시스템 온톨로지에 바로 들어가지 않고 관리자 승인요청이 됐다 → 승인(=추가)
+      const orgReq = (await (await fetch(`${api}/api/admin/inbox`)).json()).items.find((x) => x.ref === 'onto:class:Org');
+      assert.ok(orgReq && orgReq.action.kind === 'ontology.add', 'C16의 새 개념 → 관리자 승인요청');
+      assert.ok(!ont.classes.some((c) => c.id === 'Org'));
+      await post('/api/ontology', { action: 'add', kind: 'class', item: orgReq.action.item });
+      assert.equal((await post('/api/ontology', { action: 'remove', kind: 'class', item: { id: 'Task' } })).status, 400, '핵심은 못 바꾼다');
+      assert.equal((await (await post('/api/ontology', { action: 'add', kind: 'class', item: { id: 'Agent', label: 'Agent' } })).json()).ok, true);
+      assert.equal((await post('/api/ontology', { action: 'add', kind: 'relation', item: { id: 'works_for', domain: 'Agent', range: 'Nope' } })).status, 400, '없는 클래스를 가리키면 거절');
+      await post('/api/ontology', { action: 'add', kind: 'relation', item: { id: 'works_for', label: 'works for', domain: 'Agent', range: 'Org' } });
+      // 분석: 입력에 시스템 온톨로지
       let j = await (await post('/api/analysis/start', { kinds: ['tasks'] })).json(); const id = j.job.id;
-      assert.equal(j.job.useBase, true, '쌓인 온톨로지가 있으면 이어 쓰는 게 기본');
       const input = await (await fetch(`${api}/api/analysis/input?id=${id}`)).json();
-      assert.ok(input.ontology.classes.some((c) => c.id === 'Org') && input.rules);
+      assert.ok(input.ontology.classes.some((c) => c.id === 'Agent') && input.rules);
       const src = input.items.find((x) => x.title === 'Call Acme about the quote').id;
       j = await (await post('/api/analysis/result', { id, summary: 'people', ontology: {
-        classes: [{ id: 'Agent', label: 'Agent' }, { id: 'Person', label: 'Person', parent: 'Agent' }],
-        relations: [{ id: 'works_for', label: 'works for', domain: 'Agent', range: 'Org' }, { id: 'odd', label: 'odd', domain: 'Nope', range: 'Org' }] },
-        graph: { entities: [{ id: 'pat', label: '팻 김', class: 'Person', sources: [src] }, { id: 'acme', label: 'Acme "Co"', class: 'Org', sources: [src] }, { id: 'zed', label: 'Zed', class: 'Alien' }],
-          facts: [{ from: 'pat', rel: 'works_for', to: 'acme', sources: [src] }, { from: 'acme', rel: 'works_for', to: 'acme' }, { from: 'pat', rel: 'works_for', to: 'pat' }, { from: 'pat', rel: 'knows', to: 'acme' }, { from: 'acme', rel: 'client_of', to: 'acme' }] } })).json();
-      assert.equal(j.facts, 2, '하위 클래스(Person ⊂ Agent)는 domain을 통과, 틀을 어긴 사실·모르는 관계는 버린다');
-      const msgs = j.issues.map((x) => x.msg).join('\n');
-      assert.match(msgs, /goes from Agent, but acme is a Org/); assert.match(msgs, /goes to Org, but pat is a Person/);
-      assert.match(msgs, /"knows" is not in the ontology/); assert.match(msgs, /class "Alien" is not in the ontology/); assert.match(msgs, /unknown domain class "Nope"/);
-      const cur = (await (await fetch(`${api}/api/analysis`)).json());
-      const job = cur.latest; assert.ok(job.ontology.classes.some((c) => c.id === 'Org' && c.inherited), '이번 결과가 쓴 기존 클래스는 (earlier)로 붙는다');
-      assert.ok(job.ontology.relations.some((r) => r.id === 'client_of' && r.inherited));
-      assert.deepEqual(['Agent', 'Org', 'Person', 'Sub'].every((c) => cur.ontology.classes.some((x) => x.id === c)), true, '온톨로지가 회차를 넘어 쌓인다');
-      assert.ok(!cur.ontology.classes.some((c) => c.inherited));
-      // NodeRel: 개체 = kg:<id>, 사실 = 관계 id, 근거 = MENTIONED_IN
+        classes: [{ id: 'Person', label: 'Person', parent: 'Agent' }],
+        relations: [{ id: 'odd', label: 'odd', domain: 'Nope', range: 'Org' }] },
+        graph: { entities: [{ id: 'pat', label: '팻 김', class: 'Person', sources: [src] }, { id: 'acme', label: 'Acme "Co"', class: 'Org', sources: [src] }, { id: 'bob', label: 'Bob', class: 'Agent' }, { id: 'zed', label: 'Zed', class: 'Alien' }],
+          facts: [{ from: 'pat', rel: 'works_for', to: 'acme', sources: [src] }, { from: 'bob', rel: 'works_for', to: 'acme' }, { from: 'acme', rel: 'works_for', to: 'acme' }, { from: 'pat', rel: 'knows', to: 'acme' }] } })).json();
+      assert.equal(j.facts, 2, '틀 검증: 하위 클래스는 통과, domain을 어기거나 모르는 관계는 버림');
+      assert.match(j.issues.map((x) => x.msg).join('\n'), /"knows" is not in the ontology/);
+      assert.deepEqual(j.newConcepts, ['class Person', 'relation odd'], '시스템에 없는 개념은 관리자 승인요청으로');
+      const inbox = (await (await fetch(`${api}/api/admin/inbox`)).json()).items;
+      const ap = inbox.find((x) => x.ref === 'onto:class:Person');
+      assert.ok(ap && ap.type === 'approval' && ap.action.kind === 'ontology.add' && ap.action.item.parent === 'Agent');
+      // 결과는 실무자가 승인해야 지식그래프에 — 승인 전에는 비어 있고 NodeRel에도 없다
+      assert.equal((await (await fetch(`${api}/api/kg`)).json()).entities.length, 0);
+      assert.equal((await fetch(`${api}/api/graph/neighbors?id=kg:acme`)).status, 404);
+      const ap2 = await (await post('/api/analysis/apply', { id })).json();
+      assert.deepEqual(ap2.added, { entities: 3, facts: 1 }, '아는 개념(Org·Agent·works_for)만 들어간다');
+      assert.deepEqual(ap2.pending, { entities: 1, facts: 1 }, 'Person(새 개념)을 쓰는 개체·사실은 대기');
+      assert.equal((await post('/api/analysis/apply', { id })).status, 409, '두 번 더하지 않는다');
+      let kg = await (await fetch(`${api}/api/kg`)).json();
+      assert.ok(kg.entities.some((e) => e.id === 'bob') && kg.facts.some((f) => f.from === 'bob' && f.rel === 'works_for'));
+      // 관리자가 Person을 승인(=온톨로지에 추가)하면 대기분이 들어간다
+      await post('/api/ontology', { action: 'add', kind: 'class', item: ap.action.item });
+      kg = await (await fetch(`${api}/api/kg`)).json();
+      assert.ok(kg.entities.some((e) => e.id === 'pat' && e.class === 'Person') && kg.facts.some((f) => f.from === 'pat' && f.to === 'acme'), '개념 승인 뒤 대기분 반영');
+      assert.equal(kg.entities.find((e) => e.id === 'zed').class, '', '모르는 클래스는 비운 채로');
+      // NodeRel: 개체 kg:<id>, 사실, 근거 MENTIONED_IN
       const nb = await (await fetch(`${api}/api/graph/neighbors?id=kg:pat`)).json();
-      assert.ok(nb.links.some((l) => l.type === 'works_for' && l.other.id === 'kg:acme'));
-      assert.ok(nb.links.some((l) => l.type === 'MENTIONED_IN' && l.other.id === src));
-      const tr = await (await fetch(`${api}/api/graph/trace?id=${encodeURIComponent(src)}&depth=2`)).json();
-      assert.ok(tr.nodes.some((n) => n.id === 'kg:acme'), '항목에서 출발해 개체까지 따라간다');
+      assert.ok(nb.links.some((l) => l.type === 'works_for' && l.other.id === 'kg:acme') && nb.links.some((l) => l.type === 'MENTIONED_IN' && l.other.id === src));
       const view = await (await fetch(`${api}/api/graph`)).json();
-      assert.ok(!view.links.some((l) => l.type === 'works_for' || l.type === 'MENTIONED_IN'), '흐름 그림에는 지식그래프를 섞지 않는다');
+      assert.ok(!view.links.some((l) => l.type === 'works_for' || l.type === 'MENTIONED_IN'), '흐름 그림에는 섞지 않는다');
       const schema = await (await fetch(`${api}/api/graph/schema`)).json();
-      assert.equal(schema.vocabulary.works_for.from[0], 'Agent'); assert.equal(schema.knowledgeGraph.analysis, id);
-      // TTL 내려받기 + 공개 링크
-      let r = await fetch(`${api}/api/analysis/ttl?id=${id}`); assert.equal(r.status, 200); assert.match(r.headers.get('content-type'), /text\/turtle/);
-      const ttl = await r.text();
+      assert.equal(schema.vocabulary.works_for.from[0], 'Agent'); assert.ok(!schema.vocabulary.kg_SPAWNED, '핵심 관계는 두 번 적지 않는다');
+      // 지식그래프 TTL: TBox(시스템 온톨로지) + ABox(이 워크스페이스)
+      let r = await fetch(`${api}/api/kg/ttl`); const ttl = await r.text();
+      assert.match(r.headers.get('content-type'), /text\/turtle/);
       assert.match(ttl, /ana:Person rdf:type owl:Class ;\n {4}rdfs:label "Person" ;\n {4}rdfs:subClassOf ana:Agent \./);
-      assert.match(ttl, /ana:works_for rdf:type owl:ObjectProperty/); assert.match(ttl, /kg:pat rdf:type ana:Person ;\n {4}rdfs:label "팻 김" ;\n {4}ana:works_for kg:acme/);
-      assert.match(ttl, /rdfs:label "Acme \\"Co\\""/, '따옴표는 이스케이프');
+      assert.match(ttl, /kg:pat rdf:type ana:Person ;\n {4}rdfs:label "팻 김" ;\n {4}ana:works_for kg:acme/);
+      assert.match(ttl, /rdfs:label "Acme \\"Co\\""/, '따옴표 이스케이프');
+      // 분석 결과 TTL·공유 링크(OntoAir)는 그대로
       r = await post('/api/analysis/share', { id }); const sh = await r.json(); assert.match(sh.path, /^\/api\/analysis\/shared\/[0-9a-f]{40}\/ana-analysis-\d+\.ttl$/);
-      assert.equal((await (await post('/api/analysis/share', { id })).json()).path, sh.path, '남은 시간이 넉넉하면 같은 링크');
-      r = await fetch(api + sh.path); assert.equal(r.status, 200); assert.equal(r.headers.get('access-control-allow-origin'), '*'); assert.equal(await r.text(), ttl);
-      const tok = sh.path.match(/([0-9a-f]{40})/)[1];
-      assert.equal((await fetch(`${api}/api/analysis/share-access?t=${tok}`, { method: 'HEAD' })).status, 204);
-      assert.equal((await fetch(`${api}/api/analysis/share-access?t=${'0'.repeat(40)}`, { method: 'HEAD' })).status, 404);
+      r = await fetch(api + sh.path); assert.equal(r.status, 200); assert.equal(r.headers.get('access-control-allow-origin'), '*');
+      assert.equal((await fetch(`${api}/api/analysis/share-access?t=${sh.path.match(/([0-9a-f]{40})/)[1]}`, { method: 'HEAD' })).status, 204);
       assert.equal((await fetch(`${api}/api/analysis/shared/${'0'.repeat(40)}/x.ttl`)).status, 404);
-      // 처음부터 다시
-      await post('/api/analysis/ontology/reset', {});
-      assert.equal((await (await fetch(`${api}/api/analysis`)).json()).ontology, null);
-      j = await (await post('/api/analysis/start', { kinds: ['tasks'] })).json(); assert.equal(j.job.useBase, false);
-      await post('/api/analysis/cancel', { id: j.job.id });
+      // 버리기, 지식그래프에서 지우기, 쓰이는 개념은 못 지운다
+      j = await (await post('/api/analysis/start', { kinds: ['tasks'] })).json();
+      await post('/api/analysis/result', { id: j.job.id, graph: { entities: [{ id: 'x1', label: 'X', class: 'Org' }] } });
+      assert.equal((await post('/api/analysis/discard', { id: j.job.id })).status, 200);
+      assert.equal((await post('/api/kg', { action: 'remove-fact', from: 'bob', rel: 'works_for', to: 'acme' })).status, 200);
+      assert.equal((await post('/api/ontology', { action: 'remove', kind: 'class', item: { id: 'Person' } })).status, 409, '지식그래프가 쓰는 개념');
+      assert.equal((await post('/api/kg', { action: 'remove-entity', id: 'pat' })).status, 200);
+      assert.equal((await post('/api/ontology', { action: 'remove', kind: 'class', item: { id: 'Person' } })).status, 200);
       const ab = await (await fetch(`${api}/api/agent-base`)).json();
-      assert.equal(ab.host, `127.0.0.1:${new URL(api).port}`, '에이전트 지시문 주소는 브라우저 주소가 아니라 서버의 로컬 주소');
+      assert.equal(ab.host, `127.0.0.1:${new URL(api).port}`, '에이전트 지시문 주소는 서버의 로컬 주소');
     });
 
     await ta('C17 요구사항(Requirements): 추가·수정(분석 낡음 표시)·삭제, 분석 작업→결과(상태 검증)·한 번에 하나', async () => {

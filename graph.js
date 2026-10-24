@@ -11,9 +11,9 @@
 //   Note|Task|Event ─REFERS_TO─▶ Note|Task|Event   수동 참조              (명시)
 //   Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           due/date 필드에서 파생 (자동)
 //
-// 지식그래프(Relations › Analyze의 최신 완료 결과)도 같은 스코프에 얹는다 — 개체는 id `kg:<개체 id>`, kind는 온톨로지 클래스,
+// 지식그래프(워크스페이스의 kg.json — 분석 결과를 승인해 쌓은 것)도 같은 스코프에 얹는다 — 개체는 id `kg:<개체 id>`, kind는 온톨로지 클래스,
 // 사실은 온톨로지 관계 id를 타입으로, 근거는 개체 ─MENTIONED_IN─▶ Note|Task|Event. 그래서 메모 하나에서 출발해
-// 그 안의 개체와 개체 사이의 사실까지 /api/graph/trace 한 번으로 따라갈 수 있다. 원천은 analysis.json이다.
+// 그 안의 개체와 개체 사이의 사실까지 /api/graph/trace 한 번으로 따라갈 수 있다. 원천은 kg.json, 틀은 시스템 온톨로지다.
 
 const path = require('node:path');
 const crypto = require('node:crypto');
@@ -85,7 +85,7 @@ function snapshot(s, scope, kg) {
   for (const l of s.links || []) if (EXPLICIT.includes(l.type)) edge(l.from, l.to, l.type, l.at ? { at: l.at } : {});
   if (kg && kg.graph) {
     const g = kg.graph;
-    for (const e of g.entities || []) node({ id: KG_PREFIX + e.id, kind: kgKind(e.class), scope, no: `analysis #${kg.job}`, title: String(e.label || e.id), status: '', updated_at: '' });
+    for (const e of g.entities || []) node({ id: KG_PREFIX + e.id, kind: kgKind(e.class), scope, no: kg.job === 'kg' ? 'knowledge graph' : `analysis #${kg.job}`, title: String(e.label || e.id), status: '', updated_at: '' });
     for (const e of g.entities || []) for (const src of e.sources || []) if (ids.has(src)) edge(KG_PREFIX + e.id, src, 'MENTIONED_IN');
     for (const f of g.facts || []) edge(KG_PREFIX + f.from, KG_PREFIX + f.to, kgType(f.rel), f.sources && f.sources.length ? { sources: f.sources } : {});
   }
@@ -159,7 +159,8 @@ function createGraph({ loadData, dataFileOf, loadKg }) {
     ensure(ws);
     const d = describeNodeRel(fileOf(ws));
     d.provenance.businessMeanings = 'Supplied by the ANA base for its Notes/Tasks/Calendar graph; knowledge-graph kinds and relations come from the latest Relations analysis ontology.';
-    const kg = kgOf(ws), o = (kg && kg.ontology) || { classes: [], relations: [] };
+    const kg = kgOf(ws), o0 = (kg && kg.ontology) || { classes: [], relations: [] };
+    const o = { classes: o0.classes.filter((c) => !c.core), relations: o0.relations.filter((r) => !r.core) };   // 핵심(Note·SPAWNED…)은 위 기본 어휘가 이미 설명한다
     const clsDesc = new Map(o.classes.map((c) => [kgKind(c.id), c.desc || c.label])), relDesc = new Map(o.relations.map((r) => [kgType(r.id), r]));
     d.scopes = d.scopes.filter((x) => x.scope === ws).map((sc) => ({
       ...sc,
@@ -170,8 +171,8 @@ function createGraph({ loadData, dataFileOf, loadKg }) {
     if (kg) {
       d.vocabulary.MENTIONED_IN = { meaning: KG_MENTIONED, from: ['<entity>'], to: ['Note', 'Task', 'Event'], editable: false };
       for (const r of o.relations) d.vocabulary[kgType(r.id)] = { meaning: [r.label, r.desc].filter(Boolean).join(' — '), from: [r.domain || 'any'], to: [r.range || 'any'], editable: false, source: `analysis #${kg.job}` };
-      d.knowledgeGraph = { analysis: kg.job, classes: o.classes.map((c) => ({ kind: kgKind(c.id), label: c.label, parent: c.parent ? kgKind(c.parent) : '', desc: c.desc })),
-        note: 'Entities have ids kg:<entity id>. Change them by running Relations › Analyze again, not with /api/link.' };
+      d.knowledgeGraph = { source: kg.job === 'kg' ? 'kg.json (approved analyses)' : `analysis #${kg.job}`, classes: o.classes.map((c) => ({ kind: kgKind(c.id), label: c.label, parent: c.parent ? kgKind(c.parent) : '', desc: c.desc })),
+        note: 'Entities have ids kg:<entity id>. They grow when an analysis is approved into the knowledge graph (Knowledge › Analysis); change them there, not with /api/link.' };
     }
     return d;
   }

@@ -211,7 +211,7 @@
         "anaModal",
         "function renderAnalysis",
         "function drawKG",
-        "function mergeOntology",
+        "function mergeIntoKg",
         "function analysisTurtle",
         "/api/analysis/share",
         "function openInOntoAir",
@@ -233,7 +233,9 @@
         "data-inboxbadge",
         "const AREAS = ['ws', 'sys']",
         "function syncBottomNav",
-        "data-go=\"ws:inbox\""
+        "data-go=\"ws:inbox\"",
+        "var SUBTABS",
+        "function renderSubtabs"
       ]
     },
     {
@@ -301,7 +303,7 @@
       "id": "system-trust",
       "title": "Trustworthiness · Safety · Security checks",
       "skill": "trust-checks",
-      "summary": "System tabs computed from real state by /api/trust: agent running, structured log, tool failure rate, interruptions, plan usage (Trustworthiness); permission-bypass flags, risky commands the agent ran, approval gate (Safety); bind address, sign-in, CSRF, token handling, credential file mode, secrets saved in notes/tasks (Security). Risk count badges System. Shown as one System › Health page: risk → review → info across Trustworthiness · Safety · Security, OK checks folded, then usage stats and activity.",
+      "summary": "System tabs computed from real state by /api/trust: agent running, structured log, tool failure rate, interruptions, plan usage (Trustworthiness); permission-bypass flags, risky commands the agent ran, approval gate (Safety); bind address, sign-in, CSRF, token handling, credential file mode, secrets saved in notes/tasks (Security). Risk count badges System. Shown in System › Health with one sub-tab each — Trustworthiness · Safety · Security · Usage — risk → review → info, OK checks folded.",
       "anchors": [
         "/api/trust",
         "function collectTrust",
@@ -309,8 +311,8 @@
         "SECRET_PATTERNS",
         "function refreshTrust",
         "healthView",
-        "id=\"healthList\"",
-        "id=\"healthOk\""
+        "data-subsec=\"reliability\"",
+        "data-subsec=\"security\""
       ]
     },
     {
@@ -352,6 +354,32 @@
         "function askAdmin",
         "function runAdminAction",
         "action === 'escalate'"
+      ]
+    },
+    {
+      "id": "system-ontology",
+      "title": "System ontology and workspace knowledge graphs",
+      "skill": "relations",
+      "summary": "One ontology for the ANA (core from graph.js + admin-added classes/relations, ontology.json) and one knowledge graph per workspace (kg.json). Analyses read the shared ontology; new concepts become admin approval requests (ontology.add); results are added to the knowledge graph only when a member approves (/api/analysis/apply), and facts waiting on a concept are added once it is approved (applyPendingAll). System › Ontology edits it; Knowledge shows Links · Knowledge graph · Analysis · Ontology. /api/kg/ttl exports TBox + ABox.",
+      "anchors": [
+        "const CORE_ONTOLOGY",
+        "function mergeIntoKg",
+        "function applyPendingAll",
+        "/api/analysis/apply",
+        "function renderOntology",
+        "function renderKgApprovals",
+        "/api/kg/ttl"
+      ]
+    },
+    {
+      "id": "health-tests",
+      "title": "Health › Tests",
+      "skill": "trust-checks",
+      "summary": "Runs the ANA's own tests (package.json scripts.test, node commands only, minimal env, admin only), keeps the last 10 runs with per-suite pass/fail, failing test names and output (tests.json), and counts a failed run on the Health badge.",
+      "anchors": [
+        "function runTests",
+        "/api/tests/run",
+        "function renderTests"
       ]
     }
   ]

@@ -607,7 +607,6 @@ body:not(.is-admin) .files-proj { display: none; }
 .files-roots .ro { font-size: 10.5px; font-weight: 700; opacity: .7; } .files-proj { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-sub); }
 body:not(.is-admin) .topnav .tab[data-view="admin"] { display: none !important; }
 .mm-role { padding: 8px 14px 6px; font-size: 12px; color: var(--text-weak); border-bottom: 1px solid var(--line-2); margin-bottom: 4px; } .mm-role:empty { display: none; }
-#admType { margin: 4px 0 10px; } #admType .n { margin-left: 6px; opacity: .7; }
 .adm-card { padding: 12px 14px; margin-bottom: 10px; } .adm-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .adm-top .t { font-weight: 800; font-size: 14px; flex: 1 1 200px; overflow-wrap: anywhere; } .adm-top .n { color: var(--text-weak); font-size: 12px; }
 .adm-tag { font-size: 11px; font-weight: 800; border-radius: 6px; padding: 1px 6px; color: var(--blue-700); background: var(--blue-weak); }
@@ -637,7 +636,9 @@ body.sys-mode .bottomnav button[data-scope="sys"] { display: flex !important; } 
 @media (max-width: 768px) {
   body:not(.in-work) .tabstrip { display: none; }                     /* 휴대폰: 위 탭 줄은 할일·일정·메모일 때만 */
   .topnav .tab:is([data-view="relations"], [data-view="files"], [data-view="inbox"]) { display: none !important; }
-  body.sys-mode .sys-label { margin-right: auto; }
+  body.sys-mode .sys-label { margin-right: auto; min-width: 0; }
+  body.sys-mode .sys-label span { display: none; }                    /* 좁은 화면: 'SYSTEM'만 — 헤더가 두 줄로 접히지 않게 */
+  body.sys-mode .topnav { flex-wrap: nowrap; }
 }
 .ib-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 2px 0 10px; } .ib-head .sp { flex: 1; } .ib-head .stseg { margin: 0; }
 .ib-btn { height: 34px; padding: 0 13px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--line); }
@@ -660,6 +661,31 @@ body.sys-mode .bottomnav button[data-scope="sys"] { display: flex !important; } 
 .tcheck .tsec { display: block; font-size: 10.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--text-weak); margin-bottom: 2px; }
 .health-ok { margin: 8px 0 4px; } .health-ok summary { cursor: pointer; padding: 10px 12px; border-radius: 12px; border: 1px dashed var(--line); font-size: 13px; font-weight: 700; color: var(--text-sub); }
 .health-ok[open] summary { margin-bottom: 8px; }
+.tests-card { padding: 14px; }
+.tests-top .pill, .tests-row .pill { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 800; }
+.tests-top .pill.ok, .tests-row .pill.ok { background: color-mix(in srgb, #10B981 16%, transparent); color: #0E6B4C; }
+.tests-top .pill.risk, .tests-row .pill.risk { background: color-mix(in srgb, #D1366B 14%, transparent); color: #A3214E; }
+.tests-top .pill.warn { background: color-mix(in srgb, #E8701A 16%, transparent); color: #9A4710; }
+.onto-acts { display: inline-flex; gap: 6px; margin-left: 8px; } .onto-acts button { height: 24px; padding: 0 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); color: var(--text-sub); }
+.core { font-size: 10.5px; font-weight: 800; color: var(--text-weak); background: var(--surface-2); border-radius: 6px; padding: 1px 6px; }
+.ana-new { margin: 6px 0; font-size: 12.5px; color: var(--text-sub); } .ana-state { margin: 6px 0 10px; font-size: 13px; font-weight: 700; color: var(--text-sub); } .ana-state.ok { color: #0E6B4C; }
+.onto-form { padding: 12px; display: grid; gap: 8px; margin-bottom: 12px; } .onto-form[hidden] { display: none; } .of-row { display: flex; gap: 10px; flex-wrap: wrap; font-size: 13px; } .of-row[hidden] { display: none; } .of-row select { margin-left: 6px; }
+.kg-card { padding: 8px; } .tests-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; } .tests-top .sub, .tests-row .sub { font-size: 12px; color: var(--text-weak); }
+.tests-suites { margin: 10px 0 0; padding-left: 0; list-style: none; font-size: 13px; display: grid; gap: 6px; } .tests-suites ul { margin: 4px 0 0 18px; padding: 0; font-size: 12.5px; color: var(--warm-fg); }
+.tests-suites .good { color: var(--green, #10B981); font-weight: 900; } .tests-suites .bad { color: var(--warm-fg); font-weight: 900; }
+.tests-log { margin-top: 10px; } .tests-log summary { cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--text-weak); }
+.tests-log pre { max-height: 320px; overflow: auto; font-size: 11px; line-height: 1.45; background: var(--surface-2); padding: 10px; border-radius: 8px; white-space: pre-wrap; word-break: break-word; }
+.tests-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--surface); margin-bottom: 6px; font-size: 13px; }
+.subtabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; white-space: nowrap; border-bottom: 1px solid var(--line-2); margin: -4px 0 12px; }
+.subtabs::-webkit-scrollbar { display: none; }
+.subtabs button { position: relative; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px; font-size: 14px; font-weight: 700; color: var(--text-weak); }
+.subtabs button.on { color: var(--text); } .subtabs button.on::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2.5px; border-radius: 2px; background: var(--blue); }
+.subtabs .n { min-width: 18px; padding: 0 5px; border-radius: 999px; font-size: 11px; line-height: 18px; text-align: center; background: var(--blue); color: var(--white); }
+.toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 0 12px; padding: 2px 1px; }
+.toolbar::-webkit-scrollbar { display: none; } .toolbar .sp { flex: 1 0 8px; } .toolbar > * { flex: 0 0 auto; } .toolbar .stseg { margin: 0; }
+.toolbar .cnt { font-size: 12.5px; color: var(--text-weak); white-space: nowrap; }
+.sub-lead { display: block; font-size: 13px; color: var(--text-sub); margin: 0 0 10px; }
+[data-subsec][hidden], .ib-btn[hidden], .toolbar [hidden] { display: none !important; }
 .ex-wrap { padding-bottom: 0 !important; margin-bottom: -6px; } .ex-wrap[hidden], body.sys-mode .ex-wrap { display: none; }
 .ex-banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; background: var(--blue-weak); box-shadow: 0 0 0 1px color-mix(in srgb, var(--blue) 30%, transparent); }
 .ex-t { flex: 1 1 260px; font-size: 13px; color: var(--text-sub); line-height: 1.5; } .ex-t b { color: var(--text); }
@@ -1396,6 +1422,7 @@ body.sys-mode .ws-combo { display: none; }
       <button class="tab" data-view="inbox" data-group="ws" role="tab" aria-selected="false">Inbox<span class="tbadge" data-inboxbadge>0</span></button>
       <button class="tab" data-view="admin" data-group="sys" role="tab" aria-selected="false">Inbox<span class="tbadge" id="admBadge">0</span></button>
       <button class="tab" data-view="roadmap" data-group="sys" role="tab" aria-selected="false">Roadmap<span class="tbadge" id="roadBadge">0</span></button>
+      <button class="tab" data-view="ontology" data-group="sys" role="tab" aria-selected="false">Ontology</button>
       <button class="tab" data-view="health" data-group="sys" role="tab" aria-selected="false">Health<span class="tbadge" id="healthBadge">0</span></button>
       <!-- 집계용(화면에 안 보임): 받은함·로드맵 배지가 이 값들을 더한다 -->
       <span hidden><span id="evoBadge"></span><span id="apprBadge"></span><span id="reqBadge"></span><span id="sevoBadge"></span><span id="updBadge"></span></span>
@@ -1492,33 +1519,59 @@ body.sys-mode .ws-combo { display: none; }
 
   <!-- 관계: 메모·할일·일정이 어떻게 이어져 있는지(NodeRel) — 흐름 그림 · 끊긴 곳 · 관계 어휘 -->
   <section class="view" id="relationsView" role="tabpanel"><div class="wrap">
-    <div class="sec-head"><h2>Knowledge</h2><span class="cnt" id="relWs"></span><span class="sp"></span><button class="ana-btn" id="anaBtn">Analyze</button></div>
-    <!-- 분석: 에이전트가 메모·할일·일정에서 온톨로지(개념·관계 종류)와 지식그래프(개체·사실)를 뽑는다 -->
-    <div class="card ana-card" id="anaCard" hidden></div>
-    <div class="sec-head" style="margin-top:18px"><h2>Links</h2><span class="sp"></span><span class="cnt">NodeRel</span></div>
-    <div class="rel-graph card" id="relGraph"></div>
-    <div class="sec-head" style="margin-top:22px"><h2>Where the flow breaks</h2></div>
-    <div id="relStats"></div>
-    <div class="sec-head" style="margin-top:22px"><h2>Vocabulary</h2></div>
-    <div class="card rel-vocab" id="relVocab"></div>
+    <nav class="subtabs" data-sub="relations" role="tablist" aria-label="Knowledge"></nav>
+    <div data-subsec="links">
+      <div class="toolbar"><span class="cnt" id="relWs"></span><span class="sp"></span><span class="cnt">NodeRel</span></div>
+      <div class="rel-graph card" id="relGraph"></div>
+      <div class="sec-head" style="margin-top:22px"><h2>Where the flow breaks</h2></div>
+      <div id="relStats"></div>
+    </div>
+    <div data-subsec="analysis">
+      <div class="toolbar"><span class="cnt">Ontology and knowledge graph from your notes, tasks and events</span><span class="sp"></span><button class="ana-btn" id="anaBtn">Analyze</button></div>
+      <!-- 분석: 에이전트가 메모·할일·일정에서 온톨로지(개념·관계 종류)와 지식그래프(개체·사실)를 뽑는다 -->
+      <div class="card ana-card" id="anaCard" hidden></div>
+      <div class="empty" id="anaEmpty">No analysis yet — press [Analyze]</div>
+    </div>
+    <div data-subsec="kg">
+      <div class="toolbar"><span class="cnt" id="kgSum"></span><span class="sp"></span><button class="ib-btn" id="kgOntoAir">Open in OntoAir ↗</button><button class="ib-btn" id="kgTtl">Download .ttl</button></div>
+      <div class="card kg-card" id="kgGraph"></div>
+      <div class="empty" id="kgEmpty">The knowledge graph is empty — run an analysis and add its result</div>
+    </div>
+    <div data-subsec="ontology">
+      <div class="evo-lead sub-lead">The shared concepts every workspace uses. The admin manages them in System › Ontology; new ones proposed by an analysis wait for the admin's OK.</div>
+      <div id="ontoRead"></div>
+      <div class="sec-head" style="margin-top:18px"><h2>Built-in relations</h2></div>
+      <div class="card rel-vocab" id="relVocab"></div>
+    </div>
   </div></section>
 
   <!-- Workspace › Inbox: 이 워크스페이스에서 나를 기다리는 일 하나로 — 확인할 것(요청·승인·데이터 변경) · 제안 · 보낸 것 -->
   <section class="view" id="inboxView" role="tabpanel"><div class="wrap">
-    <div class="ib-head"><div class="stseg two" data-stseg="inbox" role="tablist" aria-label="Show"></div><span class="sp"></span>
-      <button class="ib-btn" id="reqAsk">Ask the agent</button><button class="ib-btn ask-admin" data-type="work">Ask the admin</button><button class="ib-btn" id="featReq">Request a feature</button></div>
-    <h3 class="ib-sec">Needs you</h3>
-    <div class="sec-head" id="apprDiffHead" hidden><h2>Data changes</h2><span class="cnt" id="apprDiffCnt"></span></div>
-    <div id="apprDiffs"></div>
-    <div class="sec-head" id="apprReqHead" hidden><h2>Approvals</h2><span class="cnt" id="apprReqCnt"></span></div>
-    <div id="apprList"></div>
-    <div id="reqList"></div>
-    <div class="empty" id="needEmpty"></div><div hidden><div id="apprEmpty"></div><div id="reqEmpty"></div></div>
-    <h3 class="ib-sec">Suggestions for this workspace<button class="ib-mini" id="evoAnalyze">Ask the agent</button></h3>
-    <div id="evoList"></div>
-    <div class="empty" id="evoEmpty"></div>
-    <h3 class="ib-sec" id="sentHead" hidden>Sent by you</h3>
-    <div class="to-admin" id="toAdmin" hidden></div>
+    <nav class="subtabs" data-sub="inbox" role="tablist" aria-label="Inbox"></nav>
+    <div class="toolbar"><div class="stseg two" data-stseg="inbox" role="tablist" aria-label="Show"></div><span class="sp"></span>
+      <button class="ib-btn" id="apprAsk" data-for="approval">Ask the agent</button><button class="ib-btn" id="reqAsk" data-for="work">Ask the agent</button><button class="ib-btn" id="evoAnalyze" data-for="evolve">Ask the agent</button>
+      <button class="ib-btn ask-admin" data-type="work" data-for="sent">Ask the admin</button><button class="ib-btn" id="featReq" data-for="sent">Request a feature</button></div>
+    <div data-subsec="approval">
+      <div class="sec-head" id="apprDiffHead" hidden><h2>Data changes</h2><span class="cnt" id="apprDiffCnt"></span></div>
+      <div id="apprDiffs"></div>
+      <div id="apprKg"></div>
+      <div class="sec-head" id="apprReqHead" hidden><h2>Decisions and access</h2><span class="cnt" id="apprReqCnt"></span></div>
+      <div id="apprList"></div>
+      <div class="empty" id="apprEmpty"></div>
+    </div>
+    <div data-subsec="work">
+      <div id="reqList"></div>
+      <div class="empty" id="reqEmpty"></div>
+    </div>
+    <div data-subsec="evolve">
+      <div class="evo-lead sub-lead">Better ways to run this workspace with the features it already has. If one needs a new feature, propose it to the system.</div>
+      <div id="evoList"></div>
+      <div class="empty" id="evoEmpty"></div>
+    </div>
+    <div data-subsec="sent">
+      <div class="to-admin" id="toAdmin"></div><span id="sentHead" hidden></span>
+      <div class="empty" id="sentEmpty">Nothing sent yet — ask the admin or request a feature</div>
+    </div>
   </div></section>
 
   <section class="view" id="filesView" role="tabpanel"><div class="wrap">
@@ -1531,39 +1584,63 @@ body.sys-mode .ws-combo { display: none; }
     <div id="filesStatus" role="status" aria-live="polite"></div><div id="filesList"></div>
   </div></section>
 
+  <!-- System › Ontology: 모든 워크스페이스가 쓰는 개념 틀 — 핵심(앱이 정함)은 잠금, 나머지는 관리자가 더하고 고친다 -->
+  <section class="view" id="ontologyView" role="tabpanel"><div class="wrap">
+    <nav class="subtabs" data-sub="ontology" role="tablist" aria-label="Ontology"></nav>
+    <div class="toolbar"><span class="cnt" id="ontoSum"></span><span class="sp"></span><button class="ib-btn" id="ontoAddBtn">+ Add</button></div>
+    <form class="card onto-form" id="ontoForm" autocomplete="off" hidden>
+      <input id="ofId" maxlength="60" placeholder="id — e.g. Client, works_for" aria-label="Id">
+      <input id="ofLabel" maxlength="80" placeholder="Label" aria-label="Label">
+      <div class="of-row" data-of="class"><label>Kind of <select id="ofParent"></select></label></div>
+      <div class="of-row" data-of="relation"><label>From <select id="ofDomain"></select></label><label>To <select id="ofRange"></select></label></div>
+      <textarea id="ofDesc" rows="2" maxlength="300" placeholder="What it means (optional)" aria-label="Description"></textarea>
+      <div class="rqm-add-acts"><button type="button" id="ofCancel">Cancel</button><button type="submit" class="ok" id="ofSave">Add</button></div>
+    </form>
+    <div data-subsec="classes"><div id="ontoClasses"></div></div>
+    <div data-subsec="relations"><div id="ontoRelations"></div></div>
+  </div></section>
   <!-- System › Health: 점검(신뢰성·안전·보안)을 위험한 것부터 한 장에, 아래에 사용 통계·활동 -->
   <section class="view" id="healthView" role="tabpanel"><div class="wrap">
-    <div class="trust-sum" id="healthSum"></div>
-    <div class="trust-list" id="healthList"></div>
-    <details class="health-ok"><summary id="healthOkSum">Other checks</summary><div class="trust-list" id="healthOk"></div></details>
-    <div class="sec-head" style="margin-top:22px"><h2>Usage</h2><span class="sp"></span>
-      <div class="seg" id="statSeg"><button class="on" data-seg="mine">My stats</button><button data-seg="all">All</button></div></div>
-    <div id="statBody"></div>
-    <div class="sec-head" style="margin-top:22px"><h2>Activity</h2></div>
-    <div id="actList"></div>
+    <nav class="subtabs" data-sub="health" role="tablist" aria-label="Health"></nav>
+    <div data-subsec="reliability" data-check></div>
+    <div data-subsec="safety" data-check></div>
+    <div data-subsec="security" data-check></div>
+    <div data-subsec="tests">
+      <div class="toolbar"><span class="cnt" id="testsCmd"></span><span class="sp"></span><button class="ana-btn" id="testsRun">Run tests</button></div>
+      <div class="card tests-card" id="testsLast"></div>
+      <div class="sec-head" style="margin-top:18px"><h2>Earlier runs</h2></div>
+      <div id="testsRuns"></div>
+    </div>
+    <div data-subsec="usage">
+      <div class="toolbar"><div class="seg" id="statSeg"><button class="on" data-seg="mine">My stats</button><button data-seg="all">All</button></div></div>
+      <div id="statBody"></div>
+      <div class="sec-head" style="margin-top:22px"><h2>Activity</h2></div>
+      <div id="actList"></div>
+    </div>
   </div></section>
 
 
   <!-- 진화 -->
   <section class="view" id="adminView" role="tabpanel"><div class="wrap">
-    <div class="evo-head"><span class="evo-lead">What members, the agent and the system checks need from you as admin — approvals for system changes, and work only an admin can do</span></div>
-    <div class="ana-seg" id="admType" role="tablist" aria-label="Kind"><button role="tab" data-t="approval" class="on" aria-selected="true">Approvals<span class="n" id="admNA"></span></button><button role="tab" data-t="work" aria-selected="false">Work requests<span class="n" id="admNW"></span></button></div>
-    <div class="stseg" data-stseg="adm" role="tablist" aria-label="Status"></div>
+    <nav class="subtabs" data-sub="admin" role="tablist" aria-label="Admin inbox"></nav>
+    <div class="toolbar"><div class="stseg two" data-stseg="adm" role="tablist" aria-label="Status"></div></div>
     <div id="admList"></div>
     <div class="empty" id="admEmpty"></div>
   </div></section>
   <!-- System › Roadmap: 시스템이 바뀌는 길 — 요구사항 → 제안 → 만드는 중 → 확인, 업스트림 업데이트도 같은 줄에 -->
   <section class="view" id="roadmapView" role="tabpanel"><div class="wrap">
-    <div class="ib-head"><div class="stseg two" data-stseg="road" role="tablist" aria-label="Show"></div><span class="sp"></span>
-      <button class="ib-btn" id="rqmNew">+ Requirement</button><button class="ib-btn" id="rqmAnalyze">Check all</button><button class="ib-btn" id="sysEvoAnalyze">Ask the agent</button><button class="ib-btn" id="updCheck">Check for updates</button></div>
+    <nav class="subtabs" data-sub="roadmap" role="tablist" aria-label="Roadmap"></nav>
+    <div class="toolbar"><div class="stseg two" data-stseg="road" role="tablist" aria-label="Show"></div><span class="sp"></span>
+      <button class="ib-btn" id="rqmNew" data-for="req">+ Requirement</button><button class="ib-btn" id="rqmAnalyze" data-for="req">Check all</button>
+      <button class="ib-btn" id="sysEvoAnalyze" data-for="evolve">Ask the agent</button><button class="ib-btn" id="updCheck" data-for="upd">Check for updates</button></div>
     <form class="card rqm-add" id="rqmAdd" autocomplete="off" hidden>
       <input id="rqmTitle" maxlength="200" placeholder="Requirement — e.g. Show overdue tasks first" aria-label="Requirement">
       <textarea id="rqmDetail" rows="2" maxlength="4000" placeholder="Details (optional) — why it matters, how you'd check it" aria-label="Details"></textarea>
       <div class="rqm-add-acts"><button type="submit" class="ok">Add requirement</button></div>
     </form>
-    <div class="rm-sum"><span id="rqmSum"></span> <span class="upd-last" id="updLast"></span></div>
+    <div class="rm-sum"><span id="rqmSum" data-for="req"></span><span class="upd-last" id="updLast" data-for="upd"></span></div>
     <div class="card ana-card" id="rqmJob" hidden></div>
-    <div class="rm-steps" aria-hidden="true"><span>Request</span><span>Proposal</span><span>Building</span><span>Checked</span></div>
+    <div class="rm-steps" id="rmSteps" aria-hidden="true"></div>
     <div id="rqmList"></div>
     <div class="empty" id="rqmEmpty"></div>
   </div></section>
@@ -1668,6 +1745,7 @@ body.sys-mode .ws-combo { display: none; }
   <button data-go="sys:" data-nav="system" data-scope="ws" class="admin-only"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>System<span class="tbadge" data-sysbadge>0</span></button>
   <button data-go="sys:admin" data-nav="admin" data-scope="sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></svg>Inbox<span class="tbadge" data-admbadge>0</span></button>
   <button data-go="sys:roadmap" data-nav="roadmap" data-scope="sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 6h7a3 3 0 0 1 0 6H10a3 3 0 0 0 0 6h7"/></svg>Roadmap<span class="tbadge" data-roadbadge>0</span></button>
+  <button data-go="sys:ontology" data-nav="ontology" data-scope="sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><circle cx="17" cy="7" r="4"/><path d="M7 14l4 7H3z"/><rect x="13" y="13" width="8" height="8" rx="4"/></svg>Ontology</button>
   <button data-go="sys:health" data-nav="health" data-scope="sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Health<span class="tbadge" data-healthbadge>0</span></button>
   <button data-go="ws:" data-nav="workspace" data-scope="sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Workspace</button>
 </nav>
@@ -1758,7 +1836,7 @@ body.sys-mode .ws-combo { display: none; }
   <p class="ana-lead">The agent reads the items you pick and builds an <b>ontology</b> (the kinds of things and relations) and a <b>knowledge graph</b> (the actual things and facts).</p>
   <div class="ana-picks" id="anaPicks"></div>
   <label class="ana-opt"><input type="checkbox" id="anaOpen"> Only open tasks and events</label>
-  <label class="ana-opt" id="anaBaseRow" hidden><input type="checkbox" id="anaBase" checked> <span>Build on this workspace's ontology <span class="n" id="anaBaseN"></span></span></label>
+  <div class="ana-opt" id="anaBaseRow">Uses the shared ontology<span class="n" id="anaBaseN"></span> — new concepts go to the admin</div>
   <div class="fld"><input id="anaFocus" placeholder="Focus (optional) — e.g. people, organizations, places" maxlength="300" aria-label="Analysis focus"></div>
   <div class="modal-acts"><button class="cancel" data-close>Cancel</button><button class="ok" id="anaStart">Start analysis</button></div>
 </div>
@@ -1783,7 +1861,7 @@ let currentWs = '', workspaces = [], wsEditing = '', wsDrag = null;
 // 오프라인 모드(LLM 없음): 서버가 <html data-offline>을 붙인다. 이 탭들은 에이전트가 있어야 의미가 있어 숨긴다
 const OFFLINE = document.documentElement.hasAttribute('data-offline');
 const OFFLINE_VIEWS = new Set(['inbox']);
-const SYS_VIEWS = new Set(['admin', 'roadmap', 'health']);
+const SYS_VIEWS = new Set(['admin', 'roadmap', 'ontology', 'health']);
 // 역할: admin(시스템을 결정) · member(워크스페이스 실무). /api/me가 알려 준다. Admin 탭은 관리자에게만
 let myRole = 'admin';
 const usableTab = (b) => !!b && !(OFFLINE && OFFLINE_VIEWS.has(b.dataset.view)) && !(SYS_VIEWS.has(b.dataset.view) && myRole !== 'admin');
@@ -1806,7 +1884,7 @@ let sessionAlive = false, busy = false, atBottom = true;
 // 선언줄 이전에 읽으면 던지고, 그러면 이후 스크립트 전체가 중단된다(실제로 그런 사고가 있었다).
 let contextChips = [], attachments = [];
 // 대화 기록 모드(Claude Code JSONL) 상태 — pollHealth가 부트스트랩 중에 부르므로 여기서 먼저 선언한다
-let sw = null, logAgain = false, evoFocus = 0;   // evoFocus = 요구사항 카드에서 'Open in Evolve'로 연 제안   // sw = 세션 전환·긴 대화 불러오기 진행(단계별 표시)
+let sw = null, logAgain = false, evoFocus = 0, testRisk = 0;   // evoFocus = 요구사항 카드에서 'Open in Evolve'로 연 제안   // sw = 세션 전환·긴 대화 불러오기 진행(단계별 표시)
 let logMode = false, logRev = 0, logSession = '', logTimer = null, logBusy = false, logModel = '', logServerModel = '', logServerEffort = '', logEffort = '', msheetBusy = false, logKind = '', limits = null, trustRisk = 0, permInfo = null, permBusy = false, permPollAt = 0, logOldest = 0, logHasOlder = false, logLoadingOlder = false;
 const logOpen = new Set();          // 사용자가 펼쳐 둔 도구 묶음(다시 그려도 유지)   // attachments: {name, size, path, pending}
 
@@ -2213,9 +2291,9 @@ function renderStSeg(key, counts) {
 document.querySelectorAll('[data-stseg]').forEach((el) => el.addEventListener('click', (e) => {
   const b = e.target.closest('button[data-b]'); if (!b) return;
   const key = el.dataset.stseg; stFilter[key] = b.dataset.b;
-  if (key === 'inbox') stFilter.appr = stFilter.req = stFilter.evo = b.dataset.b;   // 받은함의 열림/끝남은 세 목록을 함께
+  if (key === 'inbox') stFilter.appr = stFilter.req = stFilter.evo = stFilter.inbox = b.dataset.b;   // 받은함의 열림/끝남은 세 목록을 함께
   try { localStorage.setItem('ana-collab-filter', JSON.stringify(stFilter)); } catch {}
-  if (key === 'inbox') { renderRequestsAll(); renderEvolve(); renderToAdmin(); }
+  if (key === 'inbox') { renderRequestsAll(); renderEvolve(); renderToAdmin(); renderKgApprovals(); }
   else if (key === 'road') renderRoadmap(); else if (key === 'evo') renderEvolve(); else if (key === 'adm') renderAdmin(); else renderRequestsAll();
 }));
 const whenTxt = (x) => { const t = recent(x); return t ? fmtWhen(t) : ''; };
@@ -2235,17 +2313,18 @@ function renderRequestsAll() {
   renderReqBox('req', req);
   // Approvals
   const ak = stFilter.appr;
-  inboxCounts.need = { open: apprReq.open.length + diffs.open.length + req.open.length, closed: apprReq.closed.length + diffs.closed.length + req.closed.length };
+  inboxCounts.approval = { open: apprReq.open.length + diffs.open.length + kgApprovalsOpen('open'), closed: apprReq.closed.length + diffs.closed.length + kgApprovalsOpen('closed') };
+  inboxCounts.work = { open: req.open.length, closed: req.closed.length };
   $('apprDiffHead').hidden = !diffs[ak].length; $('apprDiffCnt').textContent = diffs[ak].length || '';
   $('apprDiffs').innerHTML = diffs[ak].map((p) => propCard(p.id, p.text || 'Change proposal')).join('');
   renderReqBox('appr', apprReq, { head: !!diffs[ak].length });
   const emptyA = !apprReq[ak].length && !diffs[ak].length;
-  const none = emptyA && !req[stFilter.req].length;
-  $('needEmpty').textContent = ST_EMPTY.inbox[ak] || ''; $('needEmpty').style.display = none ? 'block' : 'none';
+  $('apprEmpty').textContent = ak === 'closed' ? 'Nothing approved or rejected yet' : 'Nothing waiting for your approval'; $('apprEmpty').style.display = emptyA && !kgApprovalsOpen(ak) ? 'block' : 'none';
+  $('reqEmpty').textContent = stFilter.req === 'closed' ? 'Nothing finished yet' : 'No work requests — press [Ask the agent]'; $('reqEmpty').style.display = req[stFilter.req].length ? 'none' : 'block';
   renderInboxSeg();
   // 배지 = 대기 수
   $('reqBadge').textContent = req.wait.length; $('reqBadge').classList.toggle('show', req.wait.length > 0);
-  const nA = apprReq.wait.length + diffs.wait.length;
+  const nA = apprReq.wait.length + diffs.wait.length + kgApprovalsOpen('open');   // 분석 결과 승인 대기도
   $('apprBadge').textContent = nA; $('apprBadge').classList.toggle('show', nA > 0); updateSysBadge();
 }
 // 한 상자(prefix: req | appr)에 고른 상태의 요청만 그린다. 답을 쓰던 칸은 다시 그려도 지우지 않는다
@@ -2262,9 +2341,12 @@ function renderReqBox(prefix, buckets, opt = {}) {
 // 데이터 변경이 실시간으로 들어오면(proposal 이벤트) 다시 그린다
 function renderApprovals() { renderRequestsAll(); }
 // 받은함 위의 열림/끝남 칸 — 확인할 것과 제안의 수를 더한다
-const inboxCounts = { need: { open: 0, closed: 0 }, evo: { open: 0, closed: 0 } };
+const inboxCounts = { approval: { open: 0, closed: 0 }, work: { open: 0, closed: 0 }, evolve: { open: 0, closed: 0 }, sent: { open: 0, closed: 0 } };
 function renderInboxSeg() {
-  renderStSeg('inbox', { open: inboxCounts.need.open + inboxCounts.evo.open, closed: inboxCounts.need.closed + inboxCounts.evo.closed });
+  if (!SUBTABS) return;
+  const c = inboxCounts[curSub('inbox')] || { open: 0, closed: 0 };
+  renderStSeg('inbox', { open: c.open, closed: c.closed });
+  setSubCount('inbox', 'approval', inboxCounts.approval.open); setSubCount('inbox', 'work', inboxCounts.work.open); setSubCount('inbox', 'evolve', inboxCounts.evolve.open); setSubCount('inbox', 'sent', inboxCounts.sent.open);
 }
 $('apprDiffs').addEventListener('click', (e) => {
   const pbtn = e.target.closest('.prop button'); if (!pbtn) return;
@@ -2277,20 +2359,27 @@ const TRUST_ICON = { ok: '✓', info: 'i', warn: '!', risk: '!' };
 async function refreshTrust() {
   let d; try { d = await (await getJSON('/api/trust')); } catch { return; }
   if (!d || d.error) return;
-  // 세 갈래(신뢰성·안전·보안)를 한 목록으로: 위험 → 검토 → 참고, 괜찮은 것은 접어 둔다. 오프라인에는 에이전트 점검이 없다
-  const SEC = { reliability: 'Trustworthiness', safety: 'Safety', security: 'Security' };
-  const secs = Object.keys(SEC).filter((k) => d[k] && !(OFFLINE && k !== 'security'));
-  const all = secs.flatMap((k) => d[k].checks.map((c) => ({ ...c, sec: k })));
+  // 갈래(신뢰성·안전·보안)마다 자기 하위 탭에: 위험 → 검토 → 참고, 괜찮은 것은 접어 둔다. 오프라인에는 에이전트 점검이 없다
   const order = { risk: 0, warn: 1, info: 2, ok: 3 };
   const card = (c) => `<div class="tcheck card ${c.status}" role="group" aria-label="${escapeHtml(c.status)}: ${escapeHtml(c.label)}">
-      <span class="ti" aria-hidden="true">${TRUST_ICON[c.status] || '·'}</span><div class="tl"><span class="tsec">${SEC[c.sec]}</span>${escapeHtml(c.label)}${c.value ? `<span class="tv">${escapeHtml(c.value)}</span>` : ''}</div>
+      <span class="ti" aria-hidden="true">${TRUST_ICON[c.status] || '·'}</span><div class="tl">${escapeHtml(c.label)}${c.value ? `<span class="tv">${escapeHtml(c.value)}</span>` : ''}</div>
       ${c.detail ? `<div class="td">${escapeHtml(c.detail)}</div>` : ''}${(c.items || []).length ? `<ul>${c.items.map((x) => `<li>${escapeHtml(x)}</li>`).join('')}</ul>` : ''}</div>`;
-  const top = all.filter((c) => c.status !== 'ok').sort((a, b) => order[a.status] - order[b.status]), ok = all.filter((c) => c.status === 'ok');
-  const n = (st) => all.filter((c) => c.status === st).length;
-  $('healthSum').innerHTML = [n('risk') ? `<span class="pill risk">${n('risk')} at risk</span>` : '', n('warn') ? `<span class="pill warn">${n('warn')} to review</span>` : '', `<span class="pill ok">${ok.length} OK</span>`].join('');
-  $('healthList').innerHTML = top.map(card).join('') || '<div class="empty" style="display:block">Everything checks out</div>';
-  $('healthOkSum').textContent = `${ok.length} check${ok.length === 1 ? '' : 's'} OK`; $('healthOk').innerHTML = ok.map(card).join('');
-  trustRisk = secs.reduce((t, k) => t + (d[k].risk || 0), 0); updateSysBadge();
+  const LEAD = { reliability: 'Can you trust the agent right now — running, reading its own log, succeeding at its tools, within its plan limits',
+    safety: 'What stops the agent from doing damage — permission mode, risky commands it ran, approval gates',
+    security: 'Who can reach this ANA and what it keeps — network exposure, sign-in, credentials, secrets in your data' };
+  let risk = 0;
+  for (const sec of ['reliability', 'safety', 'security']) {
+    const g = d[sec], el = document.querySelector(`#healthView [data-subsec="${sec}"]`); if (!g || !el) continue;
+    if (OFFLINE && sec !== 'security') continue;
+    const top = g.checks.filter((c) => c.status !== 'ok').sort((a, b) => order[a.status] - order[b.status]), ok = g.checks.filter((c) => c.status === 'ok');
+    el.innerHTML = `<div class="evo-lead sub-lead">${LEAD[sec]}</div>
+      <div class="trust-sum">${g.risk ? `<span class="pill risk">${g.risk} at risk</span>` : ''}${g.warn ? `<span class="pill warn">${g.warn} to review</span>` : ''}<span class="pill ok">${ok.length} OK</span></div>
+      <div class="trust-list">${top.map(card).join('') || '<div class="empty" style="display:block">Everything checks out</div>'}</div>
+      ${ok.length ? `<details class="health-ok"><summary>${ok.length} check${ok.length === 1 ? '' : 's'} OK</summary><div class="trust-list">${ok.map(card).join('')}</div></details>` : ''}`;
+    setSubCount('health', sec, (g.risk || 0) + (g.warn || 0));
+    risk += g.risk || 0;
+  }
+  trustRisk = risk; updateSysBadge();
 }
 setInterval(() => { if (!document.hidden) refreshTrust(); }, 60000);
 async function reqAct(id, action, answer, reason) {
@@ -2323,6 +2412,15 @@ $('reqList').addEventListener('keydown', (e) => {
   if (e.key !== 'Enter' || e.shiftKey || e.isComposing || !e.target.matches('.req-reply textarea')) return;
   e.preventDefault(); reqAnswer(e.target.closest('.req-card'), e.target.value);
 });
+$('apprAsk').onclick = () => {
+  const b = $('apprAsk'); b.disabled = true; const orig = b.textContent; b.textContent = 'Requesting…';
+  const h = agentHost;
+  const prompt = `[Approvals] Before you go on with any work, list what you need my OK for — a step you should not take on your own (deleting or overwriting things, spending money, sending messages to other people, changing settings), a choice between options, or access you need me to grant. Register each one; I will approve or reject it in Collaborate › Approvals. Data changes to the board still go through the diff → approve flow.
+Register: curl -s -X POST http://${h}/api/requests -H 'content-type: application/json' -d '{"requests":[{"kind":"approval","title":"What you want to do","desc":"Why, and what happens if I say no","options":["Approve","Reject"],"ref":"<optional task/event/note id>"}]}' (kind is approval|decision|access). Open ones: GET http://${h}/api/requests.
+System-level changes (features, settings, permissions, the shared ontology) need the ADMIN's approval instead: curl -s -X POST http://${h}/api/admin/requests -H 'content-type: application/json' -d '{"type":"approval","title":"What you want to change","desc":"Why"}'.`;
+  post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
+    .catch(() => showErr('Request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
+};
 $('reqAsk').onclick = () => {
   const b = $('reqAsk'); b.disabled = true; const orig = b.textContent; b.textContent = 'Asking…';
   const h = agentHost;
@@ -2349,7 +2447,7 @@ function renderEvolve() {
   // 요구사항에서 연 제안이면 그 제안이 든 목록으로 바꾼다
   const fp = evoFocus && evoCache.find((x) => x.id === evoFocus && scopeOf(x) === 'workspace'); if (fp && BUCKET_OF.evo[fp.status]) stFilter.evo = ['done', 'fail', 'cancel'].includes(BUCKET_OF.evo[fp.status]) ? 'closed' : 'open';
   const B = bucketList(evoCache.filter((p) => inScope(p, sc)), BUCKET_OF.evo), k = stFilter.evo;
-  inboxCounts.evo = { open: B.open.length, closed: B.closed.length }; renderInboxSeg();
+  inboxCounts.evolve = { open: B.open.length, closed: B.closed.length }; renderInboxSeg();
   const waitOf = (x) => evoCache.filter((p) => inScope(p, x) && p.status === 'new').length;
   const nW = waitOf('workspace'), nS = waitOf('system');
   $('evoBadge').textContent = nW; $('evoBadge').classList.toggle('show', nW > 0);
@@ -2384,8 +2482,8 @@ function renderEvolve() {
   if (fp) { const el = $('evoList').querySelector(`[data-eid="${fp.id}"]`); if (el) setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50); evoFocus = 0; }
 }
 $('evoList').addEventListener('click', async (e) => {
-  const ge = e.target.closest('[data-goevo]'); if (ge) { evoFocus = Number(ge.dataset.goevo); if (myRole === 'admin') setAppMode('sys', 'roadmap'); else toast(`Proposal #${ge.dataset.goevo} is with the admin`); return; }
-  const rq = e.target.closest('.evo-req'); if (rq) { if (myRole !== 'admin') return; setAppMode('sys', 'roadmap'); setTimeout(() => $('rqmList').querySelector(`[data-rid="${rq.dataset.req}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300); return; }
+  const ge = e.target.closest('[data-goevo]'); if (ge) { evoFocus = Number(ge.dataset.goevo); if (myRole === 'admin') { openSub('roadmap', 'evolve'); setAppMode('sys', 'roadmap'); } else toast(`Proposal #${ge.dataset.goevo} is with the admin`); return; }
+  const rq = e.target.closest('.evo-req'); if (rq) { if (myRole !== 'admin') return; openSub('roadmap', 'req'); setAppMode('sys', 'roadmap'); setTimeout(() => $('rqmList').querySelector(`[data-rid="${rq.dataset.req}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300); return; }
   const card = e.target.closest('.evo-card'); const btn = e.target.closest('button');
   if (!card || !btn) return;
   const id = Number(card.dataset.eid);
@@ -2438,6 +2536,183 @@ $('evoAnalyze').onclick = () => askEvolveAgent('workspace', $('evoAnalyze'));
 $('sysEvoAnalyze').onclick = () => askEvolveAgent('system', $('sysEvoAnalyze'));
 
 
+
+/* ---- 하위 탭: 한 화면에 한 갈래만 ----
+   Inbox(확인할 것 · Evolve · 보낸 것), Knowledge(관계 · 분석 · 어휘), System Inbox(승인 · 작업), Roadmap(요구사항 · Evolve · 업데이트),
+   Health(신뢰성 · 안전 · 보안 · 사용). [data-subsec]는 그 갈래의 내용, [data-for]는 그 갈래에서만 보이는 버튼. */
+var SUBTABS = {
+  inbox: [['approval', 'Approvals'], ['work', 'Work requests'], ['evolve', 'Evolve'], ['sent', 'Sent']],   // System Inbox와 같은 말
+  relations: [['links', 'Links'], ['kg', 'Knowledge graph'], ['analysis', 'Analysis'], ['ontology', 'Ontology']],
+  ontology: [['classes', 'Classes'], ['relations', 'Relations']],
+  admin: [['approval', 'Approvals'], ['work', 'Work requests']],
+  roadmap: [['req', 'Requirements'], ['evolve', 'Evolve'], ['upd', 'Updates']],
+  health: [['reliability', 'Trustworthiness'], ['safety', 'Safety'], ['security', 'Security'], ['tests', 'Tests'], ['usage', 'Usage']],
+};
+var subSel = {}; try { subSel = JSON.parse(localStorage.getItem('ana-subtabs') || '{}') || {}; } catch {}
+var subCounts = {};
+function subList(v) { return SUBTABS[v].filter(([k]) => !(OFFLINE && v === 'health' && (k === 'reliability' || k === 'safety'))); }   // 오프라인엔 에이전트 점검이 없다
+function curSub(v) { if (!SUBTABS) return ''; return subList(v).some(([k]) => k === subSel[v]) ? subSel[v] : subList(v)[0][0]; }   // var·함수 선언: 부팅 중 먼저 불려도 안전
+function renderSubtabs(v) {
+  const el = document.querySelector(`.subtabs[data-sub="${v}"]`); if (!el || !SUBTABS) return;
+  const cur = curSub(v), c = subCounts[v] || {};
+  el.innerHTML = subList(v).map(([k, l]) => `<button role="tab" data-k="${k}" class="${k === cur ? 'on' : ''}" aria-selected="${k === cur}">${l}${c[k] ? `<span class="n">${c[k]}</span>` : ''}</button>`).join('');
+  const view = $(v + 'View');
+  view.querySelectorAll('[data-subsec]').forEach((x) => { x.hidden = x.dataset.subsec !== cur; });
+  view.querySelectorAll('[data-for]').forEach((x) => { x.hidden = x.dataset.for !== cur; });
+}
+function setSubCount(v, k, n) { if (!SUBTABS) return; const c = (subCounts[v] ||= {}); if (c[k] === n) return; c[k] = n; renderSubtabs(v); }
+function openSub(v, k) { subSel[v] = k; try { localStorage.setItem('ana-subtabs', JSON.stringify(subSel)); } catch {} renderSubtabs(v); }
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('.subtabs button[data-k]'); if (!b) return;
+  const v = b.closest('.subtabs').dataset.sub; openSub(v, b.dataset.k);
+  logEvent('tab.view', `${v}.${b.dataset.k}`);
+  if (v === 'relations' && b.dataset.k === 'kg') renderKg();
+  if (v === 'admin') renderAdmin(); else if (v === 'roadmap') renderRoadmap(); else if (v === 'inbox') { renderInboxSeg(); renderToAdmin(); }
+  else if (v === 'health' && b.dataset.k === 'usage') renderStats();
+});
+Object.keys(SUBTABS).forEach(renderSubtabs);
+
+
+/* ---- System › Health › Tests ---- 이 ANA의 테스트를 돌리고(관리자) 결과를 본다. 실행 중에는 스트림(tests) 알림으로 갱신 */
+let testsCache = { available: false, last: null, runs: [] }, testsTick = null;
+async function refreshTests() {
+  try { testsCache = await getJSON('/api/tests'); } catch { return; }
+  renderTests();
+}
+const fmtDur = (ms) => (ms < 1000 ? `${ms} ms` : ms < 60000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.floor(ms / 60000)} min ${Math.round((ms % 60000) / 1000)} s`);
+function renderTests() {
+  const t = testsCache, L = t.last, running = L && L.status === 'running';
+  testRisk = L && L.status === 'failed' ? 1 : 0; setSubCount('health', 'tests', L && L.status === 'failed' ? L.fail : 0); updateSysBadge();
+  $('testsCmd').textContent = t.available ? t.command : 'This ANA has no runnable tests';
+  $('testsRun').disabled = !t.available || running || myRole !== 'admin'; $('testsRun').textContent = running ? 'Running…' : 'Run tests';
+  if (!L) { $('testsLast').innerHTML = '<div class="empty" style="display:block">Not run yet — press [Run tests]</div>'; $('testsRuns').innerHTML = ''; return; }
+  const ST = { running: 'Running', passed: 'Passed', failed: 'Failed', error: 'Stopped' };
+  const ms = Date.parse(L.doneAt || new Date().toISOString()) - Date.parse(L.at);
+  $('testsLast').innerHTML = `<div class="tests-top"><span class="pill ${L.status === 'passed' ? 'ok' : L.status === 'running' ? 'warn' : 'risk'}">${ST[L.status]}</span>
+      <b>${L.pass} passed · ${L.fail} failed</b><span class="sub">${escapeHtml(fmtWhen(L.at))} · ${fmtDur(ms)}${L.by && L.by !== 'ana' ? ' · ' + escapeHtml(displayName(L.by)) : ''}</span></div>
+    ${running ? '<div class="ana-bar indet"><i></i></div>' : ''}
+    <ul class="tests-suites">${(L.suites || []).map((x) => `<li><span class="${x.fail || x.code ? 'bad' : 'good'}">${x.fail || x.code ? '✗' : '✓'}</span> <code>${escapeHtml(x.name.split(' ').length > 2 ? `node --test · ${x.name.split(' ').length} files` : x.name)}</code> — ${x.pass} passed, ${x.fail} failed · ${fmtDur(x.ms)}${(x.failures || []).length ? `<ul>${x.failures.map((f) => `<li>${escapeHtml(f)}</li>`).join('')}</ul>` : ''}</li>`).join('')}</ul>
+    ${L.note ? `<div class="fail-why">${escapeHtml(L.note)}</div>` : ''}
+    ${L.log ? `<details class="tests-log"><summary>Output</summary><pre>${escapeHtml(L.log.slice(-20000))}</pre></details>` : ''}`;
+  $('testsRuns').innerHTML = (t.runs || []).slice(1).map((r) => `<div class="tests-row"><span class="pill ${r.status === 'passed' ? 'ok' : 'risk'}">${ST[r.status] || r.status}</span><span>${r.pass} passed · ${r.fail} failed</span><span class="sub">${escapeHtml(fmtWhen(r.at))}</span></div>`).join('') || '<div class="empty" style="display:block">No earlier runs</div>';
+  clearInterval(testsTick); if (running) testsTick = setInterval(() => { if ($('healthView').classList.contains('on')) renderTests(); }, 1000);
+}
+$('testsRun').onclick = async () => {
+  const r = await post('/api/tests/run', {}).catch(() => null), d = r ? await r.json().catch(() => ({})) : {};
+  if (!r || !r.ok) { showErr(d.error || 'Could not run the tests'); return; }
+  toast('Running the tests…'); refreshTests();
+};
+
+
+/* ---- 지식그래프(워크스페이스) · 분석 결과 승인 · 시스템 온톨로지 ----
+   분석 결과는 실무자가 승인해야 이 워크스페이스의 지식그래프에 더해진다(Inbox › Approvals, Knowledge › Analysis).
+   시스템 온톨로지에 없는 개념은 관리자 승인요청이 되고, 승인되면 그 개념을 쓰는 사실이 저절로 더해진다. */
+function anaApplyHtml(j) {
+  const nc = (j.newConcepts || []).length ? `<div class="ana-new">New concepts sent to the admin: ${j.newConcepts.map((c) => `<code>${escapeHtml(c.label)}</code>`).join(' ')}. Facts that use them are added once approved.</div>` : '';
+  if (j.discarded) return `${nc}<div class="ana-state">Discarded — not added to the knowledge graph</div>`;
+  if (j.applied) {
+    const p = j.pending || { entities: [], facts: [] }, w = p.entities.length + p.facts.length, ac = j.appliedCount || { entities: 0, facts: 0 };
+    return `${nc}<div class="ana-state ok">Added to the knowledge graph: ${ac.entities} entities, ${ac.facts} facts${w ? ` · ${w} waiting for new concepts` : ''}</div>`;
+  }
+  return `${nc}<div class="ana-acts ana-apply"><button class="ok" data-kgapply="apply">Add to the knowledge graph</button><button data-kgapply="discard">Discard</button></div>`;
+}
+async function kgDecide(id, how) {
+  const r = await post(`/api/analysis/${how === 'apply' ? 'apply' : 'discard'}`, { id }).catch(() => null), d = r ? await r.json().catch(() => ({})) : {};
+  if (!r || !r.ok) { showErr(d.error || 'Could not update the knowledge graph'); return; }
+  if (how === 'apply') toast(`Added ${d.added.entities} entities and ${d.added.facts} facts${d.pending.entities + d.pending.facts ? ` · ${d.pending.entities + d.pending.facts} wait for the admin` : ''}`);
+  else toast('Discarded');
+  refreshAnalysis(); refreshKg();
+}
+const kgOpenJobs = () => anaJobs.filter((j) => j.status === 'done' && !j.applied && !j.discarded);
+function kgApprovalsOpen(mode) { return mode === 'closed' ? anaJobs.filter((j) => j.applied || j.discarded).length : kgOpenJobs().length; }
+// Inbox › Approvals: '분석 결과를 지식그래프에 더할까요?'
+function renderKgApprovals() {
+  const closed = stFilter.appr === 'closed', list = closed ? anaJobs.filter((j) => j.applied || j.discarded).slice(-5).reverse() : kgOpenJobs();
+  $('apprKg').innerHTML = list.map((j) => `<div class="card req-card kg-appr" data-jid="${j.id}"><div class="req-top"><span class="req-kind approval">Knowledge graph</span>
+      <span class="req-t">Add analysis #${j.id} to the knowledge graph</span></div>
+      <div class="req-d">${(j.graph || {}).entities ? `${j.graph.entities.length} entities · ${j.graph.facts.length} facts` : ''}${j.summary ? ` — ${escapeHtml(j.summary)}` : ''}</div>
+      ${closed ? `<div class="ana-state${j.applied ? ' ok' : ''}">${j.applied ? 'Added' : 'Discarded'}</div>` : `<div class="evo-acts"><button class="do" data-kgapply="apply">Add</button><button class="ignore" data-kgapply="discard">Discard</button><button class="talk" data-kgview="1">Preview</button></div>`}</div>`).join('');
+  $('apprKg').querySelectorAll('[data-kgapply]').forEach((b) => b.onclick = () => kgDecide(Number(b.closest('.kg-appr').dataset.jid), b.dataset.kgapply));
+  $('apprKg').querySelectorAll('[data-kgview]').forEach((b) => b.onclick = () => { openSub('relations', 'analysis'); setAppMode('ws', 'relations'); });
+  renderRequestsAll.__skip || renderRequestsAll();
+}
+// Knowledge › Knowledge graph: 이 워크스페이스에 쌓인 개체·사실
+let kgCache = { entities: [], facts: [], ontology: { classes: [], relations: [] } };
+async function refreshKg() {
+  try { kgCache = await getJSON('/api/kg'); } catch { return; }
+  anaOnto = kgCache.ontology; renderKg(); renderOntoRead();
+}
+function renderKg() {
+  const g = kgCache, o = g.ontology || { classes: [], relations: [] };
+  $('kgSum').textContent = `${g.entities.length} entities · ${g.facts.length} facts`;
+  $('kgEmpty').style.display = g.entities.length ? 'none' : 'block'; $('kgGraph').hidden = !g.entities.length;
+  $('kgOntoAir').disabled = $('kgTtl').disabled = !g.entities.length;
+  if (!g.entities.length || curSub('relations') !== 'kg') return;
+  const color = Object.fromEntries(o.classes.filter((c) => !c.core).map((k, i) => [k.id, ANA_COLORS[i % ANA_COLORS.length]]));
+  drawKG(g, { classes: o.classes, relations: o.relations }, color, $('kgGraph'));
+}
+$('kgTtl').onclick = () => { logEvent('ttl.download', 0); const a = document.createElement('a'); a.href = `/api/kg/ttl?ws=${encodeURIComponent(currentWs || '')}`; a.download = 'knowledge-graph.ttl'; document.body.appendChild(a); a.click(); a.remove(); };
+$('kgOntoAir').onclick = () => openTtlInOntoAir(`/api/kg/ttl?ws=${encodeURIComponent(currentWs || '')}`, 'knowledge-graph');
+// Knowledge › Ontology(읽기 전용) · System › Ontology(관리자)
+function ontoTree(o, editable) {
+  const color = Object.fromEntries(o.classes.filter((c) => !c.core).map((k, i) => [k.id, ANA_COLORS[i % ANA_COLORS.length]]));
+  const kids = (pid) => o.classes.filter((k) => (k.parent || '') === pid);
+  const row = (k) => `<li><span class="cdot" style="background:${k.core ? '#94A3B8' : color[k.id]}"></span><b>${escapeHtml(k.label)}</b>${k.id !== k.label ? ` <code class="cid">${escapeHtml(k.id)}</code>` : ''}${k.core ? ' <span class="core">built-in</span>' : ''}${k.desc ? ` <span class="cd">— ${escapeHtml(k.desc)}</span>` : ''}
+    ${editable && !k.core ? `<span class="onto-acts"><button data-oedit="class" data-id="${escapeHtml(k.id)}">Edit</button><button data-odel="class" data-id="${escapeHtml(k.id)}">Delete</button></span>` : ''}${tree(k.id)}</li>`;
+  const tree = (pid) => { const ks = kids(pid); return ks.length ? `<ul class="onto-cls">${ks.map(row).join('')}</ul>` : ''; };
+  return tree('') || '<div class="empty" style="display:block">No classes</div>';
+}
+function ontoRelTable(o, editable) {
+  const lab = (id) => (o.classes.find((c) => c.id === id) || {}).label || id || 'any';
+  return o.relations.length ? `<table class="onto-rel"><thead><tr><th>Relation</th><th>From → To</th>${editable ? '<th></th>' : ''}</tr></thead><tbody>${o.relations.map((r) => `<tr><td><code>${escapeHtml(r.label)}</code>${r.core ? ' <span class="core">built-in</span>' : ''}${r.desc ? `<div class="cd">${escapeHtml(r.desc)}</div>` : ''}</td><td>${escapeHtml(lab(r.domain))} → ${escapeHtml(lab(r.range))}</td>${editable ? `<td>${r.core ? '' : `<span class="onto-acts"><button data-oedit="relation" data-id="${escapeHtml(r.id)}">Edit</button><button data-odel="relation" data-id="${escapeHtml(r.id)}">Delete</button></span>`}</td>` : ''}</tr>`).join('')}</tbody></table>` : '<div class="empty" style="display:block">No relations</div>';
+}
+function renderOntoRead() {
+  const o = anaOnto || kgCache.ontology; if (!o || !$('ontoRead')) return;
+  $('ontoRead').innerHTML = `<div class="onto-cols"><div><h4>Classes · ${o.classes.length}</h4>${ontoTree(o, false)}</div><div><h4>Relation types · ${o.relations.filter((r) => !r.core).length}</h4>${ontoRelTable({ ...o, relations: o.relations.filter((r) => !r.core) }, false)}</div></div>`;
+}
+let ontoCache = null, ontoEditing = null;
+async function refreshOntology() {
+  try { ontoCache = await getJSON('/api/ontology'); } catch { return; }
+  anaOnto = ontoCache; renderOntology(); renderOntoRead();
+}
+function renderOntology() {
+  const o = ontoCache; if (!o || !$('ontologyView')) return;
+  const own = { classes: o.classes.filter((c) => !c.core).length, relations: o.relations.filter((r) => !r.core).length };
+  setSubCount('ontology', 'classes', 0);
+  $('ontoSum').textContent = `${o.classes.length} classes (${own.classes} added) · ${o.relations.length} relations (${own.relations} added)`;
+  $('ontoClasses').innerHTML = ontoTree(o, true);
+  $('ontoRelations').innerHTML = ontoRelTable(o, true);
+}
+function openOntoForm(what, item) {
+  const o = ontoCache, opts = (sel, empty) => `<option value="">${empty}</option>` + o.classes.map((c) => `<option value="${escapeHtml(c.id)}"${c.id === sel ? ' selected' : ''}>${escapeHtml(c.label)}</option>`).join('');
+  ontoEditing = { what, id: item ? item.id : '' };
+  $('ofId').value = item ? item.id : ''; $('ofId').disabled = !!item; $('ofLabel').value = item ? item.label : ''; $('ofDesc').value = item ? item.desc || '' : '';
+  $('ofParent').innerHTML = opts(item && item.parent, '— (top level)'); $('ofDomain').innerHTML = opts(item && item.domain, 'any'); $('ofRange').innerHTML = opts(item && item.range, 'any');
+  $('ontoForm').querySelectorAll('[data-of]').forEach((x) => { x.hidden = x.dataset.of !== what; });
+  $('ofSave').textContent = item ? 'Save' : what === 'class' ? 'Add class' : 'Add relation';
+  $('ontoForm').hidden = false; $('ofId').focus();
+}
+$('ontoAddBtn').onclick = () => openOntoForm(curSub('ontology') === 'relations' ? 'relation' : 'class');
+$('ofCancel').onclick = () => { $('ontoForm').hidden = true; ontoEditing = null; };
+$('ontoForm').addEventListener('submit', async (e) => {
+  e.preventDefault(); if (!ontoEditing) return;
+  const w = ontoEditing.what, item = { id: $('ofId').value.trim(), label: $('ofLabel').value.trim(), desc: $('ofDesc').value.trim(),
+    ...(w === 'class' ? { parent: $('ofParent').value } : { domain: $('ofDomain').value, range: $('ofRange').value }) };
+  const r = await post('/api/ontology', { action: ontoEditing.id ? 'update' : 'add', kind: w, item }).catch(() => null), d = r ? await r.json().catch(() => ({})) : {};
+  if (!r || !r.ok) { showErr(d.error || 'Could not save'); return; }
+  $('ontoForm').hidden = true; ontoEditing = null; toast('Saved'); refreshOntology();
+});
+$('ontologyView').addEventListener('click', async (e) => {
+  const ed = e.target.closest('[data-oedit]'), dl = e.target.closest('[data-odel]');
+  if (ed) { const list = ed.dataset.oedit === 'class' ? ontoCache.classes : ontoCache.relations; openOntoForm(ed.dataset.oedit, list.find((x) => x.id === ed.dataset.id)); return; }
+  if (dl) {
+    if (!(await confirmDelete(`${dl.dataset.odel === 'class' ? 'Class' : 'Relation'} "${dl.dataset.id}"`))) return;
+    const r = await post('/api/ontology', { action: 'remove', kind: dl.dataset.odel, item: { id: dl.dataset.id } }).catch(() => null), d = r ? await r.json().catch(() => ({})) : {};
+    if (!r || !r.ok) { showErr(d.error || 'Could not delete'); return; }
+    refreshOntology();
+  }
+});
+
 /* ---- System › Roadmap ---- 시스템이 바뀌는 길을 한 줄씩: 요구사항 → 제안 → 만드는 중 → 확인.
    요구사항(rqmCache) · 시스템 진화 제안(evoCache, scope system) · 업스트림 업데이트(updCache)를 한 목록으로 그린다. */
 const rmBtn = (attr, label, primary) => `<button ${attr}${primary ? ' class="ok"' : ''}>${label}</button>`;
@@ -2480,22 +2755,25 @@ function updState(u) {
   if (u.status === 'dismissed') return { stage: 0, done: true, text: 'Skipped', acts: rmBtn(`data-upd="reopen" data-uid="${u.id}"`, 'Restore') };
   return { stage: 4, done: true, text: 'Brought in', acts: '' };
 }
+const RM_STEPS = { req: ['Request', 'Proposal', 'Building', 'Checked'], evolve: ['Proposed', 'Started', 'Building', 'Built'], upd: ['New', 'Approved', 'Bringing in', 'Done'] };
 function renderRoadmap() {
-  if (!$('roadmapView')) return;
-  const rows = [];
+  if (!$('roadmapView') || !SUBTABS) return;
+  const sub = curSub('roadmap'), rows = [];
+  $('rmSteps').innerHTML = RM_STEPS[sub].map((x) => `<span>${x}</span>`).join('');
+  $('rqmJob').style.display = sub === 'req' ? '' : 'none'; if (sub !== 'req') $('rqmAdd').hidden = true;
   for (const x of rqmCache.items || []) {
     if (rqmEditing === x.id) { rows.push({ html: `<div class="card rqm-card rm-card" data-rid="${x.id}"><div class="rqm-edit"><input value="${escapeHtml(x.title)}" maxlength="200" aria-label="Requirement"><textarea rows="3" maxlength="4000" aria-label="Details">${escapeHtml(x.detail || '')}</textarea>
-      <div class="rqm-acts"><button class="ok" data-a="save">Save</button><button data-a="cancel">Cancel</button></div></div></div>`, done: false, need: true, order: 0 }); continue; }
-    rows.push({ ...reqState(x), cls: 'rqm-card', attr: `data-rid="${x.id}"`, title: x.title, sub: `Requirement #${x.id}`, details: reqDetails(x), at: x.updatedAt || x.at });
+      <div class="rqm-acts"><button class="ok" data-a="save">Save</button><button data-a="cancel">Cancel</button></div></div></div>`, kind: 'req', done: false, need: true, order: 0 }); continue; }
+    rows.push({ ...reqState(x), kind: 'req', cls: 'rqm-card', attr: `data-rid="${x.id}"`, title: x.title, sub: `Requirement #${x.id}`, details: reqDetails(x), at: x.updatedAt || x.at });
   }
-  const reqIds = new Set((rqmCache.items || []).map((x) => x.id));
-  for (const p of evoCache.filter((q) => scopeOf(q) === 'system' && !(q.reqId && reqIds.has(q.reqId))))
-    rows.push({ ...evoState(p), cls: 'rm-evo', attr: `data-eid="${p.id}"`, title: p.title, sub: `Proposal #${p.id}${p.fromId ? ' · from a workspace' : ''}`, focus: p.id === evoFocus,
+  for (const p of evoCache.filter((q) => scopeOf(q) === 'system'))   // Evolve 갈래: 시스템 진화 제안 전부(요구사항에서 나온 것도)
+    rows.push({ ...evoState(p), kind: 'evolve', cls: 'rm-evo', attr: `data-eid="${p.id}"`, title: p.title, sub: `Proposal #${p.id}${p.reqId ? ` · requirement #${p.reqId}` : p.fromId ? ' · from a workspace' : ''}`, focus: p.id === evoFocus,
       details: `${p.desc ? `<div class="rqm-detail">${escapeHtml(p.desc)}</div>` : ''}<div class="rqm-acts"><button data-evo="talk" data-pid="${p.id}">Discuss</button></div>`, at: p.updatedAt || p.at });
   for (const u of updCache.items || [])
-    rows.push({ ...updState(u), cls: 'rm-upd', attr: `data-uid="${u.id}"`, title: u.title, sub: 'Upstream update',
+    rows.push({ ...updState(u), kind: 'upd', cls: 'rm-upd', attr: `data-uid="${u.id}"`, title: u.title, sub: 'Upstream update',
       details: `${u.summary ? `<div class="rqm-detail">${escapeHtml(u.summary)}</div>` : ''}${(u.missing || []).length && u.kind === 'partial' ? `<div class="upd-miss">Missing here: ${u.missing.slice(0, 6).map((m) => `<code>${escapeHtml(m)}</code>`).join(' ')}</div>` : ''}`, at: u.updatedAt || u.at });
-  const open = rows.filter((r) => !r.done), closed = rows.filter((r) => r.done);
+  for (const k of ['req', 'evolve', 'upd']) setSubCount('roadmap', k, rows.filter((r) => r.kind === k && r.need).length);
+  const mine = rows.filter((r) => r.kind === sub), open = mine.filter((r) => !r.done), closed = mine.filter((r) => r.done);
   renderStSeg('road', { open: open.length, closed: closed.length });
   const list = (stFilter.road === 'closed' ? closed : open).slice().sort((a, b) => (b.need ? 1 : 0) - (a.need ? 1 : 0) || String(b.at || '').localeCompare(String(a.at || '')));
   $('rqmList').innerHTML = list.map((r) => r.html || `<div class="card rm-card ${r.cls}${r.focus ? ' focus' : ''}" ${r.attr}>
@@ -2503,7 +2781,7 @@ function renderRoadmap() {
     <div class="rm-bar" aria-label="Stage ${Math.min(r.stage, 4)} of 4">${[0, 1, 2, 3].map((i) => `<i class="${r.done && r.stage >= 4 ? 'on' : i < r.stage ? 'on' : i === r.stage ? 'cur' : ''}"></i>`).join('')}</div>
     <div class="rm-row"><span class="rm-text">${escapeHtml(r.text)}</span><span class="rm-acts">${r.acts || ''}</span></div>
     ${r.details ? `<details class="rm-more"><summary>Details</summary>${r.details}</details>` : ''}</div>`).join('');
-  $('rqmEmpty').textContent = stFilter.road === 'closed' ? 'Nothing finished yet' : 'Nothing on the way — add a requirement, ask the agent, or check for updates';
+  $('rqmEmpty').textContent = stFilter.road === 'closed' ? 'Nothing finished yet' : { req: 'No requirements on the way — add one, or members can request a feature', evolve: 'No system proposals — press [Ask the agent]', upd: 'Nothing new — press [Check for updates]' }[sub];
   $('rqmEmpty').style.display = list.length ? 'none' : 'block';
   $('rqmList').querySelector('.rm-card.focus')?.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (evoFocus) evoFocus = 0;
 }
@@ -2535,20 +2813,20 @@ $('ftSend').onclick = async () => {
 
 /* ---- System › Admin ---- 관리자 함: 실무자·에이전트·점검이 올린 승인요청(approval)·작업요청(work).
    승인요청에 동작(action)이 붙어 있으면 '승인'이 그 동작을 관리자 권한으로 실행한 뒤 승인으로 기록한다. */
-let admCache = { items: [], role: 'admin' }, admType = 'approval';
+let admCache = { items: [], role: 'admin' };
 async function refreshAdmin() {
   try { admCache = await getJSON('/api/admin/inbox'); } catch { return; }
   renderAdmin(); renderToAdmin();
 }
 const ADM_FROM = (x) => (x.from && x.from.kind === 'check' ? 'System check' : x.from && x.from.kind === 'agent' ? 'Agent' : displayName((x.from && x.from.by) || ''));
-const ADM_ACTION = { 'evolve.do': 'Starts the proposal', 'evolve.ignore': 'Cancels the proposal', 'update.do': 'Brings in the update', permission: 'Changes the agent permission mode', 'workspace.remove': 'Deletes the workspace' };
+const ADM_ACTION = { 'ontology.add': 'Adds it to the shared ontology (waiting facts are then added)', 'evolve.do': 'Starts the proposal', 'evolve.ignore': 'Cancels the proposal', 'update.do': 'Brings in the update', permission: 'Changes the agent permission mode', 'workspace.remove': 'Deletes the workspace' };
 function renderAdmin() {
   const all = admCache.items || [];
   const open = all.filter((x) => ['open', 'doing'].includes(x.status));
   const nA = open.filter((x) => x.type === 'approval').length, nW = open.filter((x) => x.type === 'work').length;
   $('admBadge').textContent = myRole === 'admin' ? nA + nW : 0; $('admBadge').classList.toggle('show', myRole === 'admin' && nA + nW > 0); updateSysBadge();
-  $('admNA').textContent = nA || ''; $('admNW').textContent = nW || '';
-  $('admType').querySelectorAll('button').forEach((b) => { const on = b.dataset.t === admType; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+  setSubCount('admin', 'approval', nA); setSubCount('admin', 'work', nW);
+  const admType = curSub('admin');
   if (!$('adminView').classList.contains('on')) return;
   const B = bucketList(all.filter((x) => x.type === admType), BUCKET_OF.adm), k = stFilter.adm || 'open';
   renderStSeg('adm', { open: B.open.length, closed: B.closed.length });
@@ -2564,19 +2842,19 @@ function renderAdmin() {
   $('admEmpty').textContent = { open: 'Nothing waiting for you', closed: 'Nothing finished yet' }[k];
   $('admEmpty').style.display = B[k].length ? 'none' : 'block';
 }
-$('admType').addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (!b) return; admType = b.dataset.t; renderAdmin(); });
 // 승인된 동작을 관리자 권한으로 실행 — 성공해야 승인으로 기록한다
 async function runAdminAction(a) {
   if (a.kind === 'evolve.do' || a.kind === 'evolve.ignore') { await refreshEvolve(); return evoAct(a.id, a.kind === 'evolve.do' ? 'do' : 'ignore'); }
   if (a.kind === 'update.do') { await refreshUpdates(); const it = (updCache.items || []).find((x) => x.id === a.id); if (!it) { showErr('That update is gone'); return false; } return updAct(it, 'do'); }
   if (a.kind === 'permission') { const r = await post('/api/agent-permission', { mode: a.mode, target: health && health.target }).catch(() => null); if (!r || !r.ok) { showErr((r && (await r.json().catch(() => ({}))).error) || 'Could not change the permission mode'); return false; } return true; }
+  if (a.kind === 'ontology.add') { const r = await post('/api/ontology', { action: 'add', kind: a.what, item: a.item }).catch(() => null); if (!r || !r.ok) { showErr((r && (await r.json().catch(() => ({}))).error) || 'Could not add it to the ontology'); return false; } refreshOntology(); return true; }
   if (a.kind === 'workspace.remove') { const r = await post('/api/workspaces', { action: 'remove', id: a.id }).catch(() => null); if (!r || !r.ok) { showErr((r && (await r.json().catch(() => ({}))).error) || 'Could not delete the workspace'); return false; } loadWorkspaces(); return true; }
   return true;
 }
 $('admList').addEventListener('click', async (e) => {
   const b = e.target.closest('button[data-a]'), card = e.target.closest('.adm-card'); if (!b || !card) return;
   const id = Number(card.dataset.aid), it = (admCache.items || []).find((x) => x.id === id); if (!it) return;
-  if (b.dataset.a === 'goevo') { evoFocus = Number(b.dataset.id); setAppMode('sys', 'roadmap'); return; }
+  if (b.dataset.a === 'goevo') { evoFocus = Number(b.dataset.id); openSub('roadmap', 'evolve'); setAppMode('sys', 'roadmap'); return; }
   let note = '';
   if (['reject', 'fail', 'done'].includes(b.dataset.a)) { note = prompt(b.dataset.a === 'reject' ? 'Why not? (sent back to whoever asked)' : b.dataset.a === 'fail' ? 'What went wrong?' : 'Note (optional)') ?? null; if (note === null) return; }
   b.disabled = true;
@@ -2612,7 +2890,9 @@ function renderToAdmin() {
   const closedMode = stFilter.inbox === 'closed';
   const adm = mine.filter((x) => ['open', 'doing'].includes(x.status) !== closedMode).slice().reverse().slice(0, 10);
   const fts = feats.filter((x) => !!reqState(x).done === closedMode).slice().reverse().slice(0, 10);
-  const el = $('toAdmin'), n = adm.length + fts.length; el.hidden = !n; $('sentHead').hidden = !n; if (!n) return;
+  const openN = mine.filter((x) => ['open', 'doing'].includes(x.status)).length + feats.filter((x) => !reqState(x).done).length;
+  inboxCounts.sent = { open: openN, closed: mine.length + feats.length - openN }; renderInboxSeg();
+  const el = $('toAdmin'), n = adm.length + fts.length; el.hidden = !n; $('sentEmpty').style.display = n ? 'none' : 'block'; if (!n) return;
   el.innerHTML = adm.map((x) => `<div class="ta-row" data-aid="${x.id}"><span class="adm-tag ${x.type}">${x.type === 'approval' ? 'To admin · OK' : 'To admin'}</span><span class="t" title="${escapeHtml(x.note || '')}">${escapeHtml(x.title)}${x.note ? ` — ${escapeHtml(x.note)}` : ''}</span><span class="st">${ST[x.status] || x.status}</span>${x.status === 'open' ? '<button data-a="cancel">Cancel</button>' : ''}</div>`).join('')
     + fts.map((x) => `<div class="ta-row"><span class="adm-tag feat">Feature</span><span class="t">${escapeHtml(x.title)}</span><span class="st">${escapeHtml(reqState(x).text.split(' — ')[0])}</span></div>`).join('');
 }
@@ -2975,21 +3255,20 @@ async function renderStats() {
 }
 
 /* ---- 관계 분석: 대상 고르기 → 에이전트가 분석(진행률) → 온톨로지 · 지식그래프를 나눠 보여 준다 ---- */
-let anaJob = null, anaView = 'onto', anaSel = '', anaOnto = null;
+let anaJob = null, anaJobs = [], anaView = 'onto', anaSel = '', anaOnto = null;
 const ONTOAIR = 'https://poc.aifactory.space/ontoair/';
 const ANA_COLORS = ['#3182F6', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6', '#06B6D4', '#EC4899', '#84CC16', '#F97316', '#64748B'];
 async function refreshAnalysis() {
-  try { const d = await getJSON('/api/analysis'); anaJob = d.latest; anaOnto = d.ontology; } catch { return; }
-  renderAnalysis();
+  try { const d = await getJSON('/api/analysis'); anaJob = d.latest; anaJobs = d.jobs || []; anaOnto = d.ontology; } catch { return; }
+  renderAnalysis(); renderKgApprovals();
 }
 function openAnaModal() {
   const nTasks = items.length, nEvents = events.length;
   const picks = [['notes', 'Notes', notes.length], ['tasks', 'Tasks', nTasks], ['events', 'Events', nEvents]];
   $('anaPicks').innerHTML = picks.map(([k, l, n]) => `<label class="ana-pick"><input type="checkbox" value="${k}" ${n ? 'checked' : 'disabled'}> ${l}<span class="n">${n} item${n === 1 ? '' : 's'}</span></label>`).join('');
   $('anaFocus').value = ''; $('anaOpen').checked = false;
-  // 쌓인 온톨로지가 있으면 그걸 이어 쓰는 게 기본 — 회차마다 같은 개념이 다른 이름으로 생기지 않게
-  $('anaBaseRow').hidden = !anaOnto; $('anaBase').checked = true;
-  if (anaOnto) $('anaBaseN').textContent = `${anaOnto.classes.length} classes · ${anaOnto.relations.length} relations`;
+  // 분석은 시스템 온톨로지를 기준으로 한다(모든 워크스페이스가 같은 개념을 쓴다)
+  if (anaOnto) $('anaBaseN').textContent = ` (${anaOnto.classes.length} classes · ${anaOnto.relations.length} relations)`;
   openModal('anaModal');
 }
 $('anaBtn').onclick = () => { if (anaJob && anaJob.status === 'running') { $('anaCard').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); return; } openAnaModal(); };
@@ -2997,15 +3276,15 @@ $('anaStart').onclick = async () => {
   const kinds = [...$('anaPicks').querySelectorAll('input:checked')].map((x) => x.value);
   if (!kinds.length) { showErr('Pick at least one kind of item'); return; }
   const b = $('anaStart'); b.disabled = true;
-  let r; try { r = await post('/api/analysis/start', { kinds, openOnly: $('anaOpen').checked, focus: $('anaFocus').value.trim(), useBase: !!anaOnto && $('anaBase').checked }); } catch { r = null; }
+  let r; try { r = await post('/api/analysis/start', { kinds, openOnly: $('anaOpen').checked, focus: $('anaFocus').value.trim()}); } catch { r = null; }
   b.disabled = false;
   const d = r ? await r.json().catch(() => ({})) : {};
   if (!r || !r.ok) { showErr(d.error || 'Could not start the analysis'); return; }
   closeModal(); anaJob = d.job; renderAnalysis();
   const h = agentHost, ws = encodeURIComponent(currentWs || ''), id = d.job.id, q = `id=${id}&ws=${ws}`;
   const text = `[Analyze] Build an ontology and a knowledge graph from ${d.job.itemIds.length} items of this workspace${d.job.focus ? ` — focus: ${d.job.focus}` : ''}.
-1) Read them: curl -s "http://${h}/api/analysis/input?${q}"${d.job.useBase ? `
-   The input includes "ontology" — the classes and relation types this workspace already has. Reuse those ids for the same concepts and add new ones only when needed.` : ''}
+1) Read them: curl -s "http://${h}/api/analysis/input?${q}"
+   The input includes "ontology" — the shared classes and relation types of this ANA. Use those ids. Only for a genuinely new concept add it to your ontology: it goes to the admin for approval, and facts that use it wait until it is approved.
 2) Report progress as you go (0–99) with a short step: curl -s -X POST "http://${h}/api/analysis/progress?ws=${ws}" -H 'content-type: application/json' -d '{"id":${id},"progress":30,"step":"Finding entities in notes"}'
 3) Post the result: curl -s -X POST "http://${h}/api/analysis/result?ws=${ws}" -H 'content-type: application/json' --data-binary @result.json
    result.json = {"id":${id},"summary":"2–3 sentences","ontology":{"classes":[{"id":"Organization","label":"Organization","desc":"…","parent":""}],"relations":[{"id":"client_of","label":"client of","domain":"Organization","range":"Organization","desc":"…"}]},"graph":{"entities":[{"id":"acme","label":"Acme","class":"Organization","sources":["<item id>"]}],"facts":[{"from":"acme","rel":"client_of","to":"us","sources":["<item id>"]}]}}
@@ -3016,6 +3295,7 @@ const ago = (iso) => { const s = Math.max(0, Math.round((Date.now() - Date.parse
 function renderAnalysis() {
   const c = $('anaCard'), j = anaJob;
   $('anaBtn').textContent = j && j.status === 'running' ? 'Analyzing…' : j && j.status === 'done' ? 'Analyze again' : 'Analyze';
+  if ($('anaEmpty')) $('anaEmpty').style.display = j ? 'none' : 'block';
   if (!j) { c.hidden = true; return; }
   c.hidden = false;
   const head = (title, sub) => `<div class="ana-top"><b>${title}</b><span class="sub">${sub}</span><span class="sp"></span></div>`;
@@ -3040,24 +3320,22 @@ function renderAnalysis() {
   c.innerHTML = head(`Analysis #${j.id}`, `${escapeHtml(fmtWhen(j.doneAt || j.updatedAt))} · ${escapeHtml(targets)} · ${o.classes.length} classes · ${o.relations.length} relations · ${g.entities.length} entities · ${g.facts.length} facts`) +
     `${j.summary ? `<div class="ana-sum">${escapeHtml(j.summary)}</div>` : ''}
      ${(j.issues || []).length ? `<details class="ana-issues"><summary>⚠ ${j.issues.length} item${j.issues.length === 1 ? '' : 's'} didn't fit the ontology</summary><ul>${j.issues.map((x) => `<li>${escapeHtml(x.msg)}</li>`).join('')}</ul></details>` : ''}
-     <div class="ana-acts ana-out"><button id="anaOnto" title="Open this ontology and knowledge graph in OntoAir">Open in OntoAir ↗</button><button id="anaTtl">Download .ttl</button></div>
+     ${anaApplyHtml(j)}
+     <div class="ana-acts ana-out"><button id="anaOnto" title="Open this result in OntoAir">Open in OntoAir ↗</button><button id="anaTtl">Download .ttl</button></div>
      <div class="ana-seg" role="tablist"><button role="tab" data-v="onto" class="${anaView === 'onto' ? 'on' : ''}" aria-selected="${anaView === 'onto'}">Ontology</button><button role="tab" data-v="kg" class="${anaView === 'kg' ? 'on' : ''}" aria-selected="${anaView === 'kg'}">Knowledge graph</button></div>
      <div id="anaBody"></div>`;
   c.querySelectorAll('.ana-seg button').forEach((b) => b.onclick = () => { anaView = b.dataset.v; renderAnalysis(); });
   $('anaOnto').onclick = () => openInOntoAir(j);
+  c.querySelectorAll('[data-kgapply]').forEach((b) => b.onclick = () => kgDecide(j.id, b.dataset.kgapply));
   $('anaTtl').onclick = () => downloadTtl(j);
   const color = Object.fromEntries(o.classes.map((k, i) => [k.id, ANA_COLORS[i % ANA_COLORS.length]]));
   if (anaView === 'onto') {
     const kids = (pid) => o.classes.filter((k) => (k.parent || '') === pid);
-    const tree = (pid) => { const ks = kids(pid); return ks.length ? `<ul class="onto-cls">${ks.map((k) => `<li><span class="cdot" style="background:${color[k.id]}"></span><b>${escapeHtml(k.label)}</b>${k.inherited ? ' <span class="cd">(earlier)</span>' : ''}${k.desc ? ` <span class="cd">— ${escapeHtml(k.desc)}</span>` : ''}${tree(k.id)}</li>`).join('')}</ul>` : ''; };
+    const tree = (pid) => { const ks = kids(pid); return ks.length ? `<ul class="onto-cls">${ks.map((k) => `<li><span class="cdot" style="background:${color[k.id]}"></span><b>${escapeHtml(k.label)}</b>${k.inherited ? ' <span class="cd">(in the ontology)</span>' : ''}${k.desc ? ` <span class="cd">— ${escapeHtml(k.desc)}</span>` : ''}${tree(k.id)}</li>`).join('')}</ul>` : ''; };
     const label = (id) => { const k = o.classes.find((x) => x.id === id); return k ? `<span class="cdot" style="background:${color[k.id]}"></span>${escapeHtml(k.label)}` : escapeHtml(id || 'any'); };
     $('anaBody').innerHTML = `<div class="onto-cols"><div><h4>Classes · ${o.classes.length}</h4>${tree('') || '<div class="empty">No classes</div>'}</div>
-      <div><h4>Relation types · ${o.relations.length}</h4>${o.relations.length ? `<table class="onto-rel"><thead><tr><th>Relation</th><th>From → To</th><th>Uses</th></tr></thead><tbody>${o.relations.map((r) => `<tr><td><code>${escapeHtml(r.label)}</code>${r.inherited ? ' <span class="cd">(earlier)</span>' : ''}${r.desc ? `<div class="cd">${escapeHtml(r.desc)}</div>` : ''}</td><td>${label(r.domain)} → ${label(r.range)}</td><td>${g.facts.filter((f) => f.rel === r.id).length}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">No relation types</div>'}</div></div>
-      ${anaOnto ? `<div class="ana-base">Workspace ontology: ${anaOnto.classes.length} classes · ${anaOnto.relations.length} relation types, carried into the next analysis. <button id="anaReset">Start fresh</button></div>` : ''}`;
-    if ($('anaReset')) $('anaReset').onclick = async () => {
-      if (!confirm('Forget the ontology built so far? The next analysis starts from nothing. Past results stay.')) return;
-      await post('/api/analysis/ontology/reset', {}).catch(() => {}); refreshAnalysis();
-    };
+      <div><h4>Relation types · ${o.relations.length}</h4>${o.relations.length ? `<table class="onto-rel"><thead><tr><th>Relation</th><th>From → To</th><th>Uses</th></tr></thead><tbody>${o.relations.map((r) => `<tr><td><code>${escapeHtml(r.label)}</code>${r.inherited ? ' <span class="cd">(in the ontology)</span>' : ''}${r.desc ? `<div class="cd">${escapeHtml(r.desc)}</div>` : ''}</td><td>${label(r.domain)} → ${label(r.range)}</td><td>${g.facts.filter((f) => f.rel === r.id).length}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">No relation types</div>'}</div></div>
+`;
     return;
   }
   drawKG(g, o, color);
@@ -3067,24 +3345,27 @@ function renderAnalysis() {
 // 공개 링크·게이트웨이 예외 없이 열린다(해시는 서버로 전송되지 않는다). OntoAir가 붙이는 ?_t=…는 끝의 주석 줄 안으로 들어가고,
 // 마지막 '/이름.ttl'은 OntoAir가 형식(ttl)과 파일 이름을 읽는 자리다. 너무 크면 공개 링크 → 그것도 막히면 내려받기.
 const ONTOAIR_MAX_URL = 1500000;
-async function openInOntoAir(j) {
-  const w = window.open('about:blank', '_blank');
-  logEvent('ontoair.open', j.id);          // 팝업 차단을 피하려고 누른 순간에 창부터 연다
+async function openInOntoAir(j) { logEvent('ontoair.open', j.id); return openTtlInOntoAir(`/api/analysis/ttl?id=${j.id}&ws=${encodeURIComponent(currentWs || '')}`, `ana-analysis-${j.id}`, j); }
+// .ttl 주소 하나를 OntoAir로(지식그래프·분석 결과 공용). 크면 분석 결과는 공개 링크, 그것도 안 되면 내려받기
+async function openTtlInOntoAir(src, name, job) {
+  const w = window.open('about:blank', '_blank');          // 팝업 차단을 피하려고 누른 순간에 창부터 연다
   const go = (u) => { if (w) w.location.href = u; else location.href = u; };
   try {
-    const r = await fetch(`/api/analysis/ttl?id=${j.id}&ws=${encodeURIComponent(currentWs || '')}`);
-    if (!r.ok) throw new Error('Could not export this analysis');
+    const r = await fetch(src);
+    if (!r.ok) throw new Error('Could not export it');
     const ttl = await r.text();
-    const data = 'data:text/turtle;charset=utf-8,' + encodeURIComponent(ttl + '\n# ') + `/ana-analysis-${j.id}.ttl`;
+    const data = 'data:text/turtle;charset=utf-8,' + encodeURIComponent(ttl + '\n# ') + `/${name}.ttl`;
     const url = ONTOAIR + '#' + encodeURIComponent(data);
     if (url.length <= ONTOAIR_MAX_URL) return go(url);
-    const s = await post('/api/analysis/share', { id: j.id }); const d = await s.json();
-    if (s.ok) {
-      const link = location.origin + d.path;
-      const probe = await fetch(link, { method: 'HEAD', credentials: 'omit', cache: 'no-store' }).catch(() => null);
-      if (probe && probe.ok) return go(ONTOAIR + '#' + encodeURIComponent(link));
+    if (job) {
+      const s = await post('/api/analysis/share', { id: job.id }); const d = await s.json();
+      if (s.ok) {
+        const link = location.origin + d.path;
+        const probe = await fetch(link, { method: 'HEAD', credentials: 'omit', cache: 'no-store' }).catch(() => null);
+        if (probe && probe.ok) return go(ONTOAIR + '#' + encodeURIComponent(link));
+      }
     }
-    downloadTtl(j); go(ONTOAIR);
+    const a = document.createElement('a'); a.href = src; a.download = `${name}.ttl`; document.body.appendChild(a); a.click(); a.remove(); go(ONTOAIR);
     showErr('This graph is too large to hand to OntoAir in a link, so the .ttl was downloaded — open it in OntoAir with 📄 File');
   } catch (e) { if (w) w.close(); showErr(e.message || 'Could not open OntoAir'); }
 }
@@ -3093,7 +3374,7 @@ function downloadTtl(j) {
   const a = document.createElement('a'); a.href = `/api/analysis/ttl?id=${j.id}&ws=${encodeURIComponent(currentWs || '')}`; a.download = `ana-analysis-${j.id}.ttl`;
   document.body.appendChild(a); a.click(); a.remove();
 }
-function drawKG(g, o, color) {
+function drawKG(g, o, color, host = $('anaBody')) {
   const W = 760, H = Math.max(340, Math.min(620, 240 + g.entities.length * 10)), n = g.entities.length;
   const pos = g.entities.map((e, i) => ({ id: e.id, x: W / 2 + Math.cos(i * 2.4) * (40 + i * 6), y: H / 2 + Math.sin(i * 2.4) * (40 + i * 6), vx: 0, vy: 0 }));
   const idx = Object.fromEntries(pos.map((p, i) => [p.id, i]));
@@ -3145,13 +3426,13 @@ function drawKG(g, o, color) {
   const nodes = g.entities.map((e) => { const p = pos[idx[e.id]]; const r = 6 + Math.min(8, g.facts.filter((f) => f.from === e.id || f.to === e.id).length * 1.5);
     return `<g class="n" data-id="${escapeHtml(e.id)}" tabindex="0" role="button" aria-label="${escapeHtml(e.label)}"><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" fill="${color[e.class] || '#94A3B8'}"/><text x="${p.x.toFixed(1)}" y="${(p.y - r - 4).toFixed(1)}" text-anchor="middle">${escapeHtml(e.label.length > 22 ? e.label.slice(0, 21) + '…' : e.label)}</text></g>`; }).join('');
   const used = o.classes.filter((k) => g.entities.some((e) => e.class === k.id));
-  $('anaBody').innerHTML = `<div class="kg-legend">${used.map((k) => `<span><span class="cdot" style="background:${color[k.id]}"></span>${escapeHtml(k.label)}</span>`).join('')}</div>
-    <div class="kg-wrap"><svg class="kg-svg${g.facts.length > 30 ? ' many' : ''}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Knowledge graph">${edges}${nodes}</svg></div><div class="kg-detail" id="kgDetail" hidden></div>`;
-  const svg = $('anaBody').querySelector('svg');
+  host.innerHTML = `<div class="kg-legend">${used.map((k) => `<span><span class="cdot" style="background:${color[k.id]}"></span>${escapeHtml(k.label)}</span>`).join('')}</div>
+    <div class="kg-wrap"><svg class="kg-svg${g.facts.length > 30 ? ' many' : ''}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Knowledge graph">${edges}${nodes}</svg></div><div class="kg-detail" hidden></div>`;
+  const svg = host.querySelector('svg');
   const pick = (id) => {
     anaSel = anaSel === id ? '' : id;
     svg.classList.toggle('dim', !!anaSel); svg.querySelectorAll('.hl').forEach((x) => x.classList.remove('hl'));
-    const det = $('kgDetail'); if (!anaSel) { det.hidden = true; return; }
+    const det = host.querySelector('.kg-detail'); if (!anaSel) { det.hidden = true; return; }
     const e = g.entities.find((x) => x.id === anaSel), mine = g.facts.filter((f) => f.from === anaSel || f.to === anaSel);
     svg.querySelectorAll(`.n[data-id="${CSS.escape(anaSel)}"]`).forEach((x) => x.classList.add('hl'));
     svg.querySelectorAll('.e, .el').forEach((x) => { if (x.dataset.f === anaSel || x.dataset.t === anaSel) { x.classList.add('hl'); [x.dataset.f, x.dataset.t].forEach((k) => svg.querySelectorAll(`.n[data-id="${CSS.escape(k)}"]`).forEach((y) => y.classList.add('hl'))); } });
@@ -3333,7 +3614,7 @@ function selectTab(b) {
     if (b.dataset.group && b.dataset.group !== appMode) applyArea(b.dataset.group);
     if ($('memoView').classList.contains('on') && b.dataset.view !== 'memo') cleanupEmptyMemos(); // 메모 탭 이탈 시 빈 메모 정리(진화 #3)
     document.querySelectorAll('.topnav .tab').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
-    ['todo', 'schedule', 'memo', 'relations', 'files', 'inbox', 'admin', 'roadmap', 'health'].forEach((v) => $(v + 'View').classList.toggle('on', b.dataset.view === v));
+    ['todo', 'schedule', 'memo', 'relations', 'files', 'inbox', 'admin', 'roadmap', 'ontology', 'health'].forEach((v) => $(v + 'View').classList.toggle('on', b.dataset.view === v));
     document.body.classList.toggle('in-work', WORK_VIEWS.has(b.dataset.view));   // 휴대폰: 할일·일정·메모일 때만 위 탭 줄
     syncBottomNav(b.dataset.view);
     lastTab[appMode] = b.dataset.view;
@@ -3341,12 +3622,14 @@ function selectTab(b) {
     revealTab(b);
     try { localStorage.setItem('ana-area-tabs', JSON.stringify(lastTab)); } catch {}
     const v = b.dataset.view;
-    if (v === 'inbox') { refreshRequests(); refreshEvolve(); refreshAdmin(); refreshRequirements(); }
+    if (SUBTABS[v]) renderSubtabs(v);
+    if (v === 'inbox') { refreshRequests(); refreshEvolve(); refreshAdmin(); refreshRequirements(); refreshAnalysis(); }
     if (v === 'admin') refreshAdmin();
     if (v === 'roadmap') { refreshRequirements(); refreshEvolve(); refreshUpdates(); }
-    if (v === 'health') { refreshTrust(); renderStats(); }
+    if (v === 'health') { refreshTrust(); refreshTests(); if (curSub('health') === 'usage') renderStats(); }
     if (v === 'files') loadFiles(filesPath);
-    if (v === 'relations') renderRelations();
+    if (v === 'relations') { renderRelations(); refreshAnalysis(); refreshKg(); }
+    if (v === 'ontology') refreshOntology();
 }
 document.querySelectorAll('.topnav .tab').forEach((b) => { b.onclick = () => selectTab(b); });
 // 고른 탭이 가려져 있으면 보이게 밀고, 양옆에 더 있는지 가장자리 흐림으로 알린다
@@ -3387,10 +3670,10 @@ function setAreaBadge(attr, n) { document.querySelectorAll(`[${attr}]`).forEach(
 function updateSysBadge() {
   setAreaBadge('data-inboxbadge', badgeN('reqBadge') + badgeN('apprBadge') + badgeN('evoBadge'));
   const adm = badgeN('admBadge'), road = badgeN('sevoBadge') + badgeN('updBadge');
-  setAreaBadge('data-admbadge', adm); setAreaBadge('data-roadbadge', road); setAreaBadge('data-healthbadge', trustRisk);
+  setAreaBadge('data-admbadge', adm); setAreaBadge('data-roadbadge', road); setAreaBadge('data-healthbadge', trustRisk + testRisk);
   $('roadBadge').textContent = road; $('roadBadge').classList.toggle('show', road > 0);
-  $('healthBadge').textContent = trustRisk; $('healthBadge').classList.toggle('show', trustRisk > 0);
-  setAreaBadge('data-sysbadge', myRole === 'admin' ? adm + road + trustRisk : 0);
+  $('healthBadge').textContent = trustRisk + testRisk; $('healthBadge').classList.toggle('show', trustRisk + testRisk > 0);
+  setAreaBadge('data-sysbadge', myRole === 'admin' ? adm + road + trustRisk + testRisk : 0);
 }
 // 영역 적용은 스크립트가 다 읽힌 뒤에 — 탭 클릭이 아래쪽에서 선언되는 상태 변수를 건드려도 TDZ에 걸리지 않게
 document.querySelectorAll('.topnav .tab[data-group]').forEach((t) => { t.hidden = t.dataset.group !== appMode; });
@@ -4256,16 +4539,18 @@ function instructionInfo(raw) {
     summary = `Asked the agent to bring in ${t ? `“${t}”` : 'an update'} from upstream`; view = 'roadmap';
   } else if (m[1] === 'Requests') { summary = 'Asked the agent what it needs from you'; view = 'inbox'; }
   else { summary = 'Asked the agent what needs your OK'; view = 'inbox'; }
-  return { tag: m[2] ? 'Request' : m[1], summary, view, full };
+  const sub = { relations: 'analysis', inbox: m[1] === 'Evolve' ? 'evolve' : m[1] === 'Approvals' ? 'approval' : 'work', roadmap: { Evolve: 'evolve', Requirements: 'req', Update: 'upd' }[m[1]] }[view];
+  return { tag: m[2] ? 'Request' : m[1], summary, view, sub, full };
 }
 function instrCardHtml(ins, attrs) {
   return `<div class="icard"${attrs}><div class="icard-h"><span class="icard-tag">${escapeHtml(ins.tag)}</span><span class="icard-t">${escapeHtml(ins.summary)}</span>${
-    usableTab(document.querySelector(`.topnav .tab[data-view="${ins.view}"]`)) ? `<button class="icard-open" data-view="${ins.view}">Open</button>` : ''}</div>
+    usableTab(document.querySelector(`.topnav .tab[data-view="${ins.view}"]`)) ? `<button class="icard-open" data-view="${ins.view}" data-sub="${ins.sub || ''}">Open</button>` : ''}</div>
     <details class="icard-d"><summary>Show instruction</summary><pre>${escapeHtml(ins.full)}</pre></details></div>`;
 }
 // Open: 그 화면으로(휴대폰에서는 채팅을 닫아 보이게)
 document.addEventListener('click', (e) => {
   const b = e.target.closest('.icard-open'); if (!b) return;
+  if (b.dataset.sub && SUBTABS[b.dataset.view]) openSub(b.dataset.view, b.dataset.sub);
   setAppMode(INSTR_AREA[b.dataset.view] || 'sys', b.dataset.view);
   if (matchMedia('(max-width: 768px)').matches) closeChat();
 });
@@ -4437,9 +4722,11 @@ function connect() {
       case 'evolve': refreshEvolve(); break;
       case 'requests': refreshRequests(); break;
       case 'admin': refreshAdmin(); break;
+      case 'tests': refreshTests(); break;
+      case 'ontology': refreshOntology(); refreshKg(); break;
       case 'updates': refreshUpdates(); break;
       case 'requirements': refreshRequirements(); break;
-      case 'analysis': if ($('relationsView').classList.contains('on')) refreshAnalysis(); break;
+      case 'analysis': refreshAnalysis(); if ($('relationsView').classList.contains('on')) refreshKg(); break;
     }
   };
   stream.onerror = () => {
@@ -4593,6 +4880,7 @@ loadWorkspaces().finally(() => { refreshData(); });
 refreshEvolve();
 refreshRequests();
 refreshAdmin();
+refreshAnalysis();
 refreshUpdates();   // System 배지에 대기 중인 업데이트 수
 setInterval(async () => {
   if (document.hidden) return;

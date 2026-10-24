@@ -5,22 +5,61 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
-## [Unreleased]
+## [0.8.0] — 2026-10-24
+
+A new structure: **two scopes** (Workspace for members, System for the admin), an inbox in each, **roles**, a **System ontology with a knowledge graph per workspace**, and **Health › Tests**.
 
 ### Added
 
-- **New layout: two scopes, one inbox each.** The three areas (Workspace / Collaborate / System) are now two, and the top of the screen always shows which one you are in. On phones the bottom menu follows the scope.
-  - **Workspace** (members): Work (Tasks · Calendar · Notes), **Knowledge** (was System › Relations), **Files** (now one folder per workspace), and **Inbox**. Inbox puts Approvals, Requests and the workspace's Evolve suggestions in one list with *Open / Done*, plus *Ask the agent*, *Ask the admin*, *Request a feature* and *Sent by you*.
-  - **System** (admin only, dark header band): **Inbox** (was Admin), **Roadmap**, and **Health**.
-    - Roadmap puts requirements, system proposals and upstream updates on one line each, Request → Proposal → Building → Checked, with the next action on the card. It replaces the Requirements, Evolve and Update tabs.
-    - Health puts Stats, Trustworthiness, Safety and Security on one page: riskiest first, OK checks folded, usage and activity below.
-  - Tabs go from 16 to 4 per role. Status filters go from five columns to *Open / Done*; each card still shows its own state.
-  - Project files in Files are for the admin only (server-checked). The README phone image shows the new layout.
-- **Admins and members.** Workspaces are where members work; the System is decided by the admin (`ANA_ADMINS=email,…`). An empty list, a single-user install, or a local call with no identity means everyone is admin, so nothing changes for single-user installs.
-  - **System › Admin** (admins only) collects **approval requests** and **work requests**, each with the five status lists. Members send them with *Ask the admin* (Requests and Approvals) and follow them under *Sent to the admin*. The agent sends them with `POST /api/admin/requests`. A system check at risk opens a work request and closes it when fixed.
-  - **Admin-only actions, checked on the server:** start, cancel or reopen a system proposal; bring in an Update; switch the agent to Bypass / Full Access; delete a workspace. A member's tap becomes an approval request instead. When the admin approves it, the action runs.
-  - The profile menu shows your role.
-- **Evolve has two scopes.** **System › Evolve** is for features, screens, APIs and the shared ontology; the admin starts them. **Collaborate › Evolve** is for running this workspace better with existing features; members start them, and the agent is told to change only that workspace's data. *Propose to the system* lifts a workspace proposal that needs a new feature. Existing proposals are system proposals.
+- **Two scopes, one inbox each.** The three areas (Workspace / Collaborate / System) are now two, and the top of the screen always shows which one you are in.
+  - **Workspace** (members): **Work** (Tasks · Calendar · Notes) · **Knowledge** · **Files** · **Inbox**.
+  - **System** (admin only, dark header band): **Inbox** · **Roadmap** · **Ontology** · **Health**.
+  - Phones get a bottom menu per scope (Work · Knowledge · Files · Inbox · System / Inbox · Roadmap · Ontology · Health · Workspace). The top tab row shows only for Tasks · Calendar · Notes. On desktop, a switch next to the logo changes scope.
+  - **One kind of thing per page:** pages with several kinds have sub-tabs, each showing how many need you. Lists filter *Open / Done*, and each card still shows its own state.
+    - Workspace Inbox: *Approvals · Work requests · Evolve · Sent*
+    - System Inbox: *Approvals · Work requests*
+    - Knowledge: *Links · Knowledge graph · Analysis · Ontology*
+    - Roadmap: *Requirements · Evolve · Updates*
+    - Ontology: *Classes · Relations*
+    - Health: *Trustworthiness · Safety · Security · Tests · Usage*
+  - Tabs went from 16 to at most 6 per scope. Menus never wrap on phones: sub-tabs and toolbars scroll sideways, and the System header drops its subtitle on narrow screens.
+- **Admins and members.** `ANA_ADMINS=email,…` names the admins. If the list is empty, the install has no identity header (single user), or a call comes from this machine without identity, everyone is admin, so single-user installs behave as before.
+  - **Admin-only, checked on the server:**
+    - starting, cancelling or retrying a system proposal
+    - bringing in an Update
+    - switching the agent to Bypass / Full Access
+    - deleting a workspace
+    - project files
+    - changing the ontology
+    - running tests
+  - A member's tap on one of these becomes an **approval request in System › Inbox**. When the admin approves it, the action runs.
+  - **System › Inbox** collects approval and work requests from members (*Ask the admin*), the agent (`POST /api/admin/requests`) and the system checks: a check at risk opens a work request and closes it once fixed. Members follow theirs under Inbox › *Sent*. The profile menu shows your role.
+- **Evolve in two places.** Workspace › Inbox › *Evolve* holds ways to run this workspace better with existing features: members start them, and the agent is told to change only that workspace's data. System › Roadmap › *Evolve* holds changes to the system itself, which only the admin starts. *Propose to the system* lifts a workspace proposal that needs a new feature.
+- **Roadmap.** Requirements, system proposals and upstream updates sit on one line each with their stage (*Request → Proposal → Building → Checked*) and the next action: *Check*, *Propose*, *Start*, *Check again*, *Bring in*. Members send requirements with *Request a feature*.
+- **Requirement → proposal → re-check.** A requirement judged *Not reflected* or *Partly* can become a system proposal in one tap (it carries the next step and reason). When that proposal is done, the requirement asks to be checked again.
+- **Ontology in the System, knowledge graph in each workspace.** See [docs/relations.md](docs/relations.md).
+  - **System › Ontology:** one ontology shared by every workspace. The core (Note · Task · Event · Day and the app's relations) is built in and locked; the admin adds, edits and removes the rest. A concept still used by a knowledge graph can't be removed.
+  - **Knowledge graph per workspace** (`kg.json`), shown in Knowledge › *Knowledge graph*, and opened in OntoAir or downloaded as Turtle (shared ontology as TBox, the workspace's facts as ABox).
+  - **Analyses** read the shared ontology. A new class or relation in a result becomes an admin approval request.
+  - The result is added only when a member approves it (**Inbox › Approvals** or Knowledge › Analysis: *Add to the knowledge graph* / *Discard*). Facts that use a concept still waiting for approval are added to every workspace automatically once the admin approves it. Members can remove a wrong entity or fact.
+  - The knowledge graph is indexed in NodeRel (`kg:<id>`, relation-typed facts, `MENTIONED_IN` to source items) for `/api/graph/trace · neighbors · schema`.
+- **Health › Tests.** The admin runs this ANA's tests (`package.json` scripts.test). The page shows passed / failed per suite, the failing tests, the output and earlier runs. A failed run counts on the Health badge.
+- **Examples banner.** While the first-run example notes, tasks and events are still there, Workspace shows *These are examples — Clear them / Keep*. Examples are seeded once per install (`.seeded`), so they never come back.
+- **ANA's own instructions show as cards in chat**, not as your bubbles: *Asked the agent to analyze 10 items · #1*, with **Open** (goes to that tab) and *Show instruction*. The usage log records them as `analysis.request`, `evolve.request`, … instead of `chat.send`.
+
+### Changed
+
+- **Files** is one folder per workspace (`.ana/files` for the base workspace, or `ANA_FILES_ROOT`). *From chat* shows chat attachments read-only, and *Project files* is admin-only with no writes into `.ana/` or `.git/`.
+- **Health** puts Stats and the three check areas in one place. In each area the riskiest checks come first and OK checks are folded.
+- **The usage log** records what you do in the app: tab and sub-tab visits, approvals, proposal and request actions, requirement edits, uploads (folder or type and size, no names), OntoAir opens, `.ttl` downloads and test runs. `chat.send` keeps only the first 60 characters plus the length.
+- The README phone image shows the new layout.
+
+### Upgrade notes
+
+- Existing evolve proposals become **system** proposals. Existing requests stay in their workspace.
+- The first time the ontology is read, each workspace's earlier analysis ontology is merged into `ontology.json`. Concepts that clash with the core are skipped. Earlier analysis results are **not** added to any knowledge graph until a member approves them (Inbox › Approvals).
+- To give someone a member role, set `ANA_IDENTITY_HEADER` (the identity header your gateway sends) and `ANA_ADMINS`. Until then everyone is admin.
+- New API: `/api/admin/inbox · requests · act`, `/api/ontology`, `/api/kg`, `/api/kg/ttl`, `/api/analysis/apply · discard`, `/api/tests`, `/api/tests/run`, `POST /api/activity`. `/api/evolve` takes `scope`, and `/api/evolve-act` adds `escalate`. `/api/analysis/ontology/reset` and `useBase` are gone.
 
 ## [0.7.0] — 2026-10-24
 
@@ -221,6 +260,7 @@ The base becomes a solo operations board you run with a coding agent. It has thr
 
 See the [commit history](https://github.com/tykimos/agent-native-agent/commits/main) up to `d690eda`: workspaces, Chip mode, the install skill, per-session ledgers, and structured AskUserQuestion cards.
 
+[0.8.0]: https://github.com/tykimos/agent-native-agent/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/tykimos/agent-native-agent/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/tykimos/agent-native-agent/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/tykimos/agent-native-agent/compare/v0.5.0...v0.5.1

@@ -5,43 +5,98 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
-## [미출시]
+## [0.8.0] — 2026-10-24
+
+새 구조입니다.
+- **범위 둘**: 실무자의 Workspace와 관리자의 System. 범위마다 받은함이 하나씩 있습니다.
+- **역할**: 관리자와 실무자
+- **System 온톨로지와 워크스페이스별 지식그래프**
+- **Health › Tests**
 
 ### 추가
 
-- **새 구조: 범위 둘, 범위마다 받은함 하나.** 세 영역(Workspace / Collaborate / System)을 둘로 줄였습니다. 화면 맨 위에 지금 어느 범위인지 늘 보이고, 휴대폰 하단 메뉴는 범위에 따라 바뀝니다.
-  - **Workspace**(실무자)
-    - Work(할일·일정·메모)
-    - **Knowledge**: 예전 System › Relations
-    - **Files**: 이제 워크스페이스마다 폴더가 따로 있음
-    - **Inbox**: Approvals, Requests, 워크스페이스 진화 제안을 *Open / Done* 한 목록으로 모았습니다. *Ask the agent*, *Ask the admin*, *Request a feature*, *Sent by you*도 여기 있습니다.
-  - **System**(관리자만, 위쪽이 어두운 띠)
-    - **Inbox**: 예전 Admin
-    - **Roadmap**: 요구사항, 시스템 제안, 업스트림 업데이트를 항목마다 한 줄(Request → Proposal → Building → Checked)로 보여 주고, 카드에 다음 할 일 버튼이 있습니다. 예전 Requirements · Evolve · Update 탭을 대신합니다.
-    - **Health**: Stats와 신뢰성·안전·보안을 한 장에 모았습니다. 위험한 것이 먼저, 괜찮은 점검은 접어 두고, 아래에 사용 통계와 활동이 있습니다.
-  - 탭이 16개에서 역할별 4개로 줄었습니다.
-  - 상태 필터는 5칸에서 *Open / Done*으로 줄였습니다. 각 카드는 여전히 자기 상태를 보여 줍니다.
-  - Files의 프로젝트 파일은 관리자만 볼 수 있습니다(서버에서 확인).
-  - README 휴대폰 이미지도 새 구조로 바꿨습니다.
-- **관리자와 실무자.** 워크스페이스는 실무자가 일하는 곳이고, System은 관리자가 정합니다(`ANA_ADMINS=이메일,…`). 목록이 비었거나, 혼자 쓰는 설치이거나, 이 컴퓨터에서 신원 없이 들어온 호출이면 모두 관리자입니다. 그래서 혼자 쓰는 설치는 그대로입니다.
-  - **System › Admin**(관리자만 보임)
-    - **승인요청**과 **작업요청**을 다섯 상태 목록으로 모읍니다.
-    - 실무자는 Requests·Approvals의 *Ask the admin*으로 보내고, *Sent to the admin*에서 진행을 봅니다.
-    - 에이전트는 `POST /api/admin/requests`로 보냅니다.
-    - 시스템 점검이 risk가 되면 작업요청이 저절로 생기고, 해결되면 닫힙니다.
-  - **관리자 전용 동작(서버에서 확인)**
+- **범위 둘, 받은함 하나씩.** 세 영역(Workspace / Collaborate / System)을 둘로 줄였고, 화면 맨 위에 지금 어느 범위인지 늘 보입니다.
+  - **Workspace**(실무자): **Work**(할일·일정·메모) · **Knowledge** · **Files** · **Inbox**
+  - **System**(관리자만, 위쪽이 어두운 띠): **Inbox** · **Roadmap** · **Ontology** · **Health**
+  - **휴대폰:** 범위마다 하단 메뉴가 다릅니다(Work · Knowledge · Files · Inbox · System / Inbox · Roadmap · Ontology · Health · Workspace). 위쪽 탭 줄은 할일·일정·메모에서만 보입니다.
+  - **데스크톱:** 로고 옆 전환 버튼으로 범위를 바꿉니다.
+  - **한 화면에는 한 가지만.** 여러 가지가 있는 화면은 하위 탭으로 나누고, 하위 탭마다 나를 기다리는 수를 보여 줍니다.
+    - Workspace Inbox: *Approvals · Work requests · Evolve · Sent*
+    - System Inbox: *Approvals · Work requests*
+    - Knowledge: *Links · Knowledge graph · Analysis · Ontology*
+    - Roadmap: *Requirements · Evolve · Updates*
+    - Ontology: *Classes · Relations*
+    - Health: *Trustworthiness · Safety · Security · Tests · Usage*
+  - **목록:** *Open / Done*으로 거르고, 각 카드는 자기 상태를 그대로 보여 줍니다.
+  - **줄어든 탭:** 16개에서 범위마다 많아야 6개입니다.
+  - **휴대폰 메뉴:** 두 줄로 접히지 않습니다. 하위 탭과 도구 줄은 옆으로 밀리고, 좁은 화면에서는 System 머리글의 부제가 숨겨집니다.
+- **관리자와 실무자.** `ANA_ADMINS=이메일,…`로 관리자를 정합니다. 다음 경우에는 모두 관리자이므로 혼자 쓰는 설치는 예전과 같습니다.
+  - 목록이 비어 있을 때
+  - 신원 헤더가 없는 단일 사용자 설치
+  - 이 컴퓨터에서 신원 없이 들어온 호출
+  - **관리자 전용(서버에서 확인):**
     - 시스템 제안의 시작·취소·재시도
     - Update 반영
     - Bypass / Full Access로 바꾸기
     - 워크스페이스 삭제
+    - 프로젝트 파일
+    - 온톨로지 변경
+    - 테스트 실행
 
-    실무자가 누르면 대신 승인요청이 되고, 관리자가 승인하면 그 동작이 실행됩니다.
-  - 프로필 메뉴에 내 역할이 보입니다.
-- **진화 제안을 둘로 나눴습니다.**
-  - **System › Evolve:** 기능, 화면, API, 공용 온톨로지. 관리자가 시작합니다.
-  - **Collaborate › Evolve:** 이미 있는 기능으로 이 워크스페이스를 더 잘 쓰는 방법. 실무자가 시작하고, 에이전트에게는 그 워크스페이스의 데이터만 바꾸라고 지시합니다.
-  - 새 기능이 필요하면 *Propose to the system*으로 올립니다.
-  - 기존 제안은 시스템 제안이 됩니다.
+    실무자가 누르면 **System › Inbox의 승인요청**이 되고, 관리자가 승인하면 그 동작이 실행됩니다.
+  - **System › Inbox**에 승인요청과 작업요청이 모입니다. 보내는 쪽은 다음과 같습니다.
+    - 실무자(*Ask the admin*)
+    - 에이전트(`POST /api/admin/requests`)
+    - 시스템 점검(risk면 작업요청을 열고, 고쳐지면 닫음)
+  - 실무자는 자기 요청을 Inbox › *Sent*에서 봅니다. 프로필 메뉴에 내 역할이 보입니다.
+- **진화 제안은 두 곳에 있습니다.**
+  - Workspace › Inbox › *Evolve*: 이미 있는 기능으로 이 워크스페이스를 더 잘 쓰는 방법입니다. 실무자가 시작하고, 에이전트에게는 그 워크스페이스 데이터만 바꾸라고 지시합니다.
+  - System › Roadmap › *Evolve*: 시스템 자체를 바꾸는 제안입니다. 관리자만 시작합니다.
+  - 새 기능이 필요한 워크스페이스 제안은 *Propose to the system*으로 올립니다.
+- **Roadmap.** 요구사항, 시스템 제안, 업스트림 업데이트를 한 줄씩 단계(*Request → Proposal → Building → Checked*)와 다음 할 일(*Check*, *Propose*, *Start*, *Check again*, *Bring in*)로 보여 줍니다. 실무자는 *Request a feature*로 요구사항을 보냅니다.
+- **요구사항 → 제안 → 다시 확인.** *반영 안 됨*이나 *일부 반영*인 요구사항을 한 번에 시스템 제안으로 만듭니다(다음 단계와 이유가 함께 들어감). 그 제안이 완료되면 요구사항이 다시 확인해 달라고 표시됩니다.
+- **온톨로지는 System에, 지식그래프는 워크스페이스마다.** 자세한 내용은 [docs/relations.ko.md](docs/relations.ko.md)에 있습니다.
+  - **System › Ontology:** 모든 워크스페이스가 공유하는 온톨로지 하나입니다.
+    - 핵심(Note · Task · Event · Day와 앱 관계)은 처음부터 있고 잠겨 있습니다.
+    - 나머지는 관리자가 더하고, 고치고, 지웁니다.
+    - 지식그래프가 아직 쓰는 개념은 지울 수 없습니다.
+  - **워크스페이스별 지식그래프**(`kg.json`)
+    - Knowledge › *Knowledge graph*에서 봅니다.
+    - OntoAir로 열거나 Turtle로 내려받습니다(공용 온톨로지가 TBox, 워크스페이스 사실이 ABox).
+  - **분석**은 공용 온톨로지를 읽습니다. 결과에 새 클래스나 관계가 있으면 관리자 승인요청이 됩니다.
+  - **결과는 실무자가 승인해야 들어갑니다.** Inbox › Approvals 또는 Knowledge › Analysis에서 *Add to the knowledge graph* / *Discard*를 고릅니다.
+  - **승인 대기 개념을 쓰는 사실**은 관리자가 그 개념을 승인하면 모든 워크스페이스에 저절로 들어갑니다. 틀린 개체나 사실은 실무자가 지울 수 있습니다.
+  - **NodeRel 색인:** 지식그래프는 NodeRel에 들어갑니다(`kg:<id>`, 관계 타입의 사실, 근거 항목으로 `MENTIONED_IN`). 그래서 `/api/graph/trace · neighbors · schema`로 따라갈 수 있습니다.
+- **Health › Tests.** 관리자가 이 ANA의 테스트(`package.json` scripts.test)를 돌립니다.
+  - 결과 화면: 묶음별 통과·실패, 실패한 테스트, 출력, 지난 실행
+  - 실패하면 Health 배지에 셉니다.
+- **예제 배너.** 첫 실행 예제가 남아 있는 동안 Workspace에 *These are examples — Clear them / Keep*이 뜹니다. 예제는 설치당 한 번만 넣습니다(`.seeded`). 그래서 지워도 다시 생기지 않습니다.
+- **ANA가 대신 보낸 지시문은 채팅에서 카드로 보입니다.** 내 말풍선 대신 *Asked the agent to analyze 10 items · #1* 같은 카드가 뜨고, **Open**(그 탭으로 이동)과 *Show instruction*이 있습니다. 사용 기록에도 `chat.send` 대신 `analysis.request`, `evolve.request` 등으로 남습니다.
+
+### 변경
+
+- **Files**
+  - 워크스페이스마다 폴더가 따로 있습니다(기본 워크스페이스는 `.ana/files`, 또는 `ANA_FILES_ROOT`).
+  - *From chat*은 채팅 첨부를 읽기 전용으로 보여 줍니다.
+  - *Project files*는 관리자만 보며, `.ana/`·`.git/`에는 쓸 수 없습니다.
+- **Health**는 통계와 세 점검 영역을 한곳에 모았습니다. 영역마다 위험한 것부터 보이고, 괜찮은 점검은 접어 둡니다.
+- **사용 기록**에 앱에서 한 일을 남깁니다.
+  - 탭과 하위 탭 방문
+  - 승인, 제안·요청 처리, 요구사항 수정
+  - 업로드(폴더 또는 종류와 크기만, 이름은 남기지 않음)
+  - OntoAir 열기, `.ttl` 내려받기, 테스트 실행
+
+  `chat.send`에는 앞 60자와 길이만 남깁니다.
+- README 휴대폰 이미지를 새 구조로 바꿨습니다.
+
+### 업그레이드 안내
+
+- 기존 진화 제안은 **시스템** 제안이 됩니다. 기존 요청은 자기 워크스페이스에 그대로 남습니다.
+- 온톨로지를 처음 읽을 때 각 워크스페이스의 예전 분석 온톨로지를 `ontology.json`으로 합칩니다. 핵심과 겹치는 개념은 건너뜁니다. 예전 분석 결과는 실무자가 승인(Inbox › Approvals)하기 전까지 지식그래프에 **들어가지 않습니다**.
+- 실무자 역할을 주려면 `ANA_IDENTITY_HEADER`(게이트웨이가 보내는 신원 헤더)와 `ANA_ADMINS`를 설정합니다. 그전까지는 모두 관리자입니다.
+- **새 API:** `/api/admin/inbox · requests · act`, `/api/ontology`, `/api/kg`, `/api/kg/ttl`, `/api/analysis/apply · discard`, `/api/tests`, `/api/tests/run`, `POST /api/activity`
+- **바뀐 API:** `/api/evolve`는 `scope`를 받고, `/api/evolve-act`에는 `escalate`가 생겼습니다.
+- **없어진 것:** `/api/analysis/ontology/reset`과 `useBase`
 
 ## [0.7.0] — 2026-10-24
 
@@ -273,6 +328,7 @@ base가 코딩 에이전트와 함께 운영하는 1인 업무 보드가 되었�
 
 `d690eda`까지의 [커밋 기록](https://github.com/tykimos/agent-native-agent/commits/main)을 보세요. 워크스페이스, 칩 모드, install 스킬, 세션별 원장, 구조화된 AskUserQuestion 카드가 들어 있습니다.
 
+[0.8.0]: https://github.com/tykimos/agent-native-agent/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/tykimos/agent-native-agent/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/tykimos/agent-native-agent/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/tykimos/agent-native-agent/compare/v0.5.0...v0.5.1

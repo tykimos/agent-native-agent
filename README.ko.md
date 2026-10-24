@@ -155,20 +155,25 @@ node server.js           # → http://localhost:8809
 | 범위 | 누가 | 탭 | 용도 |
 |---|---|---|---|
 | **Workspace** (위에 워크스페이스 이름) | 실무자 | **Work**(할일·일정·메모) · **Knowledge** · **Files** · **Inbox** | 한 워크스페이스의 일과 데이터 |
-| **System** (위쪽이 어두운 띠) | 관리자 | **Inbox** · **Roadmap** · **Health** | 모든 워크스페이스에 걸리는 결정 |
+| **System** (위쪽이 어두운 띠) | 관리자 | **Inbox** · **Roadmap** · **Ontology** · **Health** | 모든 워크스페이스에 걸리는 결정 |
 
 휴대폰에서는 하단 메뉴가 범위에 맞게 바뀝니다. Workspace에서는 Work · Knowledge · Files · Inbox(관리자는 System 추가), System에서는 Inbox · Roadmap · Health · Workspace입니다. 데스크톱에서는 로고 옆 전환 버튼으로 바꿉니다.
 
-- **Inbox(Workspace):** 이 워크스페이스에서 나를 기다리는 것을 한 목록(*Open / Done*)으로 모읍니다.
-  - 에이전트의 질문과 작업요청
-  - 승인할 데이터 변경
-  - 워크스페이스를 더 잘 쓰는 제안
-  - 내가 보낸 것(관리자에게 보낸 요청, 기능 요청)
-- **Knowledge:** 항목이 어떻게 이어지는지(관계, 흐름이 끊긴 곳)와 지식그래프(Analyze)
+한 화면에는 한 가지만 보입니다. 여러 가지가 있는 화면은 하위 탭으로 나누고, 목록마다 *Open / Done*으로 거릅니다.
+
+- **Inbox(Workspace):** System › Inbox와 같은 말을 씁니다.
+  - *Approvals*: 데이터 변경, 지식그래프에 더할 분석 결과, 결정, 접근
+  - *Work requests*: 에이전트가 맡기는 일이나 묻는 정보
+  - *Evolve*: 이 워크스페이스를 더 잘 쓰는 제안
+  - *Sent*: 관리자에게 보낸 요청, 내 기능 요청
+- **Knowledge:** *Links*(관계, 흐름이 끊긴 곳) · *Knowledge graph*(이 워크스페이스의 개체와 사실) · *Analysis*(에이전트가 항목을 읽음) · *Ontology*(공용 개념, 읽기 전용)
 - **Files:** 이 워크스페이스의 폴더와 채팅 첨부(읽기 전용)
-- **Inbox(System):** 실무자, 에이전트, 시스템 점검이 관리자에게 올린 승인요청과 작업요청
-- **Roadmap:** 시스템이 바뀌는 과정을 항목마다 한 줄로 보여 줍니다(**Request → Proposal → Building → Checked**). 요구사항, 시스템 제안, 업스트림 업데이트를 함께 다룹니다.
-- **Health:** 신뢰성·안전·보안 점검을 위험한 것부터 한 장에 보여 주고, 아래에 사용 통계와 활동을 둡니다.
+- **Inbox(System):** *Approvals* · *Work requests*. 실무자, 에이전트, 시스템 점검이 관리자에게 올린 것입니다.
+- **Roadmap:** *Requirements* · *Evolve*(시스템 제안) · *Updates*(업스트림). 항목마다 한 줄로 단계(예: Request → Proposal → Building → Checked)와 다음 할 일을 보여 줍니다.
+- **Ontology:** *Classes* · *Relations*. 모든 워크스페이스의 지식그래프가 쓰는 개념입니다. 핵심(Note, Task, Event, Day와 앱 관계)은 처음부터 있고, 나머지는 관리자가 더하거나 분석이 제안한 것을 승인합니다.
+- **Health:** *Trustworthiness* · *Safety* · *Security*(위험한 것부터, 괜찮은 점검은 접어 둠) · *Tests*(이 ANA의 테스트를 돌리고 실패를 봄) · *Usage*(통계·활동)
+
+**진화 제안(Evolve)은 어디에?** 이 워크스페이스에 대한 것은 Workspace › Inbox › *Evolve*(실무자가 시작), 시스템에 대한 것은 System › Roadmap › *Evolve*(관리자가 시작)에 있습니다.
 
 ### 채팅 — Claude 앱처럼
 
@@ -216,7 +221,7 @@ Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           due / date에서 파�
 - **온톨로지**는 틀입니다. 부모가 있는 클래스(Client ⊂ Organization ⊂ Agent)와 From → To가 있는 관계 종류(`client_of`: Client → Organization)로 이루어집니다.
 - **지식그래프**는 데이터입니다. 그 클래스로 타입이 정해진 개체(Acme는 Client)와 그 관계로 이어진 사실(Acme `client_of` 우리 팀)로 이루어지고, 각각 근거 항목을 가리킵니다.
 
-서버는 결과를 온톨로지 틀로 검사합니다. 클래스와 관계가 있어야 하고, 사실은 From → To를 지켜야 합니다(하위 클래스 포함). 맞지 않는 사실은 버리고 알려 줍니다. 온톨로지는 다음 분석으로 이어지므로 개념 이름이 유지됩니다. 지식그래프는 같은 NodeRel 그래프에 들어갑니다(`kg:<id>`, 근거 항목으로 `MENTIONED_IN`). 그래서 `/api/graph/trace`로 메모에서 그 안의 사람까지 따라갈 수 있습니다. 결과는 [OntoAir](https://poc.aifactory.space/ontoair/)에서 3D 그래프로 열거나 OWL Turtle로 내려받을 수 있습니다.
+서버는 결과를 온톨로지 틀로 검사합니다. 클래스와 관계가 있어야 하고, 사실은 From → To를 지켜야 합니다(하위 클래스 포함). 맞지 않는 사실은 버리고 알려 줍니다. 온톨로지는 다음 분석으로 이어지므로 개념 이름이 유지됩니다. 지식그래프는 같은 NodeRel 그래프에 들어갑니다(`kg:<id>`, 근거 항목으로 `MENTIONED_IN`). 그래서 `/api/graph/trace`로 메모에서 그 안의 사람까지 따라갈 수 있습니다. 결과는 [OntoAir](https://poc.aifactory.space/ontoair/)에서 3D 그래프로 열거나 OWL Turtle로 내려받을 수 있습니다. 온톨로지는 시스템 전체가 공유하고(System › Ontology, 관리자), 지식그래프는 워크스페이스마다 쌓입니다. 실무자가 분석 결과를 승인하면 늘어납니다.
 
 → 두 층, 분석 과정, 온톨로지, 지식그래프, 검사, 내보내기를 모두 정리한 글: **[docs/relations.ko.md](docs/relations.ko.md)**
 

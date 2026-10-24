@@ -5,9 +5,10 @@ const assert = require('node:assert/strict');
 const { spawn } = require('node:child_process');
 const fs = require('node:fs'); const os = require('node:os'); const path = require('node:path'); const net = require('node:net');
 
-async function startServer(env) {
+async function startServer(env, prepare) {
   const port = await new Promise((r) => { const s = net.createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); });
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ana-admin-'));
+  if (prepare) { fs.mkdirSync(path.join(tmp, 'data'), { recursive: true }); prepare(path.join(tmp, 'data')); }
   const child = spawn(process.execPath, [path.join(__dirname, 'server.js')], { env: { ...process.env, PORT: String(port), BIND: '127.0.0.1', ANA_DATA_DIR: path.join(tmp, 'data'),
     EVOLVE_FILE: path.join(tmp, 'data', 'evolve.json'), ANA_SEED: '0', NOTIFY_AGENT: '0', TMUX_SOCKET: 'ana-none-admin', ...env }, stdio: 'ignore' });
   const api = `http://127.0.0.1:${port}`;
@@ -71,6 +72,9 @@ test('roles, admin inbox, evolve scope', async (t) => {
   assert.equal((await fetch(`${api}/api/files?root=project`, { headers: { 'x-user': 'kim@x.com' } })).status, 403, '프로젝트 폴더는 관리자만');
   assert.ok(!(await (await fetch(`${api}/api/files`, { headers: { 'x-user': 'kim@x.com' } })).json()).roots.some((r) => r.key === 'project'));
   assert.equal((await fetch(`${api}/api/files?root=project`, { headers: { 'x-user': 'boss@x.com' } })).status, 200);
+  // Health › Tests: 목록은 누구나, 실행은 관리자만
+  const tl = await kim.get('/api/tests'); assert.equal(tl.available, true); assert.match(tl.command, /node /);
+  assert.equal((await kim.post('/api/tests/run', {})).status, 403);
   // 점검 risk → 관리자 작업요청(한 번만). 테스트 서버엔 에이전트가 없어 'Agent is not running'이 risk다
   await boss.get('/api/trust'); await boss.get('/api/trust');
   const checks = (await boss.get('/api/admin/inbox')).items.filter((x) => x.from.kind === 'check');
@@ -85,4 +89,15 @@ test('no identity header or empty admin list: everyone is admin (single-user ins
   const { api, stop } = await startServer({ ANA_IDENTITY_HEADER: 'x-user', ANA_ADMINS: '' });
   t.after(stop);
   assert.equal((await (await fetch(api + '/api/me', { headers: { 'x-user': 'anyone@x.com' } })).json()).role, 'admin');
+});
+
+test('existing installs: the analysis ontology of each workspace becomes the start of the system ontology', async (t) => {
+  const { api, stop } = await startServer({}, (dir) => {
+    fs.writeFileSync(path.join(dir, 'analysis.json'), JSON.stringify({ next: 2, ontology: { classes: [{ id: 'Client', label: 'Client', parent: '' }], relations: [{ id: 'client_of', label: 'client of', domain: 'Client', range: '' }] },
+      jobs: [{ id: 1, status: 'done', ontology: { classes: [{ id: 'Project', label: 'Project' }, { id: 'Task', label: 'Clash with core' }], relations: [] } }] }));
+  });
+  t.after(stop);
+  const o = await (await fetch(api + '/api/ontology')).json();
+  assert.ok(o.classes.some((c) => c.id === 'Client' && !c.core) && o.classes.some((c) => c.id === 'Project') && o.relations.some((r) => r.id === 'client_of'));
+  assert.equal(o.classes.filter((c) => c.id === 'Task').length, 1, '핵심 개념과 겹치는 것은 옮기지 않는다');
 });

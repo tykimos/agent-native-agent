@@ -29,6 +29,7 @@ Mobile (≤768px)                                        Desktop
 
 - The profile avatar is **always the rightmost** item in the header.
 - The **last tab per scope** is remembered (`localStorage ana-area`, `ana-area-tabs`). Jumping to a tab of the other scope (a request card's link, an instruction card's Open) switches scope automatically.
+- **One kind per page:** pages with several kinds use sub-tabs (`SUBTABS`, `renderSubtabs`, `openSub`, `curSub`; content in `[data-subsec]`, sub-tab-only buttons in `[data-for]`): Inbox *Needs you · Evolve · Sent*, Knowledge *Links · Analysis · Vocabulary*, System Inbox *Approvals · Work requests*, Roadmap *Requirements · Evolve · Updates*, Health *Trustworthiness · Safety · Security · Usage*. Sub-tabs and `.toolbar` never wrap on phones (they scroll sideways).
 - Lists inside Inbox, Roadmap and the admin Inbox filter **Open / Done** only (open = waiting + in progress, done = done + failed + cancelled); each card still shows its own state and actions.
 - Views get bottom padding so the nav never covers content. The chat FAB moves up (`bottom: 74px + safe-area`).
 - **New version pill:** when `/api/health.build` changes, "New version available — tap to reload" appears **under the header**. Its `onclick` must reload.

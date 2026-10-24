@@ -41,6 +41,10 @@ function createDashboardApi(core, opts) {
   const REQUIREMENTS_FILE = opts.REQUIREMENTS_FILE || path.join(path.dirname(EVOLVE_FILE), 'requirements.json');
   // 관리자 함(System › Admin): 실무자·에이전트·점검이 관리자에게 올리는 승인요청(approval)·작업요청(work)
   const ADMIN_FILE = opts.ADMIN_FILE || path.join(path.dirname(EVOLVE_FILE), 'admin.json');
+  // System › Health › Tests: 이 ANA의 테스트(package.json scripts.test)를 돌린 기록(최근 10번)
+  const TESTS_FILE = opts.TESTS_FILE || path.join(path.dirname(EVOLVE_FILE), 'tests.json');
+  // 시스템 온톨로지(모든 워크스페이스가 공유하는 개념 틀) — 핵심(Note·Task·Event·Day와 앱 관계)은 코드가 정하고, 나머지는 관리자가 정한다
+  const ONTOLOGY_FILE = opts.ONTOLOGY_FILE || path.join(path.dirname(EVOLVE_FILE), 'ontology.json');
   const UPSTREAM_DIR = opts.UPSTREAM_DIR || path.join(path.dirname(EVOLVE_FILE), 'upstream');
   const UPSTREAM_URL = opts.UPSTREAM_URL || 'https://github.com/tykimos/agent-native-agent';
   const UPDATE_TARGET = opts.UPDATE_TARGET || ROOT;   // 비교할 ANA 폴더(기본: 이 ANA). 시험·호스트용으로 바꿀 수 있다
@@ -184,14 +188,14 @@ function createDashboardApi(core, opts) {
     return s;
   }
   const newId = (p) => p + Date.now().toString(36) + crypto.randomBytes(2).toString('hex');
-  const CLIENT_EVENTS = { 'tab.view': /^[a-z]{2,20}$/, 'ontoair.open': /^\d{1,6}$/, 'ttl.download': /^\d{1,6}$/ };
+  const CLIENT_EVENTS = { 'tab.view': /^[a-z]{2,20}(\.[a-z]{2,20})?$/, 'ontoair.open': /^\d{1,6}$/, 'ttl.download': /^\d{1,6}$/ };
   const isExample = (x) => /^[nae]-ex-/.test(String((x && x.id) || ''));   // seed.js의 예제 id
   const saveData = (s, ws) => { relgraph.pruneLinks(s); writeJsonAtomic(dataFileOf(ws || curWs()), s); };
   // 관계 그래프 — state.json에서 파생되는 NodeRel 인덱스(워크스페이스마다 graph.sqlite)
-  // 지식그래프 = 그 워크스페이스의 최신 완료 분석(Relations › Analyze). loadAnalysis는 아래에 정의돼 있지만 요청 때만 불린다.
+  // 지식그래프 = 그 워크스페이스에 쌓인 지식그래프(kg.json, 분석 결과를 승인해 더한 것). 아래 함수들은 요청 때만 불린다.
   const graph = relgraph.createGraph({ loadData, dataFileOf, loadKg: (ws) => {
-    const j = [...loadAnalysis(ws).jobs].reverse().find((x) => x.status === 'done' && x.graph);
-    return j ? { job: j.id, ontology: j.ontology, graph: j.graph } : null;
+    const kg = loadKgStore(ws);
+    return kg.entities.length ? { job: 'kg', ontology: systemOntology(), graph: kg } : null;
   } });
 
   function loadProposals() {
@@ -322,16 +326,102 @@ function createDashboardApi(core, opts) {
     for (const c of [...classes]) need(c.parent);
     return { ontology: { classes, relations }, graph: { entities, facts }, summary: clip(body.summary, 1000), issues };
   }
-  // 워크스페이스에 쌓이는 온톨로지 — 회차마다 id로 합친다(나중 설명이 이긴다). 다음 분석의 출발점이 된다.
-  function mergeOntology(base, o) {
-    const strip = ({ inherited, ...x }) => x;
-    const classes = new Map(((base && base.classes) || []).map((c) => [c.id, c])), relations = new Map(((base && base.relations) || []).map((r) => [r.id, r]));
-    for (const c of o.classes) if (!c.inherited) classes.set(c.id, strip(c));
-    for (const r of o.relations) if (!r.inherited) relations.set(r.id, strip(r));
-    return { classes: [...classes.values()].slice(0, 300), relations: [...relations.values()].slice(0, 300), updatedAt: new Date().toISOString() };
+
+  // ---- 시스템 온톨로지 · 워크스페이스 지식그래프 ----
+  // 틀(TBox)은 시스템 하나, 사실(ABox)은 워크스페이스마다. 분석은 시스템 온톨로지를 기준으로 하고, 새 개념은 관리자 승인요청이 된다.
+  const CORE_ONTOLOGY = (() => {
+    const classes = [['Note', 'A note'], ['Task', 'A task to do'], ['Event', 'A calendar event'], ['Day', 'A calendar day']].map(([id, desc]) => ({ id, label: id, desc, parent: '', core: true }));
+    const R = relgraph.RULES, M = relgraph.MEANINGS, one = (xs) => (xs.length === 1 ? xs[0] : '');
+    const relations = Object.keys(M).map((id) => ({ id, label: id, desc: M[id], core: true,
+      domain: R[id] ? one(R[id].from) : id === 'DUE_ON' ? 'Task' : 'Event', range: R[id] ? one(R[id].to) : 'Day' }));
+    return { classes, relations };
+  })();
+  const CONCEPT_ID = /^[A-Za-z][\w-]{0,59}$/;
+  function loadOntology() {
+    let o = readJsonStrict(ONTOLOGY_FILE, () => null);
+    if (!o || !Array.isArray(o.classes)) {
+      // 처음: 워크스페이스마다 쌓여 있던 분석 온톨로지를 하나로 합쳐 시스템 온톨로지의 출발점으로
+      o = { version: 1, classes: [], relations: [] };
+      const seen = { classes: new Set(), relations: new Set() };
+      for (const w of loadWorkspaces().workspaces) {
+        let a; try { a = loadAnalysis(w.id); } catch { continue; }
+        const srcs = [a.ontology, ...a.jobs.filter((j) => j.status === 'done' && j.ontology).map((j) => j.ontology)].filter(Boolean);
+        for (const src of srcs) for (const k of ['classes', 'relations']) for (const x of src[k] || []) {
+          if (!x || !CONCEPT_ID.test(String(x.id || '')) || seen[k].has(x.id) || CORE_ONTOLOGY[k].some((c) => c.id === x.id)) continue;
+          seen[k].add(x.id); const { inherited, ...rest } = x; o[k].push(rest);
+        }
+      }
+      try { writeJsonAtomic(ONTOLOGY_FILE, o); } catch {}
+    }
+    o.relations = o.relations || [];
+    return o;
   }
+  const saveOntology = (o) => { o.version = (o.version || 1) + 1; writeJsonAtomic(ONTOLOGY_FILE, o); };
+  function systemOntology() {
+    const o = loadOntology();
+    return { version: o.version || 1, classes: [...CORE_ONTOLOGY.classes, ...o.classes], relations: [...CORE_ONTOLOGY.relations, ...o.relations] };
+  }
+  const kgFileOf = (ws) => path.join(path.dirname(dataFileOf(ws)), 'kg.json');
+  function loadKgStore(ws) {
+    const k = readJsonStrict(kgFileOf(ws), () => ({ entities: [], facts: [] }));
+    return k && Array.isArray(k.entities) ? { ...k, facts: Array.isArray(k.facts) ? k.facts : [] } : { entities: [], facts: [] };
+  }
+  const saveKgStore = (ws, k) => { k.version = (k.version || 1) + 1; writeJsonAtomic(kgFileOf(ws), k); };
+  // 분석 결과(graph)를 지식그래프에 더한다. 시스템 온톨로지에 있는 개념만 — 나머지(새 개념을 쓰는 것)는 pending으로 남겨
+  // 관리자가 그 개념을 승인하면 다시 시도한다. 개체는 id로, 사실은 from·rel·to로 합치고 근거(sources)를 모은다.
+  function mergeIntoKg(ws, graph, jobId) {
+    const ont = systemOntology(), cls = new Map(ont.classes.map((c) => [c.id, c])), rels = new Map(ont.relations.map((r) => [r.id, r]));
+    const isA = (a, b) => { for (let k = a, n = 0; k && n < 50; k = (cls.get(k) || {}).parent, n++) if (k === b) return true; return false; };
+    const kg = loadKgStore(ws), now = new Date().toISOString(), pend = { entities: [], facts: [] };
+    const byId = new Map(kg.entities.map((e) => [e.id, e])), addSrc = (x, src) => { x.sources = [...new Set([...(x.sources || []), ...(src || [])])].slice(0, 30); };
+    let added = 0, addedF = 0;
+    for (const e of graph.entities || []) {
+      if (e.class && !cls.has(e.class)) { pend.entities.push(e); continue; }
+      const cur = byId.get(e.id);
+      if (cur) { addSrc(cur, e.sources); if (!cur.class && e.class) cur.class = e.class; continue; }
+      const ne = { id: e.id, label: e.label || e.id, class: e.class || '', sources: (e.sources || []).slice(0, 30), job: jobId, at: now };
+      kg.entities.push(ne); byId.set(ne.id, ne); added++;
+    }
+    const fkey = (f) => `${f.from}\u0000${f.rel}\u0000${f.to}`, facts = new Map(kg.facts.map((f) => [fkey(f), f]));
+    for (const f of graph.facts || []) {
+      const r = rels.get(f.rel), a = byId.get(f.from), b = byId.get(f.to);
+      if (!r || !a || !b || (r.domain && a.class && !isA(a.class, r.domain)) || (r.range && b.class && !isA(b.class, r.range))) { pend.facts.push(f); continue; }
+      const cur = facts.get(fkey(f));
+      if (cur) { addSrc(cur, f.sources); continue; }
+      const nf = { from: f.from, rel: f.rel, to: f.to, sources: (f.sources || []).slice(0, 30), job: jobId, at: now };
+      kg.facts.push(nf); facts.set(fkey(nf), nf); addedF++;
+    }
+    if (added || addedF) saveKgStore(ws, kg);
+    return { added: { entities: added, facts: addedF }, pending: pend };
+  }
+  // 개념이 새로 승인되면, 그 개념을 기다리던 분석 결과를 모든 워크스페이스에서 다시 더해 본다
+  function applyPendingAll(broadcast) {
+    for (const w of loadWorkspaces().workspaces) {
+      let a; try { a = loadAnalysis(w.id); } catch { continue; }
+      let changed = false;
+      for (const j of a.jobs) {
+        if (!j.applied || !j.pending || (!j.pending.entities.length && !j.pending.facts.length)) continue;
+        const r = mergeIntoKg(w.id, j.pending, j.id);
+        if (r.added.entities || r.added.facts) {
+          const ac = j.appliedCount || { entities: 0, facts: 0 };
+          j.pending = r.pending; j.appliedCount = { entities: ac.entities + r.added.entities, facts: ac.facts + r.added.facts }; changed = true;
+        }
+      }
+      if (changed) { saveAnalysis(w.id, a); try { broadcast({ kind: 'analysis' }); } catch {} }
+    }
+  }
+  // 온톨로지 개념이 지식그래프에서 쓰이는 곳(지우기 전에 확인)
+  function conceptUse(kind, id) {
+    let n = 0;
+    for (const w of loadWorkspaces().workspaces) {
+      const kg = loadKgStore(w.id);
+      n += kind === 'class' ? kg.entities.filter((e) => e.class === id).length : kg.facts.filter((f) => f.rel === id).length;
+    }
+    return n;
+  }
+
   // OWL/Turtle로 내보내기(OntoAir 등 외부 뷰어용). 온톨로지 = TBox(owl:Class·ObjectProperty), 지식그래프 = ABox(개체·사실)
-  function analysisTurtle(j, ws) {
+  function analysisTurtle(j, ws, name) {
     // '#'는 전각 '＃'로 — 줄 단위로 주석을 걷어 내는 단순한 파서(OntoAir 포함)가 문자열 속 #에서 줄을 자르지 않게
     const lit = (v) => '"' + String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r?\n/g, '\\n').replace(/#/g, '＃') + '"';
     const names = new Map(), used = new Set();
@@ -343,7 +433,7 @@ function createDashboardApi(core, opts) {
       used.add(ns + u); names.set(k, `${ns}:${u}`); return `${ns}:${u}`;
     };
     const o = j.ontology || { classes: [], relations: [] }, g = j.graph || { entities: [], facts: [] };
-    const baseIri = `https://ana.local/${encodeURIComponent(ws)}/analysis-${j.id}`;
+    const baseIri = `https://ana.local/${encodeURIComponent(ws)}/${name || `analysis-${j.id}`}`;
     const out = ['@prefix owl: <http://www.w3.org/2002/07/owl#> .', '@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .',
       '@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .', `@prefix ana: <${baseIri}/ontology#> .`, `@prefix kg: <${baseIri}/kg#> .`, '',
       `ana:Ontology rdf:type owl:Ontology ;\n    rdfs:label ${lit(`ANA analysis ${j.id} (${ws})`)}${j.summary ? ` ;\n    rdfs:comment ${lit(j.summary)}` : ''} .`, '', '# Classes'];
@@ -396,6 +486,8 @@ function createDashboardApi(core, opts) {
     'evolve.ignore': (a) => (Number.isInteger(a.id) ? { kind: 'evolve.ignore', id: a.id } : null),
     'update.do': (a) => (typeof a.id === 'string' || Number.isInteger(a.id) ? { kind: 'update.do', id: a.id } : null),
     'permission': (a) => (/^[a-z]{2,20}$/.test(String(a.mode || '')) ? { kind: 'permission', mode: a.mode } : null),
+    'ontology.add': (a) => (['class', 'relation'].includes(a.what) && a.item && CONCEPT_ID.test(String(a.item.id || '')) ? { kind: 'ontology.add', what: a.what,
+      item: { id: String(a.item.id), label: clip(a.item.label || a.item.id, 80), desc: clip(a.item.desc, 300), ...(a.what === 'class' ? { parent: clip(a.item.parent, 60) } : { domain: clip(a.item.domain, 60), range: clip(a.item.range, 60) }) } } : null),
     'workspace.remove': (a) => (/^[\w-]{1,40}$/.test(String(a.id || '')) ? { kind: 'workspace.remove', id: a.id } : null),
   };
   // 점검(Trustworthiness·Safety·Security)이 risk면 관리자 작업요청을 하나 연다. 해결되면 자동으로 닫는다.
@@ -413,6 +505,61 @@ function createDashboardApi(core, opts) {
       y.status = 'done'; y.note = 'Resolved — the check is no longer at risk'; y.updatedAt = now; y.decidedBy = 'ana'; y.decidedAt = now; changed = true;
     }
     if (changed) { saveAdmin(a); try { broadcast({ kind: 'admin' }); } catch {} }
+  }
+
+
+  // ---- System › Health › Tests ----
+  // package.json의 scripts.test를 '&&'로 나눠 차례로 돌린다. 'node …'는 이 서버의 Node로(npm이 PATH에 없어도 되게),
+  // 환경은 최소한만 넘긴다(서버의 PORT·ANA_* 설정이 테스트에 새지 않게). 결과는 node:test 요약과 test.cjs의 '결과:' 줄에서 센다.
+  const loadTests = () => { const t = readJsonStrict(TESTS_FILE, () => ({ next: 1, runs: [] })); return t && Array.isArray(t.runs) ? t : { next: 1, runs: [] }; };
+  const saveTests = (t) => { while (t.runs.length > 10) t.runs.shift(); writeJsonAtomic(TESTS_FILE, t); };
+  function testSteps() {
+    let pkg; try { pkg = JSON.parse(require('node:fs').readFileSync(path.join(ROOT, 'package.json'), 'utf8')); } catch { return null; }
+    const cmd = pkg && pkg.scripts && pkg.scripts.test; if (!cmd || /no test specified/.test(cmd)) return null;
+    const steps = cmd.split('&&').map((x) => x.trim().split(/\s+/)).filter((a) => a.length);
+    if (!steps.every((a) => a[0] === 'node' && a.slice(1).every((x) => /^[\w.\/-]+$/.test(x)))) return null;   // node <파일·옵션>만 — 셸을 거치지 않는다
+    if (!steps.every((a) => a.slice(1).filter((x) => !x.startsWith('-')).every((f) => require('node:fs').existsSync(path.join(ROOT, f))))) return null;
+    return { cmd, steps: steps.map((a) => a.slice(1)) };
+  }
+  function parseTestOutput(out) {
+    const n = (re) => { const m = re.exec(out); return m ? Number(m[1]) : null; };
+    const custom = /결과: (\d+) passed, (\d+) failed/.exec(out);
+    const pass = custom ? Number(custom[1]) : n(/ℹ pass (\d+)/), fail = custom ? Number(custom[2]) : n(/ℹ fail (\d+)/);
+    const failures = [...out.matchAll(/^\s*(?:✗|✖) (.+)$/gm)].map((m) => m[1].replace(/\s*\(\d+(\.\d+)?ms\)$/, '').trim()).filter((x) => x && !/^failing tests:?$/.test(x));
+    return { pass: pass ?? 0, fail: fail ?? (failures.length ? failures.length : 0), failures: [...new Set(failures)].slice(0, 50) };
+  }
+  let testChild = null;
+  function runTests(by, broadcast) {
+    const plan = testSteps(); if (!plan) return { error: 'This ANA has no runnable tests (package.json scripts.test with node commands)' };
+    const t = loadTests();
+    if (t.runs.some((r) => r.status === 'running') && testChild) return { error: 'Tests are already running' };
+    for (const r of t.runs) if (r.status === 'running') { r.status = 'error'; r.note = 'Interrupted (server restarted)'; }
+    const run = { id: t.next++, status: 'running', by, at: new Date().toISOString(), cmd: plan.cmd, suites: [], pass: 0, fail: 0, log: '' };
+    t.runs.push(run); saveTests(t); broadcast({ kind: 'tests' });
+    const env = { PATH: process.env.PATH || '/usr/bin:/bin', HOME: process.env.HOME || os.homedir(), LANG: process.env.LANG || 'C.UTF-8', TMPDIR: process.env.TMPDIR || os.tmpdir() };
+    (async () => {
+      for (const args of plan.steps) {
+        const started = Date.now();
+        const out = await new Promise((resolve) => {
+          let buf = '';
+          const c = testChild = require('node:child_process').spawn(process.execPath, args, { cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] });
+          const kill = setTimeout(() => { buf += '\n[ANA] Timed out after 10 minutes\n'; try { c.kill('SIGKILL'); } catch {} }, 10 * 60 * 1000);
+          c.stdout.on('data', (d) => { buf += d; }); c.stderr.on('data', (d) => { buf += d; });
+          c.on('close', (code) => { clearTimeout(kill); resolve({ buf, code }); });
+          c.on('error', (e) => { clearTimeout(kill); resolve({ buf: buf + String(e.message), code: -1 }); });
+        });
+        const r = parseTestOutput(out.buf);
+        const cur = loadTests(), me = cur.runs.find((x) => x.id === run.id); if (!me) return;
+        me.suites.push({ name: args.filter((x) => !x.startsWith('-')).join(' ') || 'node', ms: Date.now() - started, code: out.code, ...r });
+        me.pass += r.pass; me.fail += r.fail + (out.code !== 0 && !r.fail ? 1 : 0);
+        me.log = (me.log + `$ node ${args.join(' ')}\n${out.buf}\n`).slice(-60000);
+        saveTests(cur); broadcast({ kind: 'tests' });
+      }
+      const cur = loadTests(), me = cur.runs.find((x) => x.id === run.id); if (!me) return;
+      me.status = me.fail ? 'failed' : 'passed'; me.doneAt = new Date().toISOString(); testChild = null;
+      saveTests(cur); broadcast({ kind: 'tests' }); audit(by, `tests.${me.status}`, `${me.pass} passed, ${me.fail} failed`);
+    })().catch(() => { testChild = null; });
+    return { run };
   }
 
   function loadRequests() {
@@ -858,6 +1005,17 @@ function createDashboardApi(core, opts) {
       }), true;
     }
 
+    if (p === '/api/tests' && req.method === 'GET') {
+      const t = loadTests(), plan = testSteps(), last = t.runs[t.runs.length - 1] || null;
+      return sendJson(res, 200, { available: !!plan, command: plan ? plan.cmd : '', last, runs: t.runs.slice().reverse().map(({ log, ...r }) => r) }), true;
+    }
+    if (p === '/api/tests/run' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      if (!isAdmin(req)) return needAdmin(res, 'Running the tests');
+      const r = runTests(actor(req), broadcast);
+      if (r.error) return sendJson(res, 409, { error: r.error }), true;
+      return sendJson(res, 200, { ok: true, run: r.run }), true;
+    }
     if (p === '/api/trust' && req.method === 'GET') {
       try { const t = await collectTrust(ctx); syncCheckRequests(t, broadcast); return sendJson(res, 200, t), true; }
       catch (e) { return sendJson(res, 500, { error: 'Checks failed', detail: e.message }), true; }
@@ -1507,11 +1665,70 @@ function createDashboardApi(core, opts) {
       res.writeHead(200, { 'content-type': 'text/turtle; charset=utf-8', 'content-length': body.length, 'cache-control': 'no-store', 'access-control-allow-origin': '*', 'x-content-type-options': 'nosniff' });
       return res.end(req.method === 'HEAD' ? undefined : body), true;
     }
+    // ---- System › Ontology: 개념 틀(읽기는 누구나, 바꾸기는 관리자) ----
+    if (p === '/api/ontology' && req.method === 'GET') return sendJson(res, 200, systemOntology()), true;
+    if (p === '/api/ontology' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      if (!isAdmin(req)) return needAdmin(res, 'Changing the ontology');
+      const kind = body.kind === 'relation' ? 'relations' : body.kind === 'class' ? 'classes' : null, it = body.item || {};
+      if (!kind || !['add', 'update', 'remove'].includes(body.action)) return sendJson(res, 400, { error: 'kind must be class|relation, action add|update|remove' }), true;
+      if (!CONCEPT_ID.test(String(it.id || ''))) return sendJson(res, 400, { error: 'id: a letter, then letters, digits, _ or - (60 at most)' }), true;
+      if (CORE_ONTOLOGY[kind].some((c) => c.id === it.id)) return sendJson(res, 400, { error: `${it.id} is built in and can't be changed` }), true;
+      const o = loadOntology(), all = systemOntology(), list = o[kind], cur = list.find((x) => x.id === it.id);
+      const clsIds = new Set(all.classes.map((c) => c.id));
+      if (body.action === 'remove') {
+        if (!cur) return sendJson(res, 404, { error: 'not found' }), true;
+        const used = conceptUse(kind === 'classes' ? 'class' : 'relation', it.id);
+        const child = kind === 'classes' && (all.classes.some((c) => c.parent === it.id) || all.relations.some((r) => r.domain === it.id || r.range === it.id));
+        if (used || child) return sendJson(res, 409, { error: `${it.id} is still used${used ? ` by ${used} item${used === 1 ? '' : 's'} in knowledge graphs` : ''}${child ? ' by other concepts' : ''}` }), true;
+        o[kind] = list.filter((x) => x !== cur);
+      } else {
+        if (body.action === 'add' && (cur || all[kind].some((x) => x.id === it.id))) return sendJson(res, 200, { ok: true, existing: true, ontology: systemOntology() }), true;
+        if (body.action === 'update' && !cur) return sendJson(res, 404, { error: 'not found' }), true;
+        const next = kind === 'classes'
+          ? { id: it.id, label: clip(it.label || it.id, 80), desc: clip(it.desc, 300), parent: clip(it.parent, 60) }
+          : { id: it.id, label: clip(it.label || it.id, 80), desc: clip(it.desc, 300), domain: clip(it.domain, 60), range: clip(it.range, 60) };
+        if (next.parent && (!clsIds.has(next.parent) || next.parent === next.id)) return sendJson(res, 400, { error: `unknown parent class ${next.parent}` }), true;
+        for (const end of ['domain', 'range']) if (next[end] && !clsIds.has(next[end]) && !(kind === 'classes')) return sendJson(res, 400, { error: `unknown ${end} class ${next[end]}` }), true;
+        if (cur) Object.assign(cur, next); else list.push(next);
+      }
+      saveOntology(o); audit(actor(req), `ontology.${body.action}`, `${kind === 'classes' ? 'class' : 'relation'} ${it.id}`);
+      broadcast({ kind: 'ontology' });
+      if (body.action !== 'remove') applyPendingAll(broadcast);
+      return sendJson(res, 200, { ok: true, ontology: systemOntology() }), true;
+    }
+    // ---- Workspace › Knowledge › 지식그래프(이 워크스페이스에 쌓인 개체·사실) ----
+    if (p === '/api/kg' && req.method === 'GET') {
+      const kg = loadKgStore(curWs());
+      return sendJson(res, 200, { entities: kg.entities, facts: kg.facts, version: kg.version || 1, ontology: systemOntology() }), true;
+    }
+    if (p === '/api/kg/ttl' && req.method === 'GET') {
+      const ws = curWs(), kg = loadKgStore(ws);
+      const body = Buffer.from(analysisTurtle({ id: 'kg', ontology: systemOntology(), graph: kg, summary: `Knowledge graph of workspace ${ws}` }, ws, 'knowledge-graph'));
+      res.writeHead(200, { 'content-type': 'text/turtle; charset=utf-8', 'content-length': body.length, 'cache-control': 'no-store', 'content-disposition': `attachment; filename="ana-knowledge-graph-${ws}.ttl"` });
+      return res.end(body), true;
+    }
+    if (p === '/api/kg' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      const ws = curWs(), kg = loadKgStore(ws);
+      if (body.action === 'remove-entity') {
+        const before = kg.entities.length; kg.entities = kg.entities.filter((e) => e.id !== body.id);
+        if (kg.entities.length === before) return sendJson(res, 404, { error: 'not found' }), true;
+        kg.facts = kg.facts.filter((f) => f.from !== body.id && f.to !== body.id);
+      } else if (body.action === 'remove-fact') {
+        const before = kg.facts.length; kg.facts = kg.facts.filter((f) => !(f.from === body.from && f.rel === body.rel && f.to === body.to));
+        if (kg.facts.length === before) return sendJson(res, 404, { error: 'not found' }), true;
+      } else return sendJson(res, 400, { error: 'action must be remove-entity|remove-fact' }), true;
+      saveKgStore(ws, kg); audit(actor(req), `kg.${body.action}`, String(body.id || `${body.from} ${body.rel} ${body.to}`).slice(0, 80)); broadcast({ kind: 'analysis' });
+      return sendJson(res, 200, { ok: true }), true;
+    }
     if (p.startsWith('/api/analysis')) {
       const ws = curWs(), a = loadAnalysis(ws);
       const job = (id) => a.jobs.find((j) => j.id === Number(id));
       const tell = () => broadcast({ kind: 'analysis', version: a.version });
-      if (p === '/api/analysis' && req.method === 'GET') return sendJson(res, 200, { jobs: a.jobs, latest: a.jobs[a.jobs.length - 1] || null, ontology: a.ontology || null }), true;
+      if (p === '/api/analysis' && req.method === 'GET') { const kg = loadKgStore(ws); return sendJson(res, 200, { jobs: a.jobs, latest: a.jobs[a.jobs.length - 1] || null, ontology: systemOntology(), kg: { entities: kg.entities.length, facts: kg.facts.length } }), true; }
       if (p === '/api/analysis/ttl' && req.method === 'GET') {
         const j = job(url.searchParams.get('id')); if (!j || j.status !== 'done') return sendJson(res, 404, { error: 'no finished analysis' }), true;
         const body = Buffer.from(analysisTurtle(j, ws));
@@ -1527,8 +1744,8 @@ function createDashboardApi(core, opts) {
           ...st.events.filter((e) => want.has(e.id)).map((e) => ({ id: e.id, kind: 'Event', title: e.title || '', date: e.date || '', time: e.time || '', done: !!e.done })),
         ];
         return sendJson(res, 200, { id: j.id, focus: j.focus, items, links: (st.links || []).filter((l) => want.has(l.from) && want.has(l.to)),
-          ontology: j.useBase && a.ontology ? { classes: a.ontology.classes, relations: a.ontology.relations,
-            note: 'The ontology built so far in this workspace. Reuse these ids for the same concepts; add classes/relations only for new ones. You may omit unchanged ones from your result.' } : null,
+          ontology: { ...systemOntology(),
+            note: 'The shared ontology of this ANA (every workspace uses it). Use these class and relation ids. Only if something really needs a new concept, add it to your ontology.classes/relations: it goes to the admin for approval, and facts that use it wait until it is approved. You may leave existing concepts out of your result.' },
           rules: 'Every entity.class must be a class id and every fact.rel a relation id (yours or the existing ontology). A fact must respect its relation\'s domain → range, sub-classes included. Facts that break this are dropped and listed in the response under issues.' }), true;
       }
       if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' }), true;
@@ -1546,15 +1763,11 @@ function createDashboardApi(core, opts) {
           ...(kinds.includes('events') ? st.events.filter((e) => !openOnly || !e.done).map((e) => e.id) : []),
         ];
         if (!ids.length) return sendJson(res, 400, { error: 'Nothing to analyze in the chosen items' }), true;
-        const j = { id: a.next++, status: 'running', progress: 0, step: 'Waiting for the agent', kinds, openOnly, focus: clip(body.focus, 300), itemIds: ids, useBase: body.useBase !== false && !!a.ontology,
+        const j = { id: a.next++, status: 'running', progress: 0, step: 'Waiting for the agent', kinds, openOnly, focus: clip(body.focus, 300), itemIds: ids,
           counts: { notes: kinds.includes('notes') ? st.notes.length : 0, tasks: ids.filter((x) => st.items.some((t) => t.id === x)).length, events: ids.filter((x) => st.events.some((e) => e.id === x)).length }, at: now, updatedAt: now };
         a.jobs.push(j); while (a.jobs.length > 10) a.jobs.shift();
         saveAnalysis(ws, a); audit(actor(req), 'analysis.start', `#${j.id} ${ids.length} items`); tell();
         return sendJson(res, 200, { ok: true, job: j }), true;
-      }
-      if (p === '/api/analysis/ontology/reset') {
-        a.ontology = null; saveAnalysis(ws, a); audit(actor(req), 'analysis.ontology.reset', ws); tell();
-        return sendJson(res, 200, { ok: true }), true;
       }
       const j = job(body.id); if (!j) return sendJson(res, 404, { error: 'no such analysis' }), true;
       // 외부 뷰어용 공개 링크(24시간). 이미 있고 6시간 넘게 남았으면 그대로 쓴다.
@@ -1575,12 +1788,33 @@ function createDashboardApi(core, opts) {
       }
       if (p === '/api/analysis/result') {
         if (j.status !== 'running') return sendJson(res, 409, { error: `analysis is ${j.status}` }), true;
-        const r2 = cleanAnalysis(body, new Set(j.itemIds), j.useBase ? a.ontology : null);
+        const sys = systemOntology();
+        const r2 = cleanAnalysis(body, new Set(j.itemIds), sys);
         if (!r2.ontology.classes.length && !r2.graph.entities.length) return sendJson(res, 400, { error: 'result needs ontology.classes or graph.entities', issues: r2.issues }), true;
-        Object.assign(j, r2, { status: 'done', progress: 100, step: 'Done', updatedAt: now, doneAt: now });
-        a.ontology = mergeOntology(j.useBase ? a.ontology : null, r2.ontology);
+        // 시스템 온톨로지에 없는 개념 → 관리자 승인요청(승인되면 개념이 추가되고, 그 개념을 쓰는 사실이 지식그래프에 들어간다)
+        const known = { classes: new Set(sys.classes.map((c) => c.id)), relations: new Set(sys.relations.map((x) => x.id)) };
+        const newConcepts = [];
+        for (const [k, what] of [['classes', 'class'], ['relations', 'relation']]) for (const c of r2.ontology[k]) {
+          if (c.inherited || known[k].has(c.id) || !CONCEPT_ID.test(c.id)) continue;
+          const r = addAdminItem({ type: 'approval', title: `Add ${what} "${c.label || c.id}" to the ontology`, ref: `onto:${what}:${c.id}`,
+            desc: [c.desc, what === 'class' ? (c.parent ? `Kind of ${c.parent}` : '') : `${c.domain || 'any'} → ${c.range || 'any'}`, `Proposed by analysis #${j.id} in workspace ${ws}`].filter(Boolean).join('\n'),
+            action: { kind: 'ontology.add', what, item: c } }, { kind: 'agent', by: 'ana' }, ws);
+          if (r.item) newConcepts.push({ what, id: c.id, label: c.label || c.id, adminId: r.item.id });
+        }
+        if (newConcepts.length) broadcast({ kind: 'admin' });
+        Object.assign(j, r2, { status: 'done', progress: 100, step: 'Done', updatedAt: now, doneAt: now, newConcepts, applied: false });
         saveAnalysis(ws, a); audit(actor(req), 'analysis.done', `#${j.id} ${r2.ontology.classes.length} classes, ${r2.graph.entities.length} entities`); tell();
-        return sendJson(res, 200, { ok: true, classes: r2.ontology.classes.length, relations: r2.ontology.relations.length, entities: r2.graph.entities.length, facts: r2.graph.facts.length, issues: r2.issues }), true;
+        return sendJson(res, 200, { ok: true, classes: r2.ontology.classes.length, relations: r2.ontology.relations.length, entities: r2.graph.entities.length, facts: r2.graph.facts.length, issues: r2.issues,
+          newConcepts: newConcepts.map((c) => `${c.what} ${c.id}`), note: 'The user approves adding this to the workspace knowledge graph (Inbox › Approvals); new concepts go to the admin.' }), true;
+      }
+      // 분석 결과를 이 워크스페이스의 지식그래프에 더하기(실무자 승인) / 버리기
+      if (p === '/api/analysis/apply' || p === '/api/analysis/discard') {
+        if (j.status !== 'done' || j.applied || j.discarded) return sendJson(res, 409, { error: 'Only a finished analysis that is not added yet' }), true;
+        if (p.endsWith('discard')) { j.discarded = true; j.decidedAt = now; saveAnalysis(ws, a); audit(actor(req), 'analysis.discard', `#${j.id}`); tell(); return sendJson(res, 200, { ok: true }), true; }
+        const r = mergeIntoKg(ws, j.graph || {}, j.id);
+        Object.assign(j, { applied: true, decidedAt: now, appliedBy: actor(req), appliedCount: r.added, pending: r.pending });
+        saveAnalysis(ws, a); audit(actor(req), 'analysis.apply', `#${j.id} +${r.added.entities} entities +${r.added.facts} facts`); tell();
+        return sendJson(res, 200, { ok: true, added: r.added, pending: { entities: r.pending.entities.length, facts: r.pending.facts.length } }), true;
       }
       if (p === '/api/analysis/fail' || p === '/api/analysis/cancel') {
         if (j.status !== 'running') return sendJson(res, 409, { error: `analysis is ${j.status}` }), true;
