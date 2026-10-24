@@ -5,6 +5,44 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [미출시]
+
+### 추가
+
+- **새 구조: 범위 둘, 범위마다 받은함 하나.** 세 영역(Workspace / Collaborate / System)을 둘로 줄였습니다. 화면 맨 위에 지금 어느 범위인지 늘 보이고, 휴대폰 하단 메뉴는 범위에 따라 바뀝니다.
+  - **Workspace**(실무자)
+    - Work(할일·일정·메모)
+    - **Knowledge**: 예전 System › Relations
+    - **Files**: 이제 워크스페이스마다 폴더가 따로 있음
+    - **Inbox**: Approvals, Requests, 워크스페이스 진화 제안을 *Open / Done* 한 목록으로 모았습니다. *Ask the agent*, *Ask the admin*, *Request a feature*, *Sent by you*도 여기 있습니다.
+  - **System**(관리자만, 위쪽이 어두운 띠)
+    - **Inbox**: 예전 Admin
+    - **Roadmap**: 요구사항, 시스템 제안, 업스트림 업데이트를 항목마다 한 줄(Request → Proposal → Building → Checked)로 보여 주고, 카드에 다음 할 일 버튼이 있습니다. 예전 Requirements · Evolve · Update 탭을 대신합니다.
+    - **Health**: Stats와 신뢰성·안전·보안을 한 장에 모았습니다. 위험한 것이 먼저, 괜찮은 점검은 접어 두고, 아래에 사용 통계와 활동이 있습니다.
+  - 탭이 16개에서 역할별 4개로 줄었습니다.
+  - 상태 필터는 5칸에서 *Open / Done*으로 줄였습니다. 각 카드는 여전히 자기 상태를 보여 줍니다.
+  - Files의 프로젝트 파일은 관리자만 볼 수 있습니다(서버에서 확인).
+  - README 휴대폰 이미지도 새 구조로 바꿨습니다.
+- **관리자와 실무자.** 워크스페이스는 실무자가 일하는 곳이고, System은 관리자가 정합니다(`ANA_ADMINS=이메일,…`). 목록이 비었거나, 혼자 쓰는 설치이거나, 이 컴퓨터에서 신원 없이 들어온 호출이면 모두 관리자입니다. 그래서 혼자 쓰는 설치는 그대로입니다.
+  - **System › Admin**(관리자만 보임)
+    - **승인요청**과 **작업요청**을 다섯 상태 목록으로 모읍니다.
+    - 실무자는 Requests·Approvals의 *Ask the admin*으로 보내고, *Sent to the admin*에서 진행을 봅니다.
+    - 에이전트는 `POST /api/admin/requests`로 보냅니다.
+    - 시스템 점검이 risk가 되면 작업요청이 저절로 생기고, 해결되면 닫힙니다.
+  - **관리자 전용 동작(서버에서 확인)**
+    - 시스템 제안의 시작·취소·재시도
+    - Update 반영
+    - Bypass / Full Access로 바꾸기
+    - 워크스페이스 삭제
+
+    실무자가 누르면 대신 승인요청이 되고, 관리자가 승인하면 그 동작이 실행됩니다.
+  - 프로필 메뉴에 내 역할이 보입니다.
+- **진화 제안을 둘로 나눴습니다.**
+  - **System › Evolve:** 기능, 화면, API, 공용 온톨로지. 관리자가 시작합니다.
+  - **Collaborate › Evolve:** 이미 있는 기능으로 이 워크스페이스를 더 잘 쓰는 방법. 실무자가 시작하고, 에이전트에게는 그 워크스페이스의 데이터만 바꾸라고 지시합니다.
+  - 새 기능이 필요하면 *Propose to the system*으로 올립니다.
+  - 기존 제안은 시스템 제안이 됩니다.
+
 ## [0.7.0] — 2026-10-24
 
 ### 추가

@@ -10,10 +10,11 @@ const fail = (status, message) => Object.assign(new Error(message), { status });
 function createFileBrowser(rootsIn, core, hooks = {}) {
   const roots = typeof rootsIn === 'string' ? { files: { dir: rootsIn, write: true } } : rootsIn;
   const keys = Object.keys(roots);
+  // dir는 문자열 또는 함수(요청마다 정해지는 폴더 — 예: 지금 워크스페이스의 files)
   const rootOf = (key) => {
-    const k = key && roots[key] ? key : keys[0], r = roots[k];
-    if (r.mkdir) fs.mkdirSync(r.dir, { recursive: true });
-    return { key: k, ...r, base: fs.realpathSync(r.dir) };
+    const k = key && roots[key] ? key : keys[0], r = roots[k], dir = typeof r.dir === 'function' ? r.dir() : r.dir;
+    if (r.mkdir) fs.mkdirSync(dir, { recursive: true });
+    return { key: k, ...r, dir, base: fs.realpathSync(dir) };
   };
   if (typeof rootsIn === 'string') rootOf(keys[0]);   // a missing single root still fails at start-up, as before
   let base;
@@ -35,6 +36,7 @@ function createFileBrowser(rootsIn, core, hooks = {}) {
     try {
       res.setHeader('Cache-Control', 'no-store');
       const root = rootOf(url.searchParams.get('root')); base = root.base;
+      if (hooks.allow && !hooks.allow(req, root.key)) throw fail(403, 'Only the admin can open this folder.');
       const relative = url.searchParams.get('path') || '';
       if (url.pathname === '/api/files' && req.method === 'GET') {
         const dir = resolve(relative);
@@ -43,7 +45,7 @@ function createFileBrowser(rootsIn, core, hooks = {}) {
           try { const st = fs.lstatSync(path.join(dir, e.name)); return st.isSymbolicLink() ? [] : [{ name: e.name, directory: st.isDirectory(), size: st.size, modified: st.mtime.toISOString() }]; } catch { return []; }
         }).sort((a,b) => Number(b.directory) - Number(a.directory) || a.name.localeCompare(b.name));
         return reply(200, { root: root.label || path.basename(base), rootKey: root.key, writable: !!root.write && !(root.deny || []).includes(relative.split('/')[0]),
-          roots: keys.map((k) => ({ key: k, label: roots[k].label || path.basename(roots[k].dir), writable: !!roots[k].write })), path: relative, entries, maxUpload: MAX_UPLOAD });
+          roots: keys.filter((k) => !hooks.allow || hooks.allow(req, k)).map((k) => ({ key: k, label: roots[k].label || (typeof roots[k].dir === 'string' ? path.basename(roots[k].dir) : k), writable: !!roots[k].write })), path: relative, entries, maxUpload: MAX_UPLOAD });
       }
       if (url.pathname === '/api/files/download' && ['GET', 'HEAD'].includes(req.method)) {
         const target = resolve(relative);

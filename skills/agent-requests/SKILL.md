@@ -1,11 +1,11 @@
 ---
 name: agent-requests
-description: Port ANA's Collaborate area — Evolve (the agent looks at the app's features, data and usage log and proposes how the app should evolve, then builds the approved ones), Approvals (what the agent needs the user's OK for — pending data-change diffs plus approval / decision / access requests) and Requests (work only the user can do, and missing information). Use when the user says "Requests 탭", "에이전트가 요청", "사용자에게 요청", "Evolve", "진화 제안", "개선 제안 탭", or when ana-update reports agent-requests / agent-evolve missing.
+description: Port ANA's Inbox / Roadmap / admin Inbox — Evolve (the agent looks at the app's features, data and usage log and proposes how the app should evolve, then builds the approved ones), Approvals (what the agent needs the user's OK for — pending data-change diffs plus approval / decision / access requests) and Requests (work only the user can do, and missing information). Use when the user says "Requests 탭", "에이전트가 요청", "사용자에게 요청", "Evolve", "진화 제안", "개선 제안 탭", or when ana-update reports agent-requests / agent-evolve missing.
 ---
 
 # agent-requests — the agent talks first
 
-All three live under **Collaborate** (see app-shell):
+Where they live now (see app-shell): the member's **Workspace › Inbox** gathers requests, approvals (incl. data changes) and this workspace's suggestions; the admin's **System › Roadmap** gathers requirements, system proposals and upstream updates as one line per item (Request → Proposal → Building → Checked); **System › Inbox** is the admin inbox. The table below names the item types as they were first built as separate tabs.
 
 | Tab | 한국어 | What |
 |---|---|---|
@@ -18,11 +18,15 @@ All three live under **Collaborate** (see app-shell):
 | **Evolve** | agent → the app | "Add a due-date filter to Tasks" (the agent proposes; the user approves; the agent implements) |
 | **Requests** | agent → the user | "Which calendar should I sync?", "Grant access to the shared drive", "Confirm the budget" |
 
+## Admin and member
+
+Roles: `admin` decides the System, `member` works in workspaces (`roleOf(req)`; `ANA_ADMINS`; everyone is admin when the list is empty, when there's no identity header, or for local calls without identity). Server-side gates return `403 {needsAdmin:true}` for: system Evolve `do|ignore|reopen`, `update-act do|ignore|reopen`, risky permission modes, workspace delete. The page turns that into `askAdmin({type:'approval', title, action:{kind,…}})`. The admin approves it in **System › Admin**, and `runAdminAction` runs the action as the admin before the approval is recorded. Admin inbox: `admin.json` next to `evolve.json`, `GET /api/admin/inbox`, `POST /api/admin/requests`, `POST /api/admin/act`. `syncCheckRequests` opens one work request per check at risk and closes it when the check recovers. Evolve proposals carry `scope: system|workspace` (+`ws`); `escalate` copies a workspace proposal to the system (`fromId`/`escalatedTo`). Workspace proposals render in Workspace › Inbox, system proposals in System › Roadmap.
+
 ## Requirements (user → system)
 
 **Loop with Evolve:** a requirement judged *Not reflected* or *Partly* gets **Propose this** (`POST /api/requirements {action:'propose', id}`). It registers an Evolve proposal `Requirement #id: …` with `reqId` and the analysis's next step and reason; only one proposal stays open per requirement. When that proposal is marked done (`/api/evolve-act done`), the requirement gets `recheck {proposalId}` and its analysis is marked stale. The card says *Proposal #N is done — check again*, and re-analyzing clears it. The agent can also link a proposal it registers with `reqId` in `POST /api/evolve`.
 
-**Collaborate › Requirements** runs the other direction from Requests: the **user** writes what they want this ANA to do, and the agent reports how far the system already does it.
+**Requirements** (members: *Request a feature* in Inbox; admin: Roadmap) run the other direction from Requests: the **user** writes what they want this ANA to do, and the agent reports how far the system already does it.
 
 - **Store:** `requirements.json` holds one list for the whole ANA, not per workspace: `{items:[{id, title, detail, by, at, analysis}], jobs:[…]}`. `POST /api/requirements {action: add|update|remove}` edits it. Editing the title or details marks the analysis `stale` ("Changed since — analyze again").
 - **Analyze:**
@@ -35,9 +39,9 @@ All three live under **Collaborate** (see app-shell):
   - Cards with a status badge and the analysis: *How it is reflected* (or *Current state*), *Why not (yet)*, *Evidence*, *Next step*.
   - Each card has Analyze again, Discuss (adds a context chip), Edit and Delete.
 
-## Four lists in every tab
+## Status lists
 
-Each Collaborate tab has a status filter (five equal columns on phones, label above count), **Waiting · In progress · Done · Failed · Cancelled**, with a count on each (`ST_BUCKETS`, `BUCKET_OF`, `renderStSeg`). The pick is remembered per tab in `localStorage ana-collab-filter`. Waiting and In progress list oldest first; Done and Cancelled list newest first, with the time.
+The lists show **Open / Done** (`TWO_KEYS`; `bucketList` adds `open` = waiting + in progress and `closed` = done + failed + cancelled); each card keeps its own state and actions, from the five underlying states **Waiting · In progress · Done · Failed · Cancelled**, with a count on each (`ST_BUCKETS`, `BUCKET_OF`, `renderStSeg`). The pick is remembered per tab in `localStorage ana-collab-filter`. Waiting and In progress list oldest first; Done and Cancelled list newest first, with the time.
 
 | Tab | Waiting | In progress | Done | Failed | Cancelled |
 |---|---|---|---|---|---|
@@ -59,17 +63,17 @@ Card actions follow the list:
 - **Asking the agent:** each tab has a button that sends the agent a prompt with the exact curl: Evolve "Ask the agent to analyze", Approvals "Ask the agent what needs my approval", Requests "Ask the agent what it needs".
 - **API:** `POST /api/requests` registers requests (the agent calls it). Duplicates are ignored, the kind is validated, and about 100 are kept. `POST /api/request-act {id, action: answer|done|dismiss|reopen, answer?}` is what the user does.
 - **Delivery to the agent:** an **answer** is also sent to the agent as a chat message (`reqAnswer` → `/api/chat`). **done / dismiss** are queued as a notification (`[ANA-NOTIFY …]`, "do not reply") and delivered when the agent's input is idle. Everything is audited with human-readable names (`nameOf`).
-- **UI:** `#approvalsView` (`#apprDiffs`, `#apprList`, `#apprClosed`, `#apprBadge`), `#requestsView` (`#reqList`, `#reqClosed`, `#reqBadge`), `reqCard`, `refreshRequests`, `reqAct`, `reqAnswer`. Both feed the Collaborate badge. Closed ones are folded under "Closed (N)" in each tab.
+- **UI:** `#inboxView` holds `#apprDiffs`, `#apprList`, `#reqList` (Needs you), `#evoList` (Suggestions) and `#toAdmin` (Sent by you: admin requests + my feature requests, `renderToAdmin`); `renderInboxSeg` sums the Open/Done counts; `reqCard`, `refreshRequests`, `reqAct`, `reqAnswer`. Both feed the Inbox badge. Closed ones are folded under "Closed (N)" in each tab.
 - **Agent instructions:** add to the ANA's CLAUDE.md/AGENTS.md when to file a request: the agent is blocked, or would run the system better with the user's input, access, or a decision. Include the exact curl, and say to keep titles short and actionable.
 
 ## Evolve
 
-- `POST /api/evolve` (the agent files proposals), `POST /api/evolve-act {id, action: do|done|ignore}`, `#evolveView`, `refreshEvolve`, `#evoBadge`, the "Ask the agent to analyze" button (`#evoAnalyze`) which asks the agent to review the app and propose. **do** sends "[Evolve] Implement/apply proposal #id …" to the agent.
+- `POST /api/evolve` (the agent files proposals, `scope: system|workspace`), `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen|escalate}`, `refreshEvolve`, `askEvolveAgent(scope)` (`#evoAnalyze` in Inbox for the workspace, `#sysEvoAnalyze` in Roadmap for the system); workspace proposals render in Inbox (`renderEvolve`), system ones in Roadmap (`renderRoadmap`: `reqState`, `evoState`, `updState`) which asks the agent to review the app and propose. **do** sends "[Evolve] Implement/apply proposal #id …" to the agent.
 
 ## Porting
 
 1. Copy the route blocks and the storage (`REQUESTS_FILE` next to the evolve file) into the extraApi module, and wire `REQUESTS_FILE` in `server.js`.
-2. Copy the views, CSS (`.req-*`, `.evo-*`), and JS functions above. Put the three tabs under **Collaborate** if app-shell is present.
+2. Copy the views, CSS (`.req-*`, `.evo-*`, `.ib-*`, `.rm-*`), and JS functions above. Put Inbox under Workspace and Roadmap / admin Inbox under System if app-shell is present.
 3. Update the agent's instruction file with the request/evolve contract and curl examples.
 4. Port tests C15 (requests) from upstream `test.cjs`.
 

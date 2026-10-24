@@ -54,7 +54,7 @@ body.chatting { grid-template-columns: minmax(0, 1fr) var(--chat-w); }
 /* 오프라인 모드(서버가 <html data-offline>을 붙임): LLM이 없으므로 채팅과 에이전트에게 맡기는 기능을 숨긴다 */
 html[data-offline] body.chatting { grid-template-columns: minmax(0, 1fr); }
 html[data-offline] :is(#chatSide, #chatScrim, #fab, .chat-open-btn, #modeToggle, .chip-scan, #anaBtn, #anaOnto, #rqmAnalyze,
-  .topnav .tab:is([data-view="evolve"], [data-view="approvals"], [data-view="requests"], [data-view="reliability"], [data-view="safety"], [data-view="update"])) { display: none !important; }
+  .topnav .tab[data-view="inbox"], .bottomnav [data-nav="inbox"], #sysEvoAnalyze, #updCheck) { display: none !important; }
 html[data-offline] .offline-only { display: block; } .offline-only { display: none; }
 body.chat-resizing { transition: none; }
 button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
@@ -466,6 +466,7 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 .req-closed .req-st { margin-right: 4px; font-size: 11px; font-weight: 800; color: var(--text-weak); }
 .req-closed .evo-acts button { height: 30px; padding: 0 12px; font-size: 12px; }
 .evo-acts .ignore { background: var(--surface-2); color: var(--text-sub); box-shadow: var(--sh-card); }
+.evo-acts .escalate { background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--line); }
 
 /* ---------- 우: 채팅 도킹 사이드바 ---------- */
 /* grid 2번째 컬럼. 닫히면 컬럼 폭 0이라 화면에서 사라지고 메인이 전체 폭. */
@@ -602,7 +603,63 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 .evo-req { display: inline-flex; align-items: center; gap: 4px; margin: 6px 0 0; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--blue-700); background: var(--blue-weak); }
 .evo-card.focus { outline: 2px solid var(--blue); outline-offset: 2px; }
 .files-roots { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0 8px; } .files-roots .ana-seg { margin: 0; }
+body:not(.is-admin) .files-proj { display: none; }
 .files-roots .ro { font-size: 10.5px; font-weight: 700; opacity: .7; } .files-proj { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-sub); }
+body:not(.is-admin) .topnav .tab[data-view="admin"] { display: none !important; }
+.mm-role { padding: 8px 14px 6px; font-size: 12px; color: var(--text-weak); border-bottom: 1px solid var(--line-2); margin-bottom: 4px; } .mm-role:empty { display: none; }
+#admType { margin: 4px 0 10px; } #admType .n { margin-left: 6px; opacity: .7; }
+.adm-card { padding: 12px 14px; margin-bottom: 10px; } .adm-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.adm-top .t { font-weight: 800; font-size: 14px; flex: 1 1 200px; overflow-wrap: anywhere; } .adm-top .n { color: var(--text-weak); font-size: 12px; }
+.adm-tag { font-size: 11px; font-weight: 800; border-radius: 6px; padding: 1px 6px; color: var(--blue-700); background: var(--blue-weak); }
+.adm-tag.work { color: var(--warm-fg); background: color-mix(in srgb, var(--warm-fg) 12%, transparent); }
+.adm-d { margin: 6px 0; font-size: 13px; color: var(--text-sub); white-space: pre-wrap; overflow-wrap: anywhere; } .adm-meta { font-size: 12px; color: var(--text-weak); }
+.adm-note { margin-top: 6px; font-size: 12.5px; color: var(--text-sub); } .adm-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.adm-acts button { height: 32px; padding: 0 12px; border-radius: 8px; font-size: 13px; font-weight: 700; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); }
+.adm-acts button.ok { background: var(--blue); color: var(--white); box-shadow: none; }
+.evo-cta:has(.ask-admin) { display: flex; flex-wrap: wrap; gap: 8px; } .evo-cta .ask-admin { margin: 0; background: var(--surface) !important; color: var(--text) !important; box-shadow: 0 0 0 1px var(--line) !important; } .to-admin { margin: 10px 0 14px; } .to-admin h4 { margin: 0 0 6px; font-size: 12px; color: var(--text-weak); text-transform: uppercase; letter-spacing: .04em; }
+.to-admin .ta-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); margin-bottom: 6px; font-size: 13px; }
+.to-admin .ta-row .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .to-admin .ta-row .st { font-size: 12px; font-weight: 700; color: var(--text-sub); }
+.to-admin .ta-row button { font-size: 12px; font-weight: 700; color: var(--blue); }
+.aa-type { display: grid; gap: 8px; margin: 10px 0; } .aa-type label { display: flex; align-items: baseline; gap: 8px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-weight: 700; font-size: 14px; }
+.aa-type label span { font-weight: 500; font-size: 12.5px; color: var(--text-weak); }
+.evo-link { display: inline-flex; margin: 6px 6px 0 0; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--text-sub); background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); }
+/* ===== 두 범위(Workspace · System) — 받은함 · 로드맵 · 헬스 ===== */
+body:not(.is-admin) [data-area="sys"], body:not(.is-admin) .admin-only { display: none !important; }
+.sys-label { display: none; }
+body.sys-mode .topnav { background: #20232B; border-bottom-color: #2C303A; }
+body.sys-mode .topnav .bname { color: #FFFFFF; }
+body.sys-mode .sys-label { display: flex; flex-direction: column; justify-content: center; line-height: 1.15; margin: 0 10px 0 2px; color: #FFFFFF; }
+body.sys-mode .sys-label b { font-size: 13px; letter-spacing: .08em; } body.sys-mode .sys-label span { font-size: 11px; color: #B9BCC6; }
+body.sys-mode .topnav .tab { color: #B9BCC6; } body.sys-mode .topnav .tab.on { color: #FFFFFF; } body.sys-mode .topnav .tab.on::after { background: #FFFFFF; }
+body.sys-mode .modeseg { background: #2C303A; } body.sys-mode .modeseg button { color: #B9BCC6; } body.sys-mode .modeseg button.on { color: #20232B; background: #FFFFFF; }
+.bottomnav button[data-scope="sys"] { display: none !important; }
+body.sys-mode .bottomnav button[data-scope="sys"] { display: flex !important; } body.sys-mode .bottomnav button[data-scope="ws"] { display: none !important; }
+@media (max-width: 768px) {
+  body:not(.in-work) .tabstrip { display: none; }                     /* 휴대폰: 위 탭 줄은 할일·일정·메모일 때만 */
+  .topnav .tab:is([data-view="relations"], [data-view="files"], [data-view="inbox"]) { display: none !important; }
+  body.sys-mode .sys-label { margin-right: auto; }
+}
+.ib-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 2px 0 10px; } .ib-head .sp { flex: 1; } .ib-head .stseg { margin: 0; }
+.ib-btn { height: 34px; padding: 0 13px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--line); }
+.ib-btn:disabled { opacity: .5; }
+.ib-sec { display: flex; align-items: center; gap: 8px; margin: 18px 0 8px; font-size: 11.5px; font-weight: 800; color: var(--text-weak); letter-spacing: .05em; text-transform: uppercase; }
+.ib-mini { margin-left: auto; height: 28px; padding: 0 11px; border-radius: 999px; font-size: 12px; font-weight: 700; text-transform: none; letter-spacing: 0; color: var(--text); background: var(--surface); box-shadow: 0 0 0 1px var(--line); }
+#needEmpty, #evoEmpty { text-align: left; padding: 6px 2px; }
+.adm-tag.feat { color: #0E6B4C; background: #E3F3EC; }
+.rm-sum { font-size: 12.5px; color: var(--text-weak); margin: 2px 0 8px; display: grid; gap: 2px; } .rm-sum .upd-last { margin: 0; } .rm-sum span:empty { display: none; }
+.rm-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin: 4px 2px 6px; font-size: 10.5px; font-weight: 800; color: var(--text-weak); letter-spacing: .04em; text-transform: uppercase; text-align: center; }
+.rm-card { padding: 12px 14px; margin-bottom: 10px; } .rm-card.focus { outline: 2px solid var(--blue); outline-offset: 2px; }
+.rm-top { display: flex; align-items: baseline; gap: 8px; } .rm-top .t { flex: 1; min-width: 0; font-size: 14.5px; overflow-wrap: anywhere; } .rm-top .n { font-size: 11.5px; font-weight: 700; color: var(--text-weak); white-space: nowrap; }
+.rm-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; margin: 9px 0 8px; } .rm-bar i { height: 6px; border-radius: 3px; background: var(--line); }
+.rm-bar i.on { background: var(--blue); } .rm-bar i.cur { background: color-mix(in srgb, var(--blue) 35%, var(--line)); }
+.rm-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .rm-text { flex: 1 1 180px; font-size: 13px; color: var(--text-sub); overflow-wrap: anywhere; }
+.rm-acts { display: flex; gap: 6px; flex-wrap: wrap; } .rm-acts button { height: 32px; padding: 0 12px; border-radius: 9px; font-size: 12.5px; font-weight: 700; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); }
+.rm-acts button.ok { background: var(--blue); color: var(--white); box-shadow: none; }
+.rm-more { margin-top: 8px; } .rm-more summary { cursor: pointer; font-size: 12.5px; color: var(--text-weak); font-weight: 700; }
+.rm-more .rqm-acts { margin-top: 8px; }
+.tcheck .tsec { display: block; font-size: 10.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--text-weak); margin-bottom: 2px; }
+.health-ok { margin: 8px 0 4px; } .health-ok summary { cursor: pointer; padding: 10px 12px; border-radius: 12px; border: 1px dashed var(--line); font-size: 13px; font-weight: 700; color: var(--text-sub); }
+.health-ok[open] summary { margin-bottom: 8px; }
 .ex-wrap { padding-bottom: 0 !important; margin-bottom: -6px; } .ex-wrap[hidden], body.sys-mode .ex-wrap { display: none; }
 .ex-banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; background: var(--blue-weak); box-shadow: 0 0 0 1px color-mix(in srgb, var(--blue) 30%, transparent); }
 .ex-t { flex: 1 1 260px; font-size: 13px; color: var(--text-sub); line-height: 1.5; } .ex-t b { color: var(--text); }
@@ -680,6 +737,9 @@ body.chat-loading #connPill .dot { background: transparent !important; box-shado
 .stseg button.on .n { background: color-mix(in srgb, var(--bg) 16%, transparent); color: var(--bg); }
 @media (max-width: 520px) {   /* 휴대폰 폭: 다섯 칸 격자 — 글자 위, 개수 아래 */
   .stseg { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; overflow: visible; }
+  .stseg.two { display: flex; } .stseg.two button { flex-direction: row; height: 34px; padding: 0 13px; gap: 6px; font-size: 13px; }
+  .stseg.two button .n { min-width: 18px; padding: 0 5px; border-radius: 999px; font-size: 11.5px; line-height: 18px; background: var(--surface); color: var(--text-sub); }
+  .stseg.two button.on .n { background: var(--surface); color: var(--text-sub); }
   .stseg button { flex-direction: column; justify-content: center; gap: 2px; height: 46px; padding: 0 2px; border-radius: 12px; font-size: 11px; letter-spacing: -0.01em; }
   .stseg button .n { min-width: 0; padding: 0; background: none; font-size: 14px; line-height: 16px; color: var(--text); }
   .stseg button.on .n { background: none; color: var(--bg); }
@@ -1156,7 +1216,7 @@ body.sys-mode .ws-combo { display: none; }
 .kg-detail[hidden] { display: none; } .kg-detail ul { margin: 6px 0 0; padding-left: 18px; } .kg-detail .src { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; }
 .ana-picks { display: grid; gap: 8px; margin: 12px 0; } .ana-pick { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-weight: 700; font-size: 14px; }
 .ana-pick .n { margin-left: auto; color: var(--text-weak); font-weight: 600; font-size: 12.5px; } .ana-opt { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-sub); margin: 4px 0 12px; } .ana-opt[hidden] { display: none; } .ana-opt .n { color: var(--text-weak); font-size: 12px; }
-.rqm-add { padding: 12px; display: grid; gap: 8px; margin-bottom: 12px; }
+.rqm-add { padding: 12px; display: grid; gap: 8px; margin-bottom: 12px; } .rqm-add[hidden] { display: none; }
 .rqm-add input, .rqm-add textarea { width: 100%; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); color: var(--text); font: inherit; font-size: 14px; resize: vertical; }
 .rqm-add input { font-weight: 700; }
 .rqm-add-acts { display: flex; justify-content: flex-end; } .rqm-add-acts .ok, .rqm-edit .ok { height: 34px; padding: 0 14px; border-radius: 10px; background: var(--blue); color: var(--white); font-weight: 800; font-size: 13px; }
@@ -1308,9 +1368,10 @@ body.sys-mode .ws-combo { display: none; }
 <div id="main">
   <nav class="topnav" aria-label="Main menu" role="tablist">
     <div class="topnav-brand"><img src="/ana-logo.png" alt="ANA logo"><span class="bname">ANA</span></div>
+    <div class="sys-label" aria-hidden="true"><b>SYSTEM</b><span>Admin · decisions for every workspace</span></div>
     <!-- 영역 전환(PC) — 모바일에서는 하단 메뉴(.bottomnav)가 같은 일을 한다 -->
     <div class="seg modeseg" role="tablist" aria-label="Area">
-      <button data-area="ws" class="on" role="tab">Workspace</button><button data-area="collab" role="tab">Collaborate<span class="tbadge" data-collabbadge>0</span></button><button data-area="sys" role="tab">System<span class="tbadge" data-sysbadge>0</span></button>
+      <button data-area="ws" class="on" role="tab">Workspace<span class="tbadge" data-inboxbadge>0</span></button><button data-area="sys" role="tab">System<span class="tbadge" data-sysbadge>0</span></button>
     </div>
     <div class="ws-combo" id="wsCombo">
       <button class="ws-btn" id="wsBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Workspace">
@@ -1330,17 +1391,14 @@ body.sys-mode .ws-combo { display: none; }
       <button class="tab on" data-view="todo" data-group="ws" role="tab" aria-selected="true">Tasks</button>
       <button class="tab" data-view="schedule" data-group="ws" role="tab" aria-selected="false">Calendar</button>
       <button class="tab" data-view="memo" data-group="ws" role="tab" aria-selected="false">Notes</button>
-      <button class="tab" data-view="evolve" data-group="collab" role="tab" aria-selected="false">Evolve<span class="tbadge" id="evoBadge">0</span></button>
-      <button class="tab" data-view="approvals" data-group="collab" role="tab" aria-selected="false">Approvals<span class="tbadge" id="apprBadge">0</span></button>
-      <button class="tab" data-view="requests" data-group="collab" role="tab" aria-selected="false">Requests<span class="tbadge" id="reqBadge">0</span></button>
-      <button class="tab" data-view="requirements" data-group="collab" role="tab" aria-selected="false">Requirements</button>
-      <button class="tab" data-view="files" data-group="sys" role="tab" aria-selected="false">Files</button>
-      <button class="tab" data-view="stats" data-group="sys" role="tab" aria-selected="false">Stats</button>
-      <button class="tab" data-view="relations" data-group="sys" role="tab" aria-selected="false">Relations</button>
-      <button class="tab" data-view="reliability" data-group="sys" role="tab" aria-selected="false">Trustworthiness</button>
-      <button class="tab" data-view="safety" data-group="sys" role="tab" aria-selected="false">Safety</button>
-      <button class="tab" data-view="security" data-group="sys" role="tab" aria-selected="false">Security</button>
-      <button class="tab" data-view="update" data-group="sys" role="tab" aria-selected="false">Update<span class="tbadge" id="updBadge">0</span></button>
+      <button class="tab" data-view="relations" data-group="ws" role="tab" aria-selected="false">Knowledge</button>
+      <button class="tab" data-view="files" data-group="ws" role="tab" aria-selected="false">Files</button>
+      <button class="tab" data-view="inbox" data-group="ws" role="tab" aria-selected="false">Inbox<span class="tbadge" data-inboxbadge>0</span></button>
+      <button class="tab" data-view="admin" data-group="sys" role="tab" aria-selected="false">Inbox<span class="tbadge" id="admBadge">0</span></button>
+      <button class="tab" data-view="roadmap" data-group="sys" role="tab" aria-selected="false">Roadmap<span class="tbadge" id="roadBadge">0</span></button>
+      <button class="tab" data-view="health" data-group="sys" role="tab" aria-selected="false">Health<span class="tbadge" id="healthBadge">0</span></button>
+      <!-- 집계용(화면에 안 보임): 받은함·로드맵 배지가 이 값들을 더한다 -->
+      <span hidden><span id="evoBadge"></span><span id="apprBadge"></span><span id="reqBadge"></span><span id="sevoBadge"></span><span id="updBadge"></span></span>
     </div>
     <button id="modeToggle" class="mode-toggle" role="switch" aria-checked="false" aria-label="Chip mode">
       <span class="knob"></span>Chip
@@ -1354,6 +1412,7 @@ body.sys-mode .ws-combo { display: none; }
     <button id="meBtn" class="avatar-btn" aria-label="My profile" aria-haspopup="menu"><span class="av">?</span></button>
   </nav>
   <div class="me-menu" id="meMenu" role="menu" hidden>
+    <div class="mm-role" id="menuRole"></div>
     <button id="menuEditInfo" role="menuitem">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Edit My Info</button>
@@ -1430,17 +1489,10 @@ body.sys-mode .ws-combo { display: none; }
     </div>
   </div></section>
 
-  <section class="view" id="statsView" role="tabpanel"><div class="wrap">
-    <div class="sec-head"><h2>Stats</h2><span class="sp"></span>
-      <div class="seg" id="statSeg"><button class="on" data-seg="mine">My stats</button><button data-seg="all">All</button></div></div>
-    <div id="statBody"></div>
-    <div class="sec-head" style="margin-top:22px"><h2>Activity</h2></div>
-    <div id="actList"></div>
-  </div></section>
 
   <!-- 관계: 메모·할일·일정이 어떻게 이어져 있는지(NodeRel) — 흐름 그림 · 끊긴 곳 · 관계 어휘 -->
   <section class="view" id="relationsView" role="tabpanel"><div class="wrap">
-    <div class="sec-head"><h2>Relations</h2><span class="cnt" id="relWs"></span><span class="sp"></span><button class="ana-btn" id="anaBtn">Analyze</button></div>
+    <div class="sec-head"><h2>Knowledge</h2><span class="cnt" id="relWs"></span><span class="sp"></span><button class="ana-btn" id="anaBtn">Analyze</button></div>
     <!-- 분석: 에이전트가 메모·할일·일정에서 온톨로지(개념·관계 종류)와 지식그래프(개체·사실)를 뽑는다 -->
     <div class="card ana-card" id="anaCard" hidden></div>
     <div class="sec-head" style="margin-top:18px"><h2>Links</h2><span class="sp"></span><span class="cnt">NodeRel</span></div>
@@ -1451,40 +1503,22 @@ body.sys-mode .ws-combo { display: none; }
     <div class="card rel-vocab" id="relVocab"></div>
   </div></section>
 
-  <!-- 요청: 에이전트 → 사용자 (시스템을 더 잘 운용하기 위해 필요한 것) -->
-  <section class="view" id="requestsView" role="tabpanel"><div class="wrap">
-    <div class="evo-head"><span class="evo-lead">Work the agent is asking you to do — things only you can do, and information it is missing</span></div>
-    <div class="evo-cta"><button id="reqAsk">Ask the agent what it needs</button></div>
-    <div class="stseg" data-stseg="req" role="tablist" aria-label="Request status"></div>
-    <div id="reqList"></div>
-    <div class="empty" id="reqEmpty"></div>
-  </div></section>
-
-  <!-- 협업 › 요구사항: 사용자가 바라는 것을 적고, 에이전트가 이 ANA에 어떻게 반영돼 있는지(안 됐다면 왜인지) 분석 -->
-  <section class="view" id="requirementsView" role="tabpanel"><div class="wrap">
-    <div class="evo-head"><span class="evo-lead">What you want this ANA to do. Analyze has the agent check each one against the system — how it is reflected, or why it isn't yet</span></div>
-    <form class="card rqm-add" id="rqmAdd" autocomplete="off">
-      <input id="rqmTitle" maxlength="200" placeholder="Requirement — e.g. Show overdue tasks first" aria-label="Requirement">
-      <textarea id="rqmDetail" rows="2" maxlength="4000" placeholder="Details (optional) — why it matters, how you'd check it" aria-label="Details"></textarea>
-      <div class="rqm-add-acts"><button type="submit" class="ok">Add requirement</button></div>
-    </form>
-    <div class="rqm-bar"><button class="ana-btn" id="rqmAnalyze">Analyze</button><span class="rqm-sum" id="rqmSum"></span></div>
-    <div class="card ana-card" id="rqmJob" hidden></div>
-    <div class="stseg" id="rqmFilter" role="tablist" aria-label="Requirement status"></div>
-    <div id="rqmList"></div>
-    <div class="empty" id="rqmEmpty"></div>
-  </div></section>
-
-  <!-- 협업 › 승인: 에이전트가 일을 하려면 사용자 승인이 필요한 것(데이터 변경 제안 · 결정 · 접근 · 승인 요청) -->
-  <section class="view" id="approvalsView" role="tabpanel"><div class="wrap">
-    <div class="evo-head"><span class="evo-lead">What the agent needs your OK for before it goes on — data changes, decisions, access</span></div>
-    <div class="evo-cta"><button id="apprAsk">Ask the agent what needs my approval</button></div>
-    <div class="stseg" data-stseg="appr" role="tablist" aria-label="Approval status"></div>
+  <!-- Workspace › Inbox: 이 워크스페이스에서 나를 기다리는 일 하나로 — 확인할 것(요청·승인·데이터 변경) · 제안 · 보낸 것 -->
+  <section class="view" id="inboxView" role="tabpanel"><div class="wrap">
+    <div class="ib-head"><div class="stseg two" data-stseg="inbox" role="tablist" aria-label="Show"></div><span class="sp"></span>
+      <button class="ib-btn" id="reqAsk">Ask the agent</button><button class="ib-btn ask-admin" data-type="work">Ask the admin</button><button class="ib-btn" id="featReq">Request a feature</button></div>
+    <h3 class="ib-sec">Needs you</h3>
     <div class="sec-head" id="apprDiffHead" hidden><h2>Data changes</h2><span class="cnt" id="apprDiffCnt"></span></div>
     <div id="apprDiffs"></div>
-    <div class="sec-head" id="apprReqHead" hidden><h2>Requests</h2><span class="cnt" id="apprReqCnt"></span></div>
+    <div class="sec-head" id="apprReqHead" hidden><h2>Approvals</h2><span class="cnt" id="apprReqCnt"></span></div>
     <div id="apprList"></div>
-    <div class="empty" id="apprEmpty"></div>
+    <div id="reqList"></div>
+    <div class="empty" id="needEmpty"></div><div hidden><div id="apprEmpty"></div><div id="reqEmpty"></div></div>
+    <h3 class="ib-sec">Suggestions for this workspace<button class="ib-mini" id="evoAnalyze">Ask the agent</button></h3>
+    <div id="evoList"></div>
+    <div class="empty" id="evoEmpty"></div>
+    <h3 class="ib-sec" id="sentHead" hidden>Sent by you</h3>
+    <div class="to-admin" id="toAdmin" hidden></div>
   </div></section>
 
   <section class="view" id="filesView" role="tabpanel"><div class="wrap">
@@ -1497,37 +1531,41 @@ body.sys-mode .ws-combo { display: none; }
     <div id="filesStatus" role="status" aria-live="polite"></div><div id="filesList"></div>
   </div></section>
 
-  <!-- 시스템 › 신뢰성 · 안전 · 보안 — 서버가 실제 상태로 계산한 점검(/api/trust) -->
-  <section class="view trust-view" id="reliabilityView" role="tabpanel"><div class="wrap">
-    <div class="evo-head"><span class="evo-lead">Can you trust the agent right now — is it running, reading its own log, succeeding at its tools, within its plan limits</span></div>
-    <div class="trust-sum" data-trust-sum="reliability"></div><div class="trust-list" data-trust="reliability"></div>
-  </div></section>
-  <section class="view trust-view" id="safetyView" role="tabpanel"><div class="wrap">
-    <div class="evo-head"><span class="evo-lead">What stops the agent from doing damage — permission mode, risky commands it ran, approval gates</span></div>
-    <div class="trust-sum" data-trust-sum="safety"></div><div class="trust-list" data-trust="safety"></div>
-  </div></section>
-  <section class="view trust-view" id="securityView" role="tabpanel"><div class="wrap">
-    <div class="evo-head"><span class="evo-lead">Who can reach this ANA and what it keeps — network exposure, sign-in, credentials, secrets in your data</span></div>
-    <div class="trust-sum" data-trust-sum="security"></div><div class="trust-list" data-trust="security"></div>
+  <!-- System › Health: 점검(신뢰성·안전·보안)을 위험한 것부터 한 장에, 아래에 사용 통계·활동 -->
+  <section class="view" id="healthView" role="tabpanel"><div class="wrap">
+    <div class="trust-sum" id="healthSum"></div>
+    <div class="trust-list" id="healthList"></div>
+    <details class="health-ok"><summary id="healthOkSum">Other checks</summary><div class="trust-list" id="healthOk"></div></details>
+    <div class="sec-head" style="margin-top:22px"><h2>Usage</h2><span class="sp"></span>
+      <div class="seg" id="statSeg"><button class="on" data-seg="mine">My stats</button><button data-seg="all">All</button></div></div>
+    <div id="statBody"></div>
+    <div class="sec-head" style="margin-top:22px"><h2>Activity</h2></div>
+    <div id="actList"></div>
   </div></section>
 
-  <!-- 시스템 › 업데이트: GitHub의 agent-native-agent와 기능 단위로 비교 → 이 ANA에 들일 만한 것을 목록으로 -->
-  <section class="view" id="updateView" role="tabpanel"><div class="wrap">
-    <div class="evo-head"><span class="evo-lead">What's new in agent-native-agent that this ANA doesn't have yet. Update hands it to the agent to port into this ANA; Cancel hides it from later checks</span></div>
-    <div class="evo-cta"><button id="updCheck">Check for updates</button></div>
-    <div class="upd-last" id="updLast"></div>
-    <div class="stseg" data-stseg="upd" role="tablist" aria-label="Update status"></div>
-    <div id="updList"></div>
-    <div class="empty" id="updEmpty"></div>
-  </div></section>
 
   <!-- 진화 -->
-  <section class="view" id="evolveView" role="tabpanel"><div class="wrap">
-    <div class="evo-head"><span class="evo-lead">How the agent thinks this app should evolve — from its features, your data and how you use it. Approve one and the agent builds it</span></div>
-    <div class="evo-cta"><button id="evoAnalyze">Ask the agent to analyze</button></div>
-    <div class="stseg" data-stseg="evo" role="tablist" aria-label="Proposal status"></div>
-    <div id="evoList"></div>
-    <div class="empty" id="evoEmpty"></div>
+  <section class="view" id="adminView" role="tabpanel"><div class="wrap">
+    <div class="evo-head"><span class="evo-lead">What members, the agent and the system checks need from you as admin — approvals for system changes, and work only an admin can do</span></div>
+    <div class="ana-seg" id="admType" role="tablist" aria-label="Kind"><button role="tab" data-t="approval" class="on" aria-selected="true">Approvals<span class="n" id="admNA"></span></button><button role="tab" data-t="work" aria-selected="false">Work requests<span class="n" id="admNW"></span></button></div>
+    <div class="stseg" data-stseg="adm" role="tablist" aria-label="Status"></div>
+    <div id="admList"></div>
+    <div class="empty" id="admEmpty"></div>
+  </div></section>
+  <!-- System › Roadmap: 시스템이 바뀌는 길 — 요구사항 → 제안 → 만드는 중 → 확인, 업스트림 업데이트도 같은 줄에 -->
+  <section class="view" id="roadmapView" role="tabpanel"><div class="wrap">
+    <div class="ib-head"><div class="stseg two" data-stseg="road" role="tablist" aria-label="Show"></div><span class="sp"></span>
+      <button class="ib-btn" id="rqmNew">+ Requirement</button><button class="ib-btn" id="rqmAnalyze">Check all</button><button class="ib-btn" id="sysEvoAnalyze">Ask the agent</button><button class="ib-btn" id="updCheck">Check for updates</button></div>
+    <form class="card rqm-add" id="rqmAdd" autocomplete="off" hidden>
+      <input id="rqmTitle" maxlength="200" placeholder="Requirement — e.g. Show overdue tasks first" aria-label="Requirement">
+      <textarea id="rqmDetail" rows="2" maxlength="4000" placeholder="Details (optional) — why it matters, how you'd check it" aria-label="Details"></textarea>
+      <div class="rqm-add-acts"><button type="submit" class="ok">Add requirement</button></div>
+    </form>
+    <div class="rm-sum"><span id="rqmSum"></span> <span class="upd-last" id="updLast"></span></div>
+    <div class="card ana-card" id="rqmJob" hidden></div>
+    <div class="rm-steps" aria-hidden="true"><span>Request</span><span>Proposal</span><span>Building</span><span>Checked</span></div>
+    <div id="rqmList"></div>
+    <div class="empty" id="rqmEmpty"></div>
   </div></section>
 </div>
 
@@ -1622,10 +1660,16 @@ body.sys-mode .ws-combo { display: none; }
   </div>
 </div>
 <!-- 하단 메뉴(모바일): Workspace = 할일·일정·메모 / System = 통계·요청·진화·관계 -->
-<nav class="bottomnav" aria-label="Area">
-  <button data-area="ws" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Workspace</button>
-  <button data-area="collab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Collaborate<span class="tbadge" data-collabbadge>0</span></button>
-  <button data-area="sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>System<span class="tbadge" data-sysbadge>0</span></button>
+<nav class="bottomnav" aria-label="Menu">
+  <button data-go="ws:todo" data-nav="work" data-scope="ws"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Work</button>
+  <button data-go="ws:relations" data-nav="relations" data-scope="ws"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8 7.5l3 8M16 7.5l-3 8M8.5 6h7"/></svg>Knowledge</button>
+  <button data-go="ws:files" data-nav="files" data-scope="ws"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Files</button>
+  <button data-go="ws:inbox" data-nav="inbox" data-scope="ws"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></svg>Inbox<span class="tbadge" data-inboxbadge>0</span></button>
+  <button data-go="sys:" data-nav="system" data-scope="ws" class="admin-only"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>System<span class="tbadge" data-sysbadge>0</span></button>
+  <button data-go="sys:admin" data-nav="admin" data-scope="sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></svg>Inbox<span class="tbadge" data-admbadge>0</span></button>
+  <button data-go="sys:roadmap" data-nav="roadmap" data-scope="sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 6h7a3 3 0 0 1 0 6H10a3 3 0 0 0 0 6h7"/></svg>Roadmap<span class="tbadge" data-roadbadge>0</span></button>
+  <button data-go="sys:health" data-nav="health" data-scope="sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Health<span class="tbadge" data-healthbadge>0</span></button>
+  <button data-go="ws:" data-nav="workspace" data-scope="sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Workspace</button>
 </nav>
 <!-- 모델 선택 시트(Claude Code 세션) — Claude 앱과 같은 모양 -->
 <div class="limit-pop" id="limitPop" role="status" hidden></div>
@@ -1691,6 +1735,23 @@ body.sys-mode .ws-combo { display: none; }
   <div class="lk-list" id="lkList" role="listbox" aria-label="Items"></div>
   <div class="modal-acts"><button class="cancel" data-close>Cancel</button></div>
 </div>
+<!-- 모달: 기능 요청(실무자 → 시스템 요구사항) -->
+<div class="modal" id="featModal" role="dialog" aria-modal="true" aria-labelledby="ftTitle">
+  <h3 id="ftTitle">Request a feature</h3>
+  <p class="ana-lead">What should ANA do that it doesn't yet? The admin sees it on the Roadmap, and the agent checks how far the system already does it.</p>
+  <div class="fld"><input id="ftT" placeholder="e.g. Export notes as PDF" maxlength="200" aria-label="Feature"></div>
+  <div class="fld"><textarea id="ftD" rows="3" maxlength="4000" placeholder="Why it matters, how you'd check it (optional)" aria-label="Details"></textarea></div>
+  <div class="modal-acts"><button class="cancel" data-close>Cancel</button><button class="ok" id="ftSend">Send</button></div>
+</div>
+<!-- 모달: 관리자에게 요청(작업요청 · 승인요청) -->
+<div class="modal" id="askAdminModal" role="dialog" aria-modal="true" aria-labelledby="aaTitle">
+  <h3 id="aaTitle">Ask the admin</h3>
+  <div class="aa-type" role="radiogroup"><label><input type="radio" name="aaType" value="work" checked> Work request <span>something only the admin can do</span></label>
+    <label><input type="radio" name="aaType" value="approval"> Approval request <span>a change the admin must OK</span></label></div>
+  <div class="fld"><input id="aaT" placeholder="What do you need?" maxlength="200" aria-label="Title"></div>
+  <div class="fld"><textarea id="aaD" rows="3" maxlength="2000" placeholder="Details (optional)" aria-label="Details"></textarea></div>
+  <div class="modal-acts"><button class="cancel" data-close>Cancel</button><button class="ok" id="aaSend">Send</button></div>
+</div>
 <!-- 모달: 관계 분석 대상 고르기 -->
 <div class="modal" id="anaModal" role="dialog" aria-modal="true" aria-labelledby="anaTitle">
   <h3 id="anaTitle">Analyze relations</h3>
@@ -1721,8 +1782,11 @@ const post = (p, body) => fetch(p, { method: 'POST', headers: { 'content-type': 
 let currentWs = '', workspaces = [], wsEditing = '', wsDrag = null;
 // 오프라인 모드(LLM 없음): 서버가 <html data-offline>을 붙인다. 이 탭들은 에이전트가 있어야 의미가 있어 숨긴다
 const OFFLINE = document.documentElement.hasAttribute('data-offline');
-const OFFLINE_VIEWS = new Set(['evolve', 'approvals', 'requests', 'reliability', 'safety', 'update']);
-const usableTab = (b) => !!b && !(OFFLINE && OFFLINE_VIEWS.has(b.dataset.view));
+const OFFLINE_VIEWS = new Set(['inbox']);
+const SYS_VIEWS = new Set(['admin', 'roadmap', 'health']);
+// 역할: admin(시스템을 결정) · member(워크스페이스 실무). /api/me가 알려 준다. Admin 탭은 관리자에게만
+let myRole = 'admin';
+const usableTab = (b) => !!b && !(OFFLINE && OFFLINE_VIEWS.has(b.dataset.view)) && !(SYS_VIEWS.has(b.dataset.view) && myRole !== 'admin');
 // 에이전트 지시문에 넣을 서버 주소 — 브라우저 주소가 아니라 에이전트가 직접 닿는 로컬 주소(/api/agent-base)
 let agentHost = location.host;
 fetch('/api/agent-base').then((r) => r.ok ? r.json() : null).then((d) => { if (d && d.host) agentHost = d.host; }).catch(() => {});
@@ -2111,21 +2175,25 @@ function reqCard(r, closed) {
 }
 /* ---- 협업 목록: 대기 · 처리 중 · 완료 · 취소 ----
    세 탭(Evolve · Approvals · Requests)이 같은 네 상태로 나뉜다. 탭마다 고른 상태를 기억한다. */
+const TWO_KEYS_LIST = ['appr', 'req', 'evo', 'adm', 'inbox', 'road'];
 const ST_BUCKETS = [['wait', 'Waiting'], ['doing', 'In progress'], ['done', 'Done'], ['fail', 'Failed'], ['cancel', 'Cancelled']];
 const BUCKET_OF = {
   evo: { new: 'wait', doing: 'doing', done: 'done', failed: 'fail', dismissed: 'cancel' },
   req: { open: 'wait', answered: 'doing', done: 'done', failed: 'fail', dismissed: 'cancel' },
   diff: { pending: 'wait', applying: 'doing', applied: 'done', failed: 'fail', rejected: 'cancel' },
   upd: { new: 'wait', doing: 'doing', done: 'done', failed: 'fail', dismissed: 'cancel' },
+  adm: { open: 'wait', doing: 'doing', done: 'done', failed: 'fail', rejected: 'cancel', cancelled: 'cancel' },
 };
 const ST_EMPTY = {
-  evo: { wait: 'No new proposals — try [Ask the agent to analyze]', doing: 'Nothing being built right now', done: 'No finished proposals yet', fail: 'Nothing failed', cancel: 'Nothing ignored' },
+  inbox: { open: 'Nothing needs you right now', closed: 'Nothing finished yet' },
+  evo: { open: 'No suggestions — press [Ask the agent] to get some', closed: 'No finished suggestions yet', wait: 'No new proposals — try [Ask the agent to analyze]', doing: 'Nothing being built right now', done: 'No finished proposals yet', fail: 'Nothing failed', cancel: 'Nothing ignored' },
   appr: { wait: 'Nothing waiting for your approval', doing: 'Nothing in progress', done: 'Nothing approved or resolved yet', fail: 'Nothing failed', cancel: 'Nothing rejected or dismissed' },
   upd: { wait: 'Nothing new — press [Check for updates]', doing: 'Nothing being updated right now', done: 'No updates applied yet', fail: 'Nothing failed', cancel: 'Nothing cancelled — cancelled updates stay hidden from later checks' },
   req: { wait: 'No open requests — try [Ask the agent what it needs]', doing: 'Nothing in progress — answered requests show here until they are done', done: 'Nothing done yet', fail: 'Nothing failed', cancel: 'Nothing dismissed' },
 };
-let stFilter = { evo: 'wait', appr: 'wait', req: 'wait', upd: 'wait' };
+let stFilter = { evo: 'open', appr: 'open', req: 'open', upd: 'wait', adm: 'open', inbox: 'open', road: 'open' };
 try { Object.assign(stFilter, JSON.parse(localStorage.getItem('ana-collab-filter') || '{}')); } catch {}
+for (const k of TWO_KEYS_LIST) if (!['open', 'closed'].includes(stFilter[k])) stFilter[k] = 'open';   // 예전 5칸 값이 남아 있으면 열림으로
 let diffCache = [], evoCache = [];
 const recent = (x) => String(x.updatedAt || x.closedAt || x.decidedAt || x.answeredAt || x.at || '');
 function bucketList(list, map) {
@@ -2133,17 +2201,22 @@ function bucketList(list, map) {
   for (const x of list) { const b = map[x.status]; if (b) out[b].push(x); }
   out.wait.sort((a, b) => a.id - b.id); out.doing.sort((a, b) => a.id - b.id);          // 할 일은 오래된 것부터
   for (const k of ['done', 'fail', 'cancel']) out[k].sort((a, b) => recent(b).localeCompare(recent(a)));   // 끝난 것은 최근 것부터
+  out.open = [...out.wait, ...out.doing]; out.closed = [...out.done, ...out.fail, ...out.cancel];   // 받은함·로드맵: 열림 / 끝남
   return out;
 }
+const TWO_KEYS = new Set(['appr', 'req', 'evo', 'adm', 'inbox', 'road']), TWO = [['open', 'Open'], ['closed', 'Done']];
 function renderStSeg(key, counts) {
-  const el = document.querySelector(`[data-stseg="${key}"]`);
-  el.innerHTML = ST_BUCKETS.map(([b, l]) => `<button role="tab" data-b="${b}" aria-selected="${stFilter[key] === b}" class="${stFilter[key] === b ? 'on' : ''}">${l}<span class="n">${counts[b] || 0}</span></button>`).join('');
+  const el = document.querySelector(`[data-stseg="${key}"]`); if (!el) return;
+  if (TWO_KEYS.has(key)) { counts.open ??= (counts.wait || 0) + (counts.doing || 0); counts.closed ??= (counts.done || 0) + (counts.fail || 0) + (counts.cancel || 0); }
+  el.innerHTML = (TWO_KEYS.has(key) ? TWO : ST_BUCKETS).map(([b, l]) => `<button role="tab" data-b="${b}" aria-selected="${stFilter[key] === b}" class="${stFilter[key] === b ? 'on' : ''}">${l}<span class="n">${counts[b] || 0}</span></button>`).join('');
 }
 document.querySelectorAll('[data-stseg]').forEach((el) => el.addEventListener('click', (e) => {
   const b = e.target.closest('button[data-b]'); if (!b) return;
   const key = el.dataset.stseg; stFilter[key] = b.dataset.b;
+  if (key === 'inbox') stFilter.appr = stFilter.req = stFilter.evo = b.dataset.b;   // 받은함의 열림/끝남은 세 목록을 함께
   try { localStorage.setItem('ana-collab-filter', JSON.stringify(stFilter)); } catch {}
-  if (key === 'evo') renderEvolve(); else if (key === 'upd') renderUpdates(); else renderRequestsAll();
+  if (key === 'inbox') { renderRequestsAll(); renderEvolve(); renderToAdmin(); }
+  else if (key === 'road') renderRoadmap(); else if (key === 'evo') renderEvolve(); else if (key === 'adm') renderAdmin(); else renderRequestsAll();
 }));
 const whenTxt = (x) => { const t = recent(x); return t ? fmtWhen(t) : ''; };
 
@@ -2162,12 +2235,14 @@ function renderRequestsAll() {
   renderReqBox('req', req);
   // Approvals
   const ak = stFilter.appr;
-  renderStSeg('appr', Object.fromEntries(ST_BUCKETS.map(([b]) => [b, apprReq[b].length + diffs[b].length])));
+  inboxCounts.need = { open: apprReq.open.length + diffs.open.length + req.open.length, closed: apprReq.closed.length + diffs.closed.length + req.closed.length };
   $('apprDiffHead').hidden = !diffs[ak].length; $('apprDiffCnt').textContent = diffs[ak].length || '';
   $('apprDiffs').innerHTML = diffs[ak].map((p) => propCard(p.id, p.text || 'Change proposal')).join('');
   renderReqBox('appr', apprReq, { head: !!diffs[ak].length });
   const emptyA = !apprReq[ak].length && !diffs[ak].length;
-  $('apprEmpty').textContent = ST_EMPTY.appr[ak]; $('apprEmpty').style.display = emptyA ? 'block' : 'none';
+  const none = emptyA && !req[stFilter.req].length;
+  $('needEmpty').textContent = ST_EMPTY.inbox[ak] || ''; $('needEmpty').style.display = none ? 'block' : 'none';
+  renderInboxSeg();
   // 배지 = 대기 수
   $('reqBadge').textContent = req.wait.length; $('reqBadge').classList.toggle('show', req.wait.length > 0);
   const nA = apprReq.wait.length + diffs.wait.length;
@@ -2178,14 +2253,19 @@ function renderReqBox(prefix, buckets, opt = {}) {
   const listEl = $(prefix + 'List'), key = prefix;
   const drafts = {}; listEl.querySelectorAll('.req-card').forEach((c) => { const t = c.querySelector('textarea'); if (t && t.value) drafts[c.dataset.rid] = t.value; });
   const k = stFilter[key], list = buckets[k];
-  if (prefix === 'req') renderStSeg('req', Object.fromEntries(ST_BUCKETS.map(([b]) => [b, buckets[b].length])));
-  listEl.innerHTML = list.map((r) => reqCard(r, k === 'done' || k === 'fail' || k === 'cancel')).join('');
+
+  listEl.innerHTML = list.map((r) => reqCard(r, ['done', 'fail', 'cancel'].includes(BUCKET_OF.req[r.status]))).join('');
   Object.entries(drafts).forEach(([id, v]) => { const t = listEl.querySelector(`.req-card[data-rid="${id}"] textarea`); if (t) t.value = v; });
   if (prefix === 'req') { $('reqEmpty').textContent = ST_EMPTY.req[k]; $('reqEmpty').style.display = list.length ? 'none' : 'block'; }
   if (prefix === 'appr') { $('apprReqHead').hidden = !(opt.head && list.length); $('apprReqCnt').textContent = list.length || ''; }
 }
 // 데이터 변경이 실시간으로 들어오면(proposal 이벤트) 다시 그린다
 function renderApprovals() { renderRequestsAll(); }
+// 받은함 위의 열림/끝남 칸 — 확인할 것과 제안의 수를 더한다
+const inboxCounts = { need: { open: 0, closed: 0 }, evo: { open: 0, closed: 0 } };
+function renderInboxSeg() {
+  renderStSeg('inbox', { open: inboxCounts.need.open + inboxCounts.evo.open, closed: inboxCounts.need.closed + inboxCounts.evo.closed });
+}
 $('apprDiffs').addEventListener('click', (e) => {
   const pbtn = e.target.closest('.prop button'); if (!pbtn) return;
   const decision = pbtn.classList.contains('ok') ? 'approve' : 'reject'; const pid = Number(pbtn.closest('.prop').dataset.pid);
@@ -2197,17 +2277,20 @@ const TRUST_ICON = { ok: '✓', info: 'i', warn: '!', risk: '!' };
 async function refreshTrust() {
   let d; try { d = await (await getJSON('/api/trust')); } catch { return; }
   if (!d || d.error) return;
-  for (const sec of ['reliability', 'safety', 'security']) {
-    const g = d[sec]; if (!g) continue;
-    const ok = g.checks.filter((c) => c.status === 'ok').length;
-    document.querySelector(`[data-trust-sum="${sec}"]`).innerHTML = [g.risk ? `<span class="pill risk">${g.risk} at risk</span>` : '', g.warn ? `<span class="pill warn">${g.warn} to review</span>` : '',
-      `<span class="pill ok">${ok} OK</span>`].join('');
-    const order = { risk: 0, warn: 1, info: 2, ok: 3 };
-    document.querySelector(`[data-trust="${sec}"]`).innerHTML = g.checks.slice().sort((a, b) => order[a.status] - order[b.status]).map((c) => `<div class="tcheck card ${c.status}" role="group" aria-label="${escapeHtml(c.status)}: ${escapeHtml(c.label)}">
-      <span class="ti" aria-hidden="true">${TRUST_ICON[c.status] || '·'}</span><div class="tl">${escapeHtml(c.label)}${c.value ? `<span class="tv">${escapeHtml(c.value)}</span>` : ''}</div>
-      ${c.detail ? `<div class="td">${escapeHtml(c.detail)}</div>` : ''}${(c.items || []).length ? `<ul>${c.items.map((x) => `<li>${escapeHtml(x)}</li>`).join('')}</ul>` : ''}</div>`).join('');
-  }
-  trustRisk = (d.reliability.risk || 0) + (d.safety.risk || 0) + (d.security.risk || 0); updateSysBadge();
+  // 세 갈래(신뢰성·안전·보안)를 한 목록으로: 위험 → 검토 → 참고, 괜찮은 것은 접어 둔다. 오프라인에는 에이전트 점검이 없다
+  const SEC = { reliability: 'Trustworthiness', safety: 'Safety', security: 'Security' };
+  const secs = Object.keys(SEC).filter((k) => d[k] && !(OFFLINE && k !== 'security'));
+  const all = secs.flatMap((k) => d[k].checks.map((c) => ({ ...c, sec: k })));
+  const order = { risk: 0, warn: 1, info: 2, ok: 3 };
+  const card = (c) => `<div class="tcheck card ${c.status}" role="group" aria-label="${escapeHtml(c.status)}: ${escapeHtml(c.label)}">
+      <span class="ti" aria-hidden="true">${TRUST_ICON[c.status] || '·'}</span><div class="tl"><span class="tsec">${SEC[c.sec]}</span>${escapeHtml(c.label)}${c.value ? `<span class="tv">${escapeHtml(c.value)}</span>` : ''}</div>
+      ${c.detail ? `<div class="td">${escapeHtml(c.detail)}</div>` : ''}${(c.items || []).length ? `<ul>${c.items.map((x) => `<li>${escapeHtml(x)}</li>`).join('')}</ul>` : ''}</div>`;
+  const top = all.filter((c) => c.status !== 'ok').sort((a, b) => order[a.status] - order[b.status]), ok = all.filter((c) => c.status === 'ok');
+  const n = (st) => all.filter((c) => c.status === st).length;
+  $('healthSum').innerHTML = [n('risk') ? `<span class="pill risk">${n('risk')} at risk</span>` : '', n('warn') ? `<span class="pill warn">${n('warn')} to review</span>` : '', `<span class="pill ok">${ok.length} OK</span>`].join('');
+  $('healthList').innerHTML = top.map(card).join('') || '<div class="empty" style="display:block">Everything checks out</div>';
+  $('healthOkSum').textContent = `${ok.length} check${ok.length === 1 ? '' : 's'} OK`; $('healthOk').innerHTML = ok.map(card).join('');
+  trustRisk = secs.reduce((t, k) => t + (d[k].risk || 0), 0); updateSysBadge();
 }
 setInterval(() => { if (!document.hidden) refreshTrust(); }, 60000);
 async function reqAct(id, action, answer, reason) {
@@ -2241,19 +2324,12 @@ $('reqList').addEventListener('keydown', (e) => {
   e.preventDefault(); reqAnswer(e.target.closest('.req-card'), e.target.value);
 });
 $('reqAsk').onclick = () => {
-  const b = $('reqAsk'); b.disabled = true; const orig = b.textContent; b.textContent = 'Requesting…';
+  const b = $('reqAsk'); b.disabled = true; const orig = b.textContent; b.textContent = 'Asking…';
   const h = agentHost;
   const prompt = `[Requests] Look at how this system is being run — tasks, notes, calendar, their relations and our recent conversation — and register work you need FROM ME: actions only I can do (kind action) and information you are missing (kind info). Things you need my OK for go in as kind approval / decision / access (they show under Approvals). Do not register changes to the app itself (those are Evolve proposals).
 Register: curl -s -X POST http://${h}/api/requests -H 'content-type: application/json' -d '{"requests":[{"kind":"decision","title":"Short question","desc":"Why it matters","options":["A","B"],"ref":"<optional task/event/note id>"}]}' (kind is action|info|approval|decision|access; options only for decisions).
-Where the flow breaks: GET http://${h}/api/stats (graph.gaps) · relations: GET http://${h}/api/graph/schema · open requests: GET http://${h}/api/requests.`;
-  post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
-    .catch(() => showErr('Request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
-};
-$('apprAsk').onclick = () => {
-  const b = $('apprAsk'); b.disabled = true; const orig = b.textContent; b.textContent = 'Requesting…';
-  const h = agentHost;
-  const prompt = `[Approvals] Before you go on with any work, list what you need my OK for — a step you should not take on your own (deleting or overwriting things, spending money, sending messages to other people, changing settings), a choice between options, or access you need me to grant. Register each one; I will approve or reject it in Collaborate › Approvals. Data changes to the board still go through the diff → approve flow.
-Register: curl -s -X POST http://${h}/api/requests -H 'content-type: application/json' -d '{"requests":[{"kind":"approval","title":"What you want to do","desc":"Why, and what happens if I say no","options":["Approve","Reject"],"ref":"<optional task/event/note id>"}]}' (kind is approval|decision|access). Open ones: GET http://${h}/api/requests.`;
+Where the flow breaks: GET http://${h}/api/stats (graph.gaps) · relations: GET http://${h}/api/graph/schema · open requests: GET http://${h}/api/requests.
+Things only the ADMIN can do or decide (system settings, access, installs, connecting data, new features, the shared ontology) go to the admin instead: curl -s -X POST http://${h}/api/admin/requests -H 'content-type: application/json' -d '{"type":"work","title":"What you need","desc":"Why"}' (type is work|approval).`;
   post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
     .catch(() => showErr('Request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
 };
@@ -2262,14 +2338,23 @@ Register: curl -s -X POST http://${h}/api/requests -H 'content-type: application
 async function refreshEvolve() {
   let ev; try { ev = await getJSON('/api/evolve'); } catch { return; }
   evoCache = ev.proposals || [];
-  renderEvolve();
+  renderEvolve(); renderRoadmap();
 }
+// 진화 제안은 둘: 시스템(기능·코드·틀 — System › Evolve, 시작은 관리자) / 워크스페이스(이 워크스페이스의 데이터·쓰는 방식 — Collaborate › Evolve)
+const evoScope = () => 'workspace';   // 받은함의 제안 = 이 워크스페이스. 시스템 제안은 Roadmap이 그린다
+const scopeOf = (p) => p.scope || 'system';
+const inScope = (p, sc) => scopeOf(p) === sc && (sc === 'system' || p.ws === (currentWs || 'default'));
 function renderEvolve() {
+  const sc = evoScope();
   // 요구사항에서 연 제안이면 그 제안이 든 목록으로 바꾼다
-  const fp = evoFocus && evoCache.find((x) => x.id === evoFocus); if (fp && BUCKET_OF.evo[fp.status]) stFilter.evo = BUCKET_OF.evo[fp.status];
-  const B = bucketList(evoCache, BUCKET_OF.evo), k = stFilter.evo;
-  renderStSeg('evo', Object.fromEntries(ST_BUCKETS.map(([b]) => [b, B[b].length])));
-  $('evoBadge').textContent = B.wait.length; $('evoBadge').classList.toggle('show', B.wait.length > 0); updateSysBadge();
+  const fp = evoFocus && evoCache.find((x) => x.id === evoFocus && scopeOf(x) === 'workspace'); if (fp && BUCKET_OF.evo[fp.status]) stFilter.evo = ['done', 'fail', 'cancel'].includes(BUCKET_OF.evo[fp.status]) ? 'closed' : 'open';
+  const B = bucketList(evoCache.filter((p) => inScope(p, sc)), BUCKET_OF.evo), k = stFilter.evo;
+  inboxCounts.evo = { open: B.open.length, closed: B.closed.length }; renderInboxSeg();
+  const waitOf = (x) => evoCache.filter((p) => inScope(p, x) && p.status === 'new').length;
+  const nW = waitOf('workspace'), nS = waitOf('system');
+  $('evoBadge').textContent = nW; $('evoBadge').classList.toggle('show', nW > 0);
+  $('sevoBadge').textContent = nS; $('sevoBadge').classList.toggle('show', nS > 0 && myRole === 'admin'); updateSysBadge();
+
   const TYPES = { improve: 'improve', add: 'add', remove: 'remove' };
   const ACTS = {
     wait: '<button class="talk">Discuss</button><button class="do">Do it</button><button class="ignore">Ignore</button>',
@@ -2280,49 +2365,270 @@ function renderEvolve() {
   };
   $('evoList').innerHTML = B[k].map((p) => {
     const type = TYPES[p.type] || 'improve'; const id = Number(p.id) || 0;
+    const gated = scopeOf(p) === 'system' && myRole !== 'admin';   // 실무자: 시작·취소는 관리자 승인요청으로
+    const pk = BUCKET_OF.evo[p.status] || 'wait';
+    let acts = ACTS[pk];
+    if (gated) acts = acts.replace('<button class="do">Do it</button>', '<button class="do">Request approval</button>').replace('<button class="ignore">Ignore</button>', '').replace('<button class="reopen">Try again</button>', '<button class="reopen">Request retry</button>');
+    if (scopeOf(p) === 'workspace' && (pk === 'wait' || pk === 'doing' || pk === 'fail') && !p.escalatedTo) acts += '<button class="escalate">Propose to the system</button>';
+    const links = [p.escalatedTo ? `<button class="evo-link" data-goevo="${Number(p.escalatedTo)}">Sent to the system as #${Number(p.escalatedTo)}</button>` : '',
+      p.fromId ? `<span class="evo-link">From workspace proposal #${Number(p.fromId)}${p.fromWs ? ` · ${escapeHtml((wsById(p.fromWs) || {}).name || p.fromWs)}` : ''}</span>` : ''].join('');
     return `<div class="evo-card card ${escapeHtml(p.status)}${id === evoFocus ? ' focus' : ''}" data-eid="${id}"><div class="evo-top">
-      <span class="evo-type ${type}">${type}</span><span class="evo-t">${escapeHtml(p.title)}</span><span class="evo-when">#${id}${k !== 'wait' && whenTxt(p) ? ' · ' + whenTxt(p) : ''}</span></div>
+      <span class="evo-type ${type}">${type}</span><span class="evo-t">${escapeHtml(p.title)}</span><span class="evo-when">#${id}${pk !== 'wait' && whenTxt(p) ? ' · ' + whenTxt(p) : ''}</span></div>
       ${p.desc ? `<div class="evo-d">${escapeHtml(p.desc)}</div>` : ''}
       ${p.reqId ? `<button class="evo-req" data-req="${Number(p.reqId)}" title="Open the requirement">From requirement #${Number(p.reqId)}${p.status === 'done' ? ' · marked for re-check' : ''}</button>` : ''}
       ${p.status === 'failed' ? `<div class="fail-why">✗ Failed${p.failReason ? ' — ' + escapeHtml(p.failReason) : ''}</div>` : ''}
-      <div class="evo-acts">${ACTS[k]}</div>
+      ${links}
+      <div class="evo-acts">${acts}</div>
     </div>`; }).join('');
   $('evoEmpty').textContent = ST_EMPTY.evo[k]; $('evoEmpty').style.display = B[k].length ? 'none' : 'block';
   if (fp) { const el = $('evoList').querySelector(`[data-eid="${fp.id}"]`); if (el) setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50); evoFocus = 0; }
 }
-$('evoList').addEventListener('click', (e) => {
-  const rq = e.target.closest('.evo-req'); if (rq) { setAppMode('collab', 'requirements'); setTimeout(() => $('rqmList').querySelector(`[data-rid="${rq.dataset.req}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300); return; }
+$('evoList').addEventListener('click', async (e) => {
+  const ge = e.target.closest('[data-goevo]'); if (ge) { evoFocus = Number(ge.dataset.goevo); if (myRole === 'admin') setAppMode('sys', 'roadmap'); else toast(`Proposal #${ge.dataset.goevo} is with the admin`); return; }
+  const rq = e.target.closest('.evo-req'); if (rq) { if (myRole !== 'admin') return; setAppMode('sys', 'roadmap'); setTimeout(() => $('rqmList').querySelector(`[data-rid="${rq.dataset.req}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300); return; }
   const card = e.target.closest('.evo-card'); const btn = e.target.closest('button');
   if (!card || !btn) return;
   const id = Number(card.dataset.eid);
   const title = card.querySelector('.evo-t')?.textContent || '';
   const desc = card.querySelector('.evo-d')?.textContent || '';
   if (btn.classList.contains('talk')) { addChip('Proposal', title); openChat(); setTimeout(() => $('input').focus(), 60); return; } // 제안을 컨텍스트 칩으로 등록
+  if (btn.classList.contains('escalate')) {
+    const r = await post('/api/evolve-act', { id, action: 'escalate' }).catch(() => null); const d = r ? await r.json().catch(() => ({})) : {};
+    if (!r || !r.ok) { showErr(d.error || 'Could not propose it to the system'); return; }
+    toast(d.existing ? `Already proposed to the system as #${d.proposal.id}` : `Proposed to the system as #${d.proposal.id} — the admin decides`); refreshEvolve(); return;
+  }
   const action = ['do', 'done', 'fail', 'reopen', 'ignore'].find((a) => btn.classList.contains(a)) || 'ignore';
-  post('/api/evolve-act', { id, action }).then((r) => { if (!r.ok) showErr('Failed to process the proposal'); refreshEvolve(); }).catch(() => showErr('Failed to process the proposal'));
-  // '수행'은 상태만 바꾸지 않고 코딩 에이전트에게 실제 구현을 지시 + 채팅을 연다(대화가 시작됨).
+  await evoAct(id, action, title, desc);
+});
+// 제안 처리. 시스템 제안의 시작·취소를 실무자가 누르면 서버가 needsAdmin으로 막고, 관리자 승인요청으로 돌린다.
+// '수행'은 상태만 바꾸지 않고 코딩 에이전트에게 실제 구현을 지시 + 채팅을 연다.
+async function evoAct(id, action, title, desc) {
+  const p = evoCache.find((x) => x.id === id) || {}; title = title || p.title || ''; desc = desc ?? p.desc ?? '';
+  let r; try { r = await post('/api/evolve-act', { id, action }); } catch { r = null; }
+  const d = r ? await r.json().catch(() => ({})) : {};
+  if (r && r.status === 403 && d.needsAdmin) {
+    await askAdmin({ type: 'approval', title: `${action === 'do' ? 'Start' : action === 'reopen' ? 'Retry' : 'Cancel'} system proposal #${id}: ${title}`, desc, ref: `evolve:${id}:${action}`,
+      action: { kind: action === 'ignore' ? 'evolve.ignore' : 'evolve.do', id } });
+    return false;
+  }
+  if (!r || !r.ok) { showErr(d.error || 'Failed to process the proposal'); return false; }
+  refreshEvolve();
   if (action === 'do') {
+    const ws = p.ws || currentWs || 'default';
+    const text = scopeOf(p) === 'workspace'
+      ? `[Evolve] Apply workspace proposal #${id} "${title}" in workspace "${ws}"${desc ? ' — ' + desc : ''}. Change only this workspace's data through the APIs (add ?ws=${encodeURIComponent(ws)}: data changes as a diff via POST /api/agent, links via /api/link) — do not change code. If it needs a new feature, escalate it: curl -s -X POST http://${agentHost}/api/evolve-act -H 'content-type: application/json' -d '{"id":${id},"action":"escalate"}'. Tell me when it's done.`
+      : `[Evolve] Implement/apply proposal #${id} "${title}"${desc ? ' — ' + desc : ''}. Tell me when it's done.`;
     openChat();
-    post('/api/chat', { text: `[Evolve] Implement/apply proposal #${id} "${title}"${desc ? ' — ' + desc : ''}. Tell me when it's done.`, force: true })
-      .then((r) => { if (!r.ok) r.json().then((x) => showErr(x.error || 'Failed to send the request (agent not connected?)')).catch(() => {}); })
+    post('/api/chat', { text, force: true }).then((x) => { if (!x.ok) x.json().then((e) => showErr(e.error || 'Failed to send the request (agent not connected?)')).catch(() => {}); })
       .catch(() => showErr('Failed to send the request'));
   }
-});
-$('evoAnalyze').onclick = () => {
-  const b = $('evoAnalyze'); b.disabled = true; const orig = b.textContent; b.textContent = 'Requesting…';
-  const prompt = `[Evolve] Look at this app's current features, the data in it, and how it is being used (usage log: GET http://${agentHost}/api/activity, plus our recent conversation), then propose how the app should evolve — register improve/add/remove proposals.\nRegister: curl -s -X POST http://${agentHost}/api/evolve -H 'content-type: application/json' -d '{"proposals":[{"type":"improve","title":"Title","desc":"Description"}]}' (type is improve|add|remove).\nHow notes, tasks and events relate: GET http://${agentHost}/api/graph/schema (NodeRel graph) and /api/stats (graph.gaps).`;
+  return true;
+}
+function askEvolveAgent(sc, b) {
+  b.disabled = true; const orig = b.textContent; b.textContent = 'Requesting…';
+  const h = agentHost, ws = encodeURIComponent(currentWs || 'default');
+  const reg = (sc) => `curl -s -X POST "http://${h}/api/evolve${sc === 'workspace' ? `?ws=${ws}` : ''}" -H 'content-type: application/json' -d '{"proposals":[{"type":"improve","scope":"${sc}","title":"Title","desc":"Description"}]}' (type is improve|add|remove)`;
+  const prompt = sc === 'system'
+    ? `[Evolve] Look at this app's current features, the data in it, and how it is being used (usage log: GET http://${h}/api/activity, plus our recent conversation), then propose how the SYSTEM should evolve — features, screens, APIs, the shared ontology. These need code changes and affect every workspace; the admin decides.\nRegister: ${reg('system')}.\nHow notes, tasks and events relate: GET http://${h}/api/graph/schema (NodeRel graph) and /api/stats (graph.gaps).`
+    : `[Evolve] Look at THIS WORKSPACE (${currentWs || 'default'}) — its notes, tasks, events, links and how it is used (GET http://${h}/api/state?ws=${ws}, http://${h}/api/stats?ws=${ws}, http://${h}/api/activity) — and propose how the work here should evolve using only the features that already exist: tidying or merging data, missing links, routines, schedules. Register them as workspace proposals: ${reg('workspace')}. Anything that needs a new feature or a code change is a system proposal instead: same curl with "scope":"system".`;
   post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Analyze request failed')).catch(() => {}); else openChat(); })
     .catch(() => showErr('Analyze request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
+}
+$('evoAnalyze').onclick = () => askEvolveAgent('workspace', $('evoAnalyze'));
+$('sysEvoAnalyze').onclick = () => askEvolveAgent('system', $('sysEvoAnalyze'));
+
+
+/* ---- System › Roadmap ---- 시스템이 바뀌는 길을 한 줄씩: 요구사항 → 제안 → 만드는 중 → 확인.
+   요구사항(rqmCache) · 시스템 진화 제안(evoCache, scope system) · 업스트림 업데이트(updCache)를 한 목록으로 그린다. */
+const rmBtn = (attr, label, primary) => `<button ${attr}${primary ? ' class="ok"' : ''}>${label}</button>`;
+const startLabel = () => (myRole === 'admin' ? 'Start' : 'Request approval');
+// 요구사항 하나가 지금 어디인지(0 요청 · 1 제안 · 2 만드는 중 · 3 확인 대기 · 4 끝)
+function reqState(x) {
+  const a = x.analysis, pr = rqmProposals(x).slice(-1)[0];
+  if (x.recheck) return { stage: 3, text: `Built with proposal #${x.recheck.proposalId} — check that it is really reflected`, acts: rmBtn('data-a="one"', 'Check again', true) };
+  if (a && a.status === 'reflected' && !a.stale) return { stage: 4, done: true, text: 'Reflected', acts: rmBtn('data-a="one"', 'Check again') };
+  if (pr && pr.status === 'doing') return { stage: 2, text: `Building — proposal #${pr.id}` };
+  if (pr && pr.status === 'new') return { stage: 1, text: `Proposal #${pr.id} is waiting to start`, need: true,
+    acts: rmBtn(`data-evo="do" data-pid="${pr.id}"`, startLabel(), true) + (myRole === 'admin' ? rmBtn(`data-evo="ignore" data-pid="${pr.id}"`, 'Cancel') : '') };
+  if (pr && pr.status === 'failed') return { stage: 1, text: `Proposal #${pr.id} failed${pr.failReason ? ' — ' + pr.failReason : ''}`, acts: rmBtn(`data-evo="reopen" data-pid="${pr.id}"`, 'Try again', true) };
+  if (a && a.stale) return { stage: 0, text: 'Changed since the last check', acts: rmBtn('data-a="one"', 'Check again', true) };
+  if (a && ['missing', 'partial'].includes(a.status)) return { stage: 0, text: `${RQM_STATUS[a.status]}${a.next ? ' — next: ' + a.next : ''}`, acts: rmBtn('data-a="propose"', 'Propose', true) };
+  return { stage: 0, text: 'Not checked yet', acts: rmBtn('data-a="one"', 'Check') };
+}
+function reqDetails(x) {
+  const a = x.analysis;
+  return `${x.detail ? `<div class="rqm-detail">${escapeHtml(x.detail)}</div>` : ''}
+    ${a ? `<div class="rqm-an">${a.how ? `<h5>${a.status === 'missing' ? 'Current state' : 'How it is reflected'}</h5><p>${escapeHtml(a.how)}</p>` : ''}
+      ${a.why ? `<h5>${a.status === 'reflected' ? 'Notes' : 'Why not (yet)'}</h5><p>${escapeHtml(a.why)}</p>` : ''}
+      ${(a.evidence || []).length ? `<h5>Evidence</h5><ul>${a.evidence.map((e) => `<li>${escapeHtml(e)}</li>`).join('')}</ul>` : ''}
+      ${a.next ? `<h5>Next step</h5><p>${escapeHtml(a.next)}</p>` : ''}
+      <div class="meta">Checked ${escapeHtml(fmtWhen(a.at))}${x.by && x.by !== 'ana' ? ` · requested by ${escapeHtml(displayName(x.by))}` : ''}</div></div>` : (x.by && x.by !== 'ana' ? `<div class="meta">Requested by ${escapeHtml(displayName(x.by))}</div>` : '')}
+    <div class="rqm-acts"><button data-a="talk">Discuss</button><button data-a="edit">Edit</button><button data-a="del">Delete</button></div>`;
+}
+function evoState(p) {
+  const admin = myRole === 'admin';
+  if (p.status === 'new') return { stage: 1, text: 'Waiting to start', need: true, acts: rmBtn(`data-evo="do" data-pid="${p.id}"`, startLabel(), true) + (admin ? rmBtn(`data-evo="ignore" data-pid="${p.id}"`, 'Cancel') : '') };
+  if (p.status === 'doing') return { stage: 2, text: 'Building', acts: rmBtn(`data-evo="done" data-pid="${p.id}"`, 'Mark done') + rmBtn(`data-evo="fail" data-pid="${p.id}"`, 'Failed') };
+  if (p.status === 'failed') return { stage: 1, text: `Failed${p.failReason ? ' — ' + p.failReason : ''}`, acts: rmBtn(`data-evo="reopen" data-pid="${p.id}"`, 'Try again', true) };
+  if (p.status === 'dismissed') return { stage: 1, done: true, text: 'Cancelled', acts: admin ? rmBtn(`data-evo="reopen" data-pid="${p.id}"`, 'Restore') : '' };
+  return { stage: 4, done: true, text: 'Built', acts: '' };
+}
+function updState(u) {
+  if (u.status === 'new') return { stage: 0, text: UPD_KIND[u.kind] || 'New in agent-native-agent', need: true, acts: rmBtn(`data-upd="do" data-uid="${u.id}"`, myRole === 'admin' ? 'Bring in' : 'Request approval', true) + (myRole === 'admin' ? rmBtn(`data-upd="ignore" data-uid="${u.id}"`, 'Skip') : '') };
+  if (u.status === 'doing') return { stage: 2, text: 'Being brought in', acts: rmBtn(`data-upd="done" data-uid="${u.id}"`, 'Mark done') + rmBtn(`data-upd="fail" data-uid="${u.id}"`, 'Failed') };
+  if (u.status === 'failed') return { stage: 0, text: `Failed${u.failReason ? ' — ' + u.failReason : ''}`, acts: rmBtn(`data-upd="reopen" data-uid="${u.id}"`, 'Try again', true) };
+  if (u.status === 'dismissed') return { stage: 0, done: true, text: 'Skipped', acts: rmBtn(`data-upd="reopen" data-uid="${u.id}"`, 'Restore') };
+  return { stage: 4, done: true, text: 'Brought in', acts: '' };
+}
+function renderRoadmap() {
+  if (!$('roadmapView')) return;
+  const rows = [];
+  for (const x of rqmCache.items || []) {
+    if (rqmEditing === x.id) { rows.push({ html: `<div class="card rqm-card rm-card" data-rid="${x.id}"><div class="rqm-edit"><input value="${escapeHtml(x.title)}" maxlength="200" aria-label="Requirement"><textarea rows="3" maxlength="4000" aria-label="Details">${escapeHtml(x.detail || '')}</textarea>
+      <div class="rqm-acts"><button class="ok" data-a="save">Save</button><button data-a="cancel">Cancel</button></div></div></div>`, done: false, need: true, order: 0 }); continue; }
+    rows.push({ ...reqState(x), cls: 'rqm-card', attr: `data-rid="${x.id}"`, title: x.title, sub: `Requirement #${x.id}`, details: reqDetails(x), at: x.updatedAt || x.at });
+  }
+  const reqIds = new Set((rqmCache.items || []).map((x) => x.id));
+  for (const p of evoCache.filter((q) => scopeOf(q) === 'system' && !(q.reqId && reqIds.has(q.reqId))))
+    rows.push({ ...evoState(p), cls: 'rm-evo', attr: `data-eid="${p.id}"`, title: p.title, sub: `Proposal #${p.id}${p.fromId ? ' · from a workspace' : ''}`, focus: p.id === evoFocus,
+      details: `${p.desc ? `<div class="rqm-detail">${escapeHtml(p.desc)}</div>` : ''}<div class="rqm-acts"><button data-evo="talk" data-pid="${p.id}">Discuss</button></div>`, at: p.updatedAt || p.at });
+  for (const u of updCache.items || [])
+    rows.push({ ...updState(u), cls: 'rm-upd', attr: `data-uid="${u.id}"`, title: u.title, sub: 'Upstream update',
+      details: `${u.summary ? `<div class="rqm-detail">${escapeHtml(u.summary)}</div>` : ''}${(u.missing || []).length && u.kind === 'partial' ? `<div class="upd-miss">Missing here: ${u.missing.slice(0, 6).map((m) => `<code>${escapeHtml(m)}</code>`).join(' ')}</div>` : ''}`, at: u.updatedAt || u.at });
+  const open = rows.filter((r) => !r.done), closed = rows.filter((r) => r.done);
+  renderStSeg('road', { open: open.length, closed: closed.length });
+  const list = (stFilter.road === 'closed' ? closed : open).slice().sort((a, b) => (b.need ? 1 : 0) - (a.need ? 1 : 0) || String(b.at || '').localeCompare(String(a.at || '')));
+  $('rqmList').innerHTML = list.map((r) => r.html || `<div class="card rm-card ${r.cls}${r.focus ? ' focus' : ''}" ${r.attr}>
+    <div class="rm-top"><b class="t">${escapeHtml(r.title)}</b><span class="n">${escapeHtml(r.sub)}</span></div>
+    <div class="rm-bar" aria-label="Stage ${Math.min(r.stage, 4)} of 4">${[0, 1, 2, 3].map((i) => `<i class="${r.done && r.stage >= 4 ? 'on' : i < r.stage ? 'on' : i === r.stage ? 'cur' : ''}"></i>`).join('')}</div>
+    <div class="rm-row"><span class="rm-text">${escapeHtml(r.text)}</span><span class="rm-acts">${r.acts || ''}</span></div>
+    ${r.details ? `<details class="rm-more"><summary>Details</summary>${r.details}</details>` : ''}</div>`).join('');
+  $('rqmEmpty').textContent = stFilter.road === 'closed' ? 'Nothing finished yet' : 'Nothing on the way — add a requirement, ask the agent, or check for updates';
+  $('rqmEmpty').style.display = list.length ? 'none' : 'block';
+  $('rqmList').querySelector('.rm-card.focus')?.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (evoFocus) evoFocus = 0;
+}
+// 로드맵의 제안·업데이트 버튼(요구사항 버튼 data-a는 아래 원래 처리기가 맡는다)
+$('rqmList').addEventListener('click', async (e) => {
+  const eb = e.target.closest('button[data-evo]');
+  if (eb) {
+    const id = Number(eb.dataset.pid), a = eb.dataset.evo, p = evoCache.find((x) => x.id === id) || {};
+    if (a === 'talk') { addChip('Proposal', `#${id} ${p.title || ''}`); openChat(); setTimeout(() => $('input').focus(), 60); return; }
+    eb.disabled = true; await evoAct(id, a); eb.disabled = false; refreshRequirements(); return;
+  }
+  const ub = e.target.closest('button[data-upd]');
+  if (ub) {
+    const it = (updCache.items || []).find((x) => x.id === Number(ub.dataset.uid)); if (!it) return;
+    const a = ub.dataset.upd;
+    if (a === 'do' && it.kind === 'runtime' && !(await confirmAsk({ title: 'Update the shared runtime?', body: 'channel-core.js is shared by every ANA on this host. Replacing it changes all of them at once.', yes: 'Update' }))) return;
+    ub.disabled = true; await updAct(it, a); ub.disabled = false;
+  }
+});
+$('rqmNew').onclick = () => { $('rqmAdd').hidden = !$('rqmAdd').hidden; if (!$('rqmAdd').hidden) $('rqmTitle').focus(); };
+// 기능 요청(실무자) — 시스템 요구사항으로 들어가 관리자의 Roadmap에 뜬다
+$('featReq').onclick = () => { $('ftT').value = ''; $('ftD').value = ''; openModal('featModal'); setTimeout(() => $('ftT').focus(), 60); };
+$('ftSend').onclick = async () => {
+  const title = $('ftT').value.trim(); if (!title) { $('ftT').focus(); return; }
+  const r = await post('/api/requirements', { action: 'add', title, detail: $('ftD').value.trim() }).catch(() => null);
+  if (!r || !r.ok) { showErr('Could not send the request'); return; }
+  closeModal(); toast('Sent — the admin sees it on the Roadmap'); refreshRequirements();
 };
+
+/* ---- System › Admin ---- 관리자 함: 실무자·에이전트·점검이 올린 승인요청(approval)·작업요청(work).
+   승인요청에 동작(action)이 붙어 있으면 '승인'이 그 동작을 관리자 권한으로 실행한 뒤 승인으로 기록한다. */
+let admCache = { items: [], role: 'admin' }, admType = 'approval';
+async function refreshAdmin() {
+  try { admCache = await getJSON('/api/admin/inbox'); } catch { return; }
+  renderAdmin(); renderToAdmin();
+}
+const ADM_FROM = (x) => (x.from && x.from.kind === 'check' ? 'System check' : x.from && x.from.kind === 'agent' ? 'Agent' : displayName((x.from && x.from.by) || ''));
+const ADM_ACTION = { 'evolve.do': 'Starts the proposal', 'evolve.ignore': 'Cancels the proposal', 'update.do': 'Brings in the update', permission: 'Changes the agent permission mode', 'workspace.remove': 'Deletes the workspace' };
+function renderAdmin() {
+  const all = admCache.items || [];
+  const open = all.filter((x) => ['open', 'doing'].includes(x.status));
+  const nA = open.filter((x) => x.type === 'approval').length, nW = open.filter((x) => x.type === 'work').length;
+  $('admBadge').textContent = myRole === 'admin' ? nA + nW : 0; $('admBadge').classList.toggle('show', myRole === 'admin' && nA + nW > 0); updateSysBadge();
+  $('admNA').textContent = nA || ''; $('admNW').textContent = nW || '';
+  $('admType').querySelectorAll('button').forEach((b) => { const on = b.dataset.t === admType; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+  if (!$('adminView').classList.contains('on')) return;
+  const B = bucketList(all.filter((x) => x.type === admType), BUCKET_OF.adm), k = stFilter.adm || 'open';
+  renderStSeg('adm', { open: B.open.length, closed: B.closed.length });
+  const ACTS = admType === 'approval'
+    ? { wait: '<button class="ok" data-a="approve">Approve</button><button data-a="reject">Reject</button>', doing: '', done: '', fail: '<button data-a="reopen">Reopen</button>', cancel: '<button data-a="reopen">Reopen</button>' }
+    : { wait: '<button class="ok" data-a="start">Start</button><button data-a="done">Done</button><button data-a="cancel">Cancel</button>', doing: '<button class="ok" data-a="done">Done</button><button data-a="fail">Failed</button>', done: '', fail: '<button data-a="reopen">Reopen</button>', cancel: '<button data-a="reopen">Reopen</button>' };
+  $('admList').innerHTML = B[k].map((x) => `<div class="card adm-card" data-aid="${x.id}"><div class="adm-top"><span class="adm-tag ${x.type}">${x.type === 'approval' ? 'Approval' : 'Work'}</span><span class="t">${escapeHtml(x.title)}</span><span class="n">#${x.id}</span></div>
+    ${x.desc ? `<div class="adm-d">${escapeHtml(x.desc)}</div>` : ''}
+    ${x.action ? `<div class="adm-meta">On approve: ${escapeHtml(ADM_ACTION[x.action.kind] || x.action.kind)}</div>` : ''}
+    <div class="adm-meta">From ${escapeHtml(ADM_FROM(x))}${x.ws ? ` · ${escapeHtml((wsById(x.ws) || {}).name || x.ws)}` : ''} · ${escapeHtml(fmtWhen(x.at))}${x.decidedBy ? ` · ${escapeHtml(x.status)} by ${escapeHtml(displayName(x.decidedBy))}` : ''}</div>
+    ${x.note ? `<div class="adm-note">${escapeHtml(x.note)}</div>` : ''}
+    <div class="adm-acts">${ACTS[BUCKET_OF.adm[x.status]] || ''}${/^evolve:\d+/.test(x.ref) ? `<button data-a="goevo" data-id="${x.ref.split(':')[1]}">Open proposal</button>` : ''}</div></div>`).join('');
+  $('admEmpty').textContent = { open: 'Nothing waiting for you', closed: 'Nothing finished yet' }[k];
+  $('admEmpty').style.display = B[k].length ? 'none' : 'block';
+}
+$('admType').addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (!b) return; admType = b.dataset.t; renderAdmin(); });
+// 승인된 동작을 관리자 권한으로 실행 — 성공해야 승인으로 기록한다
+async function runAdminAction(a) {
+  if (a.kind === 'evolve.do' || a.kind === 'evolve.ignore') { await refreshEvolve(); return evoAct(a.id, a.kind === 'evolve.do' ? 'do' : 'ignore'); }
+  if (a.kind === 'update.do') { await refreshUpdates(); const it = (updCache.items || []).find((x) => x.id === a.id); if (!it) { showErr('That update is gone'); return false; } return updAct(it, 'do'); }
+  if (a.kind === 'permission') { const r = await post('/api/agent-permission', { mode: a.mode, target: health && health.target }).catch(() => null); if (!r || !r.ok) { showErr((r && (await r.json().catch(() => ({}))).error) || 'Could not change the permission mode'); return false; } return true; }
+  if (a.kind === 'workspace.remove') { const r = await post('/api/workspaces', { action: 'remove', id: a.id }).catch(() => null); if (!r || !r.ok) { showErr((r && (await r.json().catch(() => ({}))).error) || 'Could not delete the workspace'); return false; } loadWorkspaces(); return true; }
+  return true;
+}
+$('admList').addEventListener('click', async (e) => {
+  const b = e.target.closest('button[data-a]'), card = e.target.closest('.adm-card'); if (!b || !card) return;
+  const id = Number(card.dataset.aid), it = (admCache.items || []).find((x) => x.id === id); if (!it) return;
+  if (b.dataset.a === 'goevo') { evoFocus = Number(b.dataset.id); setAppMode('sys', 'roadmap'); return; }
+  let note = '';
+  if (['reject', 'fail', 'done'].includes(b.dataset.a)) { note = prompt(b.dataset.a === 'reject' ? 'Why not? (sent back to whoever asked)' : b.dataset.a === 'fail' ? 'What went wrong?' : 'Note (optional)') ?? null; if (note === null) return; }
+  b.disabled = true;
+  if (b.dataset.a === 'approve' && it.action && !(await runAdminAction(it.action))) { b.disabled = false; return; }
+  const r = await post('/api/admin/act', { id, action: b.dataset.a, note }).catch(() => null);
+  if (!r || !r.ok) { b.disabled = false; showErr('Could not update the request'); return; }
+  toast({ approve: 'Approved', reject: 'Rejected', start: 'Started', done: 'Done', fail: 'Marked failed', cancel: 'Cancelled', reopen: 'Reopened' }[b.dataset.a] || 'Updated');
+  refreshAdmin();
+});
+// 관리자에게 요청 — 화면 곳곳(관리자 전용 버튼, Ask the admin)에서 부른다
+async function askAdmin(o) {
+  const r = await post('/api/admin/requests', o).catch(() => null), d = r ? await r.json().catch(() => ({})) : {};
+  if (!r || !r.ok) { showErr(d.error || 'Could not send it to the admin'); return null; }
+  toast(d.existing ? 'Already waiting for the admin' : myRole === 'admin' ? 'Added to System › Admin' : 'Sent to the admin — you will see the answer under Requests');
+  refreshAdmin(); return d.item;
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('.ask-admin'); if (!b) return;
+  document.querySelectorAll('input[name="aaType"]').forEach((x) => { x.checked = x.value === b.dataset.type; });
+  $('aaT').value = ''; $('aaD').value = ''; openModal('askAdminModal'); setTimeout(() => $('aaT').focus(), 60);
+});
+$('aaSend').onclick = async () => {
+  const title = $('aaT').value.trim(); if (!title) { $('aaT').focus(); return; }
+  const type = (document.querySelector('input[name="aaType"]:checked') || {}).value || 'work';
+  if (await askAdmin({ type, title, desc: $('aaD').value.trim() })) closeModal();
+};
+// 실무자 화면(Requests): 내가 관리자에게 올린 것과 그 결과
+function renderToAdmin() {
+  const me = admCache.me || 'ana';
+  const mine = (admCache.items || []).filter((x) => x.from && x.from.by === me && x.from.kind !== 'check');
+  const feats = (rqmCache.items || []).filter((x) => (x.by || 'ana') === me);
+  const ST = { open: 'Waiting', doing: 'In progress', done: 'Done', failed: 'Failed', rejected: 'Rejected', cancelled: 'Cancelled' };
+  const closedMode = stFilter.inbox === 'closed';
+  const adm = mine.filter((x) => ['open', 'doing'].includes(x.status) !== closedMode).slice().reverse().slice(0, 10);
+  const fts = feats.filter((x) => !!reqState(x).done === closedMode).slice().reverse().slice(0, 10);
+  const el = $('toAdmin'), n = adm.length + fts.length; el.hidden = !n; $('sentHead').hidden = !n; if (!n) return;
+  el.innerHTML = adm.map((x) => `<div class="ta-row" data-aid="${x.id}"><span class="adm-tag ${x.type}">${x.type === 'approval' ? 'To admin · OK' : 'To admin'}</span><span class="t" title="${escapeHtml(x.note || '')}">${escapeHtml(x.title)}${x.note ? ` — ${escapeHtml(x.note)}` : ''}</span><span class="st">${ST[x.status] || x.status}</span>${x.status === 'open' ? '<button data-a="cancel">Cancel</button>' : ''}</div>`).join('')
+    + fts.map((x) => `<div class="ta-row"><span class="adm-tag feat">Feature</span><span class="t">${escapeHtml(x.title)}</span><span class="st">${escapeHtml(reqState(x).text.split(' — ')[0])}</span></div>`).join('');
+}
+$('toAdmin').addEventListener('click', async (e) => {
+  const b = e.target.closest('button[data-a="cancel"]'), row = e.target.closest('.ta-row'); if (!b || !row) return;
+  await post('/api/admin/act', { id: Number(row.dataset.aid), action: 'cancel' }).catch(() => {}); refreshAdmin();
+});
 
 /* ---- 협업 › Requirements ---- 사용자가 적은 요구사항 + 에이전트의 반영 분석(어떻게 반영됐나 / 왜 안 됐나 / 근거 / 다음 단계) */
 let rqmCache = { items: [], job: null }, rqmFilterKey = 'all', rqmEditing = 0;
 const RQM_STATUS = { reflected: 'Reflected', partial: 'Partly', missing: 'Not reflected' };
 try { rqmFilterKey = localStorage.getItem('ana-rqm-filter') || 'all'; } catch {}
 async function refreshRequirements() {
-  // 카드에 그 요구사항에서 나온 진화 제안의 상태를 보여 주므로 제안 목록도 함께 받는다
+  // 로드맵 카드에 그 요구사항에서 나온 진화 제안의 상태를 보여 주므로 제안 목록도 함께 받는다
   try { const [r, ev] = await Promise.all([getJSON('/api/requirements'), getJSON('/api/evolve').catch(() => null)]); rqmCache = r; if (ev) evoCache = ev.proposals || []; } catch { return; }
-  renderRequirements();
+  renderRequirements(); renderToAdmin();
 }
 function rqmBucket(x) { return x.analysis ? x.analysis.status : 'none'; }
 // 요구사항 → 진화 제안 연결: 이 요구사항에서 나온 제안(최근 것)과 그 상태
@@ -2336,13 +2642,10 @@ function rqmProposalHtml(x) {
 function renderRequirements() {
   const items = rqmCache.items || [], j = rqmCache.job;
   const cnt = { all: items.length, reflected: 0, partial: 0, missing: 0, none: 0 }; items.forEach((x) => cnt[rqmBucket(x)]++);
-  const F = [['all', 'All'], ['reflected', 'Reflected'], ['partial', 'Partly'], ['missing', 'Missing'], ['none', 'Unchecked']];   // 폰의 다섯 칸에 들어가게 짧게(카드 배지는 풀어 쓴다)
-  $('rqmFilter').innerHTML = F.map(([k, l]) => `<button role="tab" data-k="${k}" class="${rqmFilterKey === k ? 'on' : ''}" aria-selected="${rqmFilterKey === k}">${l}<span class="n">${cnt[k]}</span></button>`).join('');
-  $('rqmFilter').hidden = !items.length;
   const stale = items.filter((x) => x.analysis && x.analysis.stale).length;
   $('rqmSum').textContent = items.length ? `${cnt.reflected} reflected · ${cnt.partial} partly · ${cnt.missing} not reflected${cnt.none ? ` · ${cnt.none} not analyzed` : ''}${stale ? ` · ${stale} changed since analysis` : ''}` : '';
   const running = j && j.status === 'running';
-  $('rqmAnalyze').textContent = running ? 'Analyzing…' : 'Analyze'; $('rqmAnalyze').disabled = !items.length;
+  $('rqmAnalyze').textContent = running ? 'Checking…' : 'Check all'; $('rqmAnalyze').disabled = !items.length;
   // 진행 카드
   const card = $('rqmJob');
   if (j && (running || j.status === 'failed' || (j.status === 'done' && j.summary))) {
@@ -2357,31 +2660,13 @@ function renderRequirements() {
     } else if (j.status === 'failed') card.innerHTML = `<div class="ana-top"><b>Analysis failed</b></div><div class="fail-why">✗ ${escapeHtml(j.step || 'Failed')}</div>`;
     else card.innerHTML = `<div class="ana-top"><b>Last analysis</b><span class="sub">${escapeHtml(fmtWhen(j.doneAt || j.updatedAt))} · ${j.analyzed || 0} requirement${j.analyzed === 1 ? '' : 's'}</span></div><div class="ana-sum">${escapeHtml(j.summary)}</div>`;
   } else card.hidden = true;
-  const list = items.filter((x) => rqmFilterKey === 'all' || rqmBucket(x) === rqmFilterKey).slice().reverse();
-  $('rqmList').innerHTML = list.map((x) => {
-    const a = x.analysis;
-    if (rqmEditing === x.id) return `<div class="card rqm-card" data-rid="${x.id}"><div class="rqm-edit"><input value="${escapeHtml(x.title)}" maxlength="200" aria-label="Requirement"><textarea rows="3" maxlength="4000" aria-label="Details">${escapeHtml(x.detail || '')}</textarea>
-      <div class="rqm-acts"><button class="ok" data-a="save">Save</button><button data-a="cancel">Cancel</button></div></div></div>`;
-    return `<div class="card rqm-card" data-rid="${x.id}"><div class="rqm-top"><span class="t">${escapeHtml(x.title)}</span>
-      <span class="rqm-badge ${a ? a.status : ''}">${a ? RQM_STATUS[a.status] : 'Not analyzed'}</span><span class="n">#${x.id}</span></div>
-      ${x.detail ? `<div class="rqm-detail">${escapeHtml(x.detail)}</div>` : ''}
-      ${a ? `<div class="rqm-an">${a.how ? `<h5>${a.status === 'missing' ? 'Current state' : 'How it is reflected'}</h5><p>${escapeHtml(a.how)}</p>` : ''}
-        ${a.why ? `<h5>${a.status === 'reflected' ? 'Notes' : 'Why not (yet)'}</h5><p>${escapeHtml(a.why)}</p>` : ''}
-        ${(a.evidence || []).length ? `<h5>Evidence</h5><ul>${a.evidence.map((e) => `<li>${escapeHtml(e)}</li>`).join('')}</ul>` : ''}
-        ${a.next ? `<h5>Next step</h5><p>${escapeHtml(a.next)}</p>` : ''}
-        <div class="meta">Analyzed ${escapeHtml(fmtWhen(a.at))}${x.recheck ? ` · <span class="stale">Proposal #${x.recheck.proposalId} is done — check again</span>` : a.stale ? ' · <span class="stale">Changed since — analyze again</span>' : ''}</div></div>` : ''}
-      ${rqmProposalHtml(x)}
-      <div class="rqm-acts">${a && ['missing', 'partial'].includes(a.status) && !rqmOpenProposal(x) && !x.recheck ? '<button class="ok" data-a="propose">Propose this</button>' : ''}<button data-a="one"${x.recheck ? ' class="ok"' : ''}>${x.recheck ? 'Check again' : a ? 'Analyze again' : 'Analyze this'}</button><button data-a="talk">Discuss</button><button data-a="edit">Edit</button><button data-a="del">Delete</button></div></div>`;
-  }).join('');
-  $('rqmEmpty').textContent = !items.length ? 'No requirements yet — add what you want this ANA to do' : 'Nothing in this list';
-  $('rqmEmpty').style.display = list.length ? 'none' : 'block';
+  renderRoadmap();
 }
-$('rqmFilter').addEventListener('click', (e) => { const b = e.target.closest('button[data-k]'); if (!b) return; rqmFilterKey = b.dataset.k; try { localStorage.setItem('ana-rqm-filter', rqmFilterKey); } catch {} renderRequirements(); });
 $('rqmAdd').addEventListener('submit', async (e) => {
   e.preventDefault(); const title = $('rqmTitle').value.trim(); if (!title) { $('rqmTitle').focus(); return; }
   const r = await post('/api/requirements', { action: 'add', title, detail: $('rqmDetail').value.trim() }).catch(() => null);
   if (!r || !r.ok) { showErr('Could not add the requirement'); return; }
-  $('rqmTitle').value = ''; $('rqmDetail').value = ''; if (rqmFilterKey !== 'all' && rqmFilterKey !== 'none') rqmFilterKey = 'all'; refreshRequirements();
+  $('rqmTitle').value = ''; $('rqmDetail').value = ''; $('rqmAdd').hidden = true; stFilter.road = 'open'; refreshRequirements();
 });
 async function analyzeRequirements(ids) {
   let r; try { r = await post('/api/requirements/analyze', ids ? { ids } : {}); } catch { r = null; }
@@ -2416,10 +2701,10 @@ $('rqmList').addEventListener('click', async (e) => {
     toast(d.existing ? `Proposal #${d.proposal.id} is already open for this` : `Proposal #${d.proposal.id} added to Evolve — approve it there`);
     await refreshEvolve(); refreshRequirements(); return;
   }
-  if (a === 'goprop') { evoFocus = Number(b.dataset.pid); setAppMode('collab', 'evolve'); return; }
+  if (a === 'goprop') { evoFocus = Number(b.dataset.pid); renderRoadmap(); return; }
   if (a === 'one') { if (rqmCache.job && rqmCache.job.status === 'running') { showErr('An analysis is already running'); return; } analyzeRequirements([id]); }
 });
-setInterval(() => { if (!document.hidden && rqmCache.job && rqmCache.job.status === 'running' && $('requirementsView').classList.contains('on')) renderRequirements(); }, 1000);
+setInterval(() => { if (!document.hidden && rqmCache.job && rqmCache.job.status === 'running' && $('roadmapView').classList.contains('on')) renderRequirements(); }, 1000);
 
 /* ---- 시스템 › Update ---- 업스트림과 비교한 항목을 다섯 상태로. Update는 에이전트에게 이식을 맡긴다 */
 let updCache = { items: [], lastCheck: null, upstreamDir: '' };
@@ -2430,26 +2715,11 @@ async function refreshUpdates() {
 const UPD_KIND = { missing: 'New', partial: 'Partly here', outdated: 'Newer module', runtime: 'Shared runtime' };
 function renderUpdates() {
   const B = bucketList(updCache.items || [], BUCKET_OF.upd), k = stFilter.upd;
-  renderStSeg('upd', Object.fromEntries(ST_BUCKETS.map(([b]) => [b, B[b].length])));
   $('updBadge').textContent = B.wait.length; $('updBadge').classList.toggle('show', B.wait.length > 0); updateSysBadge();
   const lc = updCache.lastCheck;
   $('updLast').innerHTML = !lc ? 'Not checked yet.' : `Checked <b>${escapeHtml(fmtWhen(lc.at))}</b> against <b>agent-native-agent @ ${escapeHtml(String(lc.commit || '').slice(0, 7))}</b> · ${lc.present}/${lc.total} features here${lc.runtime === 'differs' ? ' · shared runtime differs' : ''}${lc.added ? ` · <b>${lc.added} new</b>` : ''}${
     (lc.changes || []).length ? `<details><summary>${lc.changes.length} upstream change${lc.changes.length === 1 ? '' : 's'} since the last sync</summary><ul>${lc.changes.slice(0, 30).map((c) => `<li>${escapeHtml(c)}</li>`).join('')}</ul></details>` : ''}`;
-  const ACTS = {
-    wait: '<button class="talk">Discuss</button><button class="do">Update</button><button class="ignore">Cancel</button>',
-    doing: '<button class="talk">Discuss</button><button class="done">Mark done</button><button class="fail">Failed</button><button class="ignore">Cancel</button>',
-    done: '<button class="reopen">Reopen</button>',
-    fail: '<button class="talk">Discuss</button><button class="reopen">Try again</button>',
-    cancel: '<button class="reopen">Restore</button>',
-  };
-  $('updList').innerHTML = B[k].map((x) => `<div class="evo-card card upd-card ${escapeHtml(x.status)}" data-uid="${Number(x.id) || 0}"><div class="evo-top">
-      <span class="upd-kind ${escapeHtml(x.kind)}">${UPD_KIND[x.kind] || 'Update'}</span><span class="evo-t">${escapeHtml(x.title)}</span><span class="evo-when">#${Number(x.id) || 0}${k !== 'wait' && whenTxt(x) ? ' · ' + whenTxt(x) : ''}</span></div>
-      ${x.summary ? `<div class="evo-d">${escapeHtml(x.summary)}</div>` : ''}
-      ${(x.missing || []).length && x.kind === 'partial' ? `<div class="upd-miss">Missing here: ${x.missing.slice(0, 6).map((m) => `<code>${escapeHtml(m)}</code>`).join(' · ')}</div>` : ''}
-      ${x.note ? `<div class="upd-miss">${escapeHtml(x.note)}</div>` : ''}
-      ${x.status === 'failed' ? `<div class="fail-why">✗ Failed${x.failReason ? ' — ' + escapeHtml(x.failReason) : ''}</div>` : ''}
-      <div class="evo-acts">${ACTS[k]}</div></div>`).join('');
-  $('updEmpty').textContent = ST_EMPTY.upd[k]; $('updEmpty').style.display = B[k].length ? 'none' : 'block';
+  renderRoadmap();
 }
 $('updCheck').onclick = async () => {
   const b = $('updCheck'); b.disabled = true; const orig = b.textContent; b.textContent = 'Checking GitHub…';
@@ -2460,15 +2730,13 @@ $('updCheck').onclick = async () => {
   } catch { showErr('Update check failed'); }
   b.disabled = false; b.textContent = orig; refreshUpdates();
 };
-$('updList').addEventListener('click', async (e) => {
-  const card = e.target.closest('.upd-card'), btn = e.target.closest('button'); if (!card || !btn) return;
-  const id = Number(card.dataset.uid), it = (updCache.items || []).find((x) => x.id === id); if (!it) return;
-  if (btn.classList.contains('talk')) { addChip('Update', `#${id} ${it.title}`); openChat(); setTimeout(() => $('input').focus(), 60); return; }
-  const action = ['do', 'done', 'fail', 'reopen', 'ignore'].find((a) => btn.classList.contains(a)); if (!action) return;
-  if (action === 'do' && it.kind === 'runtime' && !(await confirmAsk({ title: 'Update the shared runtime?', body: 'channel-core.js is shared by every ANA on this host. Replacing it changes all of them at once.', yes: 'Update' }))) return;
+// Update 처리 — 반영(do)·건너뛰기는 관리자만. 실무자가 누르면 관리자 승인요청으로
+async function updAct(it, action) {
+  const id = it.id;
   let r; try { r = await post('/api/update-act', { id, action }); } catch { r = null; }
-  if (!r || !r.ok) { showErr('Could not update this item'); return; }
-  const d = await r.json().catch(() => ({}));
+  const d = r ? await r.json().catch(() => ({})) : {};
+  if (r && r.status === 403 && d.needsAdmin) { await askAdmin({ type: 'approval', title: `Bring in update: ${it.title}`, desc: it.summary || '', ref: `update:${id}`, action: { kind: 'update.do', id } }); return false; }
+  if (!r || !r.ok) { showErr(d.error || 'Could not update this item'); return false; }
   refreshUpdates();
   if (action === 'do') {
     const h = agentHost, up = d.upstreamDir || updCache.upstreamDir;
@@ -2478,7 +2746,8 @@ ${(it.missing || []).length ? `Missing here: ${it.missing.join(', ')}.\n` : ''}$
     openChat();
     post('/api/chat', { text, force: true }).then((x) => { if (!x.ok) x.json().then((e) => showErr(e.error || 'Could not send it to the agent')).catch(() => {}); }).catch(() => showErr('Could not send it to the agent'));
   }
-});
+  return true;
+}
 
 /* ---- 삭제 확인 팝업 ----
    되돌릴 수 없는 삭제 앞에 한 번 세운다. 다른 모달 위에서도 뜨도록 별도 z-index를 쓴다. */
@@ -2558,6 +2827,9 @@ async function loadMe() {
   try {
     const r = await fetch('/api/me'); const j = await r.json();
     signedIn = !!j.signedIn; me = j.me || me; logoutUrl = j.logoutUrl || '';
+    myRole = j.role || 'admin'; document.body.classList.toggle('is-admin', myRole === 'admin');
+    if (myRole !== 'admin' && appMode === 'sys') setAppMode('ws');
+    if ($('menuRole')) $('menuRole').textContent = myRole === 'admin' ? 'Admin — decides system changes' : 'Member — works in workspaces';
     // via: single = 단일 사용자 모드 / header = 신원 확인됨 / missing = 헤더 이름은 설정됐는데 요청에 없음
     meVia = j.via || '';
   } catch {}
@@ -3043,8 +3315,10 @@ $('filesInput').onchange = async () => {
 /* ================= 탭 전환 ================= */
 // 영역(Workspace / System)마다 마지막으로 본 탭을 기억한다
 let appMode = 'ws';
-const lastTab = { ws: 'todo', collab: 'evolve', sys: 'stats' };
-const AREAS = ['ws', 'collab', 'sys'];
+// 두 범위: Workspace(실무 — 할일·일정·메모·Knowledge·Files·Inbox) / System(관리자 — Inbox·Roadmap·Health)
+const lastTab = { ws: 'todo', sys: 'admin' };
+const AREAS = ['ws', 'sys'];
+const WORK_VIEWS = new Set(['todo', 'schedule', 'memo']);
 try { const m = localStorage.getItem('ana-area'); if (AREAS.includes(m)) appMode = m; const t = JSON.parse(localStorage.getItem('ana-area-tabs') || '{}'); Object.assign(lastTab, t); } catch {}
 // 탭 선택은 click()이 아니라 이 함수로 — 클릭 처리 중인 버튼에 다시 click()을 부르면 브라우저가 무시한다
 // 사용 기록: 화면 안에서만 일어나는 일(탭 열기 등)을 서버에 남긴다 — 종류와 대상 id만. 같은 탭을 1분 안에 다시 열면 한 번으로
@@ -3055,23 +3329,24 @@ function logEvent(action, target) {
   logSeen.set(k, now); post('/api/activity', { action, target: String(target) }).catch(() => {});
 }
 function selectTab(b) {
-    if (!usableTab(b)) b = [...document.querySelectorAll(`.topnav .tab[data-group="${b.dataset.group}"]`)].find(usableTab) || b;
+    if (!usableTab(b)) b = [...document.querySelectorAll(`.topnav .tab[data-group="${b.dataset.group}"]`)].find(usableTab) || document.querySelector('.topnav .tab[data-view="todo"]');
     if (b.dataset.group && b.dataset.group !== appMode) applyArea(b.dataset.group);
     if ($('memoView').classList.contains('on') && b.dataset.view !== 'memo') cleanupEmptyMemos(); // 메모 탭 이탈 시 빈 메모 정리(진화 #3)
     document.querySelectorAll('.topnav .tab').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
-    ['todo', 'schedule', 'memo', 'evolve', 'approvals', 'requests', 'requirements', 'stats', 'relations', 'reliability', 'safety', 'security', 'update', 'files'].forEach((v) => $(v + 'View').classList.toggle('on', b.dataset.view === v));
+    ['todo', 'schedule', 'memo', 'relations', 'files', 'inbox', 'admin', 'roadmap', 'health'].forEach((v) => $(v + 'View').classList.toggle('on', b.dataset.view === v));
+    document.body.classList.toggle('in-work', WORK_VIEWS.has(b.dataset.view));   // 휴대폰: 할일·일정·메모일 때만 위 탭 줄
+    syncBottomNav(b.dataset.view);
     lastTab[appMode] = b.dataset.view;
     logEvent('tab.view', b.dataset.view);
     revealTab(b);
     try { localStorage.setItem('ana-area-tabs', JSON.stringify(lastTab)); } catch {}
-    if (b.dataset.view === 'evolve') refreshEvolve();
-    if (b.dataset.view === 'requests' || b.dataset.view === 'approvals') refreshRequests();
-    if (['reliability', 'safety', 'security'].includes(b.dataset.view)) refreshTrust();
-    if (b.dataset.view === 'update') refreshUpdates();
-    if (b.dataset.view === 'requirements') refreshRequirements();
-    if (b.dataset.view === 'files') loadFiles(filesPath);
-    if (b.dataset.view === 'stats') renderStats();
-    if (b.dataset.view === 'relations') renderRelations();
+    const v = b.dataset.view;
+    if (v === 'inbox') { refreshRequests(); refreshEvolve(); refreshAdmin(); refreshRequirements(); }
+    if (v === 'admin') refreshAdmin();
+    if (v === 'roadmap') { refreshRequirements(); refreshEvolve(); refreshUpdates(); }
+    if (v === 'health') { refreshTrust(); renderStats(); }
+    if (v === 'files') loadFiles(filesPath);
+    if (v === 'relations') renderRelations();
 }
 document.querySelectorAll('.topnav .tab').forEach((b) => { b.onclick = () => selectTab(b); });
 // 고른 탭이 가려져 있으면 보이게 밀고, 양옆에 더 있는지 가장자리 흐림으로 알린다
@@ -3083,8 +3358,15 @@ function tabEdges() {
 function revealTab(b) { try { b.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' }); } catch {} setTimeout(tabEdges, 350); }
 document.querySelector('.tabstrip').addEventListener('scroll', tabEdges, { passive: true });
 window.addEventListener('resize', tabEdges);
+// 하단 메뉴(휴대폰): 범위에 맞는 버튼만, 지금 화면에 불
+function syncBottomNav(view) {
+  const nav = WORK_VIEWS.has(view) ? 'work' : view;
+  document.querySelectorAll('.bottomnav button').forEach((x) => { const on = x.dataset.nav === nav; x.classList.toggle('on', on); x.setAttribute('aria-current', on ? 'page' : 'false'); });
+}
+document.querySelectorAll('.bottomnav button[data-go]').forEach((x) => x.onclick = () => { const [a, v] = x.dataset.go.split(':'); setAppMode(a, v || undefined); });
 function applyArea(mode) {
   appMode = AREAS.includes(mode) ? mode : 'ws';
+  if (appMode === 'sys' && myRole !== 'admin') appMode = 'ws';     // System은 관리자만
   document.body.classList.toggle('sys-mode', appMode !== 'ws');   // 워크스페이스 콤보는 Workspace 영역에서만
   document.querySelectorAll('[data-area]').forEach((x) => { const on = x.dataset.area === appMode; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
   document.querySelectorAll('.topnav .tab[data-group]').forEach((t) => { t.hidden = t.dataset.group !== appMode; });
@@ -3101,9 +3383,14 @@ document.querySelectorAll('[data-area]').forEach((b) => b.onclick = () => setApp
 // Collaborate 배지 = 열린 작업 요청 + 승인 대기 + 새 진화 제안, System 배지 = 위험(risk) 점검 수
 const badgeN = (id) => (Number($(id).textContent) || 0) * $(id).classList.contains('show');
 function setAreaBadge(attr, n) { document.querySelectorAll(`[${attr}]`).forEach((x) => { x.textContent = n > 9 ? '9+' : String(n); x.classList.toggle('show', n > 0); }); }
+// 배지: Workspace Inbox = 요청 + 승인·데이터 변경 + 워크스페이스 제안 / System = 관리자 받은함 + 로드맵(시작 대기 제안·업데이트) + 위험 점검
 function updateSysBadge() {
-  setAreaBadge('data-collabbadge', badgeN('reqBadge') + badgeN('apprBadge') + badgeN('evoBadge'));
-  setAreaBadge('data-sysbadge', trustRisk + badgeN('updBadge'));
+  setAreaBadge('data-inboxbadge', badgeN('reqBadge') + badgeN('apprBadge') + badgeN('evoBadge'));
+  const adm = badgeN('admBadge'), road = badgeN('sevoBadge') + badgeN('updBadge');
+  setAreaBadge('data-admbadge', adm); setAreaBadge('data-roadbadge', road); setAreaBadge('data-healthbadge', trustRisk);
+  $('roadBadge').textContent = road; $('roadBadge').classList.toggle('show', road > 0);
+  $('healthBadge').textContent = trustRisk; $('healthBadge').classList.toggle('show', trustRisk > 0);
+  setAreaBadge('data-sysbadge', myRole === 'admin' ? adm + road + trustRisk : 0);
 }
 // 영역 적용은 스크립트가 다 읽힌 뒤에 — 탭 클릭이 아래쪽에서 선언되는 상태 변수를 건드려도 TDZ에 걸리지 않게
 document.querySelectorAll('.topnav .tab[data-group]').forEach((t) => { t.hidden = t.dataset.group !== appMode; });
@@ -3596,9 +3883,11 @@ async function applyPerm(id) {
   let r; try { r = await post('/api/agent-permission', { mode: id, target }); } catch { r = null; }
   permBusy = false;
   if (target !== (health && health.target)) return;
-  if (!r || !r.ok) { let e = {}; try { e = await r.json(); } catch {} renderPerm(); showErr(e.error || 'Could not change the permission mode'); return; }
+  if (!r || !r.ok) { let e = {}; try { e = await r.json(); } catch {} renderPerm();
+    if (r && r.status === 403 && e.needsAdmin) { askAdmin({ type: 'approval', title: `Switch the agent to ${opt.label}`, desc: opt.desc, ref: `permission:${id}`, action: { kind: 'permission', mode: id } }); return; }
+    showErr(e.error || 'Could not change the permission mode'); return; }
   permInfo.current = id; renderPerm(); renderPermBtn(); toast(`Permissions: ${opt.label}`);
-  if ($('safetyView').classList.contains('on')) refreshTrust();
+  if ($('healthView').classList.contains('on')) refreshTrust();
 }
 $('mPermBtn').onclick = () => { const open = $('mPermList').hidden; $('mPermList').hidden = !open; $('mPermBtn').setAttribute('aria-expanded', String(open)); };
 $('mPermList').onclick = (e) => { const b = e.target.closest('[data-perm]'); if (b) applyPerm(b.dataset.perm); };
@@ -3942,7 +4231,7 @@ const stripSender = (t) => String(t).replace(ID_PREFIX, '');
    [Analyze] [Evolve] [Requirements] [Update] [Requests] [Approvals] [Request #n]은 화면의 버튼이 보낸 긴 지시문(curl 포함)이라
    내가 쓴 말풍선처럼 보이면 안 된다. '무엇을 시켰는지' 한 줄 + 해당 화면으로 가는 Open + 펼쳐 보는 원문으로 보여 준다. */
 const INSTR_RE = /^\[(Analyze|Evolve|Requirements|Update|Requests|Approvals|Request #(\d+))\]\s*/;
-const INSTR_AREA = { relations: 'sys', update: 'sys', evolve: 'collab', requests: 'collab', approvals: 'collab', requirements: 'collab' };
+const INSTR_AREA = { relations: 'ws', inbox: 'ws', roadmap: 'sys', admin: 'sys' };
 function instructionInfo(raw) {
   const full = stripSender(String(raw || '').replace(/<\/?pasted_content[^>]*>/g, '')).trim();
   const m = INSTR_RE.exec(full); if (!m) return null;
@@ -3950,21 +4239,23 @@ function instructionInfo(raw) {
   let summary, view;
   if (m[2]) {
     const ans = (/My answer: ([\s\S]*?)\nAct on it/.exec(body) || [])[1] || '';
-    summary = `Answered request #${m[2]}${ans ? ` · ${ans.replace(/\s+/g, ' ').slice(0, 80)}` : ''}`; view = 'requests';
+    summary = `Answered request #${m[2]}${ans ? ` · ${ans.replace(/\s+/g, ' ').slice(0, 80)}` : ''}`; view = 'inbox';
   } else if (m[1] === 'Analyze') {
     const n = g(/from (\d+) items/), id = g(/analysis\/input\?id=(\d+)/);
     summary = `Asked the agent to analyze ${n ? `${n} items` : 'your items'}${id ? ` · #${id}` : ''}`; view = 'relations';
   } else if (m[1] === 'Evolve') {
-    const pm = /^Implement\/apply proposal #(\d+) "([^"]*)"/.exec(body);
-    summary = pm ? `Asked the agent to do proposal #${pm[1]} · ${pm[2]}` : 'Asked the agent to propose how the app should evolve'; view = 'evolve';
+    const pm = /^Implement\/apply proposal #(\d+) "([^"]*)"/.exec(body), wm = /^Apply workspace proposal #(\d+) "([^"]*)"/.exec(body);
+    summary = pm ? `Asked the agent to do proposal #${pm[1]} · ${pm[2]}` : wm ? `Asked the agent to apply workspace proposal #${wm[1]} · ${wm[2]}`
+      : /^Look at THIS WORKSPACE/.test(body) ? 'Asked the agent how this workspace should evolve' : 'Asked the agent to propose how the app should evolve';
+    view = wm || /^Look at THIS WORKSPACE/.test(body) ? 'inbox' : 'roadmap';
   } else if (m[1] === 'Requirements') {
     const n = g(/Check (\d+) of my requirements/), job = g(/requirements\/input\?job=(\d+)/);
-    summary = `Asked the agent to check ${n ? `${n} requirement${n === '1' ? '' : 's'}` : 'your requirements'}${job ? ` · #${job}` : ''}`; view = 'requirements';
+    summary = `Asked the agent to check ${n ? `${n} requirement${n === '1' ? '' : 's'}` : 'your requirements'}${job ? ` · #${job}` : ''}`; view = 'roadmap';
   } else if (m[1] === 'Update') {
     const t = g(/^Bring "([^"]+)"/);
-    summary = `Asked the agent to bring in ${t ? `“${t}”` : 'an update'} from upstream`; view = 'update';
-  } else if (m[1] === 'Requests') { summary = 'Asked the agent what it needs from you'; view = 'requests'; }
-  else { summary = 'Asked the agent what needs your OK'; view = 'approvals'; }
+    summary = `Asked the agent to bring in ${t ? `“${t}”` : 'an update'} from upstream`; view = 'roadmap';
+  } else if (m[1] === 'Requests') { summary = 'Asked the agent what it needs from you'; view = 'inbox'; }
+  else { summary = 'Asked the agent what needs your OK'; view = 'inbox'; }
   return { tag: m[2] ? 'Request' : m[1], summary, view, full };
 }
 function instrCardHtml(ins, attrs) {
@@ -4143,10 +4434,11 @@ function connect() {
       case 'dialog': if (health) health.dialog = !!d.dialog; if (!dialogBusy) { dialogInfo = d.dialog; renderStatus(); } break;
       // 같은 사람이 다른 탭·기기에서 세션을 바꿨다 → 이 탭도 따라간다
       case 'target': if (d.user === youKey && d.target !== streamTarget) switchStream(); break;
-      case 'evolve': refreshEvolve().then(() => { if ($('requirementsView').classList.contains('on')) renderRequirements(); }); break;
+      case 'evolve': refreshEvolve(); break;
       case 'requests': refreshRequests(); break;
+      case 'admin': refreshAdmin(); break;
       case 'updates': refreshUpdates(); break;
-      case 'requirements': if ($('requirementsView').classList.contains('on')) refreshRequirements(); break;
+      case 'requirements': refreshRequirements(); break;
       case 'analysis': if ($('relationsView').classList.contains('on')) refreshAnalysis(); break;
     }
   };
@@ -4202,7 +4494,7 @@ async function switchWorkspace(id) {
   // 서버 active도 옮긴다 — 헤더 없이 호출하는 에이전트(curl)가 같은 워크스페이스를 보도록.
   post('/api/workspaces', { action: 'select', id }).catch(() => {});
   await refreshData();
-  if ($('statsView') && $('statsView').classList.contains('on')) renderStats();
+  if ($('healthView') && $('healthView').classList.contains('on')) renderStats();
 }
 $('wsBtn').onclick = (e) => {
   e.stopPropagation();
@@ -4220,6 +4512,7 @@ $('wsList').onclick = async (e) => {
     closeWsMenu();
     if (!(await confirmDelete(`Workspace "${w.name}" and all of its tasks, events, notes and links`))) return;
     let r, j; try { r = await post('/api/workspaces', { action: 'remove', id: w.id }); j = await r.json(); } catch { j = {}; }
+    if (r && r.status === 403 && j.needsAdmin) { askAdmin({ type: 'approval', title: `Delete workspace "${w.name}"`, ref: `workspace:${w.id}`, action: { kind: 'workspace.remove', id: w.id } }); return; }
     if (!r || !r.ok) { showErr(j.error || 'Failed to delete the workspace'); return; }
     workspaces = j.workspaces || workspaces.filter((x) => x.id !== w.id);
     if (currentWs === w.id) { currentWs = j.active; memoSel = null; renderWorkspaces(); await refreshData(); }
@@ -4299,6 +4592,7 @@ initCal(); connect();
 loadWorkspaces().finally(() => { refreshData(); });
 refreshEvolve();
 refreshRequests();
+refreshAdmin();
 refreshUpdates();   // System 배지에 대기 중인 업데이트 수
 setInterval(async () => {
   if (document.hidden) return;
@@ -4649,7 +4943,7 @@ function pageLocation() {
   const parts = [`workspace "${ws}"`, `${(tab && tab.textContent.replace(/\d+$/, '').trim()) || '?'} tab`];
   if (view && view.id === 'scheduleView') parts.push(`calendar ${MONTHS[calM]} ${calY}, selected day ${selDate}`);
   if (view && view.id === 'memoView') { const n = notes.find((x) => x.id === memoSel); if (n) parts.push(`open note "${noteTitle(n)}" (${n.id})`); }
-  if (view && view.id === 'statsView') parts.push(`stats view "${statSeg}"`);
+  if (view && view.id === 'healthView') parts.push(`stats view "${statSeg}"`);
   if (view) {
     const max = view.scrollHeight - view.clientHeight;
     parts.push(max > 0 ? `scrolled ${Math.round(view.scrollTop)}px of ${max}px (${Math.round((view.scrollTop / max) * 100)}%)` : 'no scroll');

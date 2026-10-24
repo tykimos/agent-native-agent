@@ -16,7 +16,7 @@ const fs = require('node:fs'); const os = require('node:os'); const path = requi
   try {
     for(let i=0;i<100;i++){try {if((await fetch(origin + '/api/files')).ok)break;}catch{} await new Promise(r=>setTimeout(r,100));}
     browser = await chromium.launch({channel:'chrome',headless:true}); const page = await browser.newPage({viewport:{width:1440,height:1000},acceptDownloads:true}); const errors=[]; page.on('pageerror',e=>errors.push(e.message));
-    await page.goto(origin); await page.locator('.topnav [data-area="sys"]').click(); await page.locator('[data-view="files"]').click(); await page.locator('#filesList').getByText('안내.txt',{exact:false}).waitFor();
+    await page.goto(origin); await page.locator('.topnav [data-view="files"]').click(); await page.locator('#filesList').getByText('안내.txt',{exact:false}).waitFor();
     assert.equal(await page.locator('#filesUp').isDisabled(),true);
     await page.locator('#filesList').getByRole('button',{name:'📁 캡처 이미지'}).click(); await page.getByText('This folder is empty.',{exact:true}).waitFor();
     await page.locator('#filesInput').setInputFiles({name:'테스트 업로드.txt',mimeType:'text/plain',buffer:Buffer.from('업로드와 다운로드 검증')});

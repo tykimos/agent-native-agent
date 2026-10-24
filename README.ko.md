@@ -148,15 +148,27 @@ node server.js           # → http://localhost:8809
 
 ## base에 들어 있는 것
 
-![휴대폰에서 본 Workspace · Collaborate · System](docs/assets/areas-mobile.webp)
+![휴대폰에서 본 Workspace와 System](docs/assets/areas-mobile.webp)
 
-base는 혼자 쓰는 업무 운영 보드입니다. 메모, 할일, 일정을 코딩 에이전트와 함께 운영합니다. 화면은 **세 영역**으로 나뉩니다(휴대폰은 하단 메뉴, PC는 로고 옆 전환 버튼).
+베이스는 메모, 할일, 일정을 코딩 에이전트와 함께 굴리는 운영 보드입니다. **범위가 둘**이고, 화면 맨 위에 지금 어느 범위에 있는지 항상 보입니다.
 
-| 영역 | 탭 | 용도 |
-|---|---|---|
-| **Workspace** | Tasks · Calendar · Notes | 내 데이터. 워크스페이스별로 관리(전환, 추가, 이름 바꾸기, 순서 변경) |
-| **Collaborate** | Evolve · Approvals · Requests · Requirements | 에이전트와 함께 일하는 곳. 배지는 나를 기다리는 것의 수 |
-| **System** | Stats · Relations · Trustworthiness · Safety · Security | 시스템이 잘 돌아가는지, 믿을 수 있는지. 배지는 위험 점검의 수 |
+| 범위 | 누가 | 탭 | 용도 |
+|---|---|---|---|
+| **Workspace** (위에 워크스페이스 이름) | 실무자 | **Work**(할일·일정·메모) · **Knowledge** · **Files** · **Inbox** | 한 워크스페이스의 일과 데이터 |
+| **System** (위쪽이 어두운 띠) | 관리자 | **Inbox** · **Roadmap** · **Health** | 모든 워크스페이스에 걸리는 결정 |
+
+휴대폰에서는 하단 메뉴가 범위에 맞게 바뀝니다. Workspace에서는 Work · Knowledge · Files · Inbox(관리자는 System 추가), System에서는 Inbox · Roadmap · Health · Workspace입니다. 데스크톱에서는 로고 옆 전환 버튼으로 바꿉니다.
+
+- **Inbox(Workspace):** 이 워크스페이스에서 나를 기다리는 것을 한 목록(*Open / Done*)으로 모읍니다.
+  - 에이전트의 질문과 작업요청
+  - 승인할 데이터 변경
+  - 워크스페이스를 더 잘 쓰는 제안
+  - 내가 보낸 것(관리자에게 보낸 요청, 기능 요청)
+- **Knowledge:** 항목이 어떻게 이어지는지(관계, 흐름이 끊긴 곳)와 지식그래프(Analyze)
+- **Files:** 이 워크스페이스의 폴더와 채팅 첨부(읽기 전용)
+- **Inbox(System):** 실무자, 에이전트, 시스템 점검이 관리자에게 올린 승인요청과 작업요청
+- **Roadmap:** 시스템이 바뀌는 과정을 항목마다 한 줄로 보여 줍니다(**Request → Proposal → Building → Checked**). 요구사항, 시스템 제안, 업스트림 업데이트를 함께 다룹니다.
+- **Health:** 신뢰성·안전·보안 점검을 위험한 것부터 한 장에 보여 주고, 아래에 사용 통계와 활동을 둡니다.
 
 ### 채팅 — Claude 앱처럼
 
@@ -208,17 +220,49 @@ Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           due / date에서 파�
 
 → 두 층, 분석 과정, 온톨로지, 지식그래프, 검사, 내보내기를 모두 정리한 글: **[docs/relations.ko.md](docs/relations.ko.md)**
 
-### Collaborate — 진화 제안 · 승인 요청 · 작업 요청
+### Inbox — 에이전트가 나에게 필요한 것
 
-| 탭 | 누가 누구에게 | 내용 |
+| 항목 | 누가 | 내용 |
 |---|---|---|
-| **Evolve** (진화 제안) | 에이전트 → 앱 | 에이전트가 현재 기능, 데이터, 사용 로그(`/api/activity`)를 보고 앱이 어떻게 진화하면 좋을지 제안합니다. 승인하면 실행 중인 에이전트가 만듭니다. |
-| **Approvals** (승인 요청) | 에이전트 → 나, 일을 진행하기 전에 | 대기 중인 **데이터 변경**(에이전트가 diff를 제안하고, 승인하기 전에는 아무것도 바뀌지 않음)과 `approval`, `decision`(선택지 버튼), `access` 요청 |
-| **Requests** (작업 요청) | 에이전트 → 나 | 나만 할 수 있는 일(`action`)과 에이전트에게 없는 정보(`info`) |
+| **Needs you** | 에이전트 → 나 | 나만 할 수 있는 일(`action`), 에이전트에게 없는 정보(`info`), 결정(선택지 버튼), 접근, 대기 중인 **데이터 변경**(에이전트가 diff를 제안하고, 승인하기 전에는 아무것도 바뀌지 않음) |
+| **Suggestions** | 에이전트 → 이 워크스페이스 | 이미 있는 기능으로 워크스페이스를 더 잘 쓰는 방법. *Do it*은 에이전트에게 맡기고(데이터만, 코드는 그대로), 새 기능이 필요하면 *Propose to the system*으로 Roadmap에 올립니다 |
+| **Sent by you** | 나 → 관리자 / 시스템 | *Ask the admin*으로 보낸 요청과 *Request a feature* 항목의 진행 |
 
-탭마다 에이전트에게 채워 달라고 요청하는 버튼이 있습니다. 에이전트는 `POST /api/requests {requests:[{kind, title, desc?, options?, ref?}]}`로 등록합니다(`ref` = 링크로 보일 할일·일정·메모 id). 답을 보내면 채팅으로 에이전트에게 바로 전달되고, *I did it* / *Not now*는 알림으로 전달됩니다(`POST /api/request-act {id, action: answer|done|dismiss|reopen}`).
+*Ask the agent*를 누르면 에이전트가 받은함을 채웁니다. 에이전트는 `POST /api/requests {requests:[{kind, title, desc?, options?, ref?}]}`로 등록합니다(`ref` = 링크로 보일 할일·일정·메모 id). 답을 보내면 채팅으로 바로 전달되고, *Resolved* / *Not now*는 알림으로 전달됩니다(`POST /api/request-act {id, action: answer|done|dismiss|reopen}`).
 
-### System — AI 신뢰성 · 안전 · 보안
+### 관리자와 실무자
+
+워크스페이스는 **실무자**가 일하는 곳이고, **System**은 **관리자**가 정합니다.
+
+| | 실무자(Workspace) | 관리자(System) |
+|---|---|---|
+| 진화 제안 | **Inbox › Suggestions**: 이미 있는 기능으로 이 워크스페이스를 더 잘 쓰는 방법. 실무자가 직접 시작합니다 | **Roadmap**: 기능, 화면, API, 공용 온톨로지. 시작·취소는 관리자만 합니다 |
+| 승인요청 | 워크스페이스의 데이터 변경(Inbox) | 시스템 변경(**System › Inbox**) |
+| 작업요청 | 에이전트가 실무자에게 맡기는 일(Inbox) | 관리자만 할 수 있는 일: 권한 부여, 설치, 데이터 연결(**System › Inbox**) |
+| 요구사항 | *Request a feature* | **Roadmap**: 에이전트가 확인하고, 제안으로 만들고, 만든 뒤 다시 확인 |
+
+- **관리자 지정:** `ANA_ADMINS=이메일,…`로 정합니다. 다음 경우에는 모두 관리자입니다. 그래서 혼자 쓰는 설치는 예전과 같습니다.
+  - 목록이 비어 있을 때
+  - 신원 헤더를 쓰지 않는 설치(단일 사용자)
+  - 이 컴퓨터에서 신원 없이 들어온 호출(본인이나 에이전트)
+- **관리자 전용 동작(서버에서 확인):**
+  - 시스템 제안의 시작·취소·재시도
+  - Update 반영
+  - 묻지 않는 권한 모드(Bypass / Full Access)로 바꾸기
+  - 워크스페이스 삭제
+
+  실무자가 누르면 **System › Inbox**에 승인요청이 생기고, 관리자가 승인하면 그 동작이 관리자 권한으로 실행됩니다.
+- **관리자에게 요청하기:**
+  - 실무자는 Inbox의 *Ask the admin*으로 요청하고, *Sent by you*에서 결과를 봅니다.
+  - 에이전트는 `POST /api/admin/requests {type: work|approval, title, desc?}`로 요청합니다.
+  - 시스템 점검이 **risk**가 되면 작업요청이 저절로 생기고, 해결되면 저절로 닫힙니다.
+- **API:**
+  - `GET /api/admin/inbox`: 관리자는 전부, 실무자는 자기 것만 봅니다.
+  - `POST /api/admin/act {id, action: approve|reject|start|done|fail|cancel|reopen, note?}`
+  - `GET /api/me` → `role`
+  - `POST /api/evolve`는 `scope: system|workspace`를 받습니다.
+
+### System › Health — AI 신뢰성 · 안전 · 보안
 
 고정된 문구가 아니라 실제 상태로 계산한 점검입니다(`GET /api/trust`).
 
@@ -305,8 +349,8 @@ claude plugin install ana@agent-native-agent          # 이후: claude plugin up
 | [`chat-window`](skills/chat-window/SKILL.md) | Claude 앱 같은 채팅: 세션 콤보, 기록 기반 표시, 모델 시트, 사용량 링, 음성, 첨부, Codex |
 | [`context-chips`](skills/context-chips/SKILL.md) | 칩 모드, ✎ 화면 그리기, ⟳ 새 요소 등록 |
 | [`relations`](skills/relations/SKILL.md) | NodeRel 항목 관계, 관계 칩, Relations 탭 |
-| [`app-shell`](skills/app-shell/SKILL.md) | Workspace / Collaborate / System 영역, 하단 메뉴, 워크스페이스 콤보 |
-| [`agent-requests`](skills/agent-requests/SKILL.md) | 협업: 진화 제안, 승인 요청, 작업 요청 |
+| [`app-shell`](skills/app-shell/SKILL.md) | Workspace / System 범위, 범위별 하단 메뉴, 워크스페이스 콤보 |
+| [`agent-requests`](skills/agent-requests/SKILL.md) | Inbox, Roadmap, 관리자 받은함: 요청·승인·제안·요구사항 |
 | [`trust-checks`](skills/trust-checks/SKILL.md) | 시스템: AI 신뢰성, 안전, 보안 점검 |
 
 ### 기존 ANA 업데이트

@@ -26,10 +26,11 @@ function createDashboardApi(core, opts) {
   const { ROOT } = opts;
   // 시스템 › Files: 기본은 전용 폴더(올리기 가능), 채팅 첨부는 읽기 전용, 저장소 전체는 따로 골라야 보이고 .ana/.git에는 못 쓴다
   const fileApi = require('./file-browser.js').createFileBrowser({
-    files: { dir: opts.FILES_ROOT || path.join(path.dirname(opts.DATA_FILE || path.join(ROOT, '.ana', 'state.json')), 'files'), label: 'Files', write: true, mkdir: true },
+    // 워크스페이스마다 자기 files 폴더(기본 워크스페이스는 .ana/files). ANA_FILES_ROOT를 주면 그 폴더 하나(오프라인 패키지)
+    files: { dir: opts.FILES_ROOT || (() => path.join(path.dirname(dataFileOf(curWs())), 'files')), label: 'Files', write: true, mkdir: true },
     chat: { dir: opts.UPLOAD_DIR || path.join(ROOT, '.ana', 'uploads'), label: 'From chat', write: false, mkdir: true },
     project: { dir: ROOT, label: path.basename(ROOT), write: true, deny: ['.ana', '.git'] },
-  }, core, { onUpload: (req, root, size) => audit(actor(req), 'files.upload', `${root} ${size}`) });
+  }, core, { onUpload: (req, root, size) => audit(actor(req), 'files.upload', `${root} ${size}`), allow: (req, root) => root !== 'project' || isAdmin(req) });   // 프로젝트 폴더는 관리자만
   const DATA_FILE = opts.DATA_FILE || path.join(ROOT, 'data', 'state.json');
   const PROPOSALS_FILE = opts.PROPOSALS_FILE || path.join(ROOT, 'data', 'proposals.json');
   const EVOLVE_FILE = opts.EVOLVE_FILE || path.join(ROOT, 'data', 'evolve.json');
@@ -38,6 +39,8 @@ function createDashboardApi(core, opts) {
   const UPDATES_FILE = opts.UPDATES_FILE || path.join(path.dirname(EVOLVE_FILE), 'updates.json');
   // 협업 › Requirements — 사용자의 요청사항과 그 반영 분석(워크스페이스가 아니라 이 ANA 자체에 대한 것이라 하나의 목록)
   const REQUIREMENTS_FILE = opts.REQUIREMENTS_FILE || path.join(path.dirname(EVOLVE_FILE), 'requirements.json');
+  // 관리자 함(System › Admin): 실무자·에이전트·점검이 관리자에게 올리는 승인요청(approval)·작업요청(work)
+  const ADMIN_FILE = opts.ADMIN_FILE || path.join(path.dirname(EVOLVE_FILE), 'admin.json');
   const UPSTREAM_DIR = opts.UPSTREAM_DIR || path.join(path.dirname(EVOLVE_FILE), 'upstream');
   const UPSTREAM_URL = opts.UPSTREAM_URL || 'https://github.com/tykimos/agent-native-agent';
   const UPDATE_TARGET = opts.UPDATE_TARGET || ROOT;   // 비교할 ANA 폴더(기본: 이 ANA). 시험·호스트용으로 바꿀 수 있다
@@ -71,6 +74,20 @@ function createDashboardApi(core, opts) {
   }
   // 신원이 없는 호출(단일 사용자 모드, 로컬 에이전트·스크립트)은 'ana'로 기록한다.
   const actor = (req) => who(req) || 'ana';
+
+  // ---------- 역할: 관리자(시스템) · 실무자(워크스페이스) ----------
+  // ANA_ADMINS=이메일,… 에 든 사람만 관리자. 목록이 비었거나 신원 헤더를 안 쓰는 설치(단일 사용자),
+  // 신원 없이 들어온 로컬 호출(이 컴퓨터의 사용자·에이전트)은 관리자로 본다 — 예전 설치가 그대로 동작하게.
+  // 역할은 사람을 다스린다: 이 컴퓨터의 에이전트는 셸 권한이 있어 어차피 무엇이든 할 수 있다.
+  const ADMINS = String(opts.ADMINS || '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+  function roleOf(req) {
+    const id = who(req);
+    if (!ID_HEADER || !id || !ADMINS.length) return 'admin';
+    return ADMINS.includes(id) ? 'admin' : 'member';
+  }
+  const isAdmin = (req) => roleOf(req) === 'admin';
+  // 관리자 전용 동작을 실무자가 부르면: 403 + needsAdmin — 화면은 관리자 승인요청으로 돌린다
+  const needAdmin = (res, what) => (sendJson(res, 403, { error: `${what} needs the admin's approval`, needsAdmin: true, what }), true);
 
   function loadUsers() {
     const u = readJsonStrict(USERS_FILE, () => ({ users: {} }));
@@ -351,6 +368,51 @@ function createDashboardApi(core, opts) {
       if (j) return Date.parse(j.share.exp) > Date.now() && j.status === 'done' ? { ws: w.id, job: j } : null;
     }
     return null;
+  }
+
+  // ---- 관리자 함 저장소 ----
+  // item: {id, type: approval|work, title, desc, ref, ws, action?, from:{kind: member|agent|check, by}, status: open|doing|done|failed|rejected|cancelled, at, updatedAt, decidedBy?, note?}
+  function loadAdmin() {
+    const a = readJsonStrict(ADMIN_FILE, () => ({ next: 1, items: [] }));
+    return a && Array.isArray(a.items) ? a : { next: 1, items: [] };
+  }
+  const saveAdmin = (a) => { a.version = (a.version || 1) + 1; while (a.items.length > 200) { const i = a.items.findIndex((x) => !['open', 'doing'].includes(x.status)); a.items.splice(i < 0 ? 0 : i, 1); } writeJsonAtomic(ADMIN_FILE, a); };
+  // 같은 대상(ref)이나 같은 제목의 열린 요청이 있으면 새로 만들지 않는다
+  function addAdminItem(x, from, ws) {
+    if (!x || typeof x !== 'object' || typeof x.title !== 'string' || !x.title.trim()) return { error: 'title required' };
+    if (!['approval', 'work'].includes(x.type)) return { error: 'type must be approval|work' };
+    const a = loadAdmin(), title = x.title.trim().slice(0, 200), ref = typeof x.ref === 'string' ? x.ref.slice(0, 80) : '';
+    const open = a.items.find((y) => ['open', 'doing'].includes(y.status) && y.type === x.type && (ref ? y.ref === ref : y.title === title));
+    if (open) return { item: open, existing: true };
+    const action = x.action && typeof x.action === 'object' && ADMIN_ACTIONS[x.action.kind] ? ADMIN_ACTIONS[x.action.kind](x.action) : null;
+    const now = new Date().toISOString();
+    const item = { id: a.next++, type: x.type, title, desc: String(x.desc || '').slice(0, 2000), ref, ws: ws || '', ...(action ? { action } : {}), from, status: 'open', at: now, updatedAt: now };
+    a.items.push(item); saveAdmin(a);
+    return { item };
+  }
+  // 승인되면 관리자 화면이 실행할 수 있는 동작(정해 둔 것만, 값은 다시 검증)
+  const ADMIN_ACTIONS = {
+    'evolve.do': (a) => (Number.isInteger(a.id) ? { kind: 'evolve.do', id: a.id } : null),
+    'evolve.ignore': (a) => (Number.isInteger(a.id) ? { kind: 'evolve.ignore', id: a.id } : null),
+    'update.do': (a) => (typeof a.id === 'string' || Number.isInteger(a.id) ? { kind: 'update.do', id: a.id } : null),
+    'permission': (a) => (/^[a-z]{2,20}$/.test(String(a.mode || '')) ? { kind: 'permission', mode: a.mode } : null),
+    'workspace.remove': (a) => (/^[\w-]{1,40}$/.test(String(a.id || '')) ? { kind: 'workspace.remove', id: a.id } : null),
+  };
+  // 점검(Trustworthiness·Safety·Security)이 risk면 관리자 작업요청을 하나 연다. 해결되면 자동으로 닫는다.
+  function syncCheckRequests(t, broadcast) {
+    const a = loadAdmin(); let changed = false; const risky = new Set(), now = new Date().toISOString();
+    for (const sec of ['reliability', 'safety', 'security']) for (const c of ((t[sec] || {}).checks || [])) if (c.status === 'risk') risky.add(`check:${c.id}`);
+    for (const sec of ['reliability', 'safety', 'security']) for (const c of ((t[sec] || {}).checks || [])) {
+      const ref = `check:${c.id}`;
+      if (c.status !== 'risk' || a.items.some((y) => y.ref === ref && ['open', 'doing'].includes(y.status))) continue;
+      a.items.push({ id: a.next++, type: 'work', title: `Fix: ${c.label}`.slice(0, 200), desc: [c.value, c.detail].filter(Boolean).join(' — ').slice(0, 2000), ref, ws: '',
+        from: { kind: 'check', by: 'ana' }, status: 'open', at: now, updatedAt: now });
+      changed = true;
+    }
+    for (const y of a.items) if (y.from && y.from.kind === 'check' && ['open', 'doing'].includes(y.status) && !risky.has(y.ref)) {
+      y.status = 'done'; y.note = 'Resolved — the check is no longer at risk'; y.updatedAt = now; y.decidedBy = 'ana'; y.decidedAt = now; changed = true;
+    }
+    if (changed) { saveAdmin(a); try { broadcast({ kind: 'admin' }); } catch {} }
   }
 
   function loadRequests() {
@@ -663,6 +725,7 @@ function createDashboardApi(core, opts) {
         // 기본 워크스페이스는 지울 수 없다(기존 state.json의 주인). 나머지는 목록에서 빼고,
         // 데이터 폴더는 바로 지우지 않고 workspaces/.deleted/로 옮겨 둔다(실수 복구용).
         if (body.id === DEFAULT_WS) return sendJson(res, 400, { error: 'The base workspace cannot be deleted' }), true;
+        if (!isAdmin(req)) return needAdmin(res, 'Deleting a workspace');
         target = w.workspaces.find((x) => x.id === body.id);
         if (!target) return sendJson(res, 404, { error: 'not found' }), true;
         const dir = path.join(WS_DIR, target.id);
@@ -696,7 +759,7 @@ function createDashboardApi(core, opts) {
       const email = who(req);
       if (email) touchUser(email);
       return sendJson(res, 200, {
-        signedIn: !!email,
+        signedIn: !!email, role: roleOf(req),
         // 단일 사용자 모드에서도 로컬 프로필('ana' 키)을 돌려준다 — 이름·아바타 저장이 동작하도록.
         // email은 항상 'ana': 콘텐츠가 by:'ana'로 기록되므로 클라이언트 isMine()이 일치해야
         // 수정/삭제 버튼이 프로필 저장 전에도 보인다.
@@ -796,7 +859,7 @@ function createDashboardApi(core, opts) {
     }
 
     if (p === '/api/trust' && req.method === 'GET') {
-      try { return sendJson(res, 200, await collectTrust(ctx)), true; }
+      try { const t = await collectTrust(ctx); syncCheckRequests(t, broadcast); return sendJson(res, 200, t), true; }
       catch (e) { return sendJson(res, 500, { error: 'Checks failed', detail: e.message }), true; }
     }
 
@@ -1181,6 +1244,7 @@ function createDashboardApi(core, opts) {
       const where = await agentLog.resolve(ctx.target);
       const modes = where.kind === 'claude' ? permissionMode.CLAUDE_MODES : where.kind === 'codex' ? permissionMode.CODEX_MODES : [];
       if (!modes.some((m) => m.id === body.mode)) return sendJson(res, 400, { error: `mode must be ${modes.map((m) => m.id).join('|') || '(no agent)'}` }), true;
+      if (modes.find((m) => m.id === body.mode).risky && !isAdmin(req)) return needAdmin(res, `Switching the agent to "${modes.find((m) => m.id === body.mode).label}"`);
       const out = await ctx.enqueue(async () => {
         try {
           const r2 = where.kind === 'claude' ? await permissionMode.changeClaude(ctx, body.mode, where.start) : await permissionMode.changeCodex(ctx, body.mode);
@@ -1332,6 +1396,7 @@ function createDashboardApi(core, opts) {
       if (!['do', 'done', 'fail', 'ignore', 'reopen'].includes(body.action)) return sendJson(res, 400, { error: 'action must be do|done|fail|ignore|reopen' }), true;
       const u = loadUpdates(); const it = u.items.find((x) => x.id === body.id);
       if (!it) return sendJson(res, 404, { error: 'not found' }), true;
+      if (['do', 'ignore', 'reopen'].includes(body.action) && !isAdmin(req)) return needAdmin(res, `Updating "${it.title}"`);
       it.status = { do: 'doing', done: 'done', fail: 'failed', ignore: 'dismissed', reopen: 'new' }[body.action];
       it.updatedAt = new Date().toISOString();
       it.failReason = body.action === 'fail' ? String(body.reason || '').trim().slice(0, 1000) : '';
@@ -1380,7 +1445,7 @@ function createDashboardApi(core, opts) {
           if (open) return sendJson(res, 200, { ok: true, proposal: open, existing: true }), true;
           const desc = [a.next && `Next step: ${a.next}`, a.why && `Why not yet: ${a.why}`, it.detail && `Requirement: ${it.detail}`].filter(Boolean).join('\n');
           const pr = { id: ev.next++, type: a.status === 'missing' ? 'add' : 'improve', title: `Requirement #${it.id}: ${it.title}`.slice(0, 200), desc: desc.slice(0, 1000),
-            status: 'new', at: now, reqId: it.id, by: actor(req) };
+            status: 'new', at: now, reqId: it.id, by: actor(req), scope: 'system' };
           ev.proposals.push(pr); if (ev.proposals.length > 50) ev.proposals = ev.proposals.slice(-50);
           ev.version = (ev.version || 1) + 1; saveEvolve(ev); broadcast({ kind: 'evolve', version: ev.version });
           it.proposalId = pr.id; it.recheck = null; save(rq);
@@ -1525,8 +1590,52 @@ function createDashboardApi(core, opts) {
       return sendJson(res, 404, { error: 'unknown analysis route' }), true;
     }
 
-    // 진화 제안 조회
-    if (p === '/api/evolve' && req.method === 'GET') return sendJson(res, 200, loadEvolve()), true;
+    // ---- 관리자 함 ----
+    //  GET  /api/admin/inbox            관리자: 전부 / 실무자: 내가 올린 것만(mine)
+    //  POST /api/admin/requests         {type: approval|work, title, desc?, ref?, action?{kind,…}} — 실무자·에이전트 누구나
+    //  POST /api/admin/act              {id, action: approve|reject|start|done|fail|cancel|reopen, note?} — 관리자만
+    if (p === '/api/admin/inbox' && req.method === 'GET') {
+      const a = loadAdmin(), me = actor(req), admin = isAdmin(req);
+      return sendJson(res, 200, { role: roleOf(req), me, items: admin ? a.items : a.items.filter((x) => x.from && x.from.by === me), version: a.version || 1 }), true;
+    }
+    if (p === '/api/admin/requests' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      const r = addAdminItem(body, { kind: who(req) ? 'member' : 'agent', by: actor(req) }, curWs());
+      if (r.error) return sendJson(res, 400, { error: r.error }), true;
+      if (!r.existing) { audit(actor(req), `admin.${r.item.type}`, `#${r.item.id}`); broadcast({ kind: 'admin' }); }
+      return sendJson(res, 200, { ok: true, item: r.item, existing: !!r.existing }), true;
+    }
+    if (p === '/api/admin/act' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      const a = loadAdmin(), it = a.items.find((x) => x.id === Number(body.id));
+      if (!it) return sendJson(res, 404, { error: 'not found' }), true;
+      // 실무자는 자기가 올린 것을 취소만 할 수 있다
+      if (!isAdmin(req) && !(body.action === 'cancel' && it.from && it.from.by === actor(req))) return needAdmin(res, 'This');
+      const NEXT = { approve: 'done', reject: 'rejected', start: 'doing', done: 'done', fail: 'failed', cancel: 'cancelled', reopen: 'open' };
+      if (!NEXT[body.action]) return sendJson(res, 400, { error: 'action must be approve|reject|start|done|fail|cancel|reopen' }), true;
+      if (it.type === 'approval' && ['start'].includes(body.action)) return sendJson(res, 400, { error: 'approvals are approved or rejected' }), true;
+      if (it.type === 'work' && ['approve', 'reject'].includes(body.action)) return sendJson(res, 400, { error: 'work requests are started, done, failed or cancelled' }), true;
+      const now = new Date().toISOString();
+      it.status = NEXT[body.action]; it.updatedAt = now;
+      it.note = body.action === 'reopen' ? '' : String(body.note || it.note || '').slice(0, 1000);
+      if (body.action !== 'start' && body.action !== 'reopen') { it.decidedBy = actor(req); it.decidedAt = now; }
+      saveAdmin(a); audit(actor(req), `admin.${body.action}`, `#${it.id}`); broadcast({ kind: 'admin' });
+      // 에이전트가 올린 것은 결과를 에이전트에게 알린다(승인된 동작의 실행은 관리자 화면이 맡는다)
+      if (it.from && it.from.kind === 'agent' && ['approve', 'reject', 'done', 'fail', 'cancel'].includes(body.action)) {
+        queueNotify('admin.decision', `Admin ${it.type} #${it.id} "${it.title.replace(/[\r\n]+/g, ' ')}" was ${it.status}${it.note ? ': ' + it.note.replace(/[\r\n]+/g, ' ') : ''}.`);
+        tryDeliver(ctx).catch(() => {});
+      }
+      return sendJson(res, 200, { ok: true, item: it }), true;
+    }
+
+    // 진화 제안 조회 — ?scope=system|workspace (workspace는 지금 워크스페이스 것만)
+    if (p === '/api/evolve' && req.method === 'GET') {
+      const ev = loadEvolve(), sc = url.searchParams.get('scope'), ws = curWs();
+      if (!sc) return sendJson(res, 200, ev), true;
+      return sendJson(res, 200, { ...ev, proposals: ev.proposals.filter((x) => (x.scope || 'system') === sc && (sc === 'system' || x.ws === ws)) }), true;
+    }
     // 데이터 변경 제안 전체(대기·적용 중·적용됨·거절됨) — 협업 › Approvals의 네 목록용. 이 워크스페이스, 최근 100개
     if (p === '/api/proposals' && req.method === 'GET') {
       const ws = curWs();
@@ -1546,13 +1655,15 @@ function createDashboardApi(core, opts) {
       }
       if (!valid.length) return sendJson(res, 400, { error: 'proposals[] with title required' }), true;
       const ev = loadEvolve();
-      const seen = new Set(ev.proposals.map((p2) => (p2.title || '').trim()));
+      const seen = new Set(ev.proposals.filter((p2) => !['done', 'dismissed', 'failed'].includes(p2.status)).map((p2) => (p2.title || '').trim()));
       const added = [];
       for (const x of valid) {
         const title = String(x.title).slice(0, 200);
         if (seen.has(title.trim())) continue; // dedup(coding-M6)
         seen.add(title.trim());
-        const pr = { id: ev.next++, type: x.type || 'improve', title, desc: String(x.desc || '').slice(0, 1000), status: 'new', at: new Date().toISOString() };
+        const scope = x.scope === 'workspace' ? 'workspace' : 'system';
+        const pr = { id: ev.next++, type: x.type || 'improve', title, desc: String(x.desc || '').slice(0, 1000), status: 'new', at: new Date().toISOString(),
+          scope, ...(scope === 'workspace' ? { ws: curWs() } : {}) };
         if (Number.isInteger(x.reqId) && loadRequirements().items.some((r) => r.id === x.reqId)) pr.reqId = x.reqId;   // 어느 요구사항에서 나온 제안인지
         ev.proposals.push(pr); added.push(pr);
       }
@@ -1566,10 +1677,26 @@ function createDashboardApi(core, opts) {
     if (p === '/api/evolve-act' && req.method === 'POST') {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
       const body = await jsonBody(req, res); if (!body) return true;
-      if (!['do', 'done', 'fail', 'ignore', 'reopen'].includes(body.action)) return sendJson(res, 400, { error: 'action must be do|done|fail|ignore|reopen' }), true;
+      if (!['do', 'done', 'fail', 'ignore', 'reopen', 'escalate'].includes(body.action)) return sendJson(res, 400, { error: 'action must be do|done|fail|ignore|reopen|escalate' }), true;
       const ev = loadEvolve();
       const pr = ev.proposals.find((x) => x.id === body.id);
       if (!pr) return sendJson(res, 404, { error: 'not found' }), true;
+      const system = (pr.scope || 'system') === 'system';
+      // 시스템 진화를 시작·취소·되살리는 결정은 관리자만(완료·실패 보고는 실행한 쪽이 한다)
+      if (system && ['do', 'ignore', 'reopen'].includes(body.action) && !isAdmin(req)) return needAdmin(res, `Starting system proposal #${pr.id}`);
+      // 워크스페이스 제안을 시스템으로 올리기 — 새 기능이 있어야 할 때. 원래 제안은 그대로 두고 서로 잇는다
+      if (body.action === 'escalate') {
+        if (system) return sendJson(res, 400, { error: 'Already a system proposal' }), true;
+        if (pr.escalatedTo && ev.proposals.some((x) => x.id === pr.escalatedTo && !['done', 'dismissed', 'failed'].includes(x.status)))
+          return sendJson(res, 200, { ok: true, proposal: ev.proposals.find((x) => x.id === pr.escalatedTo), existing: true }), true;
+        const np = { id: ev.next++, type: pr.type, title: pr.title, desc: [pr.desc, `From workspace proposal #${pr.id} (${pr.ws}).`].filter(Boolean).join('\n').slice(0, 1000),
+          status: 'new', at: new Date().toISOString(), scope: 'system', fromId: pr.id, fromWs: pr.ws, ...(pr.reqId ? { reqId: pr.reqId } : {}) };
+        ev.proposals.push(np); pr.escalatedTo = np.id; pr.updatedAt = np.at;
+        if (ev.proposals.length > 80) ev.proposals = ev.proposals.slice(-80);
+        ev.version = (ev.version || 1) + 1; saveEvolve(ev); broadcast({ kind: 'evolve', version: ev.version });
+        audit(actor(req), 'evolve.escalate', `#${pr.id} → #${np.id}`);
+        return sendJson(res, 200, { ok: true, proposal: np }), true;
+      }
       pr.status = { do: 'doing', done: 'done', fail: 'failed', ignore: 'dismissed', reopen: 'new' }[body.action];
       pr.failReason = body.action === 'fail' ? String(body.reason || '').trim().slice(0, 1000) : body.action === 'reopen' || body.action === 'do' ? '' : (pr.failReason || '');
       pr.updatedAt = new Date().toISOString();   // 협업 목록(대기·처리 중·완료·취소)에서 최근 것부터 보이게
@@ -1583,7 +1710,8 @@ function createDashboardApi(core, opts) {
       }
       let notified;
       if (body.action === 'do') {
-        const n = queueNotify('evolve.do', `Evolve proposal #${pr.id} requested — [${pr.type}] ${pr.title.replace(/[\r\n]+/g, ' ')}. After applying, mark it done with POST /api/evolve-act {"id":${pr.id},"action":"done"}; if it can't be done, POST {"id":${pr.id},"action":"fail","reason":"why"}.`);
+        const scopeNote = system ? '' : ` This is a WORKSPACE proposal for workspace "${pr.ws}": change only that workspace's data through the APIs (diff via POST /api/agent, /api/link, notes/tasks/events routes, with ?ws=${pr.ws}) — do not change code; if it needs a new feature, escalate it with POST /api/evolve-act {"id":${pr.id},"action":"escalate"}.`;
+        const n = queueNotify('evolve.do', `Evolve proposal #${pr.id} requested — [${pr.type}] ${pr.title.replace(/[\r\n]+/g, ' ')}.${scopeNote} After applying, mark it done with POST /api/evolve-act {"id":${pr.id},"action":"done"}; if it can't be done, POST {"id":${pr.id},"action":"fail","reason":"why"}.`);
         notified = await tryDeliver(ctx);
         return sendJson(res, 200, { ok: true, status: pr.status, version: ev.version, notified, notifyId: n.id }), true;
       }

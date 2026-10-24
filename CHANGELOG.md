@@ -5,6 +5,23 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [Unreleased]
+
+### Added
+
+- **New layout: two scopes, one inbox each.** The three areas (Workspace / Collaborate / System) are now two, and the top of the screen always shows which one you are in. On phones the bottom menu follows the scope.
+  - **Workspace** (members): Work (Tasks · Calendar · Notes), **Knowledge** (was System › Relations), **Files** (now one folder per workspace), and **Inbox**. Inbox puts Approvals, Requests and the workspace's Evolve suggestions in one list with *Open / Done*, plus *Ask the agent*, *Ask the admin*, *Request a feature* and *Sent by you*.
+  - **System** (admin only, dark header band): **Inbox** (was Admin), **Roadmap**, and **Health**.
+    - Roadmap puts requirements, system proposals and upstream updates on one line each, Request → Proposal → Building → Checked, with the next action on the card. It replaces the Requirements, Evolve and Update tabs.
+    - Health puts Stats, Trustworthiness, Safety and Security on one page: riskiest first, OK checks folded, usage and activity below.
+  - Tabs go from 16 to 4 per role. Status filters go from five columns to *Open / Done*; each card still shows its own state.
+  - Project files in Files are for the admin only (server-checked). The README phone image shows the new layout.
+- **Admins and members.** Workspaces are where members work; the System is decided by the admin (`ANA_ADMINS=email,…`). An empty list, a single-user install, or a local call with no identity means everyone is admin, so nothing changes for single-user installs.
+  - **System › Admin** (admins only) collects **approval requests** and **work requests**, each with the five status lists. Members send them with *Ask the admin* (Requests and Approvals) and follow them under *Sent to the admin*. The agent sends them with `POST /api/admin/requests`. A system check at risk opens a work request and closes it when fixed.
+  - **Admin-only actions, checked on the server:** start, cancel or reopen a system proposal; bring in an Update; switch the agent to Bypass / Full Access; delete a workspace. A member's tap becomes an approval request instead. When the admin approves it, the action runs.
+  - The profile menu shows your role.
+- **Evolve has two scopes.** **System › Evolve** is for features, screens, APIs and the shared ontology; the admin starts them. **Collaborate › Evolve** is for running this workspace better with existing features; members start them, and the agent is told to change only that workspace's data. *Propose to the system* lifts a workspace proposal that needs a new feature. Existing proposals are system proposals.
+
 ## [0.7.0] — 2026-10-24
 
 ### Added

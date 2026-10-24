@@ -61,6 +61,7 @@ const apiOpts = {
   SEED: env.ANA_SEED !== '0' && !env.ANA_TEST,          // 첫 실행 예제(seed.js). ANA_SEED=0이면 빈 보드로 시작
   // 신원은 앞단(리버스 프록시·SSO 게이트웨이)이 헤더로 실어 줄 때만 잡힌다. 미지정이면 단일 사용자.
   IDENTITY_HEADER: env.ANA_IDENTITY_HEADER || '',
+  ADMINS: env.ANA_ADMINS || '',                        // 관리자 이메일(쉼표). 비우면 모두 관리자(단일 사용자 설치와 같음)
   LOGOUT_URL: env.ANA_LOGOUT_URL || '',
 };
 const opts = {

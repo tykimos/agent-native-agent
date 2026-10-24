@@ -10,8 +10,8 @@
 |---|---|
 | **Workspace**: 할일 · 일정 · 메모, 워크스페이스 여러 개 | 채팅, Chip·그리기 |
 | 항목 사이 관계(→ Task / → Event / ＋ Link), 관계 칩 | Relations › Analyze, Open in OntoAir |
-| **System**: Files(업로드·다운로드), Stats, Relations(흐름 그림, 흐름이 끊긴 곳, 지난 분석 결과 보기, .ttl 내려받기), Security | Evolve · Approvals · Requests, Trustworthiness · Safety, Update |
-| **Collaborate**: Requirements(요구사항 적기·고치기) | Requirements의 Analyze |
+| **Workspace**: Knowledge(흐름 그림, 흐름이 끊긴 곳, 지난 분석 결과 보기, .ttl 내려받기), Files(업로드·다운로드) | Health의 에이전트 점검(Security만 보임) |
+| **System**: Roadmap(요구사항 적기), Health | Inbox(에이전트 요청), Roadmap의 Check all · Ask the agent · Check for updates |
 
 ## 설치
 

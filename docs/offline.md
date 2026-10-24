@@ -10,8 +10,8 @@ ANA running on one Windows PC with no internet, no LLM (AI agent) and no tmux. A
 |---|---|
 | **Workspace**: tasks · calendar · notes, multiple workspaces | Chat, Chip and drawing |
 | Links between items (→ Task / → Event / ＋ Link), relation chips | Relations › Analyze, Open in OntoAir |
-| **System**: Files (upload/download), Stats, Relations (flow chart, where the flow breaks, earlier analysis results, .ttl download), Security | Evolve · Approvals · Requests, Trustworthiness · Safety, Update |
-| **Collaborate**: Requirements (write and edit) | Requirements › Analyze |
+| **Workspace**: Knowledge (flow chart, where the flow breaks, earlier analysis results, .ttl download), Files (upload/download) | agent checks in Health (only Security is shown) |
+| **System**: Roadmap (write requirements), Health | Inbox (agent requests), Roadmap › Check all / Ask the agent / Check for updates |
 
 ## Install
 

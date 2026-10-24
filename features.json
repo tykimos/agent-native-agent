@@ -222,7 +222,7 @@
       "id": "app-areas",
       "title": "Workspace / Collaborate / System areas",
       "skill": "app-shell",
-      "summary": "Mobile bottom nav (Workspace | Collaborate | System), desktop segmented switch next to the logo. Workspace = your data tabs + workspace combo; Collaborate = Evolve · Approvals · Requests; System = Stats · Relations · Trustworthiness · Safety · Security. Badges on Collaborate (things waiting on you) and System (checks at risk).",
+      "summary": "Two scopes: Workspace (members: Tasks · Calendar · Notes · Knowledge · Files · Inbox) and System (admin: Inbox · Roadmap · Health, dark header band). On phones a bottom menu per scope (Work · Knowledge · Files · Inbox · System / Inbox · Roadmap · Health · Workspace); the top tab strip shows only for Tasks · Calendar · Notes. Badges: Inbox = what waits on you in this workspace; System = admin inbox + roadmap items to start + checks at risk.",
       "anchors": [
         "bottomnav",
         "modeseg",
@@ -230,8 +230,10 @@
         "function applyArea",
         "function selectTab",
         "data-sysbadge",
-        "data-collabbadge",
-        "const AREAS = ['ws', 'collab', 'sys']"
+        "data-inboxbadge",
+        "const AREAS = ['ws', 'sys']",
+        "function syncBottomNav",
+        "data-go=\"ws:inbox\""
       ]
     },
     {
@@ -254,8 +256,8 @@
       "anchors": [
         "/api/requests",
         "/api/request-act",
-        "requestsView",
-        "approvalsView",
+        "inboxView",
+        "function renderInboxSeg",
         "function refreshRequests",
         "function renderReqBox",
         "function renderApprovals",
@@ -276,7 +278,7 @@
         "/api/requirements/analyze",
         "/api/requirements/result",
         "REQUIREMENTS_FILE",
-        "requirementsView",
+        "roadmapView",
         "function renderRequirements",
         "function analyzeRequirements"
       ]
@@ -289,7 +291,7 @@
       "anchors": [
         "/api/evolve",
         "/api/evolve-act",
-        "evolveView",
+        "function askEvolveAgent",
         "function refreshEvolve",
         "function renderEvolve",
         "reopen: 'new'"
@@ -299,16 +301,16 @@
       "id": "system-trust",
       "title": "Trustworthiness · Safety · Security checks",
       "skill": "trust-checks",
-      "summary": "System tabs computed from real state by /api/trust: agent running, structured log, tool failure rate, interruptions, plan usage (Trustworthiness); permission-bypass flags, risky commands the agent ran, approval gate (Safety); bind address, sign-in, CSRF, token handling, credential file mode, secrets saved in notes/tasks (Security). Risk count badges System.",
+      "summary": "System tabs computed from real state by /api/trust: agent running, structured log, tool failure rate, interruptions, plan usage (Trustworthiness); permission-bypass flags, risky commands the agent ran, approval gate (Safety); bind address, sign-in, CSRF, token handling, credential file mode, secrets saved in notes/tasks (Security). Risk count badges System. Shown as one System › Health page: risk → review → info across Trustworthiness · Safety · Security, OK checks folded, then usage stats and activity.",
       "anchors": [
         "/api/trust",
         "function collectTrust",
         "RISKY_CMDS",
         "SECRET_PATTERNS",
         "function refreshTrust",
-        "reliabilityView",
-        "safetyView",
-        "securityView"
+        "healthView",
+        "id=\"healthList\"",
+        "id=\"healthOk\""
       ]
     },
     {
@@ -320,7 +322,7 @@
         "/api/update/check",
         "/api/update-act",
         "function runUpdateCheck",
-        "updateView",
+        "function updState",
         "function renderUpdates",
         "UPDATES_FILE"
       ]
@@ -335,6 +337,21 @@
         "html[data-offline]",
         "OFFLINE_VIEWS",
         "ANA_OPEN"
+      ]
+    },
+    {
+      "id": "admin-roles",
+      "title": "Admins and members — System › Admin inbox, Evolve scopes",
+      "skill": "agent-requests",
+      "summary": "Roles (ANA_ADMINS; single-user = admin). Server gates system actions (system Evolve start/cancel, Update, risky permission modes, workspace delete) with needsAdmin; the page turns them into admin approval requests, executed on approval. System › Admin lists approvals and work requests from members, the agent and system checks (risk → work request). Evolve proposals are system or workspace scoped; workspace ones can be escalated.",
+      "anchors": [
+        "function roleOf",
+        "/api/admin/inbox",
+        "function syncCheckRequests",
+        "function renderAdmin",
+        "function askAdmin",
+        "function runAdminAction",
+        "action === 'escalate'"
       ]
     }
   ]
