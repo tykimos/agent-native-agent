@@ -164,12 +164,12 @@ Each page shows one kind of thing at a time; pages with several kinds have sub-t
 - **Inbox (Workspace):** *Approvals* (data changes, analysis results to add to the knowledge graph, decisions, access) · *Work requests* (what the agent needs you to do or tell it) · *Evolve* (suggestions for running this workspace better) · *Sent* (what you asked the admin, your feature requests). The same words as System › Inbox.
 - **Knowledge:** *Links* (how items connect, where the flow breaks) · *Knowledge graph* (this workspace's entities and facts) · *Analysis* (the agent reads your items) · *Ontology* (the shared concepts, read-only).
 - **Files** is the workspace's own folder, plus chat attachments (read-only).
-- **Inbox (System):** *Approvals* · *Work requests* for the admin, from members, the agent and the system checks.
-- **Roadmap:** *Requirements* · *Evolve* (system proposals) · *Updates* (upstream). Each item is one line with its stage (e.g. Request → Proposal → Building → Checked) and the next action.
-- **Ontology:** *Classes* · *Relations* — the concepts every workspace's knowledge graph uses. The core (Note, Task, Event, Day and the app's relations) is built in; the admin adds the rest, or approves the ones an analysis proposes.
+- **Inbox (System):** *Approvals* · *Work requests* (from members, the agent and the system checks) · *Evolve* (proposals to change the system — the admin starts them).
+- **Roadmap:** *Requirements* · *Updates* (upstream) — where each change stands, one line per item with its stage (e.g. Request → Proposal → Building → Checked) and the next action. The Inbox is for deciding, the Roadmap for following progress.
+- **Ontology:** *Classes* · *Relations* — the concepts every workspace's knowledge graph uses. The core (Note, Task, Event, Day and the app's relations) is built in; the admin adds the rest, or approves the ones an analysis proposes. It is a lens, not a gate: what doesn't fit is kept and marked *not in the ontology yet*, and relations marked inverse / symmetric / transitive add *inferred* facts ([relations](docs/relations.md)).
 - **Health:** *Trustworthiness* · *Safety* · *Security* (riskiest first, OK checks folded) · *Tests* (run this ANA's tests and see what failed) · *Usage* (stats and activity).
 
-**Where is Evolve?** Workspace › Inbox › *Evolve* for this workspace (members start them), System › Roadmap › *Evolve* for the system (the admin starts them).
+**Where is Evolve?** Always in the **Inbox**: Workspace › Inbox › *Evolve* for this workspace (members start them), System › Inbox › *Evolve* for the system (the admin starts them). Same cards, same buttons — only the scope differs.
 
 ### Chat — like the Claude app
 

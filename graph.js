@@ -87,7 +87,7 @@ function snapshot(s, scope, kg) {
     const g = kg.graph;
     for (const e of g.entities || []) node({ id: KG_PREFIX + e.id, kind: kgKind(e.class), scope, no: kg.job === 'kg' ? 'knowledge graph' : `analysis #${kg.job}`, title: String(e.label || e.id), status: '', updated_at: '' });
     for (const e of g.entities || []) for (const src of e.sources || []) if (ids.has(src)) edge(KG_PREFIX + e.id, src, 'MENTIONED_IN');
-    for (const f of g.facts || []) edge(KG_PREFIX + f.from, KG_PREFIX + f.to, kgType(f.rel), f.sources && f.sources.length ? { sources: f.sources } : {});
+    for (const f of g.facts || []) edge(KG_PREFIX + f.from, KG_PREFIX + f.to, kgType(f.rel), { ...(f.sources && f.sources.length ? { sources: f.sources } : {}), ...(f.inferred ? { inferred: true, rule: f.rule } : {}) });   // 규칙 추론한 사실은 표시해서
   }
   return [{ nodes, edges }];
 }

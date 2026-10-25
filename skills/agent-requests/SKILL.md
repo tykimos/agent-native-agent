@@ -20,7 +20,7 @@ Where they live now (see app-shell): the member's **Workspace › Inbox** gather
 
 ## Admin and member
 
-Roles: `admin` decides the System, `member` works in workspaces (`roleOf(req)`; `ANA_ADMINS`; everyone is admin when the list is empty, when there's no identity header, or for local calls without identity). Server-side gates return `403 {needsAdmin:true}` for: system Evolve `do|ignore|reopen`, `update-act do|ignore|reopen`, risky permission modes, workspace delete. The page turns that into `askAdmin({type:'approval', title, action:{kind,…}})`. The admin approves it in **System › Admin**, and `runAdminAction` runs the action as the admin before the approval is recorded. Admin inbox: `admin.json` next to `evolve.json`, `GET /api/admin/inbox`, `POST /api/admin/requests`, `POST /api/admin/act`. `syncCheckRequests` opens one work request per check at risk and closes it when the check recovers. Evolve proposals carry `scope: system|workspace` (+`ws`); `escalate` copies a workspace proposal to the system (`fromId`/`escalatedTo`). Workspace proposals render in Workspace › Inbox, system proposals in System › Roadmap.
+Roles: `admin` decides the System, `member` works in workspaces (`roleOf(req)`; `ANA_ADMINS`; everyone is admin when the list is empty, when there's no identity header, or for local calls without identity). Server-side gates return `403 {needsAdmin:true}` for: system Evolve `do|ignore|reopen`, `update-act do|ignore|reopen`, risky permission modes, workspace delete. The page turns that into `askAdmin({type:'approval', title, action:{kind,…}})`. The admin approves it in **System › Admin**, and `runAdminAction` runs the action as the admin before the approval is recorded. Admin inbox: `admin.json` next to `evolve.json`, `GET /api/admin/inbox`, `POST /api/admin/requests`, `POST /api/admin/act`. `syncCheckRequests` opens one work request per check at risk and closes it when the check recovers. Evolve proposals carry `scope: system|workspace` (+`ws`); `escalate` copies a workspace proposal to the system (`fromId`/`escalatedTo`). Workspace proposals render in Workspace › Inbox › Evolve, system proposals in System › Inbox › Evolve.
 
 ## Requirements (user → system)
 
@@ -68,7 +68,7 @@ Card actions follow the list:
 
 ## Evolve
 
-- `POST /api/evolve` (the agent files proposals, `scope: system|workspace`), `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen|escalate}`, `refreshEvolve`, `askEvolveAgent(scope)` (`#evoAnalyze` in Inbox for the workspace, `#sysEvoAnalyze` in Roadmap for the system); workspace proposals render in Inbox (`renderEvolve`), system ones in Roadmap (`renderRoadmap`: `reqState`, `evoState`, `updState`) which asks the agent to review the app and propose. **do** sends "[Evolve] Implement/apply proposal #id …" to the agent.
+- `POST /api/evolve` (the agent files proposals, `scope: system|workspace`), `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen|escalate}`, `refreshEvolve`, `askEvolveAgent(scope)` (`#evoAnalyze` in Inbox for the workspace, `#sysEvoAnalyze` in Roadmap for the system); both render with `evoCardsHtml` — workspace proposals in Workspace › Inbox › Evolve (`#evoList`), system ones in System › Inbox › Evolve (`#sevoList`); the Roadmap (`renderRoadmap`: `reqState`, `updState`) only follows requirements and updates) which asks the agent to review the app and propose. **do** sends "[Evolve] Implement/apply proposal #id …" to the agent.
 
 ## Porting
 

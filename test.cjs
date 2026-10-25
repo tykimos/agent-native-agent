@@ -1008,7 +1008,7 @@ async function integration() {
       assert.equal((await (await fetch(`${api}/api/analysis`)).json()).latest.status, 'cancelled');
     });
 
-    await ta('C18 온톨로지는 시스템, 지식그래프는 워크스페이스: 분석 틀 검증 · 새 개념은 관리자 승인 · 결과는 승인해야 지식그래프에 · 개념 승인 뒤 대기분 반영 · NodeRel · TTL', async () => {
+    await ta('C18 온톨로지는 시스템, 지식그래프는 워크스페이스: 틀은 렌즈(버리지 않고 표시) · 새 개념은 관리자에게 정리 요청 · 결과는 승인해야 지식그래프에 · 규칙 추론 · NodeRel · TTL', async () => {
       // 시스템 온톨로지: 핵심(Note·Task·Event·Day, SPAWNED…)은 고정 + C16이 남긴 Org·client_of는 처음 읽을 때 옮겨 온다
       let ont = await (await fetch(`${api}/api/ontology`)).json();
       assert.ok(ont.classes.some((c) => c.id === 'Task' && c.core) && ont.relations.some((r) => r.id === 'SPAWNED' && r.core));
@@ -1031,9 +1031,10 @@ async function integration() {
         relations: [{ id: 'odd', label: 'odd', domain: 'Nope', range: 'Org' }] },
         graph: { entities: [{ id: 'pat', label: '팻 김', class: 'Person', sources: [src] }, { id: 'acme', label: 'Acme "Co"', class: 'Org', sources: [src] }, { id: 'bob', label: 'Bob', class: 'Agent' }, { id: 'zed', label: 'Zed', class: 'Alien' }],
           facts: [{ from: 'pat', rel: 'works_for', to: 'acme', sources: [src] }, { from: 'bob', rel: 'works_for', to: 'acme' }, { from: 'acme', rel: 'works_for', to: 'acme' }, { from: 'pat', rel: 'knows', to: 'acme' }] } })).json();
-      assert.equal(j.facts, 2, '틀 검증: 하위 클래스는 통과, domain을 어기거나 모르는 관계는 버림');
-      assert.match(j.issues.map((x) => x.msg).join('\n'), /"knows" is not in the ontology/);
-      assert.deepEqual(j.newConcepts, ['class Person', 'relation odd'], '시스템에 없는 개념은 관리자 승인요청으로');
+      assert.equal(j.facts, 4, '틀은 렌즈: 모르는 관계·domain이 어긋난 사실도 버리지 않는다');
+      assert.match(j.issues.map((x) => x.msg).join('\n'), /"knows" is not in the ontology yet — kept/);
+      assert.match(j.issues.map((x) => x.msg).join('\n'), /meant to go from Agent.*kept, marked as not fitting/);
+      assert.deepEqual(j.newConcepts, ['class Person', 'class Alien', 'relation odd', 'relation knows'], '선언했든 그냥 썼든, 시스템에 없는 개념은 관리자에게');
       const inbox = (await (await fetch(`${api}/api/admin/inbox`)).json()).items;
       const ap = inbox.find((x) => x.ref === 'onto:class:Person');
       assert.ok(ap && ap.type === 'approval' && ap.action.kind === 'ontology.add' && ap.action.item.parent === 'Agent');
@@ -1041,16 +1042,39 @@ async function integration() {
       assert.equal((await (await fetch(`${api}/api/kg`)).json()).entities.length, 0);
       assert.equal((await fetch(`${api}/api/graph/neighbors?id=kg:acme`)).status, 404);
       const ap2 = await (await post('/api/analysis/apply', { id })).json();
-      assert.deepEqual(ap2.added, { entities: 3, facts: 1 }, '아는 개념(Org·Agent·works_for)만 들어간다');
-      assert.deepEqual(ap2.pending, { entities: 1, facts: 1 }, 'Person(새 개념)을 쓰는 개체·사실은 대기');
+      assert.deepEqual(ap2.added, { entities: 4, facts: 4 }, '모두 들어간다 — 기다리게 하지 않는다');
+      assert.deepEqual(ap2.pending, { entities: 0, facts: 0 });
       assert.equal((await post('/api/analysis/apply', { id })).status, 409, '두 번 더하지 않는다');
       let kg = await (await fetch(`${api}/api/kg`)).json();
-      assert.ok(kg.entities.some((e) => e.id === 'bob') && kg.facts.some((f) => f.from === 'bob' && f.rel === 'works_for'));
-      // 관리자가 Person을 승인(=온톨로지에 추가)하면 대기분이 들어간다
+      const ent = (x) => kg.entities.find((e) => e.id === x), fact = (a, r, b) => kg.facts.find((f) => f.from === a && f.rel === r && f.to === b);
+      assert.equal(ent('pat').fit, false, 'Person은 아직 온톨로지에 없다 — 들어가되 표시');
+      assert.equal(ent('zed').class, 'Alien'); assert.equal(ent('zed').fit, false);
+      assert.equal(fact('bob', 'works_for', 'acme').fit, true);
+      assert.match(fact('acme', 'works_for', 'acme').why, /meant to go from Agent/);
+      assert.match(fact('pat', 'knows', 'acme').why, /not in the ontology yet/);
+      assert.deepEqual(kg.notFitting, { entities: 2, facts: 2 });
+      // 관리자가 Person을 승인(=온톨로지에 추가)하면 다시 분석할 것 없이 바로 '맞음' — 맞는지는 읽을 때 계산
       await post('/api/ontology', { action: 'add', kind: 'class', item: ap.action.item });
       kg = await (await fetch(`${api}/api/kg`)).json();
-      assert.ok(kg.entities.some((e) => e.id === 'pat' && e.class === 'Person') && kg.facts.some((f) => f.from === 'pat' && f.to === 'acme'), '개념 승인 뒤 대기분 반영');
-      assert.equal(kg.entities.find((e) => e.id === 'zed').class, '', '모르는 클래스는 비운 채로');
+      assert.equal(ent('pat').fit, true); assert.deepEqual(ent('pat').types, ['Person', 'Agent'], '상위 클래스로도 타입');
+      assert.equal(fact('pat', 'works_for', 'acme').fit, true);
+      // 규칙 추론: 역관계(한쪽에만 적어도) · 대칭 · 전이. 추론한 것은 inferred + 규칙 + 근거, 저장하지 않는다
+      assert.equal((await post('/api/ontology', { action: 'add', kind: 'relation', item: { id: 'employs', inverse: 'nope' } })).status, 400, '없는 역관계');
+      await post('/api/ontology', { action: 'add', kind: 'relation', item: { id: 'employs', label: 'employs', domain: 'Org', range: 'Agent', inverse: 'works_for' } });
+      await post('/api/ontology', { action: 'add', kind: 'relation', item: { id: 'part_of', label: 'part of', domain: 'Org', range: 'Org', transitive: true } });
+      await post('/api/ontology', { action: 'add', kind: 'relation', item: { id: 'partners', label: 'partners with', symmetric: true } });
+      j = await (await post('/api/analysis/start', { kinds: ['tasks'] })).json();
+      await post('/api/analysis/result', { id: j.job.id, graph: { entities: ['o1', 'o2', 'o3', 'acme'].map((x) => ({ id: x, label: x, class: 'Org' })),
+        facts: [{ from: 'o1', rel: 'part_of', to: 'o2' }, { from: 'o2', rel: 'part_of', to: 'o3' }, { from: 'o1', rel: 'partners', to: 'acme' }] } });
+      await post('/api/analysis/apply', { id: j.job.id });
+      kg = await (await fetch(`${api}/api/kg`)).json();
+      const inf = (a, r, b) => kg.inferred.find((f) => f.from === a && f.rel === r && f.to === b);
+      assert.equal(inf('acme', 'employs', 'pat').rule, 'inverse');
+      assert.equal(inf('o1', 'part_of', 'o3').rule, 'transitive'); assert.equal(inf('o1', 'part_of', 'o3').because.length, 2);
+      assert.equal(inf('acme', 'partners', 'o1').rule, 'symmetric');
+      assert.ok(!kg.facts.some((f) => f.inferred), '추론은 사실 목록에 섞지 않는다');
+      const nbi = await (await fetch(`${api}/api/graph/neighbors?id=kg:o1`)).json();
+      assert.ok(nbi.links.some((l) => l.type === 'part_of' && l.other.id === 'kg:o3'), 'NodeRel에도 추론한 사실');
       // NodeRel: 개체 kg:<id>, 사실, 근거 MENTIONED_IN
       const nb = await (await fetch(`${api}/api/graph/neighbors?id=kg:pat`)).json();
       assert.ok(nb.links.some((l) => l.type === 'works_for' && l.other.id === 'kg:acme') && nb.links.some((l) => l.type === 'MENTIONED_IN' && l.other.id === src));
@@ -1064,6 +1088,7 @@ async function integration() {
       assert.match(ttl, /ana:Person rdf:type owl:Class ;\n {4}rdfs:label "Person" ;\n {4}rdfs:subClassOf ana:Agent \./);
       assert.match(ttl, /kg:pat rdf:type ana:Person ;\n {4}rdfs:label "팻 김" ;\n {4}ana:works_for kg:acme/);
       assert.match(ttl, /rdfs:label "Acme \\"Co\\""/, '따옴표 이스케이프');
+      assert.match(ttl, /ana:employs rdf:type owl:ObjectProperty[^.]*owl:inverseOf ana:works_for/); assert.match(ttl, /ana:part_of [^.]*owl:TransitiveProperty/); assert.match(ttl, /ana:partners [^.]*owl:SymmetricProperty/);
       // 분석 결과 TTL·공유 링크(OntoAir)는 그대로
       r = await post('/api/analysis/share', { id }); const sh = await r.json(); assert.match(sh.path, /^\/api\/analysis\/shared\/[0-9a-f]{40}\/ana-analysis-\d+\.ttl$/);
       r = await fetch(api + sh.path); assert.equal(r.status, 200); assert.equal(r.headers.get('access-control-allow-origin'), '*');

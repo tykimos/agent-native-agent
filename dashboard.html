@@ -1236,6 +1236,11 @@ body.sys-mode .ws-combo { display: none; }
 .kg-svg .e { stroke: var(--text-weak); stroke-width: 1.2; opacity: .55; } .kg-svg .e.hl { stroke: var(--blue); opacity: 1; stroke-width: 2; }
 .kg-svg .el { font-size: 9.5px; fill: var(--text-weak); } .kg-svg .n { cursor: pointer; } .kg-svg .n text { font-size: 11px; font-weight: 700; fill: var(--text); paint-order: stroke; stroke: var(--surface-2); stroke-width: 3px; }
 .kg-svg.many .el { opacity: 0; } .kg-svg.many.dim .el.hl { opacity: 1; }   /* 사실이 많으면 선 이름은 고른 개체 것만 */
+.ib-chk { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 700; color: var(--text-weak); white-space: nowrap; margin-right: 6px; }
+.kg-svg .e.inf { stroke-dasharray: 4 3; } .kg-svg .el.inf { font-style: italic; }   /* 규칙으로 추론한 사실 */
+.kg-svg .e.nofit { stroke: var(--orange, #E8701A); } .kg-svg .n.nofit circle { stroke: var(--orange, #E8701A); stroke-width: 2; stroke-dasharray: 3 2; }   /* 아직 온톨로지에 없음 — 막지 않고 보여 준다 */
+.kg-detail .tag { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: var(--surface-2); color: var(--text-weak); margin-left: 4px; }
+.kg-legend .lg-line { display: inline-block; width: 18px; border-top: 2px solid var(--text-weak); vertical-align: middle; margin-right: 4px; } .kg-legend .lg-line.inf { border-top-style: dashed; } .kg-legend .lg-line.nofit { border-top-color: var(--orange, #E8701A); }
 .kg-svg.dim .n:not(.hl) { opacity: .25; } .kg-svg.dim .e:not(.hl) { opacity: .1; } .kg-svg.dim .el:not(.hl) { opacity: 0; }
 .kg-legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 2px; font-size: 12px; color: var(--text-sub); font-weight: 700; }
 .kg-detail { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: 13px; }
@@ -1533,12 +1538,12 @@ body.sys-mode .ws-combo { display: none; }
       <div class="empty" id="anaEmpty">No analysis yet — press [Analyze]</div>
     </div>
     <div data-subsec="kg">
-      <div class="toolbar"><span class="cnt" id="kgSum"></span><span class="sp"></span><button class="ib-btn" id="kgOntoAir">Open in OntoAir ↗</button><button class="ib-btn" id="kgTtl">Download .ttl</button></div>
+      <div class="toolbar"><span class="cnt" id="kgSum"></span><span class="sp"></span><label class="ib-chk" title="Facts derived by the ontology's rules (inverse, symmetric, transitive)"><input type="checkbox" id="kgInfer" checked> Inferred</label><button class="ib-btn" id="kgOntoAir">Open in OntoAir ↗</button><button class="ib-btn" id="kgTtl">Download .ttl</button></div>
       <div class="card kg-card" id="kgGraph"></div>
       <div class="empty" id="kgEmpty">The knowledge graph is empty — run an analysis and add its result</div>
     </div>
     <div data-subsec="ontology">
-      <div class="evo-lead sub-lead">The shared concepts every workspace uses. The admin manages them in System › Ontology; new ones proposed by an analysis wait for the admin's OK.</div>
+      <div class="evo-lead sub-lead">The shared concepts every workspace uses. The admin manages them in System › Ontology; it is a guide, not a limit — an analysis may use new concepts right away (shown as "not in the ontology yet") and the admin is asked to add them.</div>
       <div id="ontoRead"></div>
       <div class="sec-head" style="margin-top:18px"><h2>Built-in relations</h2></div>
       <div class="card rel-vocab" id="relVocab"></div>
@@ -1593,6 +1598,7 @@ body.sys-mode .ws-combo { display: none; }
       <input id="ofLabel" maxlength="80" placeholder="Label" aria-label="Label">
       <div class="of-row" data-of="class"><label>Kind of <select id="ofParent"></select></label></div>
       <div class="of-row" data-of="relation"><label>From <select id="ofDomain"></select></label><label>To <select id="ofRange"></select></label></div>
+      <div class="of-row" data-of="relation"><label>Inverse <select id="ofInverse"></select></label><label><input type="checkbox" id="ofSym"> Symmetric</label><label><input type="checkbox" id="ofTrans"> Transitive</label></div>
       <textarea id="ofDesc" rows="2" maxlength="300" placeholder="What it means (optional)" aria-label="Description"></textarea>
       <div class="rqm-add-acts"><button type="button" id="ofCancel">Cancel</button><button type="submit" class="ok" id="ofSave">Add</button></div>
     </form>
@@ -1623,16 +1629,20 @@ body.sys-mode .ws-combo { display: none; }
   <!-- 진화 -->
   <section class="view" id="adminView" role="tabpanel"><div class="wrap">
     <nav class="subtabs" data-sub="admin" role="tablist" aria-label="Admin inbox"></nav>
-    <div class="toolbar"><div class="stseg two" data-stseg="adm" role="tablist" aria-label="Status"></div></div>
-    <div id="admList"></div>
-    <div class="empty" id="admEmpty"></div>
+    <div class="toolbar"><div class="stseg two" data-stseg="adm" role="tablist" aria-label="Status"></div><span class="sp"></span><button class="ib-btn" id="sysEvoAnalyze" data-for="evolve">Ask the agent</button></div>
+    <div data-subsec="approval work"><div id="admList"></div><div class="empty" id="admEmpty"></div></div>
+    <div data-subsec="evolve">
+      <div class="evo-lead sub-lead">Changes to the system itself — features, screens, APIs, the shared ontology. They affect every workspace; start the ones to build. Their progress shows on the Roadmap.</div>
+      <div id="sevoList"></div>
+      <div class="empty" id="sevoEmpty"></div>
+    </div>
   </div></section>
   <!-- System › Roadmap: 시스템이 바뀌는 길 — 요구사항 → 제안 → 만드는 중 → 확인, 업스트림 업데이트도 같은 줄에 -->
   <section class="view" id="roadmapView" role="tabpanel"><div class="wrap">
     <nav class="subtabs" data-sub="roadmap" role="tablist" aria-label="Roadmap"></nav>
     <div class="toolbar"><div class="stseg two" data-stseg="road" role="tablist" aria-label="Show"></div><span class="sp"></span>
       <button class="ib-btn" id="rqmNew" data-for="req">+ Requirement</button><button class="ib-btn" id="rqmAnalyze" data-for="req">Check all</button>
-      <button class="ib-btn" id="sysEvoAnalyze" data-for="evolve">Ask the agent</button><button class="ib-btn" id="updCheck" data-for="upd">Check for updates</button></div>
+      <button class="ib-btn" id="updCheck" data-for="upd">Check for updates</button></div>
     <form class="card rqm-add" id="rqmAdd" autocomplete="off" hidden>
       <input id="rqmTitle" maxlength="200" placeholder="Requirement — e.g. Show overdue tasks first" aria-label="Requirement">
       <textarea id="rqmDetail" rows="2" maxlength="4000" placeholder="Details (optional) — why it matters, how you'd check it" aria-label="Details"></textarea>
@@ -1836,7 +1846,7 @@ body.sys-mode .ws-combo { display: none; }
   <p class="ana-lead">The agent reads the items you pick and builds an <b>ontology</b> (the kinds of things and relations) and a <b>knowledge graph</b> (the actual things and facts).</p>
   <div class="ana-picks" id="anaPicks"></div>
   <label class="ana-opt"><input type="checkbox" id="anaOpen"> Only open tasks and events</label>
-  <div class="ana-opt" id="anaBaseRow">Uses the shared ontology<span class="n" id="anaBaseN"></span> — new concepts go to the admin</div>
+  <div class="ana-opt" id="anaBaseRow">Guided by the shared ontology<span class="n" id="anaBaseN"></span> — new concepts are kept and sent to the admin</div>
   <div class="fld"><input id="anaFocus" placeholder="Focus (optional) — e.g. people, organizations, places" maxlength="300" aria-label="Analysis focus"></div>
   <div class="modal-acts"><button class="cancel" data-close>Cancel</button><button class="ok" id="anaStart">Start analysis</button></div>
 </div>
@@ -1884,7 +1894,7 @@ let sessionAlive = false, busy = false, atBottom = true;
 // 선언줄 이전에 읽으면 던지고, 그러면 이후 스크립트 전체가 중단된다(실제로 그런 사고가 있었다).
 let contextChips = [], attachments = [];
 // 대화 기록 모드(Claude Code JSONL) 상태 — pollHealth가 부트스트랩 중에 부르므로 여기서 먼저 선언한다
-let sw = null, logAgain = false, evoFocus = 0, testRisk = 0;   // evoFocus = 요구사항 카드에서 'Open in Evolve'로 연 제안   // sw = 세션 전환·긴 대화 불러오기 진행(단계별 표시)
+let sw = null, logAgain = false, evoFocus = 0, testRisk = 0, admOpen = 0;   // evoFocus = 요구사항 카드에서 'Open in Evolve'로 연 제안   // sw = 세션 전환·긴 대화 불러오기 진행(단계별 표시)
 let logMode = false, logRev = 0, logSession = '', logTimer = null, logBusy = false, logModel = '', logServerModel = '', logServerEffort = '', logEffort = '', msheetBusy = false, logKind = '', limits = null, trustRisk = 0, permInfo = null, permBusy = false, permPollAt = 0, logOldest = 0, logHasOlder = false, logLoadingOlder = false;
 const logOpen = new Set();          // 사용자가 펼쳐 둔 도구 묶음(다시 그려도 유지)   // attachments: {name, size, path, pending}
 
@@ -2442,17 +2452,7 @@ async function refreshEvolve() {
 const evoScope = () => 'workspace';   // 받은함의 제안 = 이 워크스페이스. 시스템 제안은 Roadmap이 그린다
 const scopeOf = (p) => p.scope || 'system';
 const inScope = (p, sc) => scopeOf(p) === sc && (sc === 'system' || p.ws === (currentWs || 'default'));
-function renderEvolve() {
-  const sc = evoScope();
-  // 요구사항에서 연 제안이면 그 제안이 든 목록으로 바꾼다
-  const fp = evoFocus && evoCache.find((x) => x.id === evoFocus && scopeOf(x) === 'workspace'); if (fp && BUCKET_OF.evo[fp.status]) stFilter.evo = ['done', 'fail', 'cancel'].includes(BUCKET_OF.evo[fp.status]) ? 'closed' : 'open';
-  const B = bucketList(evoCache.filter((p) => inScope(p, sc)), BUCKET_OF.evo), k = stFilter.evo;
-  inboxCounts.evolve = { open: B.open.length, closed: B.closed.length }; renderInboxSeg();
-  const waitOf = (x) => evoCache.filter((p) => inScope(p, x) && p.status === 'new').length;
-  const nW = waitOf('workspace'), nS = waitOf('system');
-  $('evoBadge').textContent = nW; $('evoBadge').classList.toggle('show', nW > 0);
-  $('sevoBadge').textContent = nS; $('sevoBadge').classList.toggle('show', nS > 0 && myRole === 'admin'); updateSysBadge();
-
+function evoCardsHtml(list) {
   const TYPES = { improve: 'improve', add: 'add', remove: 'remove' };
   const ACTS = {
     wait: '<button class="talk">Discuss</button><button class="do">Do it</button><button class="ignore">Ignore</button>',
@@ -2461,12 +2461,13 @@ function renderEvolve() {
     done: '<button class="reopen">Reopen</button>',
     cancel: '<button class="reopen">Restore</button>',
   };
-  $('evoList').innerHTML = B[k].map((p) => {
+  return list.map((p) => {
     const type = TYPES[p.type] || 'improve'; const id = Number(p.id) || 0;
     const gated = scopeOf(p) === 'system' && myRole !== 'admin';   // 실무자: 시작·취소는 관리자 승인요청으로
     const pk = BUCKET_OF.evo[p.status] || 'wait';
     let acts = ACTS[pk];
-    if (gated) acts = acts.replace('<button class="do">Do it</button>', '<button class="do">Request approval</button>').replace('<button class="ignore">Ignore</button>', '').replace('<button class="reopen">Try again</button>', '<button class="reopen">Request retry</button>');
+    if (scopeOf(p) === 'system') acts = acts.replace('<button class="do">Do it</button>', `<button class="do">${gated ? 'Request approval' : 'Start'}</button>`);
+    if (gated) acts = acts.replace('<button class="ignore">Ignore</button>', '').replace('<button class="reopen">Try again</button>', '<button class="reopen">Request retry</button>');
     if (scopeOf(p) === 'workspace' && (pk === 'wait' || pk === 'doing' || pk === 'fail') && !p.escalatedTo) acts += '<button class="escalate">Propose to the system</button>';
     const links = [p.escalatedTo ? `<button class="evo-link" data-goevo="${Number(p.escalatedTo)}">Sent to the system as #${Number(p.escalatedTo)}</button>` : '',
       p.fromId ? `<span class="evo-link">From workspace proposal #${Number(p.fromId)}${p.fromWs ? ` · ${escapeHtml((wsById(p.fromWs) || {}).name || p.fromWs)}` : ''}</span>` : ''].join('');
@@ -2478,11 +2479,26 @@ function renderEvolve() {
       ${links}
       <div class="evo-acts">${acts}</div>
     </div>`; }).join('');
-  $('evoEmpty').textContent = ST_EMPTY.evo[k]; $('evoEmpty').style.display = B[k].length ? 'none' : 'block';
-  if (fp) { const el = $('evoList').querySelector(`[data-eid="${fp.id}"]`); if (el) setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50); evoFocus = 0; }
 }
-$('evoList').addEventListener('click', async (e) => {
-  const ge = e.target.closest('[data-goevo]'); if (ge) { evoFocus = Number(ge.dataset.goevo); if (myRole === 'admin') { openSub('roadmap', 'evolve'); setAppMode('sys', 'roadmap'); } else toast(`Proposal #${ge.dataset.goevo} is with the admin`); return; }
+// 진화 제안: Workspace › Inbox › Evolve(이 워크스페이스) · System › Inbox › Evolve(시스템). 같은 카드, 범위만 다르다
+function renderEvolve() {
+  const fp = evoFocus && evoCache.find((x) => x.id === evoFocus);
+  if (fp && BUCKET_OF.evo[fp.status]) { const closed = ['done', 'fail', 'cancel'].includes(BUCKET_OF.evo[fp.status]) ? 'closed' : 'open'; if (scopeOf(fp) === 'system') stFilter.adm = closed; else stFilter.evo = closed; }
+  const W = bucketList(evoCache.filter((p) => inScope(p, 'workspace')), BUCKET_OF.evo), S = bucketList(evoCache.filter((p) => inScope(p, 'system')), BUCKET_OF.evo);
+  inboxCounts.evolve = { open: W.open.length, closed: W.closed.length }; renderInboxSeg();
+  const nW = W.wait.length, nS = S.wait.length;
+  $('evoBadge').textContent = nW; $('evoBadge').classList.toggle('show', nW > 0);
+  $('sevoBadge').textContent = nS; $('sevoBadge').classList.toggle('show', nS > 0 && myRole === 'admin');
+  setSubCount('admin', 'evolve', nS); updateSysBadge();
+  const kw = stFilter.evo, ks = stFilter.adm || 'open';
+  $('evoList').innerHTML = evoCardsHtml(W[kw]);
+  $('evoEmpty').textContent = ST_EMPTY.evo[kw]; $('evoEmpty').style.display = W[kw].length ? 'none' : 'block';
+  $('sevoList').innerHTML = evoCardsHtml(S[ks]);
+  $('sevoEmpty').textContent = ks === 'closed' ? 'No finished system proposals yet' : 'No system proposals — press [Ask the agent]'; $('sevoEmpty').style.display = S[ks].length ? 'none' : 'block';
+  if (fp) { const el = document.querySelector(`#evoList [data-eid="${fp.id}"], #sevoList [data-eid="${fp.id}"]`); if (el) setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50); evoFocus = 0; }
+}
+async function evoListClick(e) {
+  const ge = e.target.closest('[data-goevo]'); if (ge) { evoFocus = Number(ge.dataset.goevo); if (myRole === 'admin') { openSub('admin', 'evolve'); setAppMode('sys', 'admin'); } else toast(`Proposal #${ge.dataset.goevo} is with the admin`); return; }
   const rq = e.target.closest('.evo-req'); if (rq) { if (myRole !== 'admin') return; openSub('roadmap', 'req'); setAppMode('sys', 'roadmap'); setTimeout(() => $('rqmList').querySelector(`[data-rid="${rq.dataset.req}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300); return; }
   const card = e.target.closest('.evo-card'); const btn = e.target.closest('button');
   if (!card || !btn) return;
@@ -2497,7 +2513,9 @@ $('evoList').addEventListener('click', async (e) => {
   }
   const action = ['do', 'done', 'fail', 'reopen', 'ignore'].find((a) => btn.classList.contains(a)) || 'ignore';
   await evoAct(id, action, title, desc);
-});
+}
+$('evoList').addEventListener('click', evoListClick);
+$('sevoList').addEventListener('click', evoListClick);
 // 제안 처리. 시스템 제안의 시작·취소를 실무자가 누르면 서버가 needsAdmin으로 막고, 관리자 승인요청으로 돌린다.
 // '수행'은 상태만 바꾸지 않고 코딩 에이전트에게 실제 구현을 지시 + 채팅을 연다.
 async function evoAct(id, action, title, desc) {
@@ -2527,8 +2545,8 @@ function askEvolveAgent(sc, b) {
   const h = agentHost, ws = encodeURIComponent(currentWs || 'default');
   const reg = (sc) => `curl -s -X POST "http://${h}/api/evolve${sc === 'workspace' ? `?ws=${ws}` : ''}" -H 'content-type: application/json' -d '{"proposals":[{"type":"improve","scope":"${sc}","title":"Title","desc":"Description"}]}' (type is improve|add|remove)`;
   const prompt = sc === 'system'
-    ? `[Evolve] Look at this app's current features, the data in it, and how it is being used (usage log: GET http://${h}/api/activity, plus our recent conversation), then propose how the SYSTEM should evolve — features, screens, APIs, the shared ontology. These need code changes and affect every workspace; the admin decides.\nRegister: ${reg('system')}.\nHow notes, tasks and events relate: GET http://${h}/api/graph/schema (NodeRel graph) and /api/stats (graph.gaps).`
-    : `[Evolve] Look at THIS WORKSPACE (${currentWs || 'default'}) — its notes, tasks, events, links and how it is used (GET http://${h}/api/state?ws=${ws}, http://${h}/api/stats?ws=${ws}, http://${h}/api/activity) — and propose how the work here should evolve using only the features that already exist: tidying or merging data, missing links, routines, schedules. Register them as workspace proposals: ${reg('workspace')}. Anything that needs a new feature or a code change is a system proposal instead: same curl with "scope":"system".`;
+    ? `[Evolve] Look at this app's current features, the data in it, and how it is being used (usage log: GET http://${h}/api/activity, plus our recent conversation), then propose how the SYSTEM should evolve — features, screens, APIs, the shared ontology. These need code changes and affect every workspace; the admin decides. Think freely: the ontology (GET http://${h}/api/ontology) is a guide to the domain, not a limit — you may propose things outside it, and changes to the ontology itself (new or renamed concepts, relation properties).\nRegister: ${reg('system')}.\nHow notes, tasks and events relate: GET http://${h}/api/graph/schema (NodeRel graph) and /api/stats (graph.gaps).`
+    : `[Evolve] Look at THIS WORKSPACE (${currentWs || 'default'}) — its notes, tasks, events, links and how it is used (GET http://${h}/api/state?ws=${ws}, http://${h}/api/stats?ws=${ws}, http://${h}/api/activity) — and propose how the work here should evolve using only the features that already exist: tidying or merging data, missing links, routines, schedules. Register them as workspace proposals: ${reg('workspace')}. Anything that needs a new feature or a code change is a system proposal instead: same curl with "scope":"system". The shared ontology is a guide, not a limit: if the work here needs a concept it lacks, say so (a system proposal), don't bend the work to fit.`;
   post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Analyze request failed')).catch(() => {}); else openChat(); })
     .catch(() => showErr('Analyze request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
 }
@@ -2544,8 +2562,8 @@ var SUBTABS = {
   inbox: [['approval', 'Approvals'], ['work', 'Work requests'], ['evolve', 'Evolve'], ['sent', 'Sent']],   // System Inbox와 같은 말
   relations: [['links', 'Links'], ['kg', 'Knowledge graph'], ['analysis', 'Analysis'], ['ontology', 'Ontology']],
   ontology: [['classes', 'Classes'], ['relations', 'Relations']],
-  admin: [['approval', 'Approvals'], ['work', 'Work requests']],
-  roadmap: [['req', 'Requirements'], ['evolve', 'Evolve'], ['upd', 'Updates']],
+  admin: [['approval', 'Approvals'], ['work', 'Work requests'], ['evolve', 'Evolve']],   // Workspace Inbox와 같은 자리(Evolve = 결정할 제안)
+  roadmap: [['req', 'Requirements'], ['upd', 'Updates']],   // 진행 상황만 — 시스템 제안은 System › Inbox › Evolve에서 결정
   health: [['reliability', 'Trustworthiness'], ['safety', 'Safety'], ['security', 'Security'], ['tests', 'Tests'], ['usage', 'Usage']],
 };
 var subSel = {}; try { subSel = JSON.parse(localStorage.getItem('ana-subtabs') || '{}') || {}; } catch {}
@@ -2557,8 +2575,8 @@ function renderSubtabs(v) {
   const cur = curSub(v), c = subCounts[v] || {};
   el.innerHTML = subList(v).map(([k, l]) => `<button role="tab" data-k="${k}" class="${k === cur ? 'on' : ''}" aria-selected="${k === cur}">${l}${c[k] ? `<span class="n">${c[k]}</span>` : ''}</button>`).join('');
   const view = $(v + 'View');
-  view.querySelectorAll('[data-subsec]').forEach((x) => { x.hidden = x.dataset.subsec !== cur; });
-  view.querySelectorAll('[data-for]').forEach((x) => { x.hidden = x.dataset.for !== cur; });
+  view.querySelectorAll('[data-subsec]').forEach((x) => { x.hidden = !x.dataset.subsec.split(' ').includes(cur); });
+  view.querySelectorAll('[data-for]').forEach((x) => { x.hidden = !x.dataset.for.split(' ').includes(cur); });
 }
 function setSubCount(v, k, n) { if (!SUBTABS) return; const c = (subCounts[v] ||= {}); if (c[k] === n) return; c[k] = n; renderSubtabs(v); }
 function openSub(v, k) { subSel[v] = k; try { localStorage.setItem('ana-subtabs', JSON.stringify(subSel)); } catch {} renderSubtabs(v); }
@@ -2608,18 +2626,18 @@ $('testsRun').onclick = async () => {
    분석 결과는 실무자가 승인해야 이 워크스페이스의 지식그래프에 더해진다(Inbox › Approvals, Knowledge › Analysis).
    시스템 온톨로지에 없는 개념은 관리자 승인요청이 되고, 승인되면 그 개념을 쓰는 사실이 저절로 더해진다. */
 function anaApplyHtml(j) {
-  const nc = (j.newConcepts || []).length ? `<div class="ana-new">New concepts sent to the admin: ${j.newConcepts.map((c) => `<code>${escapeHtml(c.label)}</code>`).join(' ')}. Facts that use them are added once approved.</div>` : '';
+  const nc = (j.newConcepts || []).length ? `<div class="ana-new">New concepts — already in use here, and sent to the admin to add to the shared ontology: ${j.newConcepts.map((c) => `<code>${escapeHtml(c.label)}</code>`).join(' ')}</div>` : '';
   if (j.discarded) return `${nc}<div class="ana-state">Discarded — not added to the knowledge graph</div>`;
   if (j.applied) {
     const p = j.pending || { entities: [], facts: [] }, w = p.entities.length + p.facts.length, ac = j.appliedCount || { entities: 0, facts: 0 };
-    return `${nc}<div class="ana-state ok">Added to the knowledge graph: ${ac.entities} entities, ${ac.facts} facts${w ? ` · ${w} waiting for new concepts` : ''}</div>`;
+    return `${nc}<div class="ana-state ok">Added to the knowledge graph: ${ac.entities} entities, ${ac.facts} facts${w ? ` · ${w} waiting (from an earlier version)` : ''}</div>`;
   }
   return `${nc}<div class="ana-acts ana-apply"><button class="ok" data-kgapply="apply">Add to the knowledge graph</button><button data-kgapply="discard">Discard</button></div>`;
 }
 async function kgDecide(id, how) {
   const r = await post(`/api/analysis/${how === 'apply' ? 'apply' : 'discard'}`, { id }).catch(() => null), d = r ? await r.json().catch(() => ({})) : {};
   if (!r || !r.ok) { showErr(d.error || 'Could not update the knowledge graph'); return; }
-  if (how === 'apply') toast(`Added ${d.added.entities} entities and ${d.added.facts} facts${d.pending.entities + d.pending.facts ? ` · ${d.pending.entities + d.pending.facts} wait for the admin` : ''}`);
+  if (how === 'apply') toast(`Added ${d.added.entities} entities and ${d.added.facts} facts`);
   else toast('Discarded');
   refreshAnalysis(); refreshKg();
 }
@@ -2644,13 +2662,16 @@ async function refreshKg() {
 }
 function renderKg() {
   const g = kgCache, o = g.ontology || { classes: [], relations: [] };
-  $('kgSum').textContent = `${g.entities.length} entities · ${g.facts.length} facts`;
+  const inf = g.inferred || [], nf = g.notFitting || { entities: 0, facts: 0 };
+  $('kgSum').textContent = `${g.entities.length} entities · ${g.facts.length} facts${inf.length ? ` · ${inf.length} inferred` : ''}${nf.entities + nf.facts ? ` · ${nf.entities + nf.facts} not in the ontology yet` : ''}`;
+  $('kgInfer').parentElement.hidden = !inf.length;
   $('kgEmpty').style.display = g.entities.length ? 'none' : 'block'; $('kgGraph').hidden = !g.entities.length;
   $('kgOntoAir').disabled = $('kgTtl').disabled = !g.entities.length;
   if (!g.entities.length || curSub('relations') !== 'kg') return;
   const color = Object.fromEntries(o.classes.filter((c) => !c.core).map((k, i) => [k.id, ANA_COLORS[i % ANA_COLORS.length]]));
-  drawKG(g, { classes: o.classes, relations: o.relations }, color, $('kgGraph'));
+  drawKG({ ...g, facts: [...g.facts, ...($('kgInfer').checked ? inf : [])] }, { classes: o.classes, relations: o.relations }, color, $('kgGraph'));
 }
+$('kgInfer').onchange = () => renderKg();
 $('kgTtl').onclick = () => { logEvent('ttl.download', 0); const a = document.createElement('a'); a.href = `/api/kg/ttl?ws=${encodeURIComponent(currentWs || '')}`; a.download = 'knowledge-graph.ttl'; document.body.appendChild(a); a.click(); a.remove(); };
 $('kgOntoAir').onclick = () => openTtlInOntoAir(`/api/kg/ttl?ws=${encodeURIComponent(currentWs || '')}`, 'knowledge-graph');
 // Knowledge › Ontology(읽기 전용) · System › Ontology(관리자)
@@ -2664,7 +2685,7 @@ function ontoTree(o, editable) {
 }
 function ontoRelTable(o, editable) {
   const lab = (id) => (o.classes.find((c) => c.id === id) || {}).label || id || 'any';
-  return o.relations.length ? `<table class="onto-rel"><thead><tr><th>Relation</th><th>From → To</th>${editable ? '<th></th>' : ''}</tr></thead><tbody>${o.relations.map((r) => `<tr><td><code>${escapeHtml(r.label)}</code>${r.core ? ' <span class="core">built-in</span>' : ''}${r.desc ? `<div class="cd">${escapeHtml(r.desc)}</div>` : ''}</td><td>${escapeHtml(lab(r.domain))} → ${escapeHtml(lab(r.range))}</td>${editable ? `<td>${r.core ? '' : `<span class="onto-acts"><button data-oedit="relation" data-id="${escapeHtml(r.id)}">Edit</button><button data-odel="relation" data-id="${escapeHtml(r.id)}">Delete</button></span>`}</td>` : ''}</tr>`).join('')}</tbody></table>` : '<div class="empty" style="display:block">No relations</div>';
+  return o.relations.length ? `<table class="onto-rel"><thead><tr><th>Relation</th><th>From → To</th>${editable ? '<th></th>' : ''}</tr></thead><tbody>${o.relations.map((r) => `<tr><td><code>${escapeHtml(r.label)}</code>${r.core ? ' <span class="core">built-in</span>' : ''}${[r.inverse && `inverse of ${r.inverse}`, r.symmetric && 'symmetric', r.transitive && 'transitive'].filter(Boolean).map((t) => ` <span class="core">${escapeHtml(t)}</span>`).join('')}${r.desc ? `<div class="cd">${escapeHtml(r.desc)}</div>` : ''}</td><td>${escapeHtml(lab(r.domain))} → ${escapeHtml(lab(r.range))}</td>${editable ? `<td>${r.core ? '' : `<span class="onto-acts"><button data-oedit="relation" data-id="${escapeHtml(r.id)}">Edit</button><button data-odel="relation" data-id="${escapeHtml(r.id)}">Delete</button></span>`}</td>` : ''}</tr>`).join('')}</tbody></table>` : '<div class="empty" style="display:block">No relations</div>';
 }
 function renderOntoRead() {
   const o = anaOnto || kgCache.ontology; if (!o || !$('ontoRead')) return;
@@ -2688,6 +2709,8 @@ function openOntoForm(what, item) {
   ontoEditing = { what, id: item ? item.id : '' };
   $('ofId').value = item ? item.id : ''; $('ofId').disabled = !!item; $('ofLabel').value = item ? item.label : ''; $('ofDesc').value = item ? item.desc || '' : '';
   $('ofParent').innerHTML = opts(item && item.parent, '— (top level)'); $('ofDomain').innerHTML = opts(item && item.domain, 'any'); $('ofRange').innerHTML = opts(item && item.range, 'any');
+  $('ofInverse').innerHTML = '<option value="">—</option>' + o.relations.filter((r) => !r.core && (!item || r.id !== item.id)).map((r) => `<option value="${escapeHtml(r.id)}"${item && item.inverse === r.id ? ' selected' : ''}>${escapeHtml(r.label)}</option>`).join('');
+  $('ofSym').checked = !!(item && item.symmetric); $('ofTrans').checked = !!(item && item.transitive);
   $('ontoForm').querySelectorAll('[data-of]').forEach((x) => { x.hidden = x.dataset.of !== what; });
   $('ofSave').textContent = item ? 'Save' : what === 'class' ? 'Add class' : 'Add relation';
   $('ontoForm').hidden = false; $('ofId').focus();
@@ -2697,7 +2720,7 @@ $('ofCancel').onclick = () => { $('ontoForm').hidden = true; ontoEditing = null;
 $('ontoForm').addEventListener('submit', async (e) => {
   e.preventDefault(); if (!ontoEditing) return;
   const w = ontoEditing.what, item = { id: $('ofId').value.trim(), label: $('ofLabel').value.trim(), desc: $('ofDesc').value.trim(),
-    ...(w === 'class' ? { parent: $('ofParent').value } : { domain: $('ofDomain').value, range: $('ofRange').value }) };
+    ...(w === 'class' ? { parent: $('ofParent').value } : { domain: $('ofDomain').value, range: $('ofRange').value, inverse: $('ofInverse').value, symmetric: $('ofSym').checked, transitive: $('ofTrans').checked }) };
   const r = await post('/api/ontology', { action: ontoEditing.id ? 'update' : 'add', kind: w, item }).catch(() => null), d = r ? await r.json().catch(() => ({})) : {};
   if (!r || !r.ok) { showErr(d.error || 'Could not save'); return; }
   $('ontoForm').hidden = true; ontoEditing = null; toast('Saved'); refreshOntology();
@@ -2755,7 +2778,7 @@ function updState(u) {
   if (u.status === 'dismissed') return { stage: 0, done: true, text: 'Skipped', acts: rmBtn(`data-upd="reopen" data-uid="${u.id}"`, 'Restore') };
   return { stage: 4, done: true, text: 'Brought in', acts: '' };
 }
-const RM_STEPS = { req: ['Request', 'Proposal', 'Building', 'Checked'], evolve: ['Proposed', 'Started', 'Building', 'Built'], upd: ['New', 'Approved', 'Bringing in', 'Done'] };
+const RM_STEPS = { req: ['Request', 'Proposal', 'Building', 'Checked'], upd: ['New', 'Approved', 'Bringing in', 'Done'] };
 function renderRoadmap() {
   if (!$('roadmapView') || !SUBTABS) return;
   const sub = curSub('roadmap'), rows = [];
@@ -2766,13 +2789,10 @@ function renderRoadmap() {
       <div class="rqm-acts"><button class="ok" data-a="save">Save</button><button data-a="cancel">Cancel</button></div></div></div>`, kind: 'req', done: false, need: true, order: 0 }); continue; }
     rows.push({ ...reqState(x), kind: 'req', cls: 'rqm-card', attr: `data-rid="${x.id}"`, title: x.title, sub: `Requirement #${x.id}`, details: reqDetails(x), at: x.updatedAt || x.at });
   }
-  for (const p of evoCache.filter((q) => scopeOf(q) === 'system'))   // Evolve 갈래: 시스템 진화 제안 전부(요구사항에서 나온 것도)
-    rows.push({ ...evoState(p), kind: 'evolve', cls: 'rm-evo', attr: `data-eid="${p.id}"`, title: p.title, sub: `Proposal #${p.id}${p.reqId ? ` · requirement #${p.reqId}` : p.fromId ? ' · from a workspace' : ''}`, focus: p.id === evoFocus,
-      details: `${p.desc ? `<div class="rqm-detail">${escapeHtml(p.desc)}</div>` : ''}<div class="rqm-acts"><button data-evo="talk" data-pid="${p.id}">Discuss</button></div>`, at: p.updatedAt || p.at });
   for (const u of updCache.items || [])
     rows.push({ ...updState(u), kind: 'upd', cls: 'rm-upd', attr: `data-uid="${u.id}"`, title: u.title, sub: 'Upstream update',
       details: `${u.summary ? `<div class="rqm-detail">${escapeHtml(u.summary)}</div>` : ''}${(u.missing || []).length && u.kind === 'partial' ? `<div class="upd-miss">Missing here: ${u.missing.slice(0, 6).map((m) => `<code>${escapeHtml(m)}</code>`).join(' ')}</div>` : ''}`, at: u.updatedAt || u.at });
-  for (const k of ['req', 'evolve', 'upd']) setSubCount('roadmap', k, rows.filter((r) => r.kind === k && r.need).length);
+  for (const k of ['req', 'upd']) setSubCount('roadmap', k, rows.filter((r) => r.kind === k && r.need).length);
   const mine = rows.filter((r) => r.kind === sub), open = mine.filter((r) => !r.done), closed = mine.filter((r) => r.done);
   renderStSeg('road', { open: open.length, closed: closed.length });
   const list = (stFilter.road === 'closed' ? closed : open).slice().sort((a, b) => (b.need ? 1 : 0) - (a.need ? 1 : 0) || String(b.at || '').localeCompare(String(a.at || '')));
@@ -2781,7 +2801,7 @@ function renderRoadmap() {
     <div class="rm-bar" aria-label="Stage ${Math.min(r.stage, 4)} of 4">${[0, 1, 2, 3].map((i) => `<i class="${r.done && r.stage >= 4 ? 'on' : i < r.stage ? 'on' : i === r.stage ? 'cur' : ''}"></i>`).join('')}</div>
     <div class="rm-row"><span class="rm-text">${escapeHtml(r.text)}</span><span class="rm-acts">${r.acts || ''}</span></div>
     ${r.details ? `<details class="rm-more"><summary>Details</summary>${r.details}</details>` : ''}</div>`).join('');
-  $('rqmEmpty').textContent = stFilter.road === 'closed' ? 'Nothing finished yet' : { req: 'No requirements on the way — add one, or members can request a feature', evolve: 'No system proposals — press [Ask the agent]', upd: 'Nothing new — press [Check for updates]' }[sub];
+  $('rqmEmpty').textContent = stFilter.road === 'closed' ? 'Nothing finished yet' : { req: 'No requirements on the way — add one, or members can request a feature', upd: 'Nothing new — press [Check for updates]' }[sub];
   $('rqmEmpty').style.display = list.length ? 'none' : 'block';
   $('rqmList').querySelector('.rm-card.focus')?.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (evoFocus) evoFocus = 0;
 }
@@ -2819,14 +2839,15 @@ async function refreshAdmin() {
   renderAdmin(); renderToAdmin();
 }
 const ADM_FROM = (x) => (x.from && x.from.kind === 'check' ? 'System check' : x.from && x.from.kind === 'agent' ? 'Agent' : displayName((x.from && x.from.by) || ''));
-const ADM_ACTION = { 'ontology.add': 'Adds it to the shared ontology (waiting facts are then added)', 'evolve.do': 'Starts the proposal', 'evolve.ignore': 'Cancels the proposal', 'update.do': 'Brings in the update', permission: 'Changes the agent permission mode', 'workspace.remove': 'Deletes the workspace' };
+const ADM_ACTION = { 'ontology.add': 'Adds it to the shared ontology — it is already in use; this makes it official for every workspace', 'evolve.do': 'Starts the proposal', 'evolve.ignore': 'Cancels the proposal', 'update.do': 'Brings in the update', permission: 'Changes the agent permission mode', 'workspace.remove': 'Deletes the workspace' };
 function renderAdmin() {
   const all = admCache.items || [];
   const open = all.filter((x) => ['open', 'doing'].includes(x.status));
   const nA = open.filter((x) => x.type === 'approval').length, nW = open.filter((x) => x.type === 'work').length;
-  $('admBadge').textContent = myRole === 'admin' ? nA + nW : 0; $('admBadge').classList.toggle('show', myRole === 'admin' && nA + nW > 0); updateSysBadge();
+  admOpen = myRole === 'admin' ? nA + nW : 0; updateSysBadge();
   setSubCount('admin', 'approval', nA); setSubCount('admin', 'work', nW);
   const admType = curSub('admin');
+  if (admType === 'evolve') { const S = bucketList(evoCache.filter((p) => inScope(p, 'system')), BUCKET_OF.evo); renderStSeg('adm', { open: S.open.length, closed: S.closed.length }); renderEvolve(); return; }
   if (!$('adminView').classList.contains('on')) return;
   const B = bucketList(all.filter((x) => x.type === admType), BUCKET_OF.adm), k = stFilter.adm || 'open';
   renderStSeg('adm', { open: B.open.length, closed: B.closed.length });
@@ -2854,7 +2875,7 @@ async function runAdminAction(a) {
 $('admList').addEventListener('click', async (e) => {
   const b = e.target.closest('button[data-a]'), card = e.target.closest('.adm-card'); if (!b || !card) return;
   const id = Number(card.dataset.aid), it = (admCache.items || []).find((x) => x.id === id); if (!it) return;
-  if (b.dataset.a === 'goevo') { evoFocus = Number(b.dataset.id); openSub('roadmap', 'evolve'); setAppMode('sys', 'roadmap'); return; }
+  if (b.dataset.a === 'goevo') { evoFocus = Number(b.dataset.id); openSub('admin', 'evolve'); setAppMode('sys', 'admin'); renderAdmin(); return; }
   let note = '';
   if (['reject', 'fail', 'done'].includes(b.dataset.a)) { note = prompt(b.dataset.a === 'reject' ? 'Why not? (sent back to whoever asked)' : b.dataset.a === 'fail' ? 'What went wrong?' : 'Note (optional)') ?? null; if (note === null) return; }
   b.disabled = true;
@@ -3284,11 +3305,11 @@ $('anaStart').onclick = async () => {
   const h = agentHost, ws = encodeURIComponent(currentWs || ''), id = d.job.id, q = `id=${id}&ws=${ws}`;
   const text = `[Analyze] Build an ontology and a knowledge graph from ${d.job.itemIds.length} items of this workspace${d.job.focus ? ` — focus: ${d.job.focus}` : ''}.
 1) Read them: curl -s "http://${h}/api/analysis/input?${q}"
-   The input includes "ontology" — the shared classes and relation types of this ANA. Use those ids. Only for a genuinely new concept add it to your ontology: it goes to the admin for approval, and facts that use it wait until it is approved.
+   The input includes "ontology" — the shared classes and relation types of this ANA. It is a guide, not a limit: use its ids where they fit; where they don't, declare your own concept in your ontology and use it. Nothing is lost for not fitting — it is kept, shown as "not in the ontology yet", and the admin is asked to add it.
 2) Report progress as you go (0–99) with a short step: curl -s -X POST "http://${h}/api/analysis/progress?ws=${ws}" -H 'content-type: application/json' -d '{"id":${id},"progress":30,"step":"Finding entities in notes"}'
 3) Post the result: curl -s -X POST "http://${h}/api/analysis/result?ws=${ws}" -H 'content-type: application/json' --data-binary @result.json
    result.json = {"id":${id},"summary":"2–3 sentences","ontology":{"classes":[{"id":"Organization","label":"Organization","desc":"…","parent":""}],"relations":[{"id":"client_of","label":"client of","domain":"Organization","range":"Organization","desc":"…"}]},"graph":{"entities":[{"id":"acme","label":"Acme","class":"Organization","sources":["<item id>"]}],"facts":[{"from":"acme","rel":"client_of","to":"us","sources":["<item id>"]}]}}
-The ontology is the schema (kinds of things, kinds of relations, with parents for sub-kinds); the knowledge graph is the actual things and facts found in the items. Every entity.class and fact.rel must use an id from the ontology, and each fact must fit its relation's domain → range (sub-classes count); cite the item ids each comes from. The response lists "issues" — facts that broke the ontology were dropped; if many were, fix and post again in a new analysis. If you can't finish: curl -s -X POST "http://${h}/api/analysis/fail?ws=${ws}" -H 'content-type: application/json' -d '{"id":${id},"reason":"why"}'`;
+The ontology is the schema (kinds of things, kinds of relations, with parents for sub-kinds); the knowledge graph is the actual things and facts found in the items. Give each entity a class and each fact a relation (from the ontology or declared by you); a fact should fit its relation's domain → range (sub-classes count). Cite the item ids each comes from. The response lists "issues" — things that don't fit are kept and marked; only facts pointing at missing entities are dropped. Say what you actually found rather than forcing it into the ontology. If you can't finish: curl -s -X POST "http://${h}/api/analysis/fail?ws=${ws}" -H 'content-type: application/json' -d '{"id":${id},"reason":"why"}'`;
   post('/api/chat', { text, force: true }).then((x) => { if (!x.ok) x.json().then((e) => showErr(e.error || 'Could not send it to the agent')).catch(() => {}); }).catch(() => showErr('Could not send it to the agent'));
 };
 const ago = (iso) => { const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000)); return s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${Math.floor(s / 3600)}h ${Math.floor(s % 3600 / 60)}m`; };
@@ -3422,11 +3443,13 @@ function drawKG(g, o, color, host = $('anaBody')) {
   }
   const relLabel = Object.fromEntries((o.relations || []).map((r) => [r.id, r.label]));
   const edges = g.facts.map((f, i) => { const a = pos[idx[f.from]], b = pos[idx[f.to]]; if (!a || !b) return '';
-    return `<line class="e" data-i="${i}" data-f="${escapeHtml(f.from)}" data-t="${escapeHtml(f.to)}" x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}"/><text class="el" data-f="${escapeHtml(f.from)}" data-t="${escapeHtml(f.to)}" x="${((a.x + b.x) / 2).toFixed(1)}" y="${((a.y + b.y) / 2 - 3).toFixed(1)}" text-anchor="middle">${escapeHtml(relLabel[f.rel] || f.rel)}</text>`; }).join('');
+ const fc = (f.inferred ? ' inf' : '') + (f.fit === false ? ' nofit' : '');
+    return `<line class="e${fc}" data-i="${i}" data-f="${escapeHtml(f.from)}" data-t="${escapeHtml(f.to)}" x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}"/><text class="el${fc}" data-f="${escapeHtml(f.from)}" data-t="${escapeHtml(f.to)}" x="${((a.x + b.x) / 2).toFixed(1)}" y="${((a.y + b.y) / 2 - 3).toFixed(1)}" text-anchor="middle">${escapeHtml(relLabel[f.rel] || f.rel)}</text>`; }).join('');
   const nodes = g.entities.map((e) => { const p = pos[idx[e.id]]; const r = 6 + Math.min(8, g.facts.filter((f) => f.from === e.id || f.to === e.id).length * 1.5);
-    return `<g class="n" data-id="${escapeHtml(e.id)}" tabindex="0" role="button" aria-label="${escapeHtml(e.label)}"><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" fill="${color[e.class] || '#94A3B8'}"/><text x="${p.x.toFixed(1)}" y="${(p.y - r - 4).toFixed(1)}" text-anchor="middle">${escapeHtml(e.label.length > 22 ? e.label.slice(0, 21) + '…' : e.label)}</text></g>`; }).join('');
+ return `<g class="n${e.fit === false ? ' nofit' : ''}" data-id="${escapeHtml(e.id)}" tabindex="0" role="button" aria-label="${escapeHtml(e.label)}"><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" fill="${color[e.class] || '#94A3B8'}"/><text x="${p.x.toFixed(1)}" y="${(p.y - r - 4).toFixed(1)}" text-anchor="middle">${escapeHtml(e.label.length > 22 ? e.label.slice(0, 21) + '…' : e.label)}</text></g>`; }).join('');
   const used = o.classes.filter((k) => g.entities.some((e) => e.class === k.id));
-  host.innerHTML = `<div class="kg-legend">${used.map((k) => `<span><span class="cdot" style="background:${color[k.id]}"></span>${escapeHtml(k.label)}</span>`).join('')}</div>
+  const lg = [g.facts.some((f) => f.inferred) && '<span><span class="lg-line inf"></span>inferred</span>', (g.facts.some((f) => f.fit === false) || g.entities.some((e) => e.fit === false)) && '<span><span class="lg-line nofit"></span>not in the ontology yet</span>'].filter(Boolean).join('');
+  host.innerHTML = `<div class="kg-legend">${used.map((k) => `<span><span class="cdot" style="background:${color[k.id]}"></span>${escapeHtml(k.label)}</span>`).join('')}${lg}</div>
     <div class="kg-wrap"><svg class="kg-svg${g.facts.length > 30 ? ' many' : ''}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Knowledge graph">${edges}${nodes}</svg></div><div class="kg-detail" hidden></div>`;
   const svg = host.querySelector('svg');
   const pick = (id) => {
@@ -3439,8 +3462,9 @@ function drawKG(g, o, color, host = $('anaBody')) {
     const lab = (id) => (g.entities.find((x) => x.id === id) || { label: id }).label, cls = (o.classes.find((k) => k.id === e.class) || {}).label || e.class;
     const srcs = [...new Set([...(e.sources || []), ...mine.flatMap((f) => f.sources || [])])];
     det.hidden = false;
-    det.innerHTML = `<b>${escapeHtml(e.label)}</b> <span class="cd">· ${escapeHtml(cls || 'Thing')}</span>
-      ${mine.length ? `<ul>${mine.map((f) => `<li>${escapeHtml(lab(f.from))} <code>${escapeHtml(relLabel[f.rel] || f.rel)}</code> ${escapeHtml(lab(f.to))}</li>`).join('')}</ul>` : '<div class="cd">No facts</div>'}
+    const why = (f) => f.inferred ? `<span class="tag" title="${escapeHtml((f.because || []).map((k) => k.split('\u0000').join(' ')).join(' + '))}">inferred · ${escapeHtml(f.rule)}</span>` : f.fit === false ? `<span class="tag" title="${escapeHtml(f.why || '')}">not in the ontology yet</span>` : '';
+    det.innerHTML = `<b>${escapeHtml(e.label)}</b> <span class="cd">· ${escapeHtml(cls || 'Thing')}${(e.types || []).length > 1 ? ` (${escapeHtml(e.types.slice(1).join(' ⊂ '))})` : ''}</span>${e.fit === false ? `<span class="tag">${escapeHtml(e.why || 'not in the ontology yet')}</span>` : ''}
+      ${mine.length ? `<ul>${mine.map((f) => `<li>${escapeHtml(lab(f.from))} <code>${escapeHtml(relLabel[f.rel] || f.rel)}</code> ${escapeHtml(lab(f.to))}${why(f)}</li>`).join('')}</ul>` : '<div class="cd">No facts</div>'}
       ${srcs.length ? `<div class="src">${srcs.map((sid) => { const nd = nodeOf(sid); return nd ? `<span class="rel k-${nd.kind}" role="button" tabindex="0" data-go="${escapeHtml(sid)}"><span class="rk">${nd.kind}</span><span class="rt">${escapeHtml(nd.label)}</span></span>` : ''; }).join('')}</div>` : ''}`;
     det.querySelectorAll('[data-go]').forEach((x) => x.onclick = () => gotoNode(x.dataset.go));
   };
@@ -3624,7 +3648,7 @@ function selectTab(b) {
     const v = b.dataset.view;
     if (SUBTABS[v]) renderSubtabs(v);
     if (v === 'inbox') { refreshRequests(); refreshEvolve(); refreshAdmin(); refreshRequirements(); refreshAnalysis(); }
-    if (v === 'admin') refreshAdmin();
+    if (v === 'admin') { refreshAdmin(); refreshEvolve(); }
     if (v === 'roadmap') { refreshRequirements(); refreshEvolve(); refreshUpdates(); }
     if (v === 'health') { refreshTrust(); refreshTests(); if (curSub('health') === 'usage') renderStats(); }
     if (v === 'files') loadFiles(filesPath);
@@ -3669,7 +3693,8 @@ function setAreaBadge(attr, n) { document.querySelectorAll(`[${attr}]`).forEach(
 // 배지: Workspace Inbox = 요청 + 승인·데이터 변경 + 워크스페이스 제안 / System = 관리자 받은함 + 로드맵(시작 대기 제안·업데이트) + 위험 점검
 function updateSysBadge() {
   setAreaBadge('data-inboxbadge', badgeN('reqBadge') + badgeN('apprBadge') + badgeN('evoBadge'));
-  const adm = badgeN('admBadge'), road = badgeN('sevoBadge') + badgeN('updBadge');
+  const adm = admOpen + (myRole === 'admin' ? badgeN('sevoBadge') : 0), road = badgeN('updBadge');   // 시스템 제안은 받은함(Evolve)에서 결정
+  $('admBadge').textContent = adm; $('admBadge').classList.toggle('show', adm > 0);
   setAreaBadge('data-admbadge', adm); setAreaBadge('data-roadbadge', road); setAreaBadge('data-healthbadge', trustRisk + testRisk);
   $('roadBadge').textContent = road; $('roadBadge').classList.toggle('show', road > 0);
   $('healthBadge').textContent = trustRisk + testRisk; $('healthBadge').classList.toggle('show', trustRisk + testRisk > 0);
@@ -4530,7 +4555,7 @@ function instructionInfo(raw) {
     const pm = /^Implement\/apply proposal #(\d+) "([^"]*)"/.exec(body), wm = /^Apply workspace proposal #(\d+) "([^"]*)"/.exec(body);
     summary = pm ? `Asked the agent to do proposal #${pm[1]} · ${pm[2]}` : wm ? `Asked the agent to apply workspace proposal #${wm[1]} · ${wm[2]}`
       : /^Look at THIS WORKSPACE/.test(body) ? 'Asked the agent how this workspace should evolve' : 'Asked the agent to propose how the app should evolve';
-    view = wm || /^Look at THIS WORKSPACE/.test(body) ? 'inbox' : 'roadmap';
+    view = wm || /^Look at THIS WORKSPACE/.test(body) ? 'inbox' : 'admin';
   } else if (m[1] === 'Requirements') {
     const n = g(/Check (\d+) of my requirements/), job = g(/requirements\/input\?job=(\d+)/);
     summary = `Asked the agent to check ${n ? `${n} requirement${n === '1' ? '' : 's'}` : 'your requirements'}${job ? ` · #${job}` : ''}`; view = 'roadmap';
@@ -4539,7 +4564,7 @@ function instructionInfo(raw) {
     summary = `Asked the agent to bring in ${t ? `“${t}”` : 'an update'} from upstream`; view = 'roadmap';
   } else if (m[1] === 'Requests') { summary = 'Asked the agent what it needs from you'; view = 'inbox'; }
   else { summary = 'Asked the agent what needs your OK'; view = 'inbox'; }
-  const sub = { relations: 'analysis', inbox: m[1] === 'Evolve' ? 'evolve' : m[1] === 'Approvals' ? 'approval' : 'work', roadmap: { Evolve: 'evolve', Requirements: 'req', Update: 'upd' }[m[1]] }[view];
+  const sub = { relations: 'analysis', inbox: m[1] === 'Evolve' ? 'evolve' : m[1] === 'Approvals' ? 'approval' : 'work', roadmap: { Requirements: 'req', Update: 'upd' }[m[1]], admin: 'evolve' }[view];
   return { tag: m[2] ? 'Request' : m[1], summary, view, sub, full };
 }
 function instrCardHtml(ins, attrs) {

@@ -360,10 +360,11 @@
       "id": "system-ontology",
       "title": "System ontology and workspace knowledge graphs",
       "skill": "relations",
-      "summary": "One ontology for the ANA (core from graph.js + admin-added classes/relations, ontology.json) and one knowledge graph per workspace (kg.json). Analyses read the shared ontology; new concepts become admin approval requests (ontology.add); results are added to the knowledge graph only when a member approves (/api/analysis/apply), and facts waiting on a concept are added once it is approved (applyPendingAll). System › Ontology edits it; Knowledge shows Links · Knowledge graph · Analysis · Ontology. /api/kg/ttl exports TBox + ABox.",
+      "summary": "One ontology for the ANA (core from graph.js + admin-added classes/relations, ontology.json) and one knowledge graph per workspace (kg.json). Analyses read the shared ontology; new concepts become admin approval requests (ontology.add); the ontology is a lens, not a gate — what doesn't fit is kept and marked (fit/why computed on read by kgLens), new or undeclared concepts go to the admin as tidying requests (ontology.add); results are added to the knowledge graph when a member approves (/api/analysis/apply). Rule reasoning on read: super-class types, inverse / symmetric / transitive relations → inferred facts with rule and because (never stored; dashed in the chart, marked on NodeRel edges, owl:inverseOf / SymmetricProperty / TransitiveProperty in Turtle). System › Ontology edits it; Knowledge shows Links · Knowledge graph · Analysis · Ontology. /api/kg/ttl exports TBox + ABox.",
       "anchors": [
         "const CORE_ONTOLOGY",
         "function mergeIntoKg",
+        "function kgLens",
         "function applyPendingAll",
         "/api/analysis/apply",
         "function renderOntology",

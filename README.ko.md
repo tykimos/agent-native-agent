@@ -168,12 +168,12 @@ node server.js           # → http://localhost:8809
   - *Sent*: 관리자에게 보낸 요청, 내 기능 요청
 - **Knowledge:** *Links*(관계, 흐름이 끊긴 곳) · *Knowledge graph*(이 워크스페이스의 개체와 사실) · *Analysis*(에이전트가 항목을 읽음) · *Ontology*(공용 개념, 읽기 전용)
 - **Files:** 이 워크스페이스의 폴더와 채팅 첨부(읽기 전용)
-- **Inbox(System):** *Approvals* · *Work requests*. 실무자, 에이전트, 시스템 점검이 관리자에게 올린 것입니다.
-- **Roadmap:** *Requirements* · *Evolve*(시스템 제안) · *Updates*(업스트림). 항목마다 한 줄로 단계(예: Request → Proposal → Building → Checked)와 다음 할 일을 보여 줍니다.
-- **Ontology:** *Classes* · *Relations*. 모든 워크스페이스의 지식그래프가 쓰는 개념입니다. 핵심(Note, Task, Event, Day와 앱 관계)은 처음부터 있고, 나머지는 관리자가 더하거나 분석이 제안한 것을 승인합니다.
+- **Inbox(System):** *Approvals* · *Work requests*(실무자, 에이전트, 시스템 점검이 올린 것) · *Evolve*(시스템을 바꾸는 제안, 관리자가 시작)
+- **Roadmap:** *Requirements* · *Updates*(업스트림). 각 변경이 어디까지 왔는지 한 줄씩 단계(예: Request → Proposal → Building → Checked)와 다음 할 일로 보여 줍니다. Inbox에서 결정하고, Roadmap에서 진행을 봅니다.
+- **Ontology:** *Classes* · *Relations*. 모든 워크스페이스의 지식그래프가 쓰는 개념입니다. 핵심(Note, Task, Event, Day와 앱 관계)은 처음부터 있고, 나머지는 관리자가 더하거나 분석이 제안한 것을 승인합니다. 관문이 아니라 렌즈입니다. 틀에 안 맞는 것은 남기고 *아직 온톨로지에 없음*으로 표시하고, 역관계·대칭·전이로 표시한 관계는 *추론한* 사실을 더합니다([relations](docs/relations.ko.md)).
 - **Health:** *Trustworthiness* · *Safety* · *Security*(위험한 것부터, 괜찮은 점검은 접어 둠) · *Tests*(이 ANA의 테스트를 돌리고 실패를 봄) · *Usage*(통계·활동)
 
-**진화 제안(Evolve)은 어디에?** 이 워크스페이스에 대한 것은 Workspace › Inbox › *Evolve*(실무자가 시작), 시스템에 대한 것은 System › Roadmap › *Evolve*(관리자가 시작)에 있습니다.
+**진화 제안(Evolve)은 어디에?** 늘 **Inbox**에 있습니다. 이 워크스페이스에 대한 것은 Workspace › Inbox › *Evolve*(실무자가 시작), 시스템에 대한 것은 System › Inbox › *Evolve*(관리자가 시작)입니다. 카드와 버튼은 같고, 범위만 다릅니다.
 
 ### 채팅 — Claude 앱처럼
 

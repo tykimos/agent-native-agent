@@ -5,6 +5,25 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.9.0] — 2026-10-25
+
+The ontology becomes a **lens, not a gate**: it guides the agent and lets ANA check and reason, but never limits what the agent may find or propose. Plus **rule reasoning** on the knowledge graph, and Evolve always in the Inbox.
+
+### Added
+
+- **Rule reasoning on the knowledge graph.** A relation type can be marked *inverse of* another, *symmetric* or *transitive* (System › Ontology › Relations). Reading the knowledge graph derives the facts these rules imply (acme *employs* pat from pat *works_for* acme; o1 *part_of* o3 from a chain), plus each entity's super-classes. Derived facts are never stored: they come back as `inferred` with the `rule` and the facts they come `because` of, show as dashed lines (toggle *Inferred*), reach NodeRel marked `inferred`, and export as `owl:inverseOf` / `owl:SymmetricProperty` / `owl:TransitiveProperty`.
+
+### Changed
+
+- **The ontology is a lens, not a gate.** It guides the agent; it no longer limits what it may say.
+  - An analysis keeps what doesn't fit — an unknown class or relation, a fact whose From → To doesn't match — and marks it *not in the ontology yet* (orange) instead of dropping it. Only facts pointing at missing entities are dropped.
+  - Adding to the knowledge graph no longer holds anything back waiting for the admin. Whether something fits is computed when the graph is read, so when the admin adds a concept it fits at once.
+  - Concepts an analysis uses without declaring them also go to the admin. The admin request is now tidying, not a gate.
+  - The [Analyze] and [Evolve] instructions say so: use the ontology where it fits, say what you actually found where it doesn't, and propose changes to the ontology itself.
+
+- **Evolve is always in the Inbox.** System proposals moved from Roadmap to **System › Inbox › Evolve**, the same place as Workspace › Inbox › Evolve, with the same cards and buttons (*Start* for the admin, *Request approval* for members). The Roadmap now only follows progress: *Requirements · Updates* (a requirement's proposal still shows on its line).
+
+
 ## [0.8.0] — 2026-10-24
 
 A new structure: **two scopes** (Workspace for members, System for the admin), an inbox in each, **roles**, a **System ontology with a knowledge graph per workspace**, and **Health › Tests**.
