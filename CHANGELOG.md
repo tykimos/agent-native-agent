@@ -5,6 +5,17 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.13.0] — 2026-10-27
+
+### Changed
+
+- **Evolve speaks the language of the work.** It starts with **insights** — what is actually happening, with names, tasks and dates ("the workshop day has passed but its prep is still open", "Acme is still waiting for the revised quote") — each with the items it is about and what needs deciding. Then come the **proposals that follow from them**: what to do now, and features named by what people get.
+  - Ontology, graph and API words are kept for a folded *How it would work*.
+  - Insight cards sit above the proposals. Proposal cards read *From insight · Seen · Changes · Seen elsewhere · How it would work*.
+  - API: `insights[]` on `POST /api/evolve`, plus `outcome`, `how` and `insight` on proposals. `POST /api/insight-act` dismisses an insight.
+- **The analysis card says what was learned** as sentences ("Acme client of Our team") before any counts.
+- **New ontology words become one tidy-up request** per analysis ("Tidy up the ontology: 5 new words from analysis #3", `ontology.add-many`) instead of one admin request per word.
+
 ## [0.12.0] — 2026-10-27
 
 ### Changed

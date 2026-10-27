@@ -437,6 +437,15 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 .evo-type.remove { background: var(--danger-bg); color: var(--danger); }
 .evo-t { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 800; overflow-wrap: anywhere; }
 .evo-st { font-size: 11.5px; font-weight: 800; color: var(--warm-fg); background: var(--warm-bg); border-radius: 999px; padding: 2px 8px; }
+.ins-card { padding: 13px 15px; margin-bottom: 9px; border-left: 4px solid #7C3AED; }
+.ins-top { display: flex; align-items: flex-start; gap: 8px; } .ins-t { flex: 1; min-width: 0; font-size: 14.5px; overflow-wrap: anywhere; }
+.ins-tag { flex: 0 0 auto; font-size: 10.5px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; padding: 2px 7px; border-radius: 6px; background: color-mix(in srgb, #8B5CF6 16%, transparent); color: #7C3AED; }
+.ins-x { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 999px; color: var(--text-weak); } .ins-x:hover { background: var(--surface-2); color: var(--text); }
+.ins-d { margin-top: 6px; font-size: 13.5px; color: var(--text); line-height: 1.55; overflow-wrap: anywhere; } .ins-card .rels { margin-top: 8px; }
+.ins-decide { margin-top: 8px; font-size: 13px; color: var(--text-sub); } .ins-decide b { color: var(--text); margin-right: 4px; }
+.ins-n { margin-top: 6px; font-size: 12px; font-weight: 700; color: #7C3AED; }
+.evo-from { margin-top: 6px; font-size: 12px; font-weight: 700; color: #7C3AED; }
+.evo-how { margin-top: 7px; font-size: 12.5px; color: var(--text-sub); } .evo-how summary { cursor: pointer; font-weight: 700; color: var(--text-weak); } .evo-how div { margin-top: 4px; line-height: 1.5; overflow-wrap: anywhere; }
 .evo-hz { flex: 0 0 auto; font-size: 10.5px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; padding: 2px 7px; border-radius: 6px; margin-right: 6px; background: var(--surface-2); color: var(--text-sub); cursor: help; }
 .evo-hz.improve { background: var(--blue-weak, var(--surface-2)); color: var(--blue-700, var(--blue)); } .evo-hz.reimagine { background: color-mix(in srgb, #8B5CF6 16%, transparent); color: #7C3AED; }
 .evo-why, .evo-src { margin-top: 7px; font-size: 12.5px; color: var(--text-sub); line-height: 1.5; overflow-wrap: anywhere; } .evo-why b, .evo-src b { color: var(--text); font-weight: 800; margin-right: 4px; }
@@ -1254,6 +1263,7 @@ body.sys-mode .ws-combo { display: none; }
 .ana-out { display: flex; align-items: center; gap: 8px; margin: 14px 0 0; padding-top: 10px; border-top: 1px solid var(--line-2); font-size: 12.5px; color: var(--text-weak); }
 .ana-out span { flex: 1; } .ana-out button { height: 30px; padding: 0 11px; border-radius: 8px; font-size: 12.5px; font-weight: 700; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); }
 .ana-card .ana-seg { margin-top: 14px; }
+.ana-learned { margin: 8px 0 4px; font-size: 13.5px; } .ana-learned > b { display: block; margin-bottom: 4px; } .ana-learned ul { margin: 0 0 0 18px; line-height: 1.6; } .ana-learned li b { font-weight: 800; }
 .ana-acts .ok { background: var(--blue); color: var(--white); box-shadow: none; }   /* 결과의 주 동작: 지식그래프에 더하기 */
 .ana-issues { margin: 0 0 10px; font-size: 12.5px; color: var(--warm-fg); } .ana-issues summary { cursor: pointer; font-weight: 700; }
 .ana-issues ul { margin: 6px 0 0; padding-left: 18px; color: var(--text-sub); max-height: 180px; overflow: auto; } .ana-issues li { margin: 2px 0; overflow-wrap: anywhere; }
@@ -1614,6 +1624,7 @@ body.sys-mode .ws-combo { display: none; }
     </div>
     <div data-subsec="evolve">
       <div class="evo-lead sub-lead">How the work here could evolve — from tidying up (<b>tidy</b>) to a better process (<b>improve</b>) to a new way of working the knowledge suggests (<b>reimagine</b>), with what was seen here and elsewhere. Ideas that need new features go to the system.</div>
+      <div class="ins-list" id="evoIns"></div>
       <div id="evoList"></div>
       <div class="empty" id="evoEmpty"></div>
     </div>
@@ -1681,6 +1692,7 @@ body.sys-mode .ws-combo { display: none; }
     <div data-subsec="approval work"><div id="admList"></div><div class="empty" id="admEmpty"></div></div>
     <div data-subsec="evolve">
       <div class="evo-lead sub-lead">Changes to the system itself — processes, features, screens, the ontology, what the agent does on its own. From <b>tidy</b> fixes to <b>reimagined</b> ways of working, each with why and what others do. They affect every workspace; start the ones to build. Progress shows on the Roadmap.</div>
+      <div class="ins-list" id="sevoIns"></div>
       <div id="sevoList"></div>
       <div class="empty" id="sevoEmpty"></div>
     </div>
@@ -2377,7 +2389,7 @@ const ST_EMPTY = {
 let stFilter = { evo: 'open', appr: 'open', req: 'open', upd: 'wait', adm: 'open', inbox: 'open', road: 'open' };
 try { Object.assign(stFilter, JSON.parse(localStorage.getItem('ana-collab-filter') || '{}')); } catch {}
 for (const k of TWO_KEYS_LIST) if (!['open', 'closed'].includes(stFilter[k])) stFilter[k] = 'open';   // 예전 5칸 값이 남아 있으면 열림으로
-let diffCache = [], evoCache = [];
+let diffCache = [], evoCache = [], insCache = [];   // insCache: 인사이트 — 일과 지식에서 본 것(제안보다 먼저 읽는다)
 const recent = (x) => String(x.updatedAt || x.closedAt || x.decidedAt || x.answeredAt || x.at || '');
 function bucketList(list, map) {
   const out = { wait: [], doing: [], done: [], fail: [], cancel: [] };
@@ -2558,13 +2570,29 @@ $('sysReqAsk').onclick = () => askAdminAgent('work', $('sysReqAsk'));
 /* ---- 진화 ---- */
 async function refreshEvolve() {
   let ev; try { ev = await getJSON('/api/evolve'); } catch { return; }
-  evoCache = ev.proposals || [];
+  evoCache = ev.proposals || []; insCache = ev.insights || [];
   renderEvolve(); renderRoadmap();
 }
 // 진화 제안은 둘: 시스템(기능·코드·틀 — System › Inbox › Evolve, 시작은 관리자) / 워크스페이스(이 워크스페이스의 데이터·쓰는 방식 — Inbox › Evolve)
 const evoScope = () => 'workspace';   // 받은함의 제안 = 이 워크스페이스. 시스템 제안은 Roadmap이 그린다
 const scopeOf = (p) => p.scope || 'system';
 const inScope = (p, sc) => scopeOf(p) === sc && (sc === 'system' || p.ws === (currentWs || 'default'));
+// 인사이트 카드: 무슨 일이 일어나고 있나 · 근거 항목(누르면 그 항목으로) · 무엇을 정해야 하나 · 여기서 나온 제안 수
+function insCardsHtml(list) {
+  return list.map((x) => {
+    const n = evoCache.filter((p) => p.insightId === x.id).length;
+    const chips = (x.items || []).map((id) => { const nd = nodeOf(id); return nd ? `<span class="rel k-${nd.kind}" role="button" tabindex="0" data-go="${escapeHtml(id)}"><span class="rk">${nd.kind}</span><span class="rt">${escapeHtml(nd.label)}</span></span>` : ''; }).join('');
+    return `<div class="ins-card card" data-iid="${x.id}"><div class="ins-top"><span class="ins-tag">Insight</span><b class="ins-t">${escapeHtml(x.title)}</b><button class="ins-x" data-insdismiss="${x.id}" title="Dismiss" aria-label="Dismiss">✕</button></div>
+      ${x.detail ? `<div class="ins-d">${escapeHtml(x.detail)}</div>` : ''}
+      ${chips ? `<div class="rels">${chips}</div>` : ''}
+      ${x.decide ? `<div class="ins-decide"><b>To decide</b> ${escapeHtml(x.decide)}</div>` : ''}
+      ${n ? `<div class="ins-n">↓ ${n} proposal${n === 1 ? '' : 's'} from this</div>` : ''}</div>`;
+  }).join('');
+}
+function insListClick(e) {
+  const x = e.target.closest('[data-insdismiss]'); if (x) { post('/api/insight-act', { id: Number(x.dataset.insdismiss), action: 'dismiss' }).then(refreshEvolve); return; }
+  const g = e.target.closest('[data-go]'); if (g) gotoNode(g.dataset.go);
+}
 // 진화의 거리: 정리(지금 어긋난 것) · 개선(업무 프로세스를 낫게) · 재구상(쌓인 지식이 시사하는 새 방식)
 const EVO_HZ = { tidy: 'Tidy — fix what is off right now', improve: 'Improve — make the work process better', reimagine: 'Reimagine — a new way of working the knowledge suggests' };
 function evoCardsHtml(list) {
@@ -2589,8 +2617,11 @@ function evoCardsHtml(list) {
     return `<div class="evo-card card ${escapeHtml(p.status)}${id === evoFocus ? ' focus' : ''}" data-eid="${id}"><div class="evo-top">
       ${p.horizon ? `<span class="evo-hz ${escapeHtml(p.horizon)}" title="${escapeHtml(EVO_HZ[p.horizon] || '')}">${escapeHtml(p.horizon)}</span>` : `<span class="evo-type ${type}">${type}</span>`}<span class="evo-t">${escapeHtml(p.title)}</span><span class="evo-when">#${id}${pk !== 'wait' && whenTxt(p) ? ' · ' + whenTxt(p) : ''}</span></div>
       ${p.desc ? `<div class="evo-d">${escapeHtml(p.desc)}</div>` : ''}
-      ${p.because ? `<div class="evo-why"><b>Because</b> ${escapeHtml(p.because)}</div>` : ''}
+      ${p.insightId && insCache.some((x) => x.id === p.insightId) ? `<div class="evo-from">From insight: ${escapeHtml(insCache.find((x) => x.id === p.insightId).title)}</div>` : ''}
+      ${p.because ? `<div class="evo-why"><b>Seen</b> ${escapeHtml(p.because)}</div>` : ''}
+      ${p.outcome ? `<div class="evo-why"><b>Changes</b> ${escapeHtml(p.outcome)}</div>` : ''}
       ${(p.sources || []).length ? `<div class="evo-src"><b>Seen elsewhere</b><ul>${p.sources.map((x) => `<li><a href="${escapeHtml(x.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(x.title || x.url.replace(/^https?:\/\//, '').slice(0, 60))} ↗</a>${x.note ? ` — ${escapeHtml(x.note)}` : ''}</li>`).join('')}</ul></div>` : ''}
+      ${p.how ? `<details class="evo-how"><summary>How it would work</summary><div>${escapeHtml(p.how)}</div></details>` : ''}
       ${p.reqId ? `<button class="evo-req" data-req="${Number(p.reqId)}" title="Open the requirement">From requirement #${Number(p.reqId)}${p.status === 'done' ? ' · marked for re-check' : ''}</button>` : ''}
       ${p.status === 'failed' ? `<div class="fail-why">✗ Failed${p.failReason ? ' — ' + escapeHtml(p.failReason) : ''}</div>` : ''}
       ${links}
@@ -2608,6 +2639,9 @@ function renderEvolve() {
   $('sevoBadge').textContent = nS; $('sevoBadge').classList.toggle('show', nS > 0 && myRole === 'admin');
   setSubCount('admin', 'evolve', nS); updateSysBadge();
   const kw = stFilter.evo, ks = stFilter.adm || 'open';
+  const insOf = (sc) => insCache.filter((x) => x.status !== 'dismissed' && x.scope === sc && (sc === 'system' || (x.ws || 'default') === (currentWs || 'default'))).slice().sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')) || a.id - b.id);   // 최근 묶음 먼저, 묶음 안에서는 에이전트가 적은 순서(중요한 것 먼저)
+  $('evoIns').innerHTML = kw === 'closed' ? '' : insCardsHtml(insOf('workspace'));
+  $('sevoIns').innerHTML = ks === 'closed' ? '' : insCardsHtml(insOf('system'));
   $('evoList').innerHTML = evoCardsHtml(W[kw]);
   $('evoEmpty').textContent = ST_EMPTY.evo[kw]; $('evoEmpty').style.display = W[kw].length ? 'none' : 'block';
   $('sevoList').innerHTML = evoCardsHtml(S[ks]);
@@ -2633,6 +2667,7 @@ async function evoListClick(e) {
 }
 $('evoList').addEventListener('click', evoListClick);
 $('sevoList').addEventListener('click', evoListClick);
+$('evoIns').addEventListener('click', insListClick); $('sevoIns').addEventListener('click', insListClick);
 // 제안 처리. 시스템 제안의 시작·취소를 실무자가 누르면 서버가 needsAdmin으로 막고, 관리자 승인요청으로 돌린다.
 // '수행'은 상태만 바꾸지 않고 코딩 에이전트에게 실제 구현을 지시 + 채팅을 연다.
 async function evoAct(id, action, title, desc) {
@@ -2649,7 +2684,7 @@ async function evoAct(id, action, title, desc) {
   if (action === 'do') {
     const ws = p.ws || currentWs || 'default';
     // 왜 이 제안인지와 밖의 사례도 함께 넘긴다 — 만드는 쪽이 같은 근거를 보고 만들게
-    const ctx = `${p.because ? ` Why: ${p.because}` : ''}${(p.sources || []).length ? ` Seen elsewhere: ${p.sources.map((x) => `${x.title || x.url} <${x.url}>${x.note ? ' (' + x.note + ')' : ''}`).join('; ')}.` : ''}`;
+    const ctx = `${p.because ? ` Seen: ${p.because}` : ''}${p.outcome ? ` What should change for people: ${p.outcome}` : ''}${p.how ? ` How (suggested): ${p.how}` : ''}${(p.sources || []).length ? ` Seen elsewhere: ${p.sources.map((x) => `${x.title || x.url} <${x.url}>${x.note ? ' (' + x.note + ')' : ''}`).join('; ')}.` : ''}`;
     const text = scopeOf(p) === 'workspace'
       ? `[Evolve] Apply workspace proposal #${id} "${title}" in workspace "${ws}"${desc ? ' — ' + desc : ''}.${ctx} Change only this workspace's data through the APIs (add ?ws=${encodeURIComponent(ws)}: data changes as a diff via POST /api/agent, links via /api/link) — do not change code. If it needs a new feature, escalate it: curl -s -X POST http://${agentHost}/api/evolve-act -H 'content-type: application/json' -d '{"id":${id},"action":"escalate"}'. Tell me when it's done.`
       : `[Evolve] Implement/apply proposal #${id} "${title}"${desc ? ' — ' + desc : ''}.${ctx} Tell me when it's done.`;
@@ -2664,8 +2699,8 @@ function askEvolveAgent(sc, b) {
   const h = agentHost, ws = encodeURIComponent(currentWs || 'default');
   const api = (path) => `http://${h}${path}`, wq = `ws=${ws}`;
   const reg = (sc) => `curl -s -X POST "${api('/api/evolve' + (sc === 'workspace' ? `?${wq}` : ''))}" -H 'content-type: application/json' --data-binary @evolve.json
-   evolve.json = {"proposals":[{"scope":"${sc}","horizon":"tidy|improve|reimagine","type":"improve|add|remove","title":"Short, concrete","desc":"What changes in the work, and what it means for the knowledge","because":"What you saw here that leads to it (numbers, examples)","sources":[{"title":"Who does this elsewhere","url":"https://…","note":"What they do and what we can take from it"}]}]}`;
-  // 두 진화 모두: 업무(워크)와 지식을 읽고, 밖의 사례를 찾아 보고, 세 가지 거리로 생각한다
+   evolve.json = {"insights":[{"scope":"${sc}","title":"One sentence: what is happening","detail":"What, and why it matters","items":["<ids of the notes / tasks / events it is about>"],"decide":"What someone needs to decide"}],
+     "proposals":[{"insight":0,"scope":"workspace|system","horizon":"tidy|improve|reimagine","type":"improve|add|remove","title":"What people get","because":"What you saw (domain words)","outcome":"What changes for people","how":"Technical: ontology, actions, APIs, files","sources":[{"title":"…","url":"https://…","note":"What to take from it"}]}]}`;
   const read = sc === 'system'
     ? `- The work (how the process runs): the Work ontology GET ${api('/api/ontology')} (source "work"), usage GET ${api('/api/activity')}, and in each workspace its work graph and where the flow breaks GET ${api('/api/stats')}?ws=<id> (workspaces: GET ${api('/api/workspaces')}).
 - The knowledge (what has accumulated): the Knowledge ontology (same /api/ontology, source "knowledge"), each workspace's knowledge graph with inferred facts GET ${api('/api/kg')}?ws=<id>, and the evidence for promoting use and knowledge into features GET ${api('/api/ontology/evidence')}.
@@ -2673,24 +2708,25 @@ function askEvolveAgent(sc, b) {
     : `- The work here: its work items and links GET ${api(`/api/state?${wq}`)}, where the flow breaks GET ${api(`/api/stats?${wq}`)}, usage GET ${api('/api/activity')}.
 - The knowledge here: entities, facts and what the rules infer GET ${api(`/api/kg?${wq}`)}, and the shared ontology GET ${api('/api/ontology')}.
 - Open proposals GET ${api('/api/evolve')} and our recent conversation.`;
-  const think = `Think at three horizons and propose at least one of each:
-- tidy — fix what is off right now (stale items, missing links, gaps in the flow).
-- improve — make the work process better (a step that keeps being done by hand, a routine, a check, a better screen).
-- reimagine — a new way of working that the knowledge suggests. Look for patterns: the same people, clients or problems coming back, work that always flows the same way, knowledge that grows but is never used. Ask what this work would look like if it were designed today, what the agent could do on its own, what outside services or data would change it. Be bold here — a person chooses before anything is built.
-Look outside too: search the web for how others in this domain work — products, open-source tools, case studies, research. When a practice elsewhere fits what you see here, say so and cite it in "sources" (title, url, what to take from it). Do not invent sources; only cite pages you actually opened.
-For every proposal, "because" says what you saw here (numbers, examples) that leads to it.`;
+  const think = `Step 1 — insights. Use the reads above to find what is actually happening, then write it in the words of the work: names of clients and people, tasks, dates, amounts. Write about the work and what is known about it — not about the app. For example: "The workshop day (Oct 9) has passed but its three prep tasks are still open", "Acme has been waiting on the revised quote while the follow-up call already passed". Give 2–6 insights; skip the obvious. Each has a title (one sentence), detail (what and why it matters), items (ids of the work items it is about) and decide (what someone needs to decide).
+Step 2 — proposals that follow from the insights ("insight": its number in your list). Two kinds:
+- the work now ("scope":"workspace"): what to do about it with what exists — close, reschedule, follow up, decide, ask someone.
+- features ("scope":"system"): how the app should change so this is handled better next time, named by what people get ("When an event passes, ask how it went and tidy its tasks in one go"), not by mechanism.
+Spread them over three horizons — tidy (fix what is off), improve (a better way of doing this work), reimagine (a new way of working that what is known suggests) — with at least one reimagine.
+Look outside: search the web for how others in this domain handle the same thing (products, open-source tools, case studies, research) and put what fits in "sources" — only pages you actually opened, never invented.
+Words: keep ontology, graph, class, entity, schema, API and file names out of titles, insights, "because" and "outcome". Put them only in "how", which is for whoever builds it.`;
   const prompt = sc === 'system'
-    ? `[Evolve] Propose how the SYSTEM of this ANA should evolve — its processes, features, screens, APIs, the ontology, what the agent does by itself. These need code changes and affect every workspace; the admin decides.
-A domain is its work (what the process needs to run) and its knowledge (what accumulates from doing the work). Read both:
+    ? `[Evolve] Look at how the work is going across this ANA and what it has learned, then propose how the SYSTEM should evolve. Features need code changes and affect every workspace; the admin decides.
+Read:
 ${read}
 ${think}
-The ontology is a guide, not a limit: you may propose things outside it and changes to it. The Work ontology lives in work-ontology.js; a feature that changes the process must update it in the same change.
+A feature that changes the work process must also update the Work ontology in work-ontology.js (say so in "how").
 Register: ${reg('system')}`
-    : `[Evolve] Propose how the work in THIS WORKSPACE (${currentWs || 'default'}) should evolve.
-Read the work and the knowledge:
+    : `[Evolve] Look at how the work is going in THIS WORKSPACE (${currentWs || 'default'}) and what it has learned, then propose what to do now and how it could evolve.
+Read:
 ${read}
 ${think}
-Proposals that only use what already exists are workspace proposals ("scope":"workspace"). Anything that needs a new feature, process or code — including your bold ideas — is a system proposal: same file with "scope":"system". Never shrink an idea to fit the current features.
+Never shrink an idea to fit what exists — a feature idea is a system proposal.
 Register: ${reg('workspace')}`;
   post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Analyze request failed')).catch(() => {}); else openChat(); })
     .catch(() => showErr('Analyze request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
@@ -2771,7 +2807,7 @@ $('testsRun').onclick = async () => {
    분석 결과는 실무자가 승인해야 이 워크스페이스의 지식그래프에 더해진다(Inbox › Approvals, Knowledge).
    시스템 온톨로지에 없는 개념은 관리자 승인요청이 되고, 승인되면 그 개념을 쓰는 사실이 저절로 더해진다. */
 function anaApplyHtml(j) {
-  const nc = (j.newConcepts || []).length ? `<div class="ana-new">New in the Knowledge ontology — already used in this result, and sent to the admin: ${j.newConcepts.map((c) => `<code>${escapeHtml(c.label)}</code>`).join(' ')}</div>` : '';
+  const nc = (j.newConcepts || []).length ? `<div class="ana-new">New words this used — kept, and sent to the admin to tidy up the ontology: ${j.newConcepts.map((c) => `<code>${escapeHtml(c.label)}</code>`).join(' ')}</div>` : '';
   if (j.discarded) return `${nc}<div class="ana-state">Discarded — not added to the knowledge graph</div>`;
   if (j.applied) {
     const ac = j.appliedCount || { entities: 0, facts: 0 };
@@ -3050,7 +3086,7 @@ async function refreshAdmin() {
   renderAdmin(); renderToAdmin();
 }
 const ADM_FROM = (x) => (x.from && x.from.kind === 'check' ? 'System check' : x.from && x.from.kind === 'agent' ? 'Agent' : displayName((x.from && x.from.by) || ''));
-const ADM_ACTION = { 'ontology.add': 'Adds it to the shared ontology — it is already in use; this makes it official for every workspace', 'evolve.do': 'Starts the proposal', 'evolve.ignore': 'Cancels the proposal', 'update.do': 'Brings in the update', permission: 'Changes the agent permission mode', 'workspace.remove': 'Deletes the workspace' };
+const ADM_ACTION = { 'ontology.add-many': 'Adds these words to the Knowledge ontology — they are already in use', 'ontology.add': 'Adds it to the shared ontology — it is already in use; this makes it official for every workspace', 'evolve.do': 'Starts the proposal', 'evolve.ignore': 'Cancels the proposal', 'update.do': 'Brings in the update', permission: 'Changes the agent permission mode', 'workspace.remove': 'Deletes the workspace' };
 function renderAdmin() {
   const all = admCache.items || [];
   const open = all.filter((x) => ['open', 'doing'].includes(x.status));
@@ -3079,6 +3115,10 @@ async function runAdminAction(a) {
   if (a.kind === 'evolve.do' || a.kind === 'evolve.ignore') { await refreshEvolve(); return evoAct(a.id, a.kind === 'evolve.do' ? 'do' : 'ignore'); }
   if (a.kind === 'update.do') { await refreshUpdates(); const it = (updCache.items || []).find((x) => x.id === a.id); if (!it) { showErr('That update is gone'); return false; } return updAct(it, 'do'); }
   if (a.kind === 'permission') { const r = await post('/api/agent-permission', { mode: a.mode, target: health && health.target }).catch(() => null); if (!r || !r.ok) { showErr((r && (await r.json().catch(() => ({}))).error) || 'Could not change the permission mode'); return false; } return true; }
+  if (a.kind === 'ontology.add-many') {   // 분석 하나가 새로 쓴 말들 — 한 번에(이미 있는 것은 그대로)
+    for (const x of a.items || []) { const r = await post('/api/ontology', { action: 'add', kind: x.what, item: x.item }).catch(() => null); if (!r || !r.ok) { showErr((r && (await r.json().catch(() => ({}))).error) || `Could not add ${x.item.id}`); return false; } }
+    refreshOntology(); return true;
+  }
   if (a.kind === 'ontology.add') { const r = await post('/api/ontology', { action: 'add', kind: a.what, item: a.item }).catch(() => null); if (!r || !r.ok) { showErr((r && (await r.json().catch(() => ({}))).error) || 'Could not add it to the ontology'); return false; } refreshOntology(); return true; }
   if (a.kind === 'workspace.remove') { const r = await post('/api/workspaces', { action: 'remove', id: a.id }).catch(() => null); if (!r || !r.ok) { showErr((r && (await r.json().catch(() => ({}))).error) || 'Could not delete the workspace'); return false; } loadWorkspaces(); return true; }
   return true;
@@ -3525,6 +3565,13 @@ The ontology is the schema (kinds of things, kinds of relations, with parents fo
   post('/api/chat', { text, force: true }).then((x) => { if (!x.ok) x.json().then((e) => showErr(e.error || 'Could not send it to the agent')).catch(() => {}); }).catch(() => showErr('Could not send it to the agent'));
 };
 const ago = (iso) => { const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000)); return s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${Math.floor(s / 3600)}h ${Math.floor(s % 3600 / 60)}m`; };
+// 알게 된 것: 사실을 사람 말 문장으로(틀의 개수보다 먼저) — "Acme is client of Our team"
+function learnedHtml(g, o) {
+  const ent = new Map((g.entities || []).map((e) => [e.id, e])), rlab = (id) => ((o.relations || []).find((r) => r.id === id) || {}).label || String(id).replace(/_/g, ' ');
+  const lines = (g.facts || []).filter((f) => ent.has(f.from) && ent.has(f.to)).slice(0, 6).map((f) => `<li><b>${escapeHtml(ent.get(f.from).label)}</b> ${escapeHtml(rlab(f.rel))} <b>${escapeHtml(ent.get(f.to).label)}</b></li>`);
+  const more = (g.facts || []).length - lines.length;
+  return lines.length ? `<div class="ana-learned"><b>What we learned</b><ul>${lines.join('')}</ul>${more > 0 ? `<div class="cd">and ${more} more fact${more === 1 ? '' : 's'} below</div>` : ''}</div>` : '';
+}
 function renderAnalysis() {
   const c = $('anaCard'), j = anaJob;
   $('anaBtn').textContent = j && j.status === 'running' ? 'Analyzing…' : 'Analyze';
@@ -3560,7 +3607,7 @@ function renderAnalysis() {
   const nc0 = j.newConcepts || [], nCls = nc0.filter((c) => c.what === 'class').length, nRel = nc0.length - nCls;
   const nNewTxt = [nCls && `${nCls} new class${nCls === 1 ? '' : 'es'}`, nRel && `${nRel} new relation${nRel === 1 ? '' : 's'}`].filter(Boolean).join(' · ');
   c.innerHTML = head(`Analysis #${j.id}`, `${escapeHtml(fmtWhen(j.doneAt || j.updatedAt))} · read ${escapeHtml(targets)} → found ${g.entities.length} entities · ${g.facts.length} facts${nNewTxt ? ` · ${nNewTxt}` : ''}`) +
-    `${j.summary ? `<div class="ana-sum">${escapeHtml(j.summary)}</div>` : ''}
+    `${j.summary ? `<div class="ana-sum">${escapeHtml(j.summary)}</div>` : ''}${learnedHtml(g, o)}
      ${(j.issues || []).length ? `<details class="ana-issues"><summary>⚠ ${j.issues.length} thing${j.issues.length === 1 ? '' : 's'} not in the ontology yet — kept, marked</summary><ul>${j.issues.map((x) => `<li>${escapeHtml(x.msg)}</li>`).join('')}</ul></details>` : ''}
      ${anaApplyHtml(j)}
      <div class="ana-seg" role="tablist"><button role="tab" data-v="kg" class="${anaView === 'kg' ? 'on' : ''}" aria-selected="${anaView === 'kg'}">Entities &amp; facts</button><button role="tab" data-v="onto" class="${anaView === 'onto' ? 'on' : ''}" aria-selected="${anaView === 'onto'}">Classes &amp; relations</button></div>
@@ -4789,8 +4836,8 @@ function instructionInfo(raw) {
   } else if (m[1] === 'Evolve') {
     const pm = /^Implement\/apply proposal #(\d+) "([^"]*)"/.exec(body), wm = /^Apply workspace proposal #(\d+) "([^"]*)"/.exec(body);
     summary = pm ? `Asked the agent to do proposal #${pm[1]} · ${pm[2]}` : wm ? `Asked the agent to apply workspace proposal #${wm[1]} · ${wm[2]}`
-      : /^(Look at|Propose how the work in) THIS WORKSPACE/.test(body) ? 'Asked the agent how this workspace should evolve' : 'Asked the agent to propose how the app should evolve';
-    view = wm || /^(Look at|Propose how the work in) THIS WORKSPACE/.test(body) ? 'inbox' : 'admin';
+      : /\bTHIS WORKSPACE\b/.test(body) ? 'Asked the agent how this workspace should evolve' : 'Asked the agent to propose how the app should evolve';
+    view = wm || /\bTHIS WORKSPACE\b/.test(body) ? 'inbox' : 'admin';
   } else if (m[1] === 'Requirements') {
     const n = g(/Check (\d+) of my requirements/), job = g(/requirements\/input\?job=(\d+)/);
     summary = `Asked the agent to check ${n ? `${n} requirement${n === '1' ? '' : 's'}` : 'your requirements'}${job ? ` · #${job}` : ''}`; view = 'roadmap';

@@ -1016,10 +1016,12 @@ async function integration() {
       assert.ok(ont.classes.some((c) => c.id === 'Task' && c.source === 'work') && ont.relations.some((r) => r.id === 'SPAWNED' && r.source === 'work' && r.made === 'explicit'));
       assert.deepEqual(ont.relations.find((r) => r.id === 'REFERS_TO').from, ['Note', 'Task', 'Event'], 'App 관계는 여러 클래스를 잇는다');
       // C16 분석이 낸 새 개념(Org)은 시스템 온톨로지에 바로 들어가지 않고 관리자 승인요청이 됐다 → 승인(=추가)
-      const orgReq = (await (await fetch(`${api}/api/admin/inbox`)).json()).items.find((x) => x.ref === 'onto:class:Org');
-      assert.ok(orgReq && orgReq.action.kind === 'ontology.add', 'C16의 새 개념 → 관리자 승인요청');
+      // 분석 하나가 새로 쓴 말들은 관리자에게 '정리 요청' 하나로 묶인다
+      const words = (it) => ((it.action || {}).items || []).map((x) => x.item.id);
+      const orgReq = (await (await fetch(`${api}/api/admin/inbox`)).json()).items.find((x) => /^onto:analysis:/.test(x.ref) && words(x).includes('Org'));
+      assert.ok(orgReq && orgReq.action.kind === 'ontology.add-many' && /Tidy up the ontology/.test(orgReq.title), 'C16의 새 말 → 관리자 정리 요청 하나');
       assert.ok(!ont.classes.some((c) => c.id === 'Org'));
-      await post('/api/ontology', { action: 'add', kind: 'class', item: orgReq.action.item });
+      await post('/api/ontology', { action: 'add', kind: 'class', item: orgReq.action.items.find((x) => x.item.id === 'Org').item });
       r0 = await post('/api/ontology', { action: 'remove', kind: 'class', item: { id: 'Task' } });
       assert.equal(r0.status, 400); assert.match((await r0.json()).error, /is in the Work ontology/, '워크 종류는 코드에서 — 편집 폼으로 못 바꾼다');
       assert.equal((await (await post('/api/ontology', { action: 'add', kind: 'class', item: { id: 'Agent', label: 'Agent' } })).json()).ok, true);
@@ -1040,8 +1042,10 @@ async function integration() {
       assert.match(j.issues.map((x) => x.msg).join('\n'), /meant to go from Agent.*kept, marked as not fitting/);
       assert.deepEqual(j.newConcepts, ['class Person', 'class Alien', 'relation odd', 'relation knows'], '선언했든 그냥 썼든, 시스템에 없는 개념은 관리자에게');
       const inbox = (await (await fetch(`${api}/api/admin/inbox`)).json()).items;
-      const ap = inbox.find((x) => x.ref === 'onto:class:Person');
-      assert.ok(ap && ap.type === 'approval' && ap.action.kind === 'ontology.add' && ap.action.item.parent === 'Agent');
+      const req = inbox.find((x) => x.ref === `onto:analysis:default:${id}`);
+      assert.deepEqual(words(req).sort(), ['Alien', 'Person', 'knows', 'odd'], '한 분석의 새 말 넷이 요청 하나에');
+      const ap = { type: req.type, action: req.action.items.find((x) => x.item.id === 'Person') };
+      assert.ok(ap.type === 'approval' && ap.action.item.parent === 'Agent');
       // 결과는 실무자가 승인해야 지식그래프에 — 승인 전에는 비어 있고 NodeRel에도 없다
       assert.equal((await (await fetch(`${api}/api/kg`)).json()).entities.length, 0);
       assert.equal((await fetch(`${api}/api/graph/neighbors?id=kg:acme`)).status, 404);

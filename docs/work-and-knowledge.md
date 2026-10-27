@@ -156,7 +156,7 @@ sequenceDiagram
 
 1. **Analyze.** A member picks notes / tasks / events (and an optional focus). The agent reads them with the **shared ontology** (`GET /api/analysis/input` → `ontology` + `rules`) and reports progress.
 2. **Result.** `POST /api/analysis/result {summary, ontology:{classes, relations}, graph:{entities, facts}}`. The server checks it against the ontology (below) and answers with counts, `issues` and `newConcepts`.
-3. **New concepts → admin, as tidying.** A class or relation the ontology doesn't have — declared in the result or just used — becomes a request in System › Inbox ("Add class "Team" to the ontology", `action: ontology.add`). It doesn't block anything: the concept is already in use.
+3. **New words → admin, as one tidy-up.** Classes or relations the ontology doesn't have — declared in the result or just used — are gathered into **one** request in System › Inbox ("Tidy up the ontology: 5 new words from analysis #3", `action: ontology.add-many`). It blocks nothing: the words are already in use. Approving adds them all.
 4. **Add to the knowledge graph → member.** The result is not applied by itself. It appears in **Inbox › Approvals** and on Graph › Knowledge (*Waiting for your OK*). *Add* merges all of it into `knowledge-graph.json`: entities by id (sources merged), facts by from·rel·to. Nothing waits.
 5. **Fit is read, not stored.** `GET /api/kg` returns each entity and fact with `fit` and `why`, plus `notFitting` counts; the chart draws them in orange. When the admin adds a concept, it fits on the next read. 
 6. *Discard* drops a result; the knowledge graph keeps everything added before. Members can remove a wrong entity or fact (`POST /api/kg {action: remove-entity|remove-fact}`).

@@ -160,7 +160,7 @@ sequenceDiagram
 
 1. **분석.** 실무자가 메모·할일·일정과 (선택) 초점을 고릅니다. 에이전트는 **공용 온톨로지**와 함께 항목을 읽고(`GET /api/analysis/input` → `ontology` + `rules`), 진행률을 보고합니다.
 2. **결과.** `POST /api/analysis/result {summary, ontology:{classes, relations}, graph:{entities, facts}}`. 서버가 온톨로지로 검사하고(아래), 개수와 `issues`, `newConcepts`를 돌려줍니다.
-3. **새 개념은 관리자에게, 정리 요청으로.** 온톨로지에 없는 클래스나 관계는 System › Inbox의 요청이 됩니다("Add class "Team" to the ontology", `action: ontology.add`). 결과에 선언한 것이든 그냥 쓴 것이든 같습니다. 아무것도 막지 않습니다. 그 개념은 이미 쓰이고 있습니다.
+3. **새 말은 관리자에게, 정리 요청 하나로.** 온톨로지에 없는 클래스나 관계는 결과에 선언한 것이든 그냥 쓴 것이든 System › Inbox의 요청 **하나**로 묶입니다("Tidy up the ontology: 5 new words from analysis #3", `action: ontology.add-many`). 아무것도 막지 않습니다. 이미 쓰이고 있는 말이고, 승인하면 모두 더해집니다.
 4. **지식그래프에 더하기는 실무자가.** 결과는 저절로 들어가지 않습니다.
    - **Inbox › Approvals**와 Graph › Knowledge(*Waiting for your OK*)에 뜹니다.
    - *Add*를 누르면 `knowledge-graph.json`에 합칩니다. 개체는 id로 합치고(근거도 합침), 사실은 from·rel·to로 합칩니다.

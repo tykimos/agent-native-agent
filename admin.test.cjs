@@ -234,3 +234,24 @@ test('Evolve proposals carry a horizon, the reason and outside sources (http(s) 
   const sys = ((await (await fetch(api + '/api/evolve')).json()).proposals || []).find((x) => x.id === (esc.proposal || {}).id);
   assert.ok(sys && sys.scope === 'system' && sys.horizon === 'reimagine' && sys.sources.length === 2 && /14 of 20/.test(sys.because), 'escalation keeps the insight');
 });
+
+test('Evolve insights come first: stored, linked to the proposals that follow, dismissable', async (t) => {
+  const { api, stop } = await startServer({});
+  t.after(stop);
+  const post = (p, b) => fetch(api + p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b) });
+  const r = await (await post('/api/evolve?ws=default', {
+    insights: [{ scope: 'workspace', title: 'The workshop day has passed but its prep tasks are still open', detail: 'Venue, invitations and slides are open; the day was Oct 9.', items: ['a1', 'bad id!'], decide: 'Did it happen, or was it moved?' }],
+    proposals: [{ insight: 0, scope: 'workspace', horizon: 'tidy', title: 'Close or move the workshop prep', because: 'Oct 9 passed, 3 prep tasks open', outcome: 'One decision closes or moves all three', how: 'POST /api/done for each' },
+      { insight: 0, scope: 'system', horizon: 'improve', title: 'When an event passes, ask how it went', outcome: 'Prep tasks get tidied in one go', how: 'an event.after hook in the Work ontology' }] })).json();
+  assert.equal(r.insights.length, 1);
+  const ev = await (await fetch(api + '/api/evolve')).json();
+  const ins = ev.insights.find((x) => x.id === r.insights[0]);
+  assert.deepEqual(ins.items, ['a1'], 'only plain ids'); assert.match(ins.decide, /moved/);
+  const ps = ev.proposals.filter((x) => r.ids.includes(x.id));
+  assert.ok(ps.every((x) => x.insightId === ins.id), 'proposals point at their insight');
+  assert.equal(ps.find((x) => x.scope === 'system').how, 'an event.after hook in the Work ontology');
+  assert.equal(ps.find((x) => x.scope === 'workspace').outcome, 'One decision closes or moves all three');
+  assert.equal((await post('/api/insight-act', { id: ins.id, action: 'dismiss' })).status, 200);
+  assert.equal((await (await fetch(api + '/api/evolve')).json()).insights.find((x) => x.id === ins.id).status, 'dismissed');
+  assert.equal((await post('/api/evolve', { insights: [{ title: '' }] })).status, 400, 'needs a proposal or an insight with a title');
+});

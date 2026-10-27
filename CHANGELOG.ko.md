@@ -5,6 +5,17 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.13.0] — 2026-10-27
+
+### Changed
+
+- **진화 제안이 일의 말로 말합니다.** 먼저 **인사이트**를 씁니다. 실제로 무슨 일이 일어나고 있는지를 이름, 할일, 날짜로 말합니다("워크숍 날이 지났는데 준비가 그대로 열려 있다", "Acme가 아직 수정 견적을 기다린다"). 인사이트마다 관련 항목과 정해야 할 것이 붙습니다. 그다음 그 인사이트에서 나온 **제안**이 옵니다. 지금 할 일과, 사람이 얻는 것으로 이름 붙인 기능입니다.
+  - 온톨로지·그래프·API 같은 말은 접혀 있는 *How it would work*에만 씁니다.
+  - 인사이트 카드가 제안 위에 놓입니다. 제안 카드는 *From insight · Seen · Changes · Seen elsewhere · How it would work* 순서입니다.
+  - API: `POST /api/evolve`에 `insights[]`, 제안에 `outcome`·`how`·`insight`가 생겼습니다. 인사이트는 `POST /api/insight-act`로 치웁니다.
+- **분석 카드가 알게 된 것을 문장으로 먼저 말합니다**("Acme client of Our team"). 개수는 그 뒤입니다.
+- **새 온톨로지 말은 분석마다 정리 요청 하나로 묶입니다**("Tidy up the ontology: 5 new words from analysis #3", `ontology.add-many`). 말마다 관리자 요청이 하나씩 생기지 않습니다.
+
 ## [0.12.0] — 2026-10-27
 
 ### Changed

@@ -536,7 +536,10 @@ function createDashboardApi(core, opts) {
   function evoInsight(x) {
     const out = {};
     if (EVO_HORIZONS.includes(x.horizon)) out.horizon = x.horizon;
-    if (x.because) out.because = clip(x.because, 600);
+    if (x.because) out.because = clip(x.because, 600);      // 본 것: 일과 지식에서 본 문제(도메인 말)
+    if (x.outcome) out.outcome = clip(x.outcome, 600);      // 바뀌는 것: 사람에게 무엇이 달라지나
+    if (x.how) out.how = clip(x.how, 1500);                  // 어떻게: 기술 설명(온톨로지·동작·API) — 화면에서는 접혀 있다
+    if (Number.isInteger(x.insightId)) out.insightId = x.insightId;
     const src = (Array.isArray(x.sources) ? x.sources : []).map((s0) => (typeof s0 === 'string' ? { url: s0 } : s0 || {}))
       .filter((s0) => /^https?:\/\/[^\s]{3,500}$/.test(String(s0.url || ''))).slice(0, 5)
       .map((s0) => ({ url: String(s0.url), title: clip(s0.title || '', 120), note: clip(s0.note || '', 300) }));
@@ -571,6 +574,10 @@ function createDashboardApi(core, opts) {
     'permission': (a) => (/^[a-z]{2,20}$/.test(String(a.mode || '')) ? { kind: 'permission', mode: a.mode } : null),
     'ontology.add': (a) => (['class', 'relation'].includes(a.what) && a.item && CONCEPT_ID.test(String(a.item.id || '')) ? { kind: 'ontology.add', what: a.what,
       item: { id: String(a.item.id), label: clip(a.item.label || a.item.id, 80), desc: clip(a.item.desc, 300), ...(a.what === 'class' ? { parent: clip(a.item.parent, 60) } : { domain: clip(a.item.domain, 60), range: clip(a.item.range, 60) }) } } : null),
+    'ontology.add-many': (a) => {   // 분석 하나가 새로 쓴 말들 — 한 번에 정리
+      const items = (Array.isArray(a.items) ? a.items : []).slice(0, 60).map((x) => ADMIN_ACTIONS['ontology.add'](x || {})).filter(Boolean).map(({ what, item }) => ({ what, item }));
+      return items.length ? { kind: 'ontology.add-many', items } : null;
+    },
     'workspace.remove': (a) => (/^[\w-]{1,40}$/.test(String(a.id || '')) ? { kind: 'workspace.remove', id: a.id } : null),
   };
   // 점검(Trustworthiness·Safety·Security)이 risk면 관리자 실행 요청을 하나 연다. 해결되면 자동으로 닫는다.
@@ -1955,12 +1962,18 @@ function createDashboardApi(core, opts) {
         const declared = { classes: new Set(r2.ontology.classes.map((c) => c.id)), relations: new Set(r2.ontology.relations.map((x) => x.id)) };
         for (const e of r2.graph.entities) if (e.class && !known.classes.has(e.class) && !declared.classes.has(e.class) && CONCEPT_ID.test(e.class)) { declared.classes.add(e.class); r2.ontology.classes.push({ id: e.class, label: e.class, desc: '', parent: '', undeclared: true }); }
         for (const f of r2.graph.facts) if (!known.relations.has(f.rel) && !declared.relations.has(f.rel) && CONCEPT_ID.test(f.rel)) { declared.relations.add(f.rel); r2.ontology.relations.push({ id: f.rel, label: f.rel, desc: '', domain: '', range: '', undeclared: true }); }
+        // 새로 쓰인 말은 관리자에게 '정리 요청' 하나로 묶는다 — 일의 승인요청 사이에 개념마다 하나씩 끼지 않게(막지 않음: 이미 쓰이고 있다)
+        const fresh = [];
         for (const [k, what] of [['classes', 'class'], ['relations', 'relation']]) for (const c of r2.ontology[k]) {
           if (c.inherited || known[k].has(c.id) || !CONCEPT_ID.test(c.id)) continue;
-          const r = addAdminItem({ type: 'approval', title: `Add ${what} "${c.label || c.id}" to the ontology`, ref: `onto:${what}:${c.id}`,   // 막는 승인이 아니라 정리: 이미 지식그래프에 쓰이고 있다
-            desc: [c.desc, what === 'class' ? (c.parent ? `Kind of ${c.parent}` : '') : `${c.domain || 'any'} → ${c.range || 'any'}`, `Proposed by analysis #${j.id} in workspace ${ws}`].filter(Boolean).join('\n'),
-            action: { kind: 'ontology.add', what, item: c } }, { kind: 'agent', by: 'ana' }, ws);
-          if (r.item) newConcepts.push({ what, id: c.id, label: c.label || c.id, adminId: r.item.id });
+          fresh.push({ what, item: c });
+        }
+        if (fresh.length) {
+          const words = fresh.map((x) => x.item.label || x.item.id);
+          const r = addAdminItem({ type: 'approval', title: `Tidy up the ontology: ${fresh.length} new word${fresh.length === 1 ? '' : 's'} from analysis #${j.id}`, ref: `onto:analysis:${ws}:${j.id}`,
+            desc: `${words.slice(0, 12).join(', ')}${words.length > 12 ? ', …' : ''}\nAlready used in workspace ${ws}. Approving adds them to the Knowledge ontology for every workspace.`,
+            action: { kind: 'ontology.add-many', items: fresh } }, { kind: 'agent', by: 'ana' }, ws);
+          for (const x of fresh) newConcepts.push({ what: x.what, id: x.item.id, label: x.item.label || x.item.id, adminId: r.item ? r.item.id : null });
         }
         if (newConcepts.length) broadcast({ kind: 'admin' });
         Object.assign(j, r2, { status: 'done', progress: 100, step: 'Done', updatedAt: now, doneAt: now, newConcepts, applied: false });
@@ -2043,6 +2056,7 @@ function createDashboardApi(core, opts) {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
       const body = await jsonBody(req, res); if (!body) return true;
       const incoming = Array.isArray(body.proposals) ? body.proposals : (body.title ? [body] : []);
+      const insIn = (Array.isArray(body.insights) ? body.insights : []).filter((x) => x && typeof x.title === 'string' && x.title.trim()).slice(0, 12);
       const valid = [];
       for (const x of incoming) {
         if (!x || typeof x !== 'object' || typeof x.title !== 'string' || !x.title.trim()) continue;
@@ -2050,8 +2064,19 @@ function createDashboardApi(core, opts) {
         if (x.horizon !== undefined && !EVO_HORIZONS.includes(x.horizon)) return sendJson(res, 400, { error: `horizon must be ${EVO_HORIZONS.join('|')}` }), true;
         valid.push(x);
       }
-      if (!valid.length) return sendJson(res, 400, { error: 'proposals[] with title required' }), true;
+      if (!valid.length && !insIn.length) return sendJson(res, 400, { error: 'proposals[] or insights[] with title required' }), true;
       const ev = loadEvolve();
+      // 인사이트: 일과 지식에서 본 것(제안보다 먼저). 같은 요청의 제안은 "insight": <이 배열의 번호>로 잇는다
+      if (!Array.isArray(ev.insights)) ev.insights = [];
+      ev.nextInsight = ev.nextInsight || 1;
+      const insIds = insIn.map((x) => {
+        const scope = x.scope === 'workspace' ? 'workspace' : 'system';
+        const it = { id: ev.nextInsight++, scope, ...(scope === 'workspace' ? { ws: curWs() } : {}), title: clip(x.title, 200), detail: clip(x.detail, 1000), decide: clip(x.decide, 400),
+          items: (Array.isArray(x.items) ? x.items : []).map(String).filter((id) => /^[\w:-]{1,80}$/.test(id)).slice(0, 12), status: 'new', at: new Date().toISOString() };
+        ev.insights.push(it); return it.id;
+      });
+      if (ev.insights.length > 60) ev.insights = ev.insights.slice(-60);
+      for (const x of valid) if (Number.isInteger(x.insight) && insIds[x.insight]) x.insightId = insIds[x.insight];
       const seen = new Set(ev.proposals.filter((p2) => !['done', 'dismissed', 'failed'].includes(p2.status)).map((p2) => (p2.title || '').trim()));
       const added = [];
       for (const x of valid) {
@@ -2067,9 +2092,20 @@ function createDashboardApi(core, opts) {
       if (ev.proposals.length > 50) ev.proposals = ev.proposals.slice(-50);
       ev.version = (ev.version || 1) + 1; saveEvolve(ev);
       broadcast({ kind: 'evolve', version: ev.version });
-      return sendJson(res, 200, { ok: true, ids: added.map((x) => x.id), added: added.length, version: ev.version }), true;
+      return sendJson(res, 200, { ok: true, ids: added.map((x) => x.id), added: added.length, insights: insIds, version: ev.version }), true;
     }
 
+    // 인사이트 치우기 — {id, action: dismiss|restore}
+    if (p === '/api/insight-act' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      const ev = loadEvolve(), it = (ev.insights || []).find((x) => x.id === body.id);
+      if (!it) return sendJson(res, 404, { error: 'not found' }), true;
+      if (!['dismiss', 'restore'].includes(body.action)) return sendJson(res, 400, { error: 'action must be dismiss|restore' }), true;
+      it.status = body.action === 'dismiss' ? 'dismissed' : 'new'; it.updatedAt = new Date().toISOString();
+      ev.version = (ev.version || 1) + 1; saveEvolve(ev); broadcast({ kind: 'evolve', version: ev.version });
+      return sendJson(res, 200, { ok: true }), true;
+    }
     // 진화 제안 처리: do → 수행요청 통지(pull큐) / done → 완료 / ignore → 제거
     if (p === '/api/evolve-act' && req.method === 'POST') {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
