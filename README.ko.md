@@ -154,7 +154,7 @@ node server.js           # → http://localhost:8809
 
 | 범위 | 누가 | 탭 | 용도 |
 |---|---|---|---|
-| **Workspace** (위에 워크스페이스 이름) | 실무자 | **Work**(할일·일정·메모·연결) · **Knowledge** · **Files** · **Inbox** | 한 워크스페이스의 일과 데이터 |
+| **Workspace** (위에 워크스페이스 이름) | 실무자 | **Work**(할일·일정·메모) · **Graph** · **Files** · **Inbox** | 한 워크스페이스의 일과 데이터 |
 | **System** (위쪽이 어두운 띠) | 관리자 | **Inbox** · **Roadmap** · **Ontology** · **Health** | 모든 워크스페이스에 걸리는 결정 |
 
 휴대폰에서는 하단 메뉴가 범위에 맞게 바뀝니다. Workspace에서는 Work · Knowledge · Files · Inbox(관리자는 System 추가), System에서는 Inbox · Roadmap · Health · Workspace입니다. 데스크톱에서는 로고 옆 전환 버튼으로 바꿉니다.
@@ -166,12 +166,14 @@ node server.js           # → http://localhost:8809
   - *Action requests*: 에이전트가 맡기는 일이나 묻는 정보
   - *Evolve*: 이 워크스페이스를 더 잘 쓰는 제안
   - *Sent*: 관리자에게 보낸 요청, 내 기능 요청
-- **Work › Links:** 워크 그래프. 메모·할일·일정이 어떻게 이어졌는지, 흐름이 끊긴 곳, 종류별 연결 개수를 봅니다. 사람이 새 연결 종류(`BLOCKS`)를 만들 수 있고, *(new)*로 표시됩니다.
-- **Knowledge:** 한 페이지. 이 워크스페이스의 지식그래프(워크에서 알아낸 개체와 사실), *Analyze*(에이전트가 워크 항목을 읽음), 최근 분석(진행 중이거나 승인을 기다리면 그래프 위)이 있습니다. *Ontology*는 공용 온톨로지를 엽니다(관리자: System › Ontology, 실무자: 읽기 전용).
+- **Graph:** *Work* · *Knowledge*. 이 워크스페이스의 두 그래프입니다.
+  - *Work*는 워크 그래프입니다. 메모·할일·일정이 어떻게 이어졌는지, 흐름이 끊긴 곳, 종류별 연결 개수를 봅니다. 사람이 새 연결 종류(`BLOCKS`)를 만들 수 있고, *(new)*로 표시됩니다.
+  - *Knowledge*는 지식그래프(워크에서 알아낸 개체와 사실)입니다. *Analyze*와 최근 분석이 함께 있습니다.
+  - 각 탭의 *Ontology*는 그 층의 온톨로지를 엽니다(관리자: System › Ontology, 실무자: 읽기 전용).
 - **Files:** 이 워크스페이스의 폴더와 채팅 첨부(읽기 전용)
 - **Inbox(System):** *Approvals* · *Action requests*(실무자, 에이전트, 시스템 점검이 올린 것) · *Evolve*(시스템을 바꾸는 제안, 관리자가 시작)
 - **Roadmap:** *Requirements* · *Updates*(업스트림). 각 변경이 어디까지 왔는지 한 줄씩 단계(예: Request → Proposal → Building → Checked)와 다음 할 일로 보여 줍니다. Inbox에서 결정하고, Roadmap에서 진행을 봅니다.
-- **Ontology:** *Classes* · *Relations* · *Rules*. 두 온톨로지가 한 페이지에 있습니다. **워크 온톨로지**는 이 앱의 코드가 저장하는 것입니다(base: Note, Task, Event, Day와 그 연결). `work-schema.js`에 선언하고 코드와 함께 바뀝니다. **지식 온톨로지**는 워크에서 알아낸 것의 틀입니다. 관리자가 더하거나 분석이 제안한 것을 승인합니다. 지식 클래스가 워크 클래스의 하위 클래스(Ticket ⊂ Task)이면 워크 항목에 붙일 수 있습니다. **규칙**은 그래프를 읽을 때 사실을 끌어냅니다. 역관계·대칭·전이와 **연쇄** 규칙(*만약* x attends y, y part_of z *이면* x involved_in z)이 있고, **제한** 규칙은 어긴 사실을 표시합니다. 관문이 아니라 렌즈입니다. 틀에 안 맞는 것은 남기고 *아직 온톨로지에 없음*으로 표시합니다([relations](docs/relations.ko.md)).
+- **Ontology:** *Work* · *Knowledge*. 탭마다 *Classes* · *Relations* · *Rules*가 있습니다. **워크 온톨로지**는 이 앱의 코드가 저장하는 것입니다(base: Note, Task, Event, Day와 그 연결). `work-ontology.js`에 선언하고 코드와 함께 바뀝니다. **지식 온톨로지**는 워크에서 알아낸 것의 틀입니다. 관리자가 더하거나 분석이 제안한 것을 승인합니다. 지식 클래스가 워크 클래스의 하위 클래스(Ticket ⊂ Task)이면 워크 항목에 붙일 수 있습니다. **규칙**은 그래프를 읽을 때 사실을 끌어냅니다. 역관계·대칭·전이와 **연쇄** 규칙(*만약* x attends y, y part_of z *이면* x involved_in z)이 있고, **제한** 규칙은 어긴 사실을 표시합니다. 관문이 아니라 렌즈입니다. 틀에 안 맞는 것은 남기고 *아직 온톨로지에 없음*으로 표시합니다([워크와 지식](docs/work-and-knowledge.ko.md)).
 - **Health:** *Trustworthiness* · *Safety* · *Security*(위험한 것부터, 괜찮은 점검은 접어 둠) · *Tests*(이 ANA의 테스트를 돌리고 실패를 봄) · *Usage*(통계·활동)
 
 **진화 제안(Evolve)은 어디에?** 늘 **Inbox**에 있습니다. 이 워크스페이스에 대한 것은 Workspace › Inbox › *Evolve*(실무자가 시작), 시스템에 대한 것은 System › Inbox › *Evolve*(관리자가 시작)입니다. 카드와 버튼은 같고, 범위만 다릅니다.
@@ -188,43 +190,51 @@ node server.js           # → http://localhost:8809
 
 오른쪽 위 **Chip**을 켜고 화면의 항목(할일, 카드, 지표)을 누르면, 다음 메시지에 컨텍스트 칩으로 붙습니다. ⟳는 새로 생긴 종류의 요소를 칩 대상으로 등록합니다. ✎를 누르면 보드 위에 캔버스가 깔립니다. 빨강·마젠타·파랑으로 짚고 싶은 곳에 동그라미를 치고 *Add to chat*을 누르면, 표시가 합성된 화면 캡처와 표시 아래 항목들의 칩이 함께 붙습니다. 캡처는 [modern-screenshot](https://github.com/qq15725/modern-screenshot)을 `/vendor/`에서 로컬로 제공해 씁니다.
 
-### 메모 · 할일 · 일정을 하나의 그래프로 (NodeRel)
+### 워크와 지식
 
-메모, 할일, 일정은 [NodeRel](https://github.com/tykimos/NodeRel)로 만든 관계 그래프로 이어집니다. 진실원천은 `state.json`입니다(항목들 + 명시적 관계 목록 `links[]`). `graph.js`는 서명이 바뀔 때마다 여기서 SQLite 인덱스(`graph.sqlite`, 워크스페이스마다 하나)를 다시 만듭니다. 그래서 UI, 에이전트 diff, 파일 직접 수정 등 어느 경로로 바꿔도 그래프에 반영됩니다.
+ANA는 두 층을 둡니다. 층마다 **온톨로지**(종류, System에 하나)와 **그래프**(실제 것, 워크스페이스마다)가 짝입니다.
+
+| | **워크 층** | **지식 층** |
+|---|---|---|
+| **온톨로지** — 클래스, 관계, 규칙 | **워크 온톨로지** `work-ontology.js`(앱 코드) | **지식 온톨로지** `.ana/knowledge-ontology.json`(관리자) |
+| **그래프** | **워크 그래프** `work-graph.json`: 메모·할일·일정과 그 연결 | **지식그래프** `knowledge-graph.json`: 워크에서 찾은 개체와 사실 |
+| **앱에서** | **Graph › Work**(System의 **Ontology › Work**) | **Graph › Knowledge**: 그래프 · *Analyze* · 최근 분석(**Ontology › Knowledge**) |
+
+두 그래프는 워크스페이스마다 [NodeRel](https://github.com/tykimos/NodeRel) 색인 하나에 들어갑니다(`graph-index.js` → `graph-index.sqlite`, 파일이 바뀌면 다시 만듦). 그래서 에이전트가 메모에서 그 안의 사람까지 따라갈 수 있습니다.
+
+**워크 그래프.**
 
 ```
-Note ─SPAWNED──────▶ Task | Event     이 할일·일정이 나온 메모             (명시)
-Task ─SCHEDULED_AS─▶ Event            그 할일을 하기로 잡은 시간           (명시)
-Note|Task|Event ─REFERS_TO─▶ Note|Task|Event   수동 참조                  (명시)
-Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           due / date에서 파생         (자동)
+Note ─SPAWNED──────▶ Task | Event     할일·일정이 나온 메모                (명시)
+Task ─SCHEDULED_AS─▶ Event            할일을 하려고 잡아 둔 시간            (명시)
+Note|Task|Event ─REFERS_TO─▶ Note|Task|Event   수동 참조                    (명시)
+Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           due / date에서 계산          (규칙)
 ```
 
-화면에서 관계를 만드는 방법은 다음과 같습니다.
-- 메모의 한 줄을 선택하고 **→ Task** / **→ Event**를 누릅니다.
-- 할일의 달력 버튼으로 시간을 잡습니다.
-- **＋ Link**로 두 항목을 잇습니다.
+화면에서 연결을 만드는 방법:
+- 메모에서 한 줄을 고르고 **→ Task**나 **→ Event**를 누릅니다.
+- 할일의 캘린더 버튼으로 그 할일을 할 시간을 잡습니다.
+- **＋ Link**로 아무 두 항목이나 잇습니다.
 
-관계는 양쪽에 칩으로 보이고, 칩을 누르면 그 항목으로 이동합니다. **System › Relations**는 전체 흐름을 그림으로 보여 주고, 흐름이 끊긴 곳도 알려 줍니다. 아무것도 나오지 않은 메모, 기한 없는 할일, 시간이 안 잡힌 할일입니다.
+연결은 양쪽 끝에 칩으로 보이고, 누르면 그 항목으로 갑니다. 새 연결 종류(`BLOCKS`)도 남기고 *new*로 표시합니다. **Graph › Work**는 전체 흐름을 그리고 흐름이 끊긴 곳을 보여 줍니다: 아무것도 나오지 않은 메모, 마감일 없는 열린 할일, 시간을 잡지 않은 열린 할일.
+
+**지식그래프.** *Analyze*를 누르면 에이전트가 고른 워크 항목을 읽고 개체(Acme는 Client)와 사실(Acme `client_of` 우리 팀)을 제안합니다. 각각 근거 항목이 붙습니다.
+- **관문이 아니라 렌즈.** 온톨로지에 안 맞는 것도 버리지 않고 *아직 온톨로지에 없음*으로 표시하며, 관리자에게 더해 달라고 요청합니다.
+- **규칙.** 규칙(하위 클래스, 역관계·대칭·전이, **연쇄**, **제한**)이 그래프를 읽을 때마다 사실을 더 끌어내거나, 제한을 어긴 사실을 표시합니다.
+- **승인.** 결과는 실무자가 승인하면 그 워크스페이스의 지식그래프에 들어갑니다.
+- **내보내기.** [OntoAir](https://poc.aifactory.space/ontoair/)로 열거나 OWL Turtle로 내려받습니다. 규칙도 OWL 공리로 들어갑니다.
 
 | 엔드포인트 | 용도 |
 |---|---|
-| `GET /api/state` → `graph.links` | 워크스페이스의 모든 관계(NodeRel에서) |
-| `POST /api/todo {title, due?, from?}` · `POST /api/event {action:'add', …, from?}` | 만들면서 출처와 연결(`from`이 메모면 `SPAWNED`, 할일이면 `SCHEDULED_AS`) |
-| `POST /api/link {action:'add'\|'remove', from, to, type}` | `SPAWNED`·`SCHEDULED_AS`·`REFERS_TO` 추가/삭제(방향 검증) |
-| `GET /api/graph/neighbors?id=` · `GET /api/graph/trace?id=&depth=&direction=&types=` | 붙어 있는 관계 / 도달 가능한 전체 |
-| `GET /api/graph/schema` | NodeRel의 AI용 스키마 + 이 앱의 관계 의미. 에이전트에게 건네면 됩니다 |
-| `GET /api/stats` → `graph` | 종류·관계별 개수와 `gaps` 세 목록 |
+| `GET /api/state` → `graph.links` | 워크 그래프의 연결(NodeRel에서) |
+| `POST /api/todo {title, due?, from?}` · `POST /api/event {action:'add', …, from?}` | 만들면서 출처와 바로 연결(`from`이 메모면 `SPAWNED`, 할일이면 `SCHEDULED_AS`) |
+| `POST /api/link {action:'add'\|'remove', from, to, type}` | 연결 추가·삭제(워크 온톨로지의 연결은 방향을 지키고, 새 대문자_밑줄 종류는 남김) |
+| `GET /api/kg` · `GET /api/ontology` | 지식그래프(맞음 표시, 추론된 사실 포함) · 두 온톨로지(클래스, 관계, 규칙) |
+| `GET /api/graph/neighbors?id=` · `GET /api/graph/trace?id=&depth=&direction=&types=` | 이어진 것 / 닿는 모든 것, 두 그래프 모두 |
+| `GET /api/graph/schema` | NodeRel의 AI용 스키마와 뜻. 에이전트에게 주세요 |
+| `GET /api/stats` → `graph` | 종류별 개수와 끊긴 곳 세 목록 |
 
-#### Analyze — 온톨로지와 지식그래프
-
-위 그래프는 **고정된 층**입니다. 무엇이 무엇과 이어질 수 있는지를 앱이 정합니다. **Relations › Analyze**는 여기에 **발견하는 층**을 더합니다. 에이전트가 고른 메모·할일·일정을 읽고 두 가지를 씁니다.
-
-- **온톨로지**는 틀입니다. 부모가 있는 클래스(Client ⊂ Organization ⊂ Agent)와 From → To가 있는 관계 종류(`client_of`: Client → Organization)로 이루어집니다.
-- **지식그래프**는 데이터입니다. 그 클래스로 타입이 정해진 개체(Acme는 Client)와 그 관계로 이어진 사실(Acme `client_of` 우리 팀)로 이루어지고, 각각 근거 항목을 가리킵니다.
-
-서버는 결과를 온톨로지 틀로 검사합니다. 클래스와 관계가 있어야 하고, 사실은 From → To를 지켜야 합니다(하위 클래스 포함). 맞지 않는 사실은 버리고 알려 줍니다. 온톨로지는 다음 분석으로 이어지므로 개념 이름이 유지됩니다. 지식그래프는 같은 NodeRel 그래프에 들어갑니다(`kg:<id>`, 근거 항목으로 `MENTIONED_IN`). 그래서 `/api/graph/trace`로 메모에서 그 안의 사람까지 따라갈 수 있습니다. 결과는 [OntoAir](https://poc.aifactory.space/ontoair/)에서 3D 그래프로 열거나 OWL Turtle로 내려받을 수 있습니다. 온톨로지는 시스템 전체가 공유하고(System › Ontology, 관리자), 지식그래프는 워크스페이스마다 쌓입니다. 실무자가 분석 결과를 승인하면 늘어납니다.
-
-→ 두 층, 분석 과정, 온톨로지, 지식그래프, 검사, 내보내기를 모두 정리한 글: **[docs/relations.ko.md](docs/relations.ko.md)**
+→ 모델, 렌즈, 규칙과 추론, 분석 과정, 한·영 용어표, 내보내기: **[docs/work-and-knowledge.ko.md](docs/work-and-knowledge.ko.md)**
 
 ### Inbox — 에이전트가 나에게 필요한 것
 
@@ -354,7 +364,7 @@ claude plugin install ana@agent-native-agent          # 이후: claude plugin up
 | [`ana-update`](skills/ana-update/SKILL.md) | 이미 쓰고 있는 ANA를 기능 단위로 최신화 |
 | [`chat-window`](skills/chat-window/SKILL.md) | Claude 앱 같은 채팅: 세션 콤보, 기록 기반 표시, 모델 시트, 사용량 링, 음성, 첨부, Codex |
 | [`context-chips`](skills/context-chips/SKILL.md) | 칩 모드, ✎ 화면 그리기, ⟳ 새 요소 등록 |
-| [`relations`](skills/relations/SKILL.md) | NodeRel 항목 관계, 관계 칩, Relations 탭 |
+| [`work-and-knowledge`](skills/work-and-knowledge/SKILL.md) | 워크와 지식: 두 온톨로지(클래스, 관계, 규칙), 워크 그래프(연결, 칩, Graph › Work), 지식그래프(Analyze, 규칙 추론), NodeRel 색인 |
 | [`app-shell`](skills/app-shell/SKILL.md) | Workspace / System 범위, 범위별 하단 메뉴, 워크스페이스 콤보 |
 | [`agent-requests`](skills/agent-requests/SKILL.md) | Inbox, Roadmap, 관리자 받은함: 요청·승인·제안·요구사항 |
 | [`trust-checks`](skills/trust-checks/SKILL.md) | 시스템: AI 신뢰성, 안전, 보안 점검 |
@@ -388,13 +398,13 @@ dashboard-api.js      베이스 API: 워크스페이스 · 할일 · 일정 · �
 dashboard.html        레퍼런스 UI: 세 영역, Claude 앱 같은 채팅, 칩 모드 + 그리기, 관계 칩
 agent-log.js          에이전트 자체 JSONL 기록으로 채팅 표시(Claude Code + Codex): 응답·도구·모델·한도
 codex-settings.js     Codex 모델·추론 강도 목록, Codex 자체 메뉴로 전환
-graph.js              메모·할일·일정 관계 그래프 — NodeRel 기반(워크스페이스마다 파생 graph.sqlite)
-work-schema.js         이 앱이 저장하는 것 — 온톨로지의 워크 층(클래스 + 관계). graph.js가 읽는다
+graph-index.js        워크 그래프와 지식그래프의 NodeRel 색인(워크스페이스마다 파생 graph-index.sqlite)
+work-ontology.js      워크 온톨로지 — 이 앱이 저장하는 것(클래스, 관계, 계산 규칙). graph-index.js가 읽는다
 seed.js               첫 실행용 예제 흐름 두 개
 features.json         기능 목록: 기능별 앵커 + 담당 스킬 (ana-update가 비교 기준으로 사용)
 package.json          의존성: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot
 test.cjs              단위 + 통합 테스트(npm test), mock_agent.py = 테스트용 결정적 TUI
-skills/               install · ana · ana-update · chat-window · context-chips · relations · app-shell · agent-requests · trust-checks
+skills/               install · ana · ana-update · chat-window · context-chips · work-and-knowledge · app-shell · agent-requests · trust-checks
 .claude-plugin/       플러그인 + 마켓플레이스 매니페스트
 CHANGELOG.ko.md       버전별 변경 기록 (영문: CHANGELOG.md)
 ```

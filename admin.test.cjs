@@ -92,8 +92,8 @@ test('no identity header or empty admin list: everyone is admin (single-user ins
   assert.equal((await (await fetch(api + '/api/me', { headers: { 'x-user': 'anyone@x.com' } })).json()).role, 'admin');
 });
 
-test('Work layer: the Work ontology comes from work-schema.js, match what the app really produces, and broken references are reported', async (t) => {
-  const A = require('./work-schema.js'), G = require('./graph.js');
+test('Work layer: the Work ontology comes from work-ontology.js, match what the app really produces, and broken references are reported', async (t) => {
+  const A = require('./work-ontology.js'), G = require('./graph-index.js');
   // graph.js는 선언에서 읽는다 — 따로 적은 목록이 없다
   assert.deepEqual(Object.keys(G.MEANINGS).sort(), A.relations.map((r) => r.id).sort());
   assert.deepEqual(Object.keys(G.RULES).sort(), A.relations.filter((r) => r.made === 'explicit').map((r) => r.id).sort());
@@ -106,7 +106,7 @@ test('Work layer: the Work ontology comes from work-schema.js, match what the ap
   assert.deepEqual([...kinds].sort(), A.classes.map((c) => c.id).sort(), 'every declared class is produced, nothing else');
   assert.deepEqual([...types].sort(), A.relations.map((r) => r.id).sort(), 'every declared relation is produced, nothing else');
   // 지식 종류가 사라진 개념을 가리키면: 막지 않고 issues로 알린다. 지식 파일에 워크 종류 id가 있어도 워크 종류가 이긴다
-  const { api, stop } = await startServer({}, (dir) => fs.writeFileSync(path.join(dir, 'ontology.json'), JSON.stringify({ version: 1,
+  const { api, stop } = await startServer({}, (dir) => fs.writeFileSync(path.join(dir, 'knowledge-ontology.json'), JSON.stringify({ version: 1,
     classes: [{ id: 'Ticket', label: 'Ticket', parent: 'Task' }, { id: 'Gadget', label: 'Gadget', parent: 'Ghost' }, { id: 'Note', label: 'Shadow' }],
     relations: [{ id: 'blocks', label: 'blocks', domain: 'Ticket', range: 'Vanished', inverse: 'gone' }] })));
   t.after(stop);
@@ -118,7 +118,7 @@ test('Work layer: the Work ontology comes from work-schema.js, match what the ap
 });
 
 test('Work links are a lens, sub-types on work items, and promotion evidence', async (t) => {
-  const { api, stop } = await startServer({}, (dir) => fs.writeFileSync(path.join(dir, 'ontology.json'), JSON.stringify({ version: 1,
+  const { api, stop } = await startServer({}, (dir) => fs.writeFileSync(path.join(dir, 'knowledge-ontology.json'), JSON.stringify({ version: 1,
     classes: [{ id: 'Ticket', label: 'Ticket', parent: 'Task' }, { id: 'Bug', label: 'Bug', parent: 'Ticket' }, { id: 'Client', label: 'Client' }], relations: [] })));
   t.after(stop);
   const post = (p, b) => fetch(api + p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b) });
@@ -150,7 +150,7 @@ test('Work links are a lens, sub-types on work items, and promotion evidence', a
 });
 
 test('Rules: chain rules (with reverse steps and sub-relations) infer, limit rules mark, broken ones are reported, OWL export', async (t) => {
-  const { api, stop } = await startServer({}, (dir) => fs.writeFileSync(path.join(dir, 'ontology.json'), JSON.stringify({ version: 1,
+  const { api, stop } = await startServer({}, (dir) => fs.writeFileSync(path.join(dir, 'knowledge-ontology.json'), JSON.stringify({ version: 1,
     classes: [{ id: 'Person', label: 'Person' }, { id: 'Workshop', label: 'Workshop' }, { id: 'Project', label: 'Project' }],
     relations: [{ id: 'attends', label: 'attends', domain: 'Person', range: 'Workshop' }, { id: 'part_of', label: 'part of', domain: 'Workshop', range: 'Project' },
       { id: 'involved_in', label: 'involved in', domain: 'Person', range: 'Project' }, { id: 'related_to', label: 'related to' }, { id: 'meets', label: 'meets', domain: 'Person', range: 'Person' },
@@ -195,4 +195,25 @@ test('Rules: chain rules (with reverse steps and sub-relations) infer, limit rul
   assert.match(ttl, /ana:Project rdfs:subClassOf \[ rdf:type owl:Restriction ; owl:onProperty \[ owl:inverseOf ana:leads \] ; owl:maxCardinality "1"/);
   assert.equal((await rule({ id: 'joins' }, 'remove')).status, 200);
   o = await (await fetch(api + '/api/ontology')).json(); assert.ok(!o.rules.some((x) => x.id === 'joins'));
+});
+
+test('0.11 data names: state.json, kg.json, ontology.json move to work-graph.json, knowledge-graph.json, knowledge-ontology.json (copies kept); old index cache removed', async (t) => {
+  let dir0;
+  const { api, stop } = await startServer({}, (dir) => {
+    dir0 = dir;
+    fs.writeFileSync(path.join(dir, 'state.json'), JSON.stringify({ version: 3, items: [{ id: 'a1', title: 'Old task', done: false }], events: [], notes: [], links: [] }));
+    fs.writeFileSync(path.join(dir, 'kg.json'), JSON.stringify({ entities: [{ id: 'acme', label: 'Acme', class: 'Client' }], facts: [] }));
+    fs.writeFileSync(path.join(dir, 'ontology.json'), JSON.stringify({ version: 1, classes: [{ id: 'Client', label: 'Client' }], relations: [] }));
+    fs.writeFileSync(path.join(dir, 'graph.sqlite'), 'old cache');
+  });
+  t.after(stop);
+  const s = await (await fetch(api + '/api/state')).json();
+  assert.ok(s.items.some((x) => x.id === 'a1' && x.title === 'Old task'), 'the work graph came along');
+  assert.ok((await (await fetch(api + '/api/kg')).json()).entities.some((e) => e.id === 'acme'), 'the knowledge graph came along');
+  assert.ok((await (await fetch(api + '/api/ontology')).json()).classes.some((c) => c.id === 'Client' && c.source === 'knowledge'), 'the knowledge ontology came along');
+  for (const [oldName, newName] of [['state.json', 'work-graph.json'], ['kg.json', 'knowledge-graph.json'], ['ontology.json', 'knowledge-ontology.json']]) {
+    assert.ok(fs.existsSync(path.join(dir0, newName)), newName); assert.ok(!fs.existsSync(path.join(dir0, oldName)), `${oldName} moved`);
+    assert.ok(fs.existsSync(path.join(dir0, oldName + '.pre-0.11')), `${oldName} copy kept`);
+  }
+  assert.ok(!fs.existsSync(path.join(dir0, 'graph.sqlite')), 'old index cache removed');
 });

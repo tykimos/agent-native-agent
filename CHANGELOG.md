@@ -5,9 +5,36 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.11.0] — 2026-10-27
+
+### Changed
+
+- **Names match the concepts.** Files, code and docs use the same words as the model.
+
+| Concept | Before | Now |
+|---|---|---|
+| Work ontology | `work-schema.js` | `work-ontology.js` |
+| Knowledge ontology | `.ana/ontology.json` | `.ana/knowledge-ontology.json` |
+| Work graph | `state.json` | `work-graph.json` |
+| Knowledge graph | `kg.json` | `knowledge-graph.json` |
+| NodeRel index | `graph.js`, `graph.sqlite` | `graph-index.js`, `graph-index.sqlite` |
+| Graph menu | `relationsView` + `linksView` | `graphView` (`work` · `knowledge`) |
+| Work graph drawing | `renderRelations`, `drawRelGraph` | `renderWorkGraph`, `drawWorkGraph` |
+| Docs, skill | `docs/relations.md`, `skills/relations` | `docs/work-and-knowledge.md`, `skills/work-and-knowledge` |
+| Feature ids | `relations`, `relations-analysis`, `system-ontology` | `work-graph`, `knowledge-analysis`, `ontology` |
+
+- **Menus follow the model: scope = menu, layer = tab.**
+  - **Workspace › Graph** has *Work · Knowledge*: the Work graph (formerly Work › Links) and the knowledge graph with *Analyze* (formerly the Knowledge menu).
+  - **Work** is back to Tasks · Calendar · Notes.
+  - **System › Ontology** has *Work · Knowledge*, each with a *Classes · Relations · Rules* switch. *+ Add* shows only on Knowledge.
+  - *Ontology* on each Graph tab opens that layer's ontology (admin: System › Ontology; members: read-only). A Knowledge class under a Work class shows as *kind of Task*.
+- **Existing data moves by itself.** On start, the server renames the old files in every workspace and keeps a copy of each as `<old name>.pre-0.11`. It removes the old `graph.sqlite` (a cache, rebuilt). A `DATA_FILE` or `ONTOLOGY_FILE` you set yourself is used as is. A remembered tab `relations`, `knowledge` or `links` opens Graph.
+- **API paths stay** (`/api/state`, `/api/kg`, `/api/graph`, `/api/ontology`), because agents and other ANAs rely on them.
+- **ana-update knows the old names.** In `features.json`, anchors and copied modules may list alternatives (`graph-index.js || graph.js`) and features keep their old id in `formerly`, so an ANA that still uses the old names is not reported as missing features.
+
 ## [0.10.0] — 2026-10-27
 
-**Work and Knowledge.** ANA is now described, stored and shown as two layers. Each layer is an ontology (the kinds) and a graph (the actual things). See [docs/relations.md](docs/relations.md).
+**Work and Knowledge.** ANA is now described, stored and shown as two layers. Each layer is an ontology (the kinds) and a graph (the actual things). See [docs/relations.md](docs/work-and-knowledge.md).
 
 | | Work layer | Knowledge layer |
 |---|---|---|
@@ -105,7 +132,7 @@ A new structure: **two scopes** (Workspace for members, System for the admin), a
 - **Evolve in two places.** Workspace › Inbox › *Evolve* holds ways to run this workspace better with existing features: members start them, and the agent is told to change only that workspace's data. System › Roadmap › *Evolve* holds changes to the system itself, which only the admin starts. *Propose to the system* lifts a workspace proposal that needs a new feature.
 - **Roadmap.** Requirements, system proposals and upstream updates sit on one line each with their stage (*Request → Proposal → Building → Checked*) and the next action: *Check*, *Propose*, *Start*, *Check again*, *Bring in*. Members send requirements with *Request a feature*.
 - **Requirement → proposal → re-check.** A requirement judged *Not reflected* or *Partly* can become a system proposal in one tap (it carries the next step and reason). When that proposal is done, the requirement asks to be checked again.
-- **Ontology in the System, knowledge graph in each workspace.** See [docs/relations.md](docs/relations.md).
+- **Ontology in the System, knowledge graph in each workspace.** See [docs/relations.md](docs/work-and-knowledge.md).
   - **System › Ontology:** one ontology shared by every workspace. The core (Note · Task · Event · Day and the app's relations) is built in and locked; the admin adds, edits and removes the rest. A concept still used by a knowledge graph can't be removed.
   - **Knowledge graph per workspace** (`kg.json`), shown in Knowledge › *Knowledge graph*, and opened in OntoAir or downloaded as Turtle (shared ontology as TBox, the workspace's facts as ABox).
   - **Analyses** read the shared ontology. A new class or relation in a result becomes an admin approval request.
@@ -174,7 +201,7 @@ A new structure: **two scopes** (Workspace for members, System for the admin), a
   - A progress bar shows while the agent works.
   - Filter by status. Edit a requirement and its analysis is marked as needing another look.
 - **Relations › Open in OntoAir.** A finished analysis opens in [OntoAir](https://poc.aifactory.space/ontoair/) as a 3D ontology and knowledge graph. *Download .ttl* saves the same OWL/Turtle file. The graph travels inside the link itself (a `data:` URL after `#`, which browsers never send to a server), so it opens even when this ANA sits behind a sign-in gateway, with no public link and no change to OntoAir. Only a very large graph (over ~1.5 MB of link) falls back to a 24-hour token link, or to downloading the file for OntoAir's 📄 File.
-- **[docs/relations.md](docs/relations.md)** explains the two layers of relations (fixed app links and discovered analysis), the analysis process step by step, the ontology, the knowledge graph, the checks, NodeRel indexing and export.
+- **[docs/relations.md](docs/work-and-knowledge.md)** explains the two layers of relations (fixed app links and discovered analysis), the analysis process step by step, the ontology, the knowledge graph, the checks, NodeRel indexing and export.
 
 ### Changed
 

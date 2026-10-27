@@ -7,8 +7,8 @@ description: Port ANA's app shell — the two scopes Workspace (members — Work
 
 Two scopes, and the top of the screen always says which one you are in:
 
-- **Workspace** (members): **Work** (the Work layer: the app's own tabs; base: Tasks · Calendar · Notes · Links), **Knowledge** (the Knowledge layer: knowledge graph + Analyze, one page), **Files** (this workspace's folder), **Inbox** (everything waiting on you here — see agent-requests). The header shows the **workspace combo**.
-- **System** (admin only): **Inbox** (approvals and action requests for the admin), **Roadmap** (requirements → proposals → building → checked, plus upstream updates), **Health** (all checks on one page plus usage — see trust-checks). The header turns into a dark band labelled SYSTEM.
+- **Workspace** (members): **Work** (where work is done — the app's own tabs; base: Tasks · Calendar · Notes), **Graph** (the workspace's two graphs: *Work · Knowledge*; Analyze lives in Knowledge), **Files** (this workspace's folder), **Inbox** (everything waiting on you here — see agent-requests). The header shows the **workspace combo**.
+- **System** (admin only): **Inbox** (approvals and action requests for the admin), **Roadmap** (requirements → proposals → building → checked, plus upstream updates), **Ontology** (*Work · Knowledge*, each *Classes · Relations · Rules*), **Health** (all checks on one page plus usage — see trust-checks). The header turns into a dark band labelled SYSTEM.
 
 Members never see System: the server refuses admin actions anyway (see agent-requests › Admin and member); the shell just hides the scope.
 
@@ -29,7 +29,7 @@ Mobile (≤768px)                                        Desktop
 
 - The profile avatar is **always the rightmost** item in the header.
 - The **last tab per scope** is remembered (`localStorage ana-area`, `ana-area-tabs`). Jumping to a tab of the other scope (a request card's link, an instruction card's Open) switches scope automatically.
-- **One kind per page:** pages with several kinds use sub-tabs (`SUBTABS`, `renderSubtabs`, `openSub`, `curSub`; content in `[data-subsec]`, sub-tab-only buttons in `[data-for]`): Workspace Inbox *Approvals · Action requests · Evolve · Sent*, System Inbox *Approvals · Action requests · Evolve* (Evolve is always in the Inbox — deciding; the Roadmap only follows progress), Work *Tasks · Calendar · Notes · Links* (top tabs), Knowledge is one page (knowledge graph + Analyze), the ontology is one page (System › Ontology), Roadmap *Requirements · Updates*, Ontology *Classes · Relations*, Health *Trustworthiness · Safety · Security · Tests · Usage*. Sub-tabs and `.toolbar` never wrap on phones (they scroll sideways).
+- **One kind per page:** pages with several kinds use sub-tabs (`SUBTABS`, `renderSubtabs`, `openSub`, `curSub`; content in `[data-subsec]`, sub-tab-only buttons in `[data-for]`): Workspace Inbox *Approvals · Action requests · Evolve · Sent*, System Inbox *Approvals · Action requests · Evolve* (Evolve is always in the Inbox — deciding; the Roadmap only follows progress), Graph *Work · Knowledge*, Ontology *Work · Knowledge* (with a Classes · Relations · Rules pill switch inside), Roadmap *Requirements · Updates*, Ontology *Classes · Relations*, Health *Trustworthiness · Safety · Security · Tests · Usage*. Sub-tabs and `.toolbar` never wrap on phones (they scroll sideways).
 - Lists inside Inbox, Roadmap and the admin Inbox filter **Open / Done** only (open = waiting + in progress, done = done + failed + cancelled); each card still shows its own state and actions.
 - Views get bottom padding so the nav never covers content. The chat FAB moves up (`bottom: 74px + safe-area`).
 - **New version pill:** when `/api/health.build` changes, "New version available — tap to reload" appears **under the header**. Its `onclick` must reload.

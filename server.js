@@ -42,7 +42,7 @@ try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch {}
 const apiOpts = {
   ROOT,
   FILES_ROOT: env.ANA_FILES_ROOT || '',                // 비우면 <데이터 폴더>/files (시스템 › Files의 기본 폴더)
-  DATA_FILE: env.DATA_FILE || path.join(DATA_DIR, 'state.json'),
+  DATA_FILE: env.DATA_FILE || path.join(DATA_DIR, 'work-graph.json'),   // 기본 워크스페이스의 워크 그래프(0.11 전에는 state.json — 시작할 때 옮긴다)
   PROPOSALS_FILE: env.PROPOSALS_FILE || path.join(DATA_DIR, 'proposals.json'),
   EVOLVE_FILE: env.EVOLVE_FILE || path.join(DATA_DIR, 'evolve.json'),
   REQUESTS_FILE: env.REQUESTS_FILE || path.join(DATA_DIR, 'requests.json'),

@@ -1,7 +1,7 @@
 'use strict';
-// graph.js — Notes·Tasks·Calendar 사이의 관계 그래프. NodeRel(github:tykimos/NodeRel) 위에 얹는다.
+// graph-index.js — NodeRel 색인: 워크 그래프(메모·할일·일정과 그 연결)와 지식그래프를 한 색인(graph-index.sqlite)에. NodeRel(github:tykimos/NodeRel) 위에 얹는다.
 //
-// 진실원천은 워크스페이스의 state.json이다(items·events·notes + 명시적 links[]). graph.sqlite는
+// 진실원천은 워크스페이스의 work-graph.json이다(items·events·notes + 명시적 links[]). graph-index.sqlite는
 // NodeRel이 거기서 만든 파생 인덱스라 언제 지워도 다시 만들어진다. 읽을 때마다 스냅숏 서명을
 // 비교해 달라졌으면 rebuild한다 — 쓰기 경로(수동 라우트·에이전트 diff·파일 직접 수정)를 가리지 않는다.
 //
@@ -11,9 +11,9 @@
 //   Note|Task|Event ─REFERS_TO─▶ Note|Task|Event   수동 참조              (명시)
 //   Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           due/date 필드에서 파생 (자동)
 //
-// 지식그래프(워크스페이스의 kg.json — 분석 결과를 승인해 쌓은 것)도 같은 스코프에 얹는다 — 개체는 id `kg:<개체 id>`, kind는 온톨로지 클래스,
+// 지식그래프(워크스페이스의 knowledge-graph.json — 분석 결과를 승인해 쌓은 것)도 같은 스코프에 얹는다 — 개체는 id `kg:<개체 id>`, kind는 온톨로지 클래스,
 // 사실은 온톨로지 관계 id를 타입으로, 근거는 개체 ─MENTIONED_IN─▶ Note|Task|Event. 그래서 메모 하나에서 출발해
-// 그 안의 개체와 개체 사이의 사실까지 /api/graph/trace 한 번으로 따라갈 수 있다. 원천은 kg.json, 틀은 시스템 온톨로지다.
+// 그 안의 개체와 개체 사이의 사실까지 /api/graph/trace 한 번으로 따라갈 수 있다. 원천은 knowledge-graph.json, 틀은 지식 온톨로지다.
 
 const path = require('node:path');
 const crypto = require('node:crypto');
@@ -31,8 +31,8 @@ const { NodeRel, describeNodeRel } = (() => {
   } finally { process.emitWarning = emit; }
 })();
 
-// 어휘는 work-schema.js(워크 종류 — 온톨로지의 워크 층)에서 읽는다. 여기서 따로 적지 않는다.
-const WORK = require('./work-schema.js');
+// 어휘는 work-ontology.js(워크 종류 — 온톨로지의 워크 층)에서 읽는다. 여기서 따로 적지 않는다.
+const WORK = require('./work-ontology.js');
 const RULES = Object.fromEntries(WORK.relations.filter((r) => r.made === 'explicit').map((r) => [r.id, { from: r.from, to: r.to }]));
 const EXPLICIT = Object.keys(RULES);
 const MEANINGS = Object.fromEntries(WORK.relations.map((r) => [r.id, r.desc]));
@@ -92,7 +92,7 @@ const signature = (snaps) => crypto.createHash('sha256').update(JSON.stringify(s
 function createGraph({ loadData, dataFileOf, loadKg }) {
   const kgOf = (ws) => { try { return loadKg ? loadKg(ws) : null; } catch { return null; } };
   const open = new Map();   // ws → NodeRel (SQLite 핸들은 워크스페이스마다 하나)
-  const fileOf = (ws) => path.join(path.dirname(dataFileOf(ws)), 'graph.sqlite');
+  const fileOf = (ws) => path.join(path.dirname(dataFileOf(ws)), 'graph-index.sqlite');
   function handle(ws) {
     if (!open.has(ws)) open.set(ws, new NodeRel(fileOf(ws)));
     return open.get(ws);
@@ -112,7 +112,7 @@ function createGraph({ loadData, dataFileOf, loadKg }) {
   function view(ws, s) {
     const g = ensure(ws, s);
     const { links } = g.graph(ws);
-    const extra = new Set(((s || loadData(ws)).links || []).map((l) => l.type).filter(isNewLinkType));   // 지식그래프 사실과 섞이지 않게 원천(state.json)에서
+    const extra = new Set(((s || loadData(ws)).links || []).map((l) => l.type).filter(isNewLinkType));   // 지식그래프 사실과 섞이지 않게 원천(work-graph.json)에서
     return { links: links.filter((l) => BASE_TYPES.has(l.type) || extra.has(l.type)).map((l) => ({ from: l.from_id, to: l.to_id, type: l.type, ...(BASE_TYPES.has(l.type) ? {} : { newType: true }) })) };
   }
   function nodeRows(g, ws) {
@@ -171,8 +171,8 @@ function createGraph({ loadData, dataFileOf, loadKg }) {
     if (kg) {
       d.vocabulary.MENTIONED_IN = { meaning: KG_MENTIONED, from: ['<entity>'], to: ['Note', 'Task', 'Event'], editable: false };
       for (const r of o.relations) d.vocabulary[kgType(r.id)] = { meaning: [r.label, r.desc].filter(Boolean).join(' — '), from: [r.domain || 'any'], to: [r.range || 'any'], editable: false, source: `analysis #${kg.job}` };
-      d.knowledgeGraph = { source: kg.job === 'kg' ? 'kg.json (approved analyses)' : `analysis #${kg.job}`, classes: o.classes.map((c) => ({ kind: kgKind(c.id), label: c.label, parent: c.parent ? kgKind(c.parent) : '', desc: c.desc })),
-        note: 'Entities have ids kg:<entity id>. They grow when an analysis is approved into the knowledge graph (Knowledge › Analyze); change them there, not with /api/link.' };
+      d.knowledgeGraph = { source: kg.job === 'kg' ? 'knowledge-graph.json (approved analyses)' : `analysis #${kg.job}`, classes: o.classes.map((c) => ({ kind: kgKind(c.id), label: c.label, parent: c.parent ? kgKind(c.parent) : '', desc: c.desc })),
+        note: 'Entities have ids kg:<entity id>. They grow when an analysis is approved into the knowledge graph (Graph › Knowledge › Analyze); change them there, not with /api/link.' };
     }
     return d;
   }

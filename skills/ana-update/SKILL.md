@@ -1,6 +1,6 @@
 ---
 name: ana-update
-description: Bring an existing, customized ANA up to date with the latest upstream ANA (github.com/tykimos/agent-native-agent) feature by feature — compare first, report what is new/missing/outdated, then port only what the user picks, using the per-feature skills (chat-window, context-chips, relations, app-shell, agent-requests, trust-checks). Never overwrite the ANA's own domain code. Use when the user says "최신 내용으로 업데이트해", "ANA 업데이트", "update this ANA", "upstream이랑 뭐가 달라", "새 기능 가져와", "base-ana 개선사항 적용", or gives the ANA GitHub URL and asks to sync.
+description: Bring an existing, customized ANA up to date with the latest upstream ANA (github.com/tykimos/agent-native-agent) feature by feature — compare first, report what is new/missing/outdated, then port only what the user picks, using the per-feature skills (chat-window, context-chips, work-and-knowledge, app-shell, agent-requests, trust-checks). Never overwrite the ANA's own domain code. Use when the user says "최신 내용으로 업데이트해", "ANA 업데이트", "update this ANA", "upstream이랑 뭐가 달라", "새 기능 가져와", "base-ana 개선사항 적용", or gives the ANA GitHub URL and asks to sync.
 ---
 
 # ana-update — compare with upstream, then port feature by feature
@@ -73,7 +73,7 @@ It scans the target's own `.js/.mjs/.cjs/.html` (not tests, `node_modules`, `.an
 Give a short table in the user's language, grouped by skill. For each row: what it does for them (from `summary` in `features.json`), and its state. Call out:
 
 - **◐ partial:** the ANA has an older/custom version. List the missing anchors; porting means merging, not replacing.
-- **module differs:** a copied module (`agent-log.js`, `graph.js`, `codex-settings.js`) exists but is older. Usually safe to replace whole, because these modules have no domain code. Check the target didn't edit it: `diff` it first.
+- **module differs:** a copied module (`agent-log.js`, `graph-index.js`, `codex-settings.js`) exists but is older. Usually safe to replace whole, because these modules have no domain code. Check the target didn't edit it: `diff` it first.
 - **runtime differs:** `channel-core.js` is shared by every ANA on a host. Updating it is a **separate decision**. Ask explicitly, name the other ANAs that share it, and replace the whole file, never a patch. Several chat features need the newer runtime (per-session ledgers, per-person recent session).
 - **changes since last sync:** if `.ana-sync.json` exists, the script lists upstream commits since then. Summarize them.
 

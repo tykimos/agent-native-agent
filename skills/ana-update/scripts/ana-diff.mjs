@@ -57,14 +57,17 @@ for (const c of [req && path.resolve(target, req[1]), path.join(target, 'channel
 const sha = (p) => crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
 
 // ---- compare ----
+// 이름이 바뀐 것: 앵커·모듈은 'new || old'처럼 대안을 적는다 — 옛 이름을 쓰는 ANA도 같은 기능으로 본다
+const alts = (a) => String(a).split(' || ');
 const features = manifest.features.map((f) => {
-  const hit = f.anchors.filter((a) => corpus.includes(a));
+  const hit = f.anchors.filter((a) => alts(a).some((x) => corpus.includes(x)));
   const status = hit.length === f.anchors.length ? 'present' : hit.length === 0 ? 'missing' : 'partial';
-  const modules = (f.copy || []).map((m) => {
-    const t = path.join(target, m), u = path.join(upDir, m);
-    return { file: m, state: !fs.existsSync(t) ? 'absent' : fs.existsSync(u) && sha(t) === sha(u) ? 'same' : 'differs' };
+  const modules = (f.copy || []).map((m0) => {
+    const [m, ...old] = alts(m0), u = path.join(upDir, m);
+    const name = [m, ...old].find((x) => fs.existsSync(path.join(target, x))), t = name && path.join(target, name);
+    return { file: m, ...(name && name !== m ? { as: name } : {}), state: !t ? 'absent' : fs.existsSync(u) && sha(t) === sha(u) ? 'same' : 'differs' };
   });
-  return { id: f.id, title: f.title, skill: f.skill, status, found: hit.length, total: f.anchors.length,
+  return { id: f.id, ...(f.formerly ? { formerly: f.formerly } : {}), title: f.title, skill: f.skill, status, found: hit.length, total: f.anchors.length,
     missingAnchors: f.anchors.filter((a) => !hit.includes(a)), modules, npm: f.npm || [] };
 });
 const upRuntime = path.join(upDir, manifest.runtime.file);

@@ -1,6 +1,6 @@
 # Relations in ANA — Work and Knowledge
 
-**English** · [한국어](relations.ko.md)
+**English** · [한국어](work-and-knowledge.ko.md)
 
 ## The model in one table
 
@@ -8,8 +8,8 @@ Two **scopes** × two **layers**. Each layer has an **ontology** (the kinds) in 
 
 | | **Work layer** | **Knowledge layer** |
 |---|---|---|
-| **System — ontology** | **Work ontology**: Note, Task, Event, Day and their link kinds. `work-schema.js` (code) | **Knowledge ontology**: Client, Person, works_for… `.ana/ontology.json` (admin) |
-| **Workspace — graph** | **Work graph**: notes, tasks, events and their links. `state.json` | **Knowledge graph**: entities and facts. `kg.json` |
+| **System — ontology** | **Work ontology**: Note, Task, Event, Day and their link kinds. `work-ontology.js` (code) | **Knowledge ontology**: Client, Person, works_for… `.ana/knowledge-ontology.json` (admin) |
+| **Workspace — graph** | **Work graph**: notes, tasks, events and their links. `work-graph.json` | **Knowledge graph**: entities and facts. `knowledge-graph.json` |
 
 An ontology has three parts, and each has its "actual thing" in the graph:
 
@@ -27,12 +27,12 @@ More about each layer:
 | **Made by** | people in the app, or the agent's data changes once approved | an analysis (LLM) proposes it, a member approves it |
 | **How sure** | settled — people wrote it | inferred — every entity and fact cites the work items it came from |
 | **Ontology changed by** | the code (a developer or an Evolve proposal), in the same commit as the feature | the admin (System › Ontology), or by approving what an analysis proposed |
-| **In the app** | **Work**: Tasks · Calendar · Notes · Links | **Knowledge**: the knowledge graph, *Analyze*, the latest analysis |
+| **In the app** | **Graph › Work** · System **Ontology › Work** | **Graph › Knowledge** (graph, *Analyze*, latest analysis) · System **Ontology › Knowledge** |
 | **API** | `source: "work"` | `source: "knowledge"` |
 
-The ontology has **one page**, System › Ontology — *Classes · Relations · Rules* (members open it read-only from *Knowledge › Ontology*). The Work ontology is tagged **Work** and can't be edited there — it describes the code.
+The menus follow the model: **System › Ontology** has the tabs *Work · Knowledge*, each with *Classes · Relations · Rules*; **Workspace › Graph** has the tabs *Work · Knowledge*. The Work tab of the ontology has no edit buttons — it describes the code. Members open either ontology read-only with *Ontology* on the matching Graph tab.
 
-Nothing in the Work ontology is universal. Each ANA declares its own in `work-schema.js`: an ANA without tasks has no Task, a storage ANA may declare Disk and Volume. `graph.js` reads its vocabulary from it, and `admin.test.cjs` checks that the node kinds and link kinds the app really produces are exactly the declared ones.
+Nothing in the Work ontology is universal. Each ANA declares its own in `work-ontology.js`: an ANA without tasks has no Task, a storage ANA may declare Disk and Volume. `graph-index.js` reads its vocabulary from it, and `admin.test.cjs` checks that the node kinds and link kinds the app really produces are exactly the declared ones.
 
 ## A lens, not a gate
 
@@ -54,7 +54,7 @@ The ontology guides and checks; it never limits what people or the agent may say
 | Knowledge → Work (source) | entity ─`MENTIONED_IN`→ work item: which note or task it came from | no |
 | Work → Knowledge (analysis) | *Analyze*: the agent reads work items and proposes entities and facts → a member approves | no |
 | Knowledge widens Work ① | **sub-classes**: a Knowledge class defined as a kind of a Work class (Ticket ⊂ Task, Meeting ⊂ Event) can be put on a work item (`POST /api/subtype`). The app still treats it as a task; the knowledge side reads it as a Ticket | no |
-| Knowledge widens Work ② | **promotion**: `GET /api/ontology/evidence` shows new link kinds in use, sub-classes put on items, and Knowledge classes whose entities mostly come from one kind of item ("40 Ticket entities, all from tasks"). The system Evolve reads it and proposes a feature; the change updates `work-schema.js` | yes — the admin starts it |
+| Knowledge widens Work ② | **promotion**: `GET /api/ontology/evidence` shows new link kinds in use, sub-classes put on items, and Knowledge classes whose entities mostly come from one kind of item ("40 Ticket entities, all from tasks"). The system Evolve reads it and proposes a feature; the change updates `work-ontology.js` | yes — the admin starts it |
 | Use widens Work | a new link kind used often (`BLOCKS` ×12) → an Evolve proposal → a feature | yes |
 
 ## Glossary
@@ -63,14 +63,14 @@ The ontology guides and checks; it never limits what people or the agent may say
 |---|---|---|---|
 | the two scopes | System · 워크스페이스 | System · Workspace | — |
 | the two layers | 워크 층 · 지식 층 | Work layer · Knowledge layer | `source: work \| knowledge` |
-| the kinds, as a whole | 워크 온톨로지 · 지식 온톨로지 | Work ontology · Knowledge ontology | `work-schema.js` · `.ana/ontology.json` |
-| the actual things, as a whole | 워크 그래프 · 지식그래프 | Work graph · Knowledge graph | `state.json` · `kg.json` |
+| the kinds, as a whole | 워크 온톨로지 · 지식 온톨로지 | Work ontology · Knowledge ontology | `work-ontology.js` · `.ana/knowledge-ontology.json` |
+| the actual things, as a whole | 워크 그래프 · 지식그래프 | Work graph · Knowledge graph | `work-graph.json` · `knowledge-graph.json` |
 | a kind of point | 클래스 (워크 클래스 · 지식 클래스) | class | `classes` |
 | a kind of line | 관계 (워크 관계 · 지식 관계) | relation | `relations` |
 | what follows / must hold | 규칙 | rule | `rules` |
 | a rule kind | 연쇄 · 제한 · 계산 | chain · limit · compute | `kind: chain \| limit \| compute` |
 | one record in the app | 워크 항목 | work item (note · task · event) | Note · Task · Event · Day |
-| a line between work items | 연결 | link | `state.json` `links` |
+| a line between work items | 연결 | link | `work-graph.json` `links` |
 | a point in the knowledge graph | 개체 | entity | `kg:<id>` |
 | a line between entities | 사실 | fact | `{from, rel, to}` |
 | what a relation joins | From → To | From → To | `domain` · `range` (API and OWL only) |
@@ -84,11 +84,11 @@ The ontology guides and checks; it never limits what people or the agent may say
 
 | Information | Changed by | Stored in |
 |---|---|---|
-| Work ontology (classes, relations, compute rules) | code changes | `work-schema.js` (git) |
-| Knowledge ontology (classes, relations, rules) | admin | `.ana/ontology.json` |
-| Work graph | people, approved agent changes | `state.json` per workspace |
-| Knowledge graph | members approving analyses | `kg.json` per workspace |
-| NodeRel index | automatic | `graph.sqlite` per workspace — a cache rebuilt from the above |
+| Work ontology (classes, relations, compute rules) | code changes | `work-ontology.js` (git) |
+| Knowledge ontology (classes, relations, rules) | admin | `.ana/knowledge-ontology.json` |
+| Work graph | people, approved agent changes | `work-graph.json` per workspace |
+| Knowledge graph | members approving analyses | `knowledge-graph.json` per workspace |
+| NodeRel index | automatic | `graph-index.sqlite` per workspace — a cache rebuilt from the above |
 | Fit marks, inferred facts | automatic (rules) | not stored — computed on read |
 
 ### Seven concepts and how they connect
@@ -99,7 +99,7 @@ The ontology guides and checks; it never limits what people or the agent may say
 | **Knowledge graph** | the entities and facts found in the work, each citing the work items it came from | each Workspace |
 | **System** | what applies to every workspace: features, the ontology, health | admin |
 | **Workspace** | one team's work items, files, and knowledge graph | members |
-| **NodeRel** | one index (`graph.sqlite`) of the work graph + the knowledge graph, so the agent can trace note → entity → entity | both |
+| **NodeRel** | one index (`graph-index.sqlite`) of the work graph + the knowledge graph, so the agent can trace note → entity → entity | both |
 | **Ontology reasoning** | the ontology's rules applied on read: fit (From → To, sub-classes), sub-class types, inverse, symmetric, transitive, chain rules; limit rules mark what breaks them | server (`kgLens`) |
 | **LLM reasoning** | the agent reading work items and proposing entities, facts and new kinds ([Analyze]), or system changes ([Evolve]). Free; the ontology only guides it | agent |
 
@@ -124,7 +124,7 @@ flowchart LR
 
 ```mermaid
 sequenceDiagram
-  participant M as Member (Knowledge › Analyze)
+  participant M as Member (Graph › Knowledge › Analyze)
   participant S as ANA server
   participant A as Agent
   participant AD as Admin (System)
@@ -135,7 +135,7 @@ sequenceDiagram
   A->>S: POST /api/analysis/result {ontology, graph}
   S->>S: check against the ontology (mark, don't drop); new concepts → admin requests
   S-->>M: "Add analysis #N to the knowledge graph?" (Inbox › Approvals)
-  M->>S: POST /api/analysis/apply → kg.json (everything; Team shown "not in the ontology yet")
+  M->>S: POST /api/analysis/apply → knowledge-graph.json (everything; Team shown "not in the ontology yet")
   AD->>S: approve "Add class Team" → POST /api/ontology
   S->>S: on the next read, Team fits — in every workspace
 ```
@@ -143,7 +143,7 @@ sequenceDiagram
 1. **Analyze.** A member picks notes / tasks / events (and an optional focus). The agent reads them with the **shared ontology** (`GET /api/analysis/input` → `ontology` + `rules`) and reports progress.
 2. **Result.** `POST /api/analysis/result {summary, ontology:{classes, relations}, graph:{entities, facts}}`. The server checks it against the ontology (below) and answers with counts, `issues` and `newConcepts`.
 3. **New concepts → admin, as tidying.** A class or relation the ontology doesn't have — declared in the result or just used — becomes a request in System › Inbox ("Add class "Team" to the ontology", `action: ontology.add`). It doesn't block anything: the concept is already in use.
-4. **Add to the knowledge graph → member.** The result is not applied by itself. It appears in **Inbox › Approvals** and on the Knowledge page (*Waiting for you*). *Add* merges all of it into `kg.json`: entities by id (sources merged), facts by from·rel·to. Nothing waits.
+4. **Add to the knowledge graph → member.** The result is not applied by itself. It appears in **Inbox › Approvals** and on Graph › Knowledge (*Waiting for your OK*). *Add* merges all of it into `knowledge-graph.json`: entities by id (sources merged), facts by from·rel·to. Nothing waits.
 5. **Fit is read, not stored.** `GET /api/kg` returns each entity and fact with `fit` and `why`, plus `notFitting` counts; the chart draws them in orange. When the admin adds a concept, it fits on the next read. 
 6. *Discard* drops a result; the knowledge graph keeps everything added before. Members can remove a wrong entity or fact (`POST /api/kg {action: remove-entity|remove-fact}`).
 
@@ -176,7 +176,7 @@ Rules are the third part of an ontology. `kgLens(kg, ontology)` applies them eve
 | transitive | a relation's *Transitive* | infer | o1 part_of o2, o2 part_of o3 ⇒ o1 part_of o3 |
 | **chain** | System › Ontology › **Rules** | infer | *if* x attends y, y part_of z *then* x involved_in z. 1 to 3 steps; a step can be walked in reverse (`^attends`: people at the same workshop ⇒ meets). One step = a sub-relation (involved_in ⇒ related_to) |
 | **limit** | System › Ontology › **Rules** | check | at most 1 *leads* per Project (per To). The extra facts are kept and marked *breaks a rule* |
-| compute | `work-schema.js` (`made: derived`) | compute | DUE_ON ← Task.due, ON ← Event.date — the Work ontology's rules, read-only |
+| compute | `work-ontology.js` (`made: derived`) | compute | DUE_ON ← Task.due, ON ← Event.date — the Work ontology's rules, read-only |
 
 - **One engine.** Inverse, symmetric and transitive are turned into chain rules, and all chains run together to a fixed point (rules build on facts other rules inferred; at most 8 rounds and 2000 inferred facts).
 - **What comes out.** Each derived fact is in `inferred` with `rule` (`inverse`, `transitive`, `rule:<id>` …), `ruleLabel` and `because` (the facts it follows from). The chart draws it dashed (toggle *Inferred*), the entity panel tags it *inferred · rule …*, and NodeRel edges carry `inferred` and `rule`.
@@ -190,7 +190,7 @@ Rules are the third part of an ontology. `kgLens(kg, ontology)` applies them eve
 
 ## The knowledge graph inside NodeRel
 
-Each workspace's `kg.json` is indexed in the same `graph.sqlite` as the app links: entities as `kg:<id>` (kind = class), facts typed by relation id, and `MENTIONED_IN` entity → source item. So the agent can trace from a note to the people in it:
+Each workspace's `knowledge-graph.json` is indexed in the same `graph-index.sqlite` as the app links: entities as `kg:<id>` (kind = class), facts typed by relation id, and `MENTIONED_IN` entity → source item. So the agent can trace from a note to the people in it:
 
 ```bash
 curl -s "http://127.0.0.1:8811/api/graph/trace?id=n-ex-acme&depth=2"
@@ -198,12 +198,12 @@ curl -s "http://127.0.0.1:8811/api/graph/neighbors?id=kg:acme"
 curl -s "http://127.0.0.1:8811/api/graph/schema"     # Work ontology + Knowledge relations
 ```
 
-Work › Links (the work-graph chart, "where the flow breaks", *Links by kind*) uses only the work graph; new link kinds show there marked *(new)*.
+Graph › Work (the work-graph chart, "where the flow breaks", *Links by kind*) uses only the work graph; new link kinds show there marked *(new)*.
 
 ## Export and OntoAir
 
-- **Knowledge graph:** `GET /api/kg/ttl` writes OWL Turtle — the shared ontology as TBox (`owl:Class` + `rdfs:subClassOf`, `owl:ObjectProperty` + `rdfs:domain/range`) and the workspace's knowledge graph as ABox. Knowledge › Knowledge graph has *Open in OntoAir ↗* and *Download .ttl*.
-- **One analysis result:** `GET /api/analysis/ttl?id=` (Knowledge, *Latest analysis*).
+- **Knowledge graph:** `GET /api/kg/ttl` writes OWL Turtle — the shared ontology as TBox (`owl:Class` + `rdfs:subClassOf`, `owl:ObjectProperty` + `rdfs:domain/range`) and the workspace's knowledge graph as ABox. Graph › Knowledge has *Open in OntoAir ↗* and *Download .ttl*.
+- **One analysis result:** `GET /api/analysis/ttl?id=` (Graph › Knowledge, *Latest analysis*).
 - OntoAir receives the Turtle inside the link (`#data:text/turtle,…`), so it works behind a sign-in gateway. Only a very large analysis falls back to a 24-hour token link (`/api/analysis/shared/<token>/<name>.ttl`), then to a download. A `#` in a label becomes `＃` because line-based parsers cut at `#`.
 
 ## API summary
@@ -220,4 +220,4 @@ Work › Links (the work-graph chart, "where the flow breaks", *Links by kind*) 
 | `GET /api/kg` · `GET /api/kg/ttl` · `POST /api/kg {action: remove-entity\|remove-fact}` | member | the workspace's knowledge graph — with `fit`/`why`, `types`, `inferred`, `notFitting` |
 | `GET /api/graph/neighbors · trace · schema` | anyone | both layers through NodeRel |
 
-Code: `work-schema.js` (the Work layer), `dashboard-api.js` (`APP_ONTOLOGY`, `loadOntology`, `systemOntology`, `ontologyIssues`, `cleanAnalysis`, `mergeIntoKg`, `kgLens`, `analysisTurtle`), `graph.js` (vocabulary from `work-schema.js`, `snapshot` with `kg`, `KG_PREFIX`), `dashboard.html` (System › Ontology `renderOntology`, Knowledge `renderKg` / `renderOntoRead`, `renderKgApprovals`, `drawKG`, `openTtlInOntoAir`). Tests: `test.cjs` C14 (app links), C16 and C18 (analysis, keep-and-mark, approvals, fit on read, reasoning, NodeRel, export), `admin.test.cjs` (Work layer = what the app produces, broken references).
+Code: `work-ontology.js` (the Work layer), `dashboard-api.js` (`APP_ONTOLOGY`, `loadOntology`, `systemOntology`, `ontologyIssues`, `cleanAnalysis`, `mergeIntoKg`, `kgLens`, `analysisTurtle`), `graph-index.js` (vocabulary from `work-ontology.js`, `snapshot` with `kg`, `KG_PREFIX`), `dashboard.html` (System › Ontology `renderOntology`, Knowledge `renderKg` / `renderOntoRead`, `renderKgApprovals`, `drawKG`, `openTtlInOntoAir`). Tests: `test.cjs` C14 (app links), C16 and C18 (analysis, keep-and-mark, approvals, fit on read, reasoning, NodeRel, export), `admin.test.cjs` (Work layer = what the app produces, broken references).

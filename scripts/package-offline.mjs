@@ -20,7 +20,7 @@ const DIST = path.join(ROOT, 'dist'), CACHE = path.join(DIST, '.cache'), OUT = p
 
 // 실행에 필요한 것만(테스트·스킬·문서 원본은 빼고)
 const APP_FILES = ['server.js', 'channel-core.js', 'dashboard-api.js', 'dashboard.html', 'ana-logo.png', 'agent-log.js',
-  'codex-settings.js', 'permission-mode.js', 'file-browser.js', 'graph.js', 'work-schema.js', 'seed.js', 'package.json', 'LICENSE'];
+  'codex-settings.js', 'permission-mode.js', 'file-browser.js', 'graph-index.js', 'work-ontology.js', 'seed.js', 'package.json', 'LICENSE'];
 const DEPS = ['@tykimos/noderel', 'modern-screenshot'];
 
 const log = (m) => console.log(`[package] ${m}`);

@@ -1,5 +1,5 @@
 'use strict';
-// work-schema.js — 이 ANA의 코드가 저장하는 워크 항목과 그 연결(온톨로지의 워크 층 = 워크 종류).
+// work-ontology.js — 워크 온톨로지: 이 ANA의 코드가 저장하는 워크 항목의 클래스와 그 연결 관계(그리고 계산 규칙).
 //
 // 온톨로지는 두 층이다(워크 · 지식).
 //   워크 층   여기. 이 앱이 실제로 저장하고 만드는 워크 항목의 종류와 연결 종류. 코드가 바뀌면(기능을 더하거나 빼면) 이 파일도 같은 커밋에서 바뀐다.
@@ -11,7 +11,7 @@
 //
 // classes:   { id, desc, title }            title = NodeRel 노드 제목이 무엇인지
 // relations: { id, desc, from[], to[], made }
-//            made: 'explicit' — 사람·에이전트가 연결로 만든다(state.json links[], NodeRel에서 추가·삭제 가능)
+//            made: 'explicit' — 사람·에이전트가 연결로 만든다(work-graph.json links[], NodeRel에서 추가·삭제 가능)
 //                  'derived'  — 앱이 필드에서 계산한다(field가 출처)
 
 const WORK = ['Note', 'Task', 'Event'];

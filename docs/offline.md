@@ -38,7 +38,7 @@ ANA-offline-win-x64-<version>\
   start.bat        run
   node\node.exe    Node 24 LTS (portable)
   app\             ANA (server.js, dashboard.html, node_modules …)
-  data\            your data, created on first run (state.json, analysis.json, graph.sqlite …)
+  data\            your data, created on first run (work-graph.json, analysis.json, graph-index.sqlite …)
   files\           files uploaded in System › Files
   INSTALL-EN.txt · INSTALL-KO.txt · VERSION.txt
 ```
@@ -48,7 +48,7 @@ ANA-offline-win-x64-<version>\
 - **Back up:** stop ANA, then copy `data` and `files`.
 - **Move to another PC:** copy the whole folder.
 - **Upgrade:** stop ANA and extract the new zip somewhere else. Then move your `data` and `files` folders into it and run the new `start.bat`.
-- `graph.sqlite` is an index rebuilt from `state.json`, so it is safe to delete.
+- `graph-index.sqlite` is an index rebuilt from `work-graph.json`, so it is safe to delete.
 
 ## FAQ
 

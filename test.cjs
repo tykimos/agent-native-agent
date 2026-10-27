@@ -481,7 +481,7 @@ t('D11 Codex dialog: selected option stays a button; footer is not an option des
 
 // ---- 관계 그래프(graph.js / NodeRel) ----
 {
-  const rg = require('./graph.js');
+  const rg = require('./graph-index.js');
   const st = () => ({ items: [{ id: 'a1', title: 'T', due: '2026-10-01' }, { id: 'a2', title: 'T2' }],
     events: [{ id: 'e1', title: 'E', date: '2026-10-01', time: '10:00' }], notes: [{ id: 'n1', title: '', text: 'first line\nsecond' }], links: [] });
   t('G1 snapshot: 날짜 필드에서 Day 노드·DUE_ON/ON 파생, 같은 날은 Day 하나', () => {
@@ -510,7 +510,7 @@ t('D11 Codex dialog: selected option stays a button; footer is not an option des
   t('G4 NodeRel 인덱스: 서명이 같으면 재빌드 안 함, 원천이 바뀌면 다시 만든다', () => {
     const dir = fs.mkdtempSync(path.join(SCRATCH, 'g-'));
     let s = st(); rg.addLink(s, { from: 'n1', to: 'a1', type: 'SPAWNED' });
-    const g = rg.createGraph({ loadData: () => s, dataFileOf: () => path.join(dir, 'state.json') });
+    const g = rg.createGraph({ loadData: () => s, dataFileOf: () => path.join(dir, 'work-graph.json') });
     const h = g.ensure('default'); const at1 = h.db.prepare("SELECT value FROM sync_meta WHERE key='syncedAt'").get().value;
     g.ensure('default'); assert.equal(h.db.prepare("SELECT value FROM sync_meta WHERE key='syncedAt'").get().value, at1, '변화 없으면 재빌드 없음');
     assert.deepEqual(g.trace('default', { id: 'n1', maxDepth: 2, direction: 'out' }).map((x) => x.id), ['a1', 'day:2026-10-01']);
@@ -555,8 +555,9 @@ t('F1 features.json: 모든 기능 앵커가 이 저장소 코드에 실제로 �
   const core = fs.readFileSync(path.join(__dirname, 'channel-core.js'), 'utf8');
   const missing = [];
   for (const f of m.features) {
-    for (const a of f.anchors) if (!code.includes(a)) missing.push(`${f.id}: ${a}`);
-    for (const c of f.copy || []) if (!fs.existsSync(path.join(__dirname, c))) missing.push(`${f.id}: copy ${c}`);
+    // 'new || old' — 이 저장소에는 첫(새) 이름이 있어야 한다. 옛 이름은 다른 ANA를 비교할 때만 쓴다
+    for (const a of f.anchors) if (!code.includes(String(a).split(' || ')[0])) missing.push(`${f.id}: ${a}`);
+    for (const c of f.copy || []) if (!fs.existsSync(path.join(__dirname, String(c).split(' || ')[0]))) missing.push(`${f.id}: copy ${c}`);
     if (!fs.existsSync(path.join(__dirname, 'skills', f.skill, 'SKILL.md'))) missing.push(`${f.id}: skill ${f.skill}`);
   }
   for (const a of m.runtime.anchors) if (!core.includes(a)) missing.push(`runtime: ${a}`);

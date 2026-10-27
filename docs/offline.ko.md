@@ -38,7 +38,7 @@ ANA-offline-win-x64-<버전>\
   start.bat        실행
   node\node.exe    Node 24 LTS (포터블)
   app\             ANA 프로그램 (server.js, dashboard.html, node_modules …)
-  data\            내 데이터 — 첫 실행 때 생김 (state.json, analysis.json, graph.sqlite …)
+  data\            내 데이터 — 첫 실행 때 생김 (work-graph.json, analysis.json, graph-index.sqlite …)
   files\           System › Files에 올린 파일
   INSTALL-KO.txt · INSTALL-EN.txt · VERSION.txt
 ```
@@ -48,7 +48,7 @@ ANA-offline-win-x64-<버전>\
 - **백업**: ANA를 끈 뒤 `data` 폴더와 `files` 폴더를 복사해 둡니다.
 - **다른 PC로 옮기기**: 폴더 전체를 복사합니다.
 - **새 버전으로 바꾸기**: ANA를 끄고 새 zip을 다른 곳에 풉니다. 그다음 기존 `data` 폴더와 `files` 폴더를 새 폴더로 옮기고 새 `start.bat`으로 실행합니다.
-- `graph.sqlite`는 `state.json`에서 다시 만들어지는 색인이라 지워도 괜찮습니다.
+- `graph-index.sqlite`는 `work-graph.json`에서 다시 만들어지는 색인이라 지워도 괜찮습니다.
 
 ## 자주 묻는 것
 

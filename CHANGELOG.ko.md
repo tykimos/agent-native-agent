@@ -5,9 +5,40 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.11.0] — 2026-10-27
+
+### Changed
+
+- **이름을 개념에 맞췄습니다.** 파일, 코드, 문서가 모델과 같은 말을 씁니다.
+
+| 개념 | 전 | 지금 |
+|---|---|---|
+| 워크 온톨로지 | `work-schema.js` | `work-ontology.js` |
+| 지식 온톨로지 | `.ana/ontology.json` | `.ana/knowledge-ontology.json` |
+| 워크 그래프 | `state.json` | `work-graph.json` |
+| 지식그래프 | `kg.json` | `knowledge-graph.json` |
+| NodeRel 색인 | `graph.js`, `graph.sqlite` | `graph-index.js`, `graph-index.sqlite` |
+| Graph 메뉴 | `relationsView` + `linksView` | `graphView`(`work` · `knowledge`) |
+| Work graph drawing | `renderRelations`, `drawRelGraph` | `renderWorkGraph`, `drawWorkGraph` |
+| 문서, 스킬 | `docs/relations.md`, `skills/relations` | `docs/work-and-knowledge.md`, `skills/work-and-knowledge` |
+| 기능 id | `relations`, `relations-analysis`, `system-ontology` | `work-graph`, `knowledge-analysis`, `ontology` |
+
+- **메뉴가 모델을 따릅니다: 범위 = 메뉴, 층 = 탭.**
+  - **워크스페이스 › Graph**에 *Work · Knowledge* 탭이 있습니다. 워크 그래프(예전 Work › Links)와, *Analyze*가 있는 지식그래프(예전 Knowledge 메뉴)입니다.
+  - **Work**는 다시 Tasks · Calendar · Notes입니다.
+  - **System › Ontology**에 *Work · Knowledge* 탭이 있고, 탭마다 *Classes · Relations · Rules* 전환이 있습니다. *+ Add*는 Knowledge 탭에만 있습니다.
+  - Graph 각 탭의 *Ontology*는 그 층의 온톨로지를 엽니다(관리자: System › Ontology, 실무자: 읽기 전용). 워크 클래스 아래의 지식 클래스는 *kind of Task*로 보입니다.
+- **기존 데이터는 저절로 옮겨집니다.**
+  - 서버가 시작할 때 모든 워크스페이스의 옛 이름 파일을 새 이름으로 바꾸고, 사본을 `<옛 이름>.pre-0.11`로 남깁니다.
+  - 옛 `graph.sqlite`는 캐시라 지우고 다시 만듭니다.
+  - 직접 지정한 `DATA_FILE`·`ONTOLOGY_FILE`은 그대로 씁니다.
+  - 기억해 둔 탭 `relations`, `knowledge`, `links`는 Graph로 열립니다.
+- **API 경로는 그대로입니다**(`/api/state`, `/api/kg`, `/api/graph`, `/api/ontology`). 에이전트와 다른 ANA가 쓰는 약속이기 때문입니다.
+- **ana-update가 옛 이름을 압니다.** `features.json`의 앵커와 복사 모듈에 대안을 적을 수 있고(`graph-index.js || graph.js`), 기능은 옛 id를 `formerly`에 남깁니다. 그래서 옛 이름을 쓰는 ANA도 기능이 없다고 나오지 않습니다.
+
 ## [0.10.0] — 2026-10-27
 
-**워크와 지식.** ANA를 두 층으로 설명하고, 저장하고, 보여 줍니다. 층마다 온톨로지(종류)와 그래프(실제 것)가 짝입니다. [docs/relations.ko.md](docs/relations.ko.md)를 보세요.
+**워크와 지식.** ANA를 두 층으로 설명하고, 저장하고, 보여 줍니다. 층마다 온톨로지(종류)와 그래프(실제 것)가 짝입니다. [docs/relations.ko.md](docs/work-and-knowledge.ko.md)를 보세요.
 
 | | 워크 층 | 지식 층 |
 |---|---|---|
@@ -138,7 +169,7 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
   - 새 기능이 필요한 워크스페이스 제안은 *Propose to the system*으로 올립니다.
 - **Roadmap.** 요구사항, 시스템 제안, 업스트림 업데이트를 한 줄씩 단계(*Request → Proposal → Building → Checked*)와 다음 할 일(*Check*, *Propose*, *Start*, *Check again*, *Bring in*)로 보여 줍니다. 실무자는 *Request a feature*로 요구사항을 보냅니다.
 - **요구사항 → 제안 → 다시 확인.** *반영 안 됨*이나 *일부 반영*인 요구사항을 한 번에 시스템 제안으로 만듭니다(다음 단계와 이유가 함께 들어감). 그 제안이 완료되면 요구사항이 다시 확인해 달라고 표시됩니다.
-- **온톨로지는 System에, 지식그래프는 워크스페이스마다.** 자세한 내용은 [docs/relations.ko.md](docs/relations.ko.md)에 있습니다.
+- **온톨로지는 System에, 지식그래프는 워크스페이스마다.** 자세한 내용은 [docs/relations.ko.md](docs/work-and-knowledge.ko.md)에 있습니다.
   - **System › Ontology:** 모든 워크스페이스가 공유하는 온톨로지 하나입니다.
     - 핵심(Note · Task · Event · Day와 앱 관계)은 처음부터 있고 잠겨 있습니다.
     - 나머지는 관리자가 더하고, 고치고, 지웁니다.
@@ -257,7 +288,7 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
   - 분석하는 동안 진행률 막대가 보입니다.
   - 상태별로 걸러 볼 수 있습니다. 요구사항을 고치면 그 분석은 다시 봐야 함으로 표시됩니다.
 - **관계 › Open in OntoAir.** 끝난 분석을 [OntoAir](https://poc.aifactory.space/ontoair/)에서 3D 온톨로지·지식그래프로 엽니다. *Download .ttl*은 같은 OWL/Turtle 파일을 내려받습니다. 그래프 내용을 링크 안(`#` 뒤의 `data:` URL — 브라우저가 서버로 보내지 않는 부분)에 담아 넘기므로, ANA가 로그인 게이트웨이 뒤에 있어도 공개 링크나 OntoAir 수정 없이 열립니다. 아주 큰 그래프(링크 약 1.5MB 초과)만 24시간 토큰 링크로, 그것도 막히면 파일을 내려받아 OntoAir의 📄 File로 엽니다.
-- **[docs/relations.ko.md](docs/relations.ko.md)** 관계의 두 층(고정된 앱 링크와 분석으로 발견한 층), 분석 과정, 온톨로지, 지식그래프, 검사, NodeRel 색인, 내보내기를 정리했습니다.
+- **[docs/relations.ko.md](docs/work-and-knowledge.ko.md)** 관계의 두 층(고정된 앱 링크와 분석으로 발견한 층), 분석 과정, 온톨로지, 지식그래프, 검사, NodeRel 색인, 내보내기를 정리했습니다.
 
 ### 변경
 

@@ -17,7 +17,7 @@ const os = require('node:os');
 const fsp = require('node:fs/promises');
 const { execFile } = require('node:child_process');
 const { AsyncLocalStorage } = require('node:async_hooks');
-const relgraph = require('./graph.js');
+const relgraph = require('./graph-index.js');   // NodeRel 색인 — 워크 그래프와 지식그래프를 한 색인에
 const codexSettings = require('./codex-settings.js');
 const permissionMode = require('./permission-mode.js');
 const { createAgentLog } = require('./agent-log.js');
@@ -31,7 +31,7 @@ function createDashboardApi(core, opts) {
     chat: { dir: opts.UPLOAD_DIR || path.join(ROOT, '.ana', 'uploads'), label: 'From chat', write: false, mkdir: true },
     project: { dir: ROOT, label: path.basename(ROOT), write: true, deny: ['.ana', '.git'] },
   }, core, { onUpload: (req, root, size) => audit(actor(req), 'files.upload', `${root} ${size}`), allow: (req, root) => root !== 'project' || isAdmin(req) });   // 프로젝트 폴더는 관리자만
-  const DATA_FILE = opts.DATA_FILE || path.join(ROOT, 'data', 'state.json');
+  const DATA_FILE = opts.DATA_FILE || path.join(ROOT, 'data', 'work-graph.json');   // 기본 워크스페이스의 워크 그래프
   const PROPOSALS_FILE = opts.PROPOSALS_FILE || path.join(ROOT, 'data', 'proposals.json');
   const EVOLVE_FILE = opts.EVOLVE_FILE || path.join(ROOT, 'data', 'evolve.json');
   const REQUESTS_FILE = opts.REQUESTS_FILE || path.join(path.dirname(EVOLVE_FILE), 'requests.json');
@@ -43,8 +43,8 @@ function createDashboardApi(core, opts) {
   const ADMIN_FILE = opts.ADMIN_FILE || path.join(path.dirname(EVOLVE_FILE), 'admin.json');
   // System › Health › Tests: 이 ANA의 테스트(package.json scripts.test)를 돌린 기록(최근 10번)
   const TESTS_FILE = opts.TESTS_FILE || path.join(path.dirname(EVOLVE_FILE), 'tests.json');
-  // 시스템 온톨로지(모든 워크스페이스가 공유하는 개념 틀) — 핵심(Note·Task·Event·Day와 앱 관계)은 코드가 정하고, 나머지는 관리자가 정한다
-  const ONTOLOGY_FILE = opts.ONTOLOGY_FILE || path.join(path.dirname(EVOLVE_FILE), 'ontology.json');
+  // 지식 온톨로지(System — 모든 워크스페이스가 공유, 관리자). 워크 온톨로지는 코드(work-ontology.js)
+  const ONTOLOGY_FILE = opts.ONTOLOGY_FILE || path.join(path.dirname(EVOLVE_FILE), 'knowledge-ontology.json');
   const UPSTREAM_DIR = opts.UPSTREAM_DIR || path.join(path.dirname(EVOLVE_FILE), 'upstream');
   const UPSTREAM_URL = opts.UPSTREAM_URL || 'https://github.com/tykimos/agent-native-agent';
   const UPDATE_TARGET = opts.UPDATE_TARGET || ROOT;   // 비교할 ANA 폴더(기본: 이 ANA). 시험·호스트용으로 바꿀 수 있다
@@ -138,7 +138,7 @@ function createDashboardApi(core, opts) {
 
   // ---- 워크스페이스 ----
   // 워크스페이스마다 상태 파일이 따로 있다. 기본 워크스페이스는 기존 DATA_FILE을 그대로 쓴다(기존 데이터 보존),
-  // 나머지는 DATA_FILE 옆 workspaces/<id>/state.json. 요청 범위는 x-ana-workspace 헤더(또는 ?ws=)로 정하고,
+  // 나머지는 DATA_FILE 옆 workspaces/<id>/work-graph.json. 요청 범위는 x-ana-workspace 헤더(또는 ?ws=)로 정하고,
   // 헤더 없는 호출(에이전트 curl·공유 페이지)은 UI에서 마지막으로 고른 active 워크스페이스를 따른다.
   // 채팅·제안 원장·진화·사용자·감사 로그는 에이전트가 하나이므로 워크스페이스 간에 공유된다.
   const DEFAULT_WS = 'default';
@@ -161,7 +161,28 @@ function createDashboardApi(core, opts) {
   const wsExists = (id) => loadWorkspaces().workspaces.some((x) => x.id === id);
   const wsStore = new AsyncLocalStorage();
   const curWs = () => wsStore.getStore() || loadWorkspaces().active;
-  const dataFileOf = (ws) => (ws === DEFAULT_WS ? DATA_FILE : path.join(WS_DIR, ws, 'state.json'));
+  const dataFileOf = (ws) => (ws === DEFAULT_WS ? DATA_FILE : path.join(WS_DIR, ws, 'work-graph.json'));
+  // 0.11: 데이터 파일 이름을 개념에 맞췄다 — state.json → work-graph.json, kg.json → knowledge-graph.json,
+  // ontology.json → knowledge-ontology.json, graph.sqlite → graph-index.sqlite(캐시라 옛 것은 지운다).
+  // 옛 이름만 있으면 사본(<옛 이름>.pre-0.11)을 남기고 새 이름으로 옮긴다. 새 이름이 이미 있으면 건드리지 않는다.
+  // DATA_FILE·ONTOLOGY_FILE을 직접 지정한 배포는 그 이름을 그대로 쓴다(이름이 새 기본값일 때만 옮긴다).
+  (function migrateDataNames() {
+    const fs = require('node:fs');
+    const move = (from, to) => {
+      try {
+        if (!fs.existsSync(from) || fs.existsSync(to)) return;
+        fs.copyFileSync(from, from + '.pre-0.11'); fs.renameSync(from, to);
+        console.log(`[ana] renamed ${path.basename(from)} → ${path.basename(to)} in ${path.dirname(to)} (copy kept as ${path.basename(from)}.pre-0.11)`);
+      } catch (e) { console.error(`[ana] could not rename ${from}: ${e.message}`); }
+    };
+    const dropCache = (dir) => { for (const x of ['graph.sqlite', 'graph.sqlite-wal', 'graph.sqlite-shm']) try { fs.rmSync(path.join(dir, x), { force: true }); } catch {} };
+    const dirs = [];
+    if (path.basename(DATA_FILE) === 'work-graph.json') { move(path.join(path.dirname(DATA_FILE), 'state.json'), DATA_FILE); }
+    dirs.push(path.dirname(DATA_FILE));
+    try { for (const d of fs.readdirSync(WS_DIR, { withFileTypes: true })) if (d.isDirectory()) { const w = path.join(WS_DIR, d.name); move(path.join(w, 'state.json'), path.join(w, 'work-graph.json')); dirs.push(w); } } catch {}
+    for (const d of dirs) { move(path.join(d, 'kg.json'), path.join(d, 'knowledge-graph.json')); dropCache(d); }
+    if (path.basename(ONTOLOGY_FILE) === 'knowledge-ontology.json') move(path.join(path.dirname(ONTOLOGY_FILE), 'ontology.json'), ONTOLOGY_FILE);
+  })();
   function resolveWs(req, url) {
     const want = String((req.headers || {})['x-ana-workspace'] || (url && url.searchParams.get('ws')) || '').trim();
     return want && wsExists(want) ? want : loadWorkspaces().active;
@@ -180,7 +201,7 @@ function createDashboardApi(core, opts) {
     }
     const s = readJsonStrict(file, () => ({ version: 1, items: [], events: [], notes: [] }));
     if (!s || typeof s !== 'object' || Array.isArray(s) || !Array.isArray(s.items))
-      throw new Error(`state.json shape invalid (${file})`);
+      throw new Error(`work graph file shape invalid (${file})`);
     if (!Array.isArray(s.events)) s.events = []; // 일정(달력) — 할일(items)과 별도
     if (!Array.isArray(s.notes)) s.notes = []; // 메모 — {id, title, text, updatedAt}
     if (!Array.isArray(s.links)) s.links = []; // 명시적 관계 — {from, to, type, at, by} (graph.js 참고)
@@ -191,8 +212,8 @@ function createDashboardApi(core, opts) {
   const CLIENT_EVENTS = { 'tab.view': /^[a-z]{2,20}(\.[a-z]{2,20})?$/, 'ontoair.open': /^\d{1,6}$/, 'ttl.download': /^\d{1,6}$/ };
   const isExample = (x) => /^[nae]-ex-/.test(String((x && x.id) || ''));   // seed.js의 예제 id
   const saveData = (s, ws) => { relgraph.pruneLinks(s); writeJsonAtomic(dataFileOf(ws || curWs()), s); };
-  // 관계 그래프 — state.json에서 파생되는 NodeRel 인덱스(워크스페이스마다 graph.sqlite)
-  // 지식그래프 = 그 워크스페이스에 쌓인 지식그래프(kg.json, 분석 결과를 승인해 더한 것). 아래 함수들은 요청 때만 불린다.
+  // NodeRel 색인 — 워크 그래프(work-graph.json)와 지식그래프(knowledge-graph.json)에서 파생(워크스페이스마다 graph-index.sqlite)
+  // 지식그래프 = 그 워크스페이스에 쌓인 개체·사실(분석 결과를 승인해 더한 것). 아래 함수들은 요청 때만 불린다.
   const graph = relgraph.createGraph({ loadData, dataFileOf, loadKg: (ws) => {
     const kg = loadKgStore(ws); if (!kg.entities.length) return null;
     const ont = systemOntology(), lens = kgLens(kg, ont);
@@ -331,10 +352,10 @@ function createDashboardApi(core, opts) {
   }
 
   // ---- 시스템 온톨로지 · 워크스페이스 지식그래프 ----
-  // 온톨로지는 두 층: 워크 층(work-schema.js — 워크 종류, 코드와 함께 바뀜)과 지식 층(.ana/ontology.json — 지식 종류, 관리자).
+  // 온톨로지는 두 층: 워크 층(work-ontology.js — 워크 종류, 코드와 함께 바뀜)과 지식 층(.ana/ontology.json — 지식 종류, 관리자).
   // 사실(지식그래프)은 워크스페이스마다. 온톨로지는 관문이 아니라 렌즈다(kgLens).
   const WORK_ONTOLOGY = (() => {
-    const A = require('./work-schema.js'), one = (xs) => (xs && xs.length === 1 ? xs[0] : '');
+    const A = require('./work-ontology.js'), one = (xs) => (xs && xs.length === 1 ? xs[0] : '');
     return {
       classes: A.classes.map((c) => ({ id: c.id, label: c.label || c.id, desc: c.desc || '', parent: c.parent || '', source: 'work' })),
       relations: A.relations.map((r) => ({ id: r.id, label: r.label || r.id, desc: r.desc || '', domain: one(r.from), range: one(r.to), from: r.from, to: r.to,
@@ -370,7 +391,7 @@ function createDashboardApi(core, opts) {
       rules: [...WORK_ONTOLOGY.rules, ...(o.rules || []).map((x) => ({ ...x, source: 'knowledge' }))] };
     return { ...all, issues: ontologyIssues(all) };
   }
-  const kgFileOf = (ws) => path.join(path.dirname(dataFileOf(ws)), 'kg.json');
+  const kgFileOf = (ws) => path.join(path.dirname(dataFileOf(ws)), 'knowledge-graph.json');   // 이 워크스페이스의 지식그래프
   function loadKgStore(ws) {
     const k = readJsonStrict(kgFileOf(ws), () => ({ entities: [], facts: [] }));
     return k && Array.isArray(k.entities) ? { ...k, facts: Array.isArray(k.facts) ? k.facts : [] } : { entities: [], facts: [] };
@@ -645,7 +666,7 @@ function createDashboardApi(core, opts) {
   const coerceField = (k, v) => {
     if (k === 'done') return !!v;
     if (v === null || v === undefined) return '';
-    if (typeof v === 'object') return '';                 // {a:1} 같은 값이 state.json에 저장되지 않도록
+    if (typeof v === 'object') return '';                 // {a:1} 같은 값이 워크 그래프 파일에 저장되지 않도록
     return String(v).slice(0, FIELD_MAX[k] || 200);
   };
   function assignFields(target, src) {
@@ -919,14 +940,14 @@ function createDashboardApi(core, opts) {
         audit(me, 'workspace.rename', name, target.name);
         target.name = name;
       } else if (body.action === 'remove') {
-        // 기본 워크스페이스는 지울 수 없다(기존 state.json의 주인). 나머지는 목록에서 빼고,
+        // 기본 워크스페이스는 지울 수 없다(기본 워크 그래프 파일의 주인). 나머지는 목록에서 빼고,
         // 데이터 폴더는 바로 지우지 않고 workspaces/.deleted/로 옮겨 둔다(실수 복구용).
         if (body.id === DEFAULT_WS) return sendJson(res, 400, { error: 'The base workspace cannot be deleted' }), true;
         if (!isAdmin(req)) return needAdmin(res, 'Deleting a workspace');
         target = w.workspaces.find((x) => x.id === body.id);
         if (!target) return sendJson(res, 404, { error: 'not found' }), true;
         const dir = path.join(WS_DIR, target.id);
-        graph.close(target.id);   // graph.sqlite 핸들을 닫고 폴더를 옮긴다
+        graph.close(target.id);   // graph-index.sqlite 핸들을 닫고 폴더를 옮긴다
         const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
         try {
           await fsp.mkdir(path.join(WS_DIR, '.deleted'), { recursive: true });
@@ -1774,7 +1795,7 @@ function createDashboardApi(core, opts) {
       const kind = { relation: 'relations', class: 'classes', rule: 'rules' }[body.kind] || null, it = body.item || {};
       if (!kind || !['add', 'update', 'remove'].includes(body.action)) return sendJson(res, 400, { error: 'kind must be class|relation|rule, action add|update|remove' }), true;
       if (!CONCEPT_ID.test(String(it.id || ''))) return sendJson(res, 400, { error: 'id: a letter, then letters, digits, _ or - (60 at most)' }), true;
-      if (kind !== 'rules' && isWorkConcept(kind, it.id)) return sendJson(res, 400, { error: `${it.id} is in the Work ontology — it comes from the app's code (work-schema.js) and changes when the app changes` }), true;
+      if (kind !== 'rules' && isWorkConcept(kind, it.id)) return sendJson(res, 400, { error: `${it.id} is in the Work ontology — it comes from the app's code (work-ontology.js) and changes when the app changes` }), true;
       const o = loadOntology(), all = systemOntology(), list = o[kind], cur = list.find((x) => x.id === it.id);
       const clsIds = new Set(all.classes.map((c) => c.id));
       if (body.action === 'remove') {
