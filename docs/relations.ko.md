@@ -1,35 +1,109 @@
-# ANA의 관계 — 온톨로지와 지식그래프
+# ANA의 관계 — 워크와 지식
 
 [English](relations.md) · **한국어**
 
-ANA는 **어떤 종류의 것이 있는가(틀)**와 **실제로 무엇을 아는가(사실)**를 나눕니다.
+## 한 장으로 보는 모델
 
-| | 온톨로지(틀, TBox) | 지식그래프(사실, ABox) |
+**범위** 둘 × **층** 둘입니다. 층마다 System에 **온톨로지**(종류)가 있고, 워크스페이스마다 **그래프**(실제 것)가 있습니다.
+
+| | **워크 층** | **지식 층** |
 |---|---|---|
-| **범위** | **System** — ANA 전체에 하나, 모든 워크스페이스가 공유 | **워크스페이스**마다 — 자기 개체와 사실 |
-| **누가 바꾸나** | **관리자**(System › Ontology). 분석이 제안한 새 개념은 System › Inbox에 승인요청으로 옴 | **실무자**가 분석 결과를 승인해서(Inbox › Approvals 또는 Knowledge › Analysis) |
-| **담는 것** | 부모가 있는 클래스(Client ⊂ Organization), From → To가 있는 관계 종류 | 클래스로 타입이 정해진 개체, 관계로 이어진 사실. 각각 근거 메모·할일·일정을 가리킴 |
-| **저장** | `evolve.json` 옆의 `ontology.json`(+ 앱이 정한 핵심) | 워크스페이스 `state.json` 옆의 `kg.json` |
-| **보는 곳** | System › Ontology(편집) · Knowledge › Ontology(읽기 전용) | Knowledge › Knowledge graph |
+| **System — 온톨로지** | **워크 온톨로지**: Note, Task, Event, Day와 그 연결 종류. `work-schema.js`(코드) | **지식 온톨로지**: Client, Person, works_for 등. `.ana/ontology.json`(관리자) |
+| **워크스페이스 — 그래프** | **워크 그래프**: 메모·할일·일정과 그 연결. `state.json` | **지식그래프**: 개체와 사실. `kg.json` |
 
-온톨로지에는 **앱이 정한 핵심**이 있습니다. 클래스 Note, Task, Event, Day와 관계 SPAWNED, SCHEDULED_AS, REFERS_TO, DUE_ON, ON입니다(`graph.js`의 `RULES`/`MEANINGS`). 핵심은 고칠 수 없습니다. 그 밖의 것(Client, works_for 등)은 관리자가 더합니다.
+온톨로지는 세 부분으로 되어 있고, 부분마다 그래프에 "실제 것"이 있습니다.
 
-> **온톨로지는 관문이 아니라 렌즈입니다.** 도메인 하네스입니다. 에이전트에게 함께 쓰는 말을 주고, ANA가 검사하고 추론하게 해 줍니다. 에이전트가 찾거나 제안할 수 있는 것을 막지는 않습니다.
-> - 틀에 안 맞는 것은 버리거나 붙잡아 두지 않습니다. **남기고 표시합니다**(*아직 온톨로지에 없음*).
-> - 관리자에게 그 개념을 더해 달라고 요청하고, 더해지면 바로 맞게 됩니다.
-> - 진화 제안은 온톨로지 밖으로 나가도 되고, 온톨로지를 바꾸자고 해도 됩니다.
+| 온톨로지의 부분(System) | 무엇인가 | 워크 층에서 | 지식 층에서 | 실제 것(그래프) |
+|---|---|---|---|---|
+| **클래스** | 점의 종류 | Note, Task, Event, Day | Client, Person, Project | 워크 항목 · 개체 |
+| **관계** | 선의 종류, From → To | SPAWNED, SCHEDULED_AS, REFERS_TO, DUE_ON, ON | works_for, client_of | 연결 · 사실 |
+| **규칙** | 무엇이 따라 나오는지, 무엇을 지켜야 하는지 | 계산: DUE_ON ← Task.due, ON ← Event.date | 하위 클래스, 역관계·대칭·전이, **연쇄**, **제한** | 추론된 사실, 계산된 연결, 맞음 표시. 그래프를 읽을 때 생기고 저장하지 않음 |
+
+층마다 더 보면:
+
+| | **워크 층** | **지식 층** |
+|---|---|---|
+| **한 줄 정의** | 사람이 앱에서 일하며 남긴 것 | 워크에서 알아낸 것 |
+| **만드는 주체** | 사람이 앱에서, 또는 에이전트의 데이터 변경을 승인해서 | 분석(LLM)이 제안하고 실무자가 승인 |
+| **신뢰도** | 확정: 사람이 남김 | 추론: 모든 개체와 사실에 근거 워크 항목이 붙음 |
+| **온톨로지 바꾸는 사람** | 코드(개발자나 Evolve 제안). 기능과 같은 커밋에서 | 관리자(System › Ontology), 또는 분석이 제안한 것을 승인해서 |
+| **앱에서** | **Work**: Tasks · Calendar · Notes · Links | **Knowledge**: 지식그래프, *Analyze*, 최근 분석 |
+| **API** | `source: "work"` | `source: "knowledge"` |
+
+온톨로지 페이지는 **하나**, System › Ontology(*Classes · Relations · Rules*)입니다. 실무자는 *Knowledge › Ontology*로 읽기 전용으로 엽니다. 워크 온톨로지에는 **Work** 표시가 붙고 거기서 고칠 수 없습니다. 코드를 설명하는 것이기 때문입니다.
+
+워크 온톨로지에 모든 ANA 공통인 것은 없습니다. ANA마다 `work-schema.js`에 자기 것을 선언합니다. 할일이 없는 ANA에는 Task가 없고, 저장장치 ANA는 Disk, Volume을 선언할 수 있습니다.
+- `graph.js`는 어휘를 이 선언에서 읽습니다.
+- `admin.test.cjs`가 앱이 실제로 만드는 노드·연결 종류가 선언과 정확히 같은지 확인합니다.
+
+## 관문이 아니라 렌즈
+
+온톨로지는 안내하고 검사합니다. 사람이나 에이전트가 말할 수 있는 것을 막지 않습니다.
+
+| | 워크 층 | 지식 층 |
+|---|---|---|
+| **구조**(필드, 클래스) | **관문**: 앱은 코드가 아는 것만 저장합니다. 화면이 그 필드를 읽기 때문입니다 | **렌즈**: 모르는 클래스도 남기고 *아직 온톨로지에 없음*으로 표시 |
+| **연결·관계 종류** | **렌즈**: `BLOCKS` 같은 새 종류(대문자_밑줄)도 저장하고 *아직 워크 온톨로지에 없음*으로 보임. 아는 종류는 From → To를 지킵니다(기능이 읽음). DUE_ON / ON은 날짜에서 계산하므로 손으로 못 만듭니다 | **렌즈**: 모르는 관계, From → To가 안 맞는 사실도 남기고 표시 |
+| **규칙** | 계산: 날짜에서 DUE_ON / ON | 추론: 하위 클래스, 역관계, 대칭, 전이, 연쇄 · 검사: 제한(`inferred` / `fit`, 저장 안 함) |
+| **끊긴 참조** | 기능을 빼서 워크 클래스·관계가 사라지면 `issues` | 지운 것을 가리키는 클래스·관계·규칙 → `issues` |
+
+`GET /api/ontology`가 `issues`를 돌려줍니다("Class Ticket: its parent Task is no longer in the ontology"). System › Ontology는 주황 상자로 보여 주고, 그 클래스를 *parent … missing* 표시와 함께 트리에 남깁니다.
+
+## 두 층의 연결과 확장
+
+| 방향 | 방법 | 코드 수정 |
+|---|---|---|
+| 지식 → 워크(근거) | 개체 ─`MENTIONED_IN`→ 워크 항목. 어느 메모·할일에서 나왔는지 | 없음 |
+| 워크 → 지식(분석) | *Analyze*: 에이전트가 워크 항목을 읽고 개체·사실을 제안 → 실무자 승인 | 없음 |
+| 지식이 워크를 넓힘 ① | **하위 클래스**: 워크 클래스의 하위 클래스로 정의된 지식 클래스(Ticket ⊂ Task, Meeting ⊂ Event)를 워크 항목에 붙입니다(`POST /api/subtype`). 앱은 그대로 할일로 다루고, 지식 쪽은 Ticket으로 읽습니다 | 없음 |
+| 지식이 워크를 넓힘 ② | **승격**: `GET /api/ontology/evidence`가 근거를 보여 줍니다. 쓰이는 새 연결 종류, 항목에 붙은 하위 클래스, 개체가 주로 한 종류의 항목에서 나오는 지식 클래스("Ticket 개체 40개, 모두 할일에서") 등입니다. 시스템 Evolve가 이를 읽고 기능을 제안하고, 그 변경이 `work-schema.js`를 고칩니다 | 있음(관리자가 시작) |
+| 쓰임이 워크를 넓힘 | 새 연결 종류가 자주 쓰이면(`BLOCKS` ×12) → Evolve 제안 → 기능 | 있음 |
+
+## 용어
+
+| 개념 | 한국어 | English | 코드 / API |
+|---|---|---|---|
+| 두 범위 | System · 워크스페이스 | System · Workspace | — |
+| 두 층 | 워크 층 · 지식 층 | Work layer · Knowledge layer | `source: work \| knowledge` |
+| 종류 전체 | 워크 온톨로지 · 지식 온톨로지 | Work ontology · Knowledge ontology | `work-schema.js` · `.ana/ontology.json` |
+| 실제 것 전체 | 워크 그래프 · 지식그래프 | Work graph · Knowledge graph | `state.json` · `kg.json` |
+| 점의 종류 | 클래스(워크 클래스 · 지식 클래스) | class | `classes` |
+| 선의 종류 | 관계(워크 관계 · 지식 관계) | relation | `relations` |
+| 따라 나오는 것 / 지켜야 할 것 | 규칙 | rule | `rules` |
+| 규칙의 종류 | 연쇄 · 제한 · 계산 | chain · limit · compute | `kind: chain \| limit \| compute` |
+| 앱의 기록 하나 | 워크 항목 | work item (note · task · event) | Note · Task · Event · Day |
+| 워크 항목 사이의 선 | 연결 | link | `state.json`의 `links` |
+| 지식그래프의 점 | 개체 | entity | `kg:<id>` |
+| 개체 사이의 선 | 사실 | fact | `{from, rel, to}` |
+| 관계가 잇는 것 | From → To | From → To | `domain` · `range`(API·OWL 안에서만) |
+| 좁은 클래스 | 하위 클래스 | sub-class (*kind of*) | `parent`, 항목의 `subtype` |
+| 개체가 나온 곳 | 근거 | source (*mentioned in*) | `MENTIONED_IN`, `sources` |
+| 규칙으로 생김 | 추론됨 | inferred | `inferred`, `rule`, `ruleLabel`, `because` |
+| 아직 안 맞음 / 규칙을 어김 | 아직 온톨로지에 없음 · 규칙 위반 | not in the ontology yet · breaks a rule | `fit: false`, `why` |
+| 실무자에게 부탁하는 일 | 실행 요청 | action request | Inbox › *Action requests* |
+
+## 무엇이 어디에 있나
+
+| 정보 | 누가 바꾸나 | 저장 |
+|---|---|---|
+| 워크 온톨로지(클래스, 관계, 계산 규칙) | 코드 변경 | `work-schema.js`(git) |
+| 지식 온톨로지(클래스, 관계, 규칙) | 관리자 | `.ana/ontology.json` |
+| 워크 그래프 | 사람, 승인된 에이전트 변경 | 워크스페이스마다 `state.json` |
+| 지식그래프 | 실무자가 분석을 승인 | 워크스페이스마다 `kg.json` |
+| NodeRel 색인 | 자동 | 워크스페이스마다 `graph.sqlite`. 위 것들에서 다시 만드는 캐시 |
+| 맞음 표시, 추론된 사실 | 자동(규칙) | 저장 안 함. 읽을 때 계산 |
 
 ### 일곱 개념과 그 연결
 
 | 개념 | 무엇인가 | 어디에 |
 |---|---|---|
-| **온톨로지** | 함께 쓰는 말. 클래스(부모 포함)와 관계 종류(From → To, 선택으로 역관계·대칭·전이) | System — 관리자가 다듬음 |
-| **지식그래프** | 실제로 찾은 것과 사실. 각각 근거 항목을 가리킴 | 워크스페이스마다 — 실무자가 분석을 승인해 쌓음 |
+| **온톨로지** | 클래스, 관계, 규칙. 두 층: 워크 온톨로지(코드에서)와 지식 온톨로지(관리자) | System |
+| **지식그래프** | 워크에서 찾은 개체와 사실. 각각 근거 워크 항목을 가리킴 | 워크스페이스마다 |
 | **System** | 모든 워크스페이스에 걸리는 것: 기능, 온톨로지, 헬스 | 관리자 |
-| **워크스페이스** | 한 팀의 데이터: 메모·할일·일정·파일·지식그래프 | 실무자 |
-| **NodeRel** | 앱 링크와 지식그래프를 한 색인(`graph.sqlite`)에. 에이전트가 메모 → 개체 → 개체로 따라감 | 둘 다 |
-| **온톨로지 추론** | 지식그래프에 대한 정해진 규칙. 맞는지(domain → range, 하위 클래스), 상위 클래스, 역관계, 대칭, 전이. 읽을 때 계산하고 `inferred`로 표시하며 저장하지 않음 | 서버(`kgLens`) |
-| **LLM 추론** | 에이전트가 항목을 읽고 개체·사실·새 개념을 제안([Analyze])하거나 시스템을 바꾸자고 제안([Evolve]). 자유롭고, 온톨로지는 안내만 함 | 에이전트 |
+| **워크스페이스** | 한 팀의 워크 항목, 파일, 지식그래프 | 실무자 |
+| **NodeRel** | 워크 그래프와 지식그래프를 한 색인(`graph.sqlite`)에. 에이전트가 메모 → 개체 → 개체로 따라감 | 둘 다 |
+| **온톨로지 추론** | 온톨로지의 규칙을 읽을 때 적용. 맞는지(From → To, 하위 클래스), 상위 클래스, 역관계, 대칭, 전이, 연쇄. 제한 규칙은 어긴 것을 표시 | 서버(`kgLens`) |
+| **LLM 추론** | 에이전트가 워크 항목을 읽고 개체·사실·새 종류를 제안([Analyze])하거나 시스템 변경을 제안([Evolve]). 자유롭고, 온톨로지는 안내만 함 | 에이전트 |
 
 LLM 추론은 지식을 **더하고** 새 말을 제안합니다. 온톨로지 추론은 그것을 **검사하고**, 말이 이미 뜻하는 것으로 **넓힙니다**. 어느 쪽도 다른 쪽을 막지 않습니다.
 
@@ -52,7 +126,7 @@ flowchart LR
 
 ```mermaid
 sequenceDiagram
-  participant M as 실무자(Knowledge › Analysis)
+  participant M as 실무자(Knowledge › Analyze)
   participant S as ANA 서버
   participant A as 에이전트
   participant AD as 관리자(System)
@@ -72,10 +146,10 @@ sequenceDiagram
 2. **결과.** `POST /api/analysis/result {summary, ontology:{classes, relations}, graph:{entities, facts}}`. 서버가 온톨로지로 검사하고(아래), 개수와 `issues`, `newConcepts`를 돌려줍니다.
 3. **새 개념은 관리자에게, 정리 요청으로.** 온톨로지에 없는 클래스나 관계는 System › Inbox의 요청이 됩니다("Add class "Team" to the ontology", `action: ontology.add`). 결과에 선언한 것이든 그냥 쓴 것이든 같습니다. 아무것도 막지 않습니다. 그 개념은 이미 쓰이고 있습니다.
 4. **지식그래프에 더하기는 실무자가.** 결과는 저절로 들어가지 않습니다.
-   - **Inbox › Approvals**와 Knowledge › Analysis에 뜹니다.
+   - **Inbox › Approvals**와 Knowledge 페이지(*Waiting for you*)에 뜹니다.
    - *Add*를 누르면 `kg.json`에 합칩니다. 개체는 id로 합치고(근거도 합침), 사실은 from·rel·to로 합칩니다.
    - 전부 들어갑니다. 기다리는 것은 없습니다.
-5. **맞는지는 저장하지 않고 읽습니다.** `GET /api/kg`는 개체와 사실마다 `fit`과 `why`를, 그리고 `notFitting` 개수를 돌려줍니다. 그림에서는 주황으로 보입니다. 관리자가 개념을 더하면 다음에 읽을 때 맞음이 됩니다. (예전 버전이 붙잡아 둔 사실은 아무 개념이나 승인될 때 들어갑니다.)
+5. **맞는지는 저장하지 않고 읽습니다.** `GET /api/kg`는 개체와 사실마다 `fit`과 `why`를, 그리고 `notFitting` 개수를 돌려줍니다. 그림에서는 주황으로 보입니다. 관리자가 개념을 더하면 다음에 읽을 때 맞음이 됩니다.
 6. **버리기와 지우기.** *Discard*는 그 결과만 버리고, 이미 더한 지식은 남깁니다. 틀린 개체나 사실은 실무자가 지울 수 있습니다(`POST /api/kg {action: remove-entity|remove-fact}`).
 
 ## 결과를 온톨로지로 검사하기
@@ -94,21 +168,37 @@ sequenceDiagram
 
 지식그래프를 읽을 때 domain → range를 **지금의** 온톨로지로 한 번 더 확인합니다.
 
-## 온톨로지 추론
+## 규칙과 추론
 
-`kgLens(kg, ontology)`는 지식그래프를 읽을 때마다 돕니다(`GET /api/kg`, NodeRel). 끌어낸 것은 저장하지 않습니다.
+규칙은 온톨로지의 세 번째 부분입니다. `kgLens(kg, ontology)`가 지식그래프를 읽을 때마다(`GET /api/kg`, NodeRel) 규칙을 적용합니다. 규칙으로 생긴 것은 저장하지 않습니다.
 
-| 규칙 | 관계에 표시 | 이것에서 | 끌어냄 |
+| 규칙 | 정하는 곳 | 종류 | 예 |
 |---|---|---|---|
-| 하위 클래스 | 클래스의 *Kind of* | pat은 Person, Person ⊂ Agent | `types: [Person, Agent]` |
-| 역관계 | *Inverse*(어느 한쪽) | pat works_for acme, employs ⇄ works_for | acme employs pat |
-| 대칭 | *Symmetric* | o1 partners acme | acme partners o1 |
-| 전이 | *Transitive* | o1 part_of o2, o2 part_of o3 | o1 part_of o3 |
+| 하위 클래스 | 클래스의 *Kind of* | 추론 | Person ⊂ Agent → pat은 Agent이기도 함(`types`) |
+| From → To | 관계 | 검사 | works_for는 Person → Organization. 안 맞는 사실은 표시 |
+| 역관계 | 관계의 *Inverse*(어느 한쪽) | 추론 | pat works_for acme ⇒ acme employs pat |
+| 대칭 | 관계의 *Symmetric* | 추론 | o1 partners acme ⇒ acme partners o1 |
+| 전이 | 관계의 *Transitive* | 추론 | o1 part_of o2, o2 part_of o3 ⇒ o1 part_of o3 |
+| **연쇄** | System › Ontology › **Rules** | 추론 | *만약* x attends y, y part_of z *이면* x involved_in z. 1~3단계. 단계를 거꾸로 걸을 수 있음(`^attends`: 같은 워크숍 참석자 ⇒ meets). 한 단계면 하위 관계(involved_in ⇒ related_to) |
+| **제한** | System › Ontology › **Rules** | 검사 | Project 하나에 *leads*는 최대 1개(To 기준). 넘는 사실은 남기고 *규칙 위반*으로 표시 |
+| 계산 | `work-schema.js`(`made: derived`) | 계산 | DUE_ON ← Task.due, ON ← Event.date. 워크 온톨로지의 규칙, 읽기 전용 |
 
-끌어낸 사실은 `inferred` 목록에 `inferred: true`, `rule`, `because`(근거가 된 사실)와 함께 옵니다.
-- 그림에서는 점선입니다(*Inferred* 토글). 개체 패널에 표시가 붙습니다.
-- NodeRel 선에는 `inferred`와 `rule`이 붙습니다.
-- Turtle 내보내기는 `owl:inverseOf`, `owl:SymmetricProperty`, `owl:TransitiveProperty`를 씁니다. 그래서 OntoAir 같은 다른 추론기도 같은 것을 할 수 있습니다.
+- **엔진은 하나입니다.** 역관계·대칭·전이를 연쇄 규칙으로 바꾸고, 모든 연쇄를 고정점까지 함께 돌립니다. 다른 규칙이 추론한 사실 위에서도 규칙이 돌고, 최대 8라운드, 추론 사실 2000개까지입니다.
+- **나오는 것.** 추론된 사실은 `inferred`에 `rule`(`inverse`, `transitive`, `rule:<id>` 등), `ruleLabel`, `because`(근거 사실)와 함께 옵니다.
+  - 그림에서는 점선입니다(*Inferred* 토글).
+  - 개체 패널에 *inferred · rule …* 표시가 붙습니다.
+  - NodeRel 선에는 `inferred`와 `rule`이 붙습니다.
+- **제한은 렌즈입니다.** 넘는 사실은 `fit: false`, `why: "rule one lead: at most 1 leads per To"`가 됩니다. 지우지 않습니다.
+- **API.** `POST /api/ontology {action, kind: "rule", item}`(관리자)
+  - 연쇄: `item: {id, label, kind: "chain", if: ["attends", "^attends"], then: "meets"}`
+  - 제한: `item: {id, label, kind: "limit", rel, per: "from" | "to", max}`
+
+  지식 관계만 쓸 수 있습니다. 규칙이 쓰는 관계는 지울 수 없고, 지워진 것을 가리키는 규칙은 `issues`에 나옵니다.
+- **OWL.** Turtle 내보내기는 규칙을 표준 OWL로 씁니다. 그래서 OntoAir 같은 다른 추론기도 읽습니다.
+  - 한 단계 연쇄 → `rdfs:subPropertyOf`(거꾸로면 `owl:inverseOf`)
+  - 여러 단계 → `owl:propertyChainAxiom ( … )`(거꾸로 단계는 `[ owl:inverseOf … ]`)
+  - 제한 → From(또는 To) 클래스에 `owl:maxCardinality`가 붙은 `owl:Restriction`
+  - 그 밖에 `owl:inverseOf`, `owl:SymmetricProperty`, `owl:TransitiveProperty`
 
 ## NodeRel 안의 지식그래프
 
@@ -122,42 +212,41 @@ sequenceDiagram
 ```bash
 curl -s "http://127.0.0.1:8811/api/graph/trace?id=n-ex-acme&depth=2"
 curl -s "http://127.0.0.1:8811/api/graph/neighbors?id=kg:acme"
-curl -s "http://127.0.0.1:8811/api/graph/schema"     # 기본 어휘 + 온톨로지의 관계
+curl -s "http://127.0.0.1:8811/api/graph/schema"     # 워크 온톨로지 + 지식 관계
 ```
 
-Links 그림과 "흐름이 끊긴 곳"은 기본 관계만 씁니다.
+Work › Links(워크 그래프 그림, "흐름이 끊긴 곳", *Links by kind*)는 워크 그래프만 씁니다. 새 연결 종류는 *(new)* 표시와 함께 보입니다.
 
 ## 내보내기와 OntoAir
 
 - **지식그래프:** `GET /api/kg/ttl`이 OWL Turtle을 씁니다.
   - 공용 온톨로지는 TBox입니다: `owl:Class` + `rdfs:subClassOf`, `owl:ObjectProperty` + `rdfs:domain/range`.
   - 워크스페이스 지식그래프는 ABox입니다.
-  - Knowledge › Knowledge graph에 *Open in OntoAir ↗*와 *Download .ttl*이 있습니다.
-- **분석 결과 하나:** `GET /api/analysis/ttl?id=`(Knowledge › Analysis)
+  - Knowledge 페이지에 *Open in OntoAir ↗*와 *Download .ttl*이 있습니다.
+- **분석 결과 하나:** `GET /api/analysis/ttl?id=`(Knowledge, *Latest analysis*)
 - **OntoAir로 넘기는 방식:**
   - Turtle을 링크 안(`#data:text/turtle,…`)에 담아 넘기므로, 로그인 게이트웨이 뒤에서도 열립니다.
   - 아주 큰 분석만 24시간 토큰 링크(`/api/analysis/shared/<토큰>/<이름>.ttl`)로, 그것도 안 되면 내려받기로 넘어갑니다.
   - 라벨의 `#`은 `＃`로 바꿉니다. 줄 단위 파서가 `#`에서 줄을 잘라 버리기 때문입니다.
 
-## 기존 설치
-
-온톨로지를 처음 읽을 때, 예전 버전의 워크스페이스별 분석 온톨로지(`analysis.json`의 `ontology`와 끝난 작업들)를 `ontology.json`으로 합칩니다. 핵심과 겹치는 것은 건너뜁니다. 그 뒤에는 예전 분석 결과도 Knowledge › Analysis에서 각 워크스페이스 지식그래프에 더할 수 있습니다.
-
 ## API 요약
 
 | 엔드포인트 | 누가 | 용도 |
 |---|---|---|
-| `GET /api/ontology` | 누구나 | 핵심 + 더해진 클래스와 관계 |
-| `POST /api/ontology {action: add\|update\|remove, kind: class\|relation, item}` | 관리자 | 온톨로지 바꾸기(관계: `inverse`, `symmetric`, `transitive`). 핵심은 거절, 아직 쓰이는 개념도 거절 |
+| `GET /api/ontology` | 누구나 | 두 온톨로지의 `classes`, `relations`, `rules`(`source: work\|knowledge`), 그리고 `issues`(끊긴 참조) |
+| `POST /api/ontology {action: add\|update\|remove, kind: class\|relation\|rule, item}` | 관리자 | 지식 온톨로지 바꾸기(관계: `inverse`, `symmetric`, `transitive`, 규칙: `chain` / `limit`). 워크 온톨로지는 거절(코드에서 옴), 아직 쓰이는 개념도 거절 |
 | `POST /api/analysis/start {kinds, openOnly?, focus?}` · `GET /api/analysis/input?id=` · `POST /api/analysis/progress` · `POST /api/analysis/result` · `/fail` · `/cancel` | 실무자 · 에이전트 | 분석 실행 |
 | `POST /api/analysis/apply {id}` · `POST /api/analysis/discard {id}` | 실무자 | 결과를 지식그래프에 더하기 / 버리기 |
 | `GET /api/analysis` | 누구나 | 작업 목록, 공용 온톨로지, 지식그래프 크기 |
+| `POST /api/subtype {id, type}` | 실무자 | 워크 항목에 하위 클래스(그 항목의 워크 클래스의 하위 클래스인 지식 클래스)를 붙임. `type: ''`이면 뗌 |
+| `GET /api/ontology/evidence` | 누구나 | 승격 근거: 쓰이는 새 연결 종류, 항목에 붙은 하위 클래스, 주로 한 종류의 항목에서 나오는 지식 클래스 |
 | `GET /api/kg` · `GET /api/kg/ttl` · `POST /api/kg {action: remove-entity\|remove-fact}` | 실무자 | 워크스페이스 지식그래프 — `fit`/`why`, `types`, `inferred`, `notFitting` 포함 |
 | `GET /api/graph/neighbors · trace · schema` | 누구나 | NodeRel로 두 층 모두 |
 
 코드:
-- `dashboard-api.js`: `CORE_ONTOLOGY`, `loadOntology`, `systemOntology`, `cleanAnalysis`, `mergeIntoKg`, `kgLens`, `applyPendingAll`, `analysisTurtle`
-- `graph.js`: `kg`를 받는 `snapshot`, `KG_PREFIX`
+- `work-schema.js`: 워크 층
+- `dashboard-api.js`: `APP_ONTOLOGY`, `loadOntology`, `systemOntology`, `ontologyIssues`, `cleanAnalysis`, `mergeIntoKg`, `kgLens`, `analysisTurtle`
+- `graph.js`: 어휘는 `work-schema.js`에서, `kg`를 받는 `snapshot`, `KG_PREFIX`
 - `dashboard.html`: System › Ontology `renderOntology`, Knowledge `renderKg` / `renderOntoRead`, `renderKgApprovals`, `drawKG`, `openTtlInOntoAir`
 
-테스트는 `test.cjs`의 C14(앱 링크), C16·C18(분석, 남기고 표시, 승인, 읽을 때 맞는지, 추론, NodeRel, 내보내기)과 `admin.test.cjs`(예전 설치 이전)입니다.
+테스트는 `test.cjs`의 C14(앱 링크), C16·C18(분석, 남기고 표시, 승인, 읽을 때 맞는지, 추론, NodeRel, 내보내기)과 `admin.test.cjs`(워크 층 = 앱이 실제로 만드는 것, 끊긴 참조)입니다.

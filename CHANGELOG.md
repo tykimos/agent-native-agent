@@ -5,6 +5,55 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.10.0] — 2026-10-27
+
+**Work and Knowledge.** ANA is now described, stored and shown as two layers. Each layer is an ontology (the kinds) and a graph (the actual things). See [docs/relations.md](docs/relations.md).
+
+| | Work layer | Knowledge layer |
+|---|---|---|
+| The actual things | work items (notes, tasks, events) and the links between them | entities and facts found in the work |
+| Ontology (System) — classes, relations, rules | **Work ontology**: `work-schema.js`, from the code | **Knowledge ontology**: `.ana/ontology.json`, kept by the admin |
+| Graph (each workspace) | **Work graph**: `state.json` | **Knowledge graph**: `kg.json` |
+| In the app | **Work**: Tasks · Calendar · Notes · **Links** | **Knowledge**: one page |
+
+### Changed
+
+- **No more "built-in" core.** What the app stores is the **Work ontology**, declared by each ANA in `work-schema.js` (new). Nothing in it is universal: an ANA without tasks has no Task.
+  - `graph.js` reads its vocabulary from it, and so does the *Links by kind* table. A test checks that the node kinds and link kinds the app really produces are exactly the declared ones.
+  - In System › Ontology, the Work ontology is tagged **Work** (read-only) and both layers are explained. Their links show all their classes (Note · Task · Event).
+  - API: `source: "work" | "knowledge"` replaces `core`.
+- **Screens follow the layers.**
+  - The work graph (formerly Knowledge › Links) moved to **Work › Links**.
+  - **Knowledge** is one page: the knowledge graph, *Analyze* in its toolbar, and the latest analysis (above the graph while it runs or waits for you, below it otherwise). The *Analysis* and *Ontology* sub-tabs are gone.
+  - The ontology has one page, System › Ontology. *Knowledge › Ontology* takes the admin there and shows members the same content read-only in a popup.
+- **Work links are a lens too.** A new kind of link such as `BLOCKS` (UPPER_SNAKE_CASE) is stored and shown as *(new)* / *not in the Work ontology yet*, in the chart, on item chips and in *Links by kind*. The known kinds keep their From → To, because the app's features read them. DUE_ON and ON can't be made by hand.
+- **Inbox: *Work requests* → *Action requests*** (실행 요청), so "work" means only the Work layer.
+- **Broken references are shown, not hidden.** When a kind disappears (a feature was removed, a concept deleted) but others still point at it, `GET /api/ontology` returns `issues`. System › Ontology lists them and keeps the class in the tree tagged *parent … missing*.
+- Removed: merging per-workspace analysis ontologies from before 0.8.0, and facts held back as `pending`.
+
+### Added
+
+- **Rules — the third part of an ontology** (System › Ontology › *Rules*). An ontology is now **classes + relations + rules**.
+  - **Chain rules:** *if* a path of 1 to 3 relations *then* a relation — x attends y, y part_of z ⇒ x involved_in z. A step can be walked in reverse (`^attends`: people at the same workshop ⇒ meets), and one step makes a sub-relation.
+  - **Limit rules:** at most N of a relation per From or per To. Facts over the limit are kept and marked *breaks a rule*.
+  - Inverse, symmetric and transitive (set on the relation) and chains run in one engine to a fixed point, so rules build on each other's results. Inferred facts carry `rule`, `ruleLabel` and `because`. The Work ontology's compute rules (DUE_ON ← Task.due, ON ← Event.date) are listed read-only.
+  - Exported as OWL: `rdfs:subPropertyOf`, `owl:propertyChainAxiom`, `owl:Restriction` + `owl:maxCardinality`. A relation a rule uses can't be removed; a rule pointing at something removed shows in `issues`.
+  - API: `POST /api/ontology {kind: "rule"}`. The [Analyze] instruction tells the agent rules derive facts on their own.
+- **Sub-classes on work items.** When a Knowledge class is a kind of a Work class (Ticket ⊂ Task, Meeting ⊂ Event), a work item can carry it (`POST /api/subtype`). The pill next to the title appears only when such sub-classes exist. The app still treats the item as a task; the knowledge side reads it as a Ticket.
+- **Promotion evidence:** `GET /api/ontology/evidence` lists new link kinds in use, sub-classes on items, and Knowledge classes whose entities mostly come from one kind of item. The system [Evolve] instruction points at it, so use and knowledge can become features. A feature that changes the Work ontology updates `work-schema.js` in the same change.
+- **System › Inbox: *Ask the agent* on every tab.** Approvals and Action requests have it too, not only Evolve. The agent reads checks, updates, the ontology, usage, workspaces and open admin items, then registers what it needs from the admin (`/api/admin/requests`).
+- **Draw on popups.** With Chip on, the pen also works while a popup is open. The capture is the popup, and the chip names the popup and the field or button under each mark. Turning Chip on no longer closes the open popup.
+- **Drawing on ontology rows** gives chips such as `Relation "SCHEDULED_AS (Task → Event)"`. Drawn marks use each target's own chip text.
+
+### Fixed
+
+- **"Not connected" after the sign-in expired.** Behind a sign-in gateway, an expired sign-in makes API calls return `401 {"error":"Sign-in required"}`. The page read that as the agent status and stuck on *Not connected* until a manual refresh. Now it shows **Signed out — tap to sign in**. When nothing is being typed or uploaded, it reloads once by itself to sign in again (at most once a minute). While the server can't be reached it re-checks every 2 seconds instead of 5.
+- **The analysis card speaks Work and Knowledge.** It reads "read 2 notes · 5 tasks → found 17 entities · 26 facts · 2 new classes · 1 new relation". *Add to the knowledge graph* is the main button, and the views are *Entities & facts · Classes & relations*. Export lives in one place, the knowledge graph's toolbar, not also in the card. The Analyze popup is *Analyze your work*.
+- Popup text boxes and the *Send* button had no style.
+- Phone toolbars no longer hide buttons off-screen: short labels, ellipsis, compact Open/Done pills.
+- A class whose parent was missing disappeared from the ontology tree, and from an analysis result's tree. It now stays at the top level, marked.
+- Leftover "Collaborate" wording; the Tests command no longer scrolls sideways; no /favicon.ico 404.
+
 ## [0.9.0] — 2026-10-25
 
 The ontology becomes a **lens, not a gate**: it guides the agent and lets ANA check and reason, but never limits what the agent may find or propose. Plus **rule reasoning** on the knowledge graph, and Evolve always in the Inbox.

@@ -203,7 +203,7 @@
       "id": "relations-analysis",
       "title": "Relations analysis — ontology & knowledge graph",
       "skill": "relations",
-      "summary": "System › Relations › Analyze: pick notes / tasks / events (and a focus), the agent reads them via /api/analysis/input, reports progress, and posts an ontology (classes with parents, relation types with domain → range) and a knowledge graph (entities with classes, facts with relations, each citing source items). Shown as two views — Ontology and Knowledge graph (force layout, tap an entity for its facts and sources). Results must fit the ontology (entity classes and fact relations exist, facts respect domain → range with sub-classes); misfits are dropped and listed as issues. The ontology accumulates per workspace and seeds the next analysis. The latest knowledge graph is indexed in NodeRel (entities kg:<id>, facts typed by relation, MENTIONED_IN to source items) for /api/graph/neighbors · trace · schema. Exports OWL/Turtle (/api/analysis/ttl) and opens in OntoAir through a 24-hour token link (/api/analysis/shared/<token>/<name>.ttl, CORS).",
+      "summary": "Knowledge › Analyze: pick notes / tasks / events (and a focus), the agent reads them via /api/analysis/input, reports progress, and posts an ontology (classes with parents, relation types with domain → range) and a knowledge graph (entities with classes, facts with relations, each citing source items). Shown as two views — Ontology and Knowledge graph (force layout, tap an entity for its facts and sources). Results must fit the ontology (entity classes and fact relations exist, facts respect domain → range with sub-classes); misfits are dropped and listed as issues. The ontology accumulates per workspace and seeds the next analysis. The latest knowledge graph is indexed in NodeRel (entities kg:<id>, facts typed by relation, MENTIONED_IN to source items) for /api/graph/neighbors · trace · schema. Exports OWL/Turtle (/api/analysis/ttl) and opens in OntoAir through a 24-hour token link (/api/analysis/shared/<token>/<name>.ttl, CORS).",
       "anchors": [
         "/api/analysis/start",
         "/api/analysis/result",
@@ -214,13 +214,13 @@
         "function mergeIntoKg",
         "function analysisTurtle",
         "/api/analysis/share",
-        "function openInOntoAir",
+        "function openTtlInOntoAir",
         "KG_PREFIX"
       ]
     },
     {
       "id": "app-areas",
-      "title": "Workspace / Collaborate / System areas",
+      "title": "Workspace / System scopes",
       "skill": "app-shell",
       "summary": "Two scopes: Workspace (members: Tasks · Calendar · Notes · Knowledge · Files · Inbox) and System (admin: Inbox · Roadmap · Health, dark header band). On phones a bottom menu per scope (Work · Knowledge · Files · Inbox · System / Inbox · Roadmap · Health · Workspace); the top tab strip shows only for Tasks · Calendar · Notes. Badges: Inbox = what waits on you in this workspace; System = admin inbox + roadmap items to start + checks at risk.",
       "anchors": [
@@ -254,7 +254,7 @@
       "id": "agent-requests",
       "title": "Approvals & Requests (agent → user)",
       "skill": "agent-requests",
-      "summary": "Collaborate › Approvals: what the agent needs your OK for — pending data-change diffs plus approval / decision / access requests. Collaborate › Requests: work only you can do (action) and missing information (info). Answer, mark done or dismiss. Each tab is split into Waiting · In progress · Done · Failed · Cancelled with counts.",
+      "summary": "Inbox › Approvals: what the agent needs your OK for — pending data-change diffs, analysis results to add to the knowledge graph, plus approval / decision / access requests. Inbox › Action requests: work only you can do (action) and missing information (info). Answer, mark done or dismiss. Lists filter Open · Done. System › Inbox has the same two tabs for the admin (POST /api/admin/requests); every tab has Ask the agent.",
       "anchors": [
         "/api/requests",
         "/api/request-act",
@@ -275,7 +275,7 @@
       "id": "agent-requirements",
       "title": "Requirements (user → system) with reflection analysis",
       "skill": "agent-requests",
-      "summary": "Collaborate › Requirements: the user writes what they want this ANA to do. Analyze has the agent check each requirement against the actual code, dashboard, APIs and data, and report its status (Reflected · Partly · Not reflected), how it is reflected, why not (not built yet, conflicts, needs info, out of scope, blocked), evidence and the next step. Progress bar while running; filter by status; editing a requirement marks its analysis as stale.",
+      "summary": "System › Roadmap › Requirements: the user writes what they want this ANA to do. Analyze has the agent check each requirement against the actual code, dashboard, APIs and data, and report its status (Reflected · Partly · Not reflected), how it is reflected, why not (not built yet, conflicts, needs info, out of scope, blocked), evidence and the next step. Progress bar while running; filter by status; editing a requirement marks its analysis as stale.",
       "anchors": [
         "/api/requirements/analyze",
         "/api/requirements/result",
@@ -289,7 +289,7 @@
       "id": "agent-evolve",
       "title": "Evolve (agent → app proposals)",
       "skill": "agent-requests",
-      "summary": "Collaborate › Evolve: the agent looks at the app's features, its data and the usage log (/api/activity) and proposes how the app should evolve; the user approves and the agent implements.",
+      "summary": "Inbox › Evolve in both scopes: the agent looks at the app's features, its data and the usage log (/api/activity) and proposes how the system (System › Inbox › Evolve, the admin starts them) or this workspace (Workspace › Inbox › Evolve) should evolve; then the agent implements.",
       "anchors": [
         "/api/evolve",
         "/api/evolve-act",
@@ -345,7 +345,7 @@
       "id": "admin-roles",
       "title": "Admins and members — System › Admin inbox, Evolve scopes",
       "skill": "agent-requests",
-      "summary": "Roles (ANA_ADMINS; single-user = admin). Server gates system actions (system Evolve start/cancel, Update, risky permission modes, workspace delete) with needsAdmin; the page turns them into admin approval requests, executed on approval. System › Admin lists approvals and work requests from members, the agent and system checks (risk → work request). Evolve proposals are system or workspace scoped; workspace ones can be escalated.",
+      "summary": "Roles (ANA_ADMINS; single-user = admin). Server gates system actions (system Evolve start/cancel, Update, risky permission modes, workspace delete) with needsAdmin; the page turns them into admin approval requests, executed on approval. System › Admin lists approvals and action requests from members, the agent and system checks (risk → work request). Evolve proposals are system or workspace scoped; workspace ones can be escalated.",
       "anchors": [
         "function roleOf",
         "/api/admin/inbox",
@@ -360,12 +360,14 @@
       "id": "system-ontology",
       "title": "System ontology and workspace knowledge graphs",
       "skill": "relations",
-      "summary": "One ontology for the ANA (core from graph.js + admin-added classes/relations, ontology.json) and one knowledge graph per workspace (kg.json). Analyses read the shared ontology; new concepts become admin approval requests (ontology.add); the ontology is a lens, not a gate — what doesn't fit is kept and marked (fit/why computed on read by kgLens), new or undeclared concepts go to the admin as tidying requests (ontology.add); results are added to the knowledge graph when a member approves (/api/analysis/apply). Rule reasoning on read: super-class types, inverse / symmetric / transitive relations → inferred facts with rule and because (never stored; dashed in the chart, marked on NodeRel edges, owl:inverseOf / SymmetricProperty / TransitiveProperty in Turtle). System › Ontology edits it; Knowledge shows Links · Knowledge graph · Analysis · Ontology. /api/kg/ttl exports TBox + ABox.",
+      "summary": "One ontology for the ANA in two layers: the Work layer (work-schema.js — what this app's code stores: classes and relations, explicit or derived; read-only at runtime, changes with the code; graph.js reads its vocabulary from it) and the Knowledge layer (.ana/ontology.json — the work's concepts, curated by the admin in System › Ontology; broken references to concepts that disappeared are reported as issues). One knowledge graph per workspace (kg.json). The ontology is a lens, not a gate: what doesn't fit is kept and marked (fit/why computed on read by kgLens); new or undeclared concepts go to the admin as tidying requests (ontology.add); results are added when a member approves (/api/analysis/apply). Rules (the third part of an ontology) on read: sub-class types, inverse / symmetric / transitive, chain rules (if a path of 1–3 relations, reverse steps allowed, then a relation) → inferred facts with rule and because; limit rules mark facts that break them; Work compute rules (DUE_ON/ON) read-only. Never stored; exported as OWL (subPropertyOf, propertyChainAxiom, maxCardinality). Work › Links shows the work graph (new link kinds are a lens: stored, shown as new); Knowledge is one page — the knowledge graph with Analyze and the latest analysis; the ontology is one page (System › Ontology), read-only for members from Knowledge › Ontology. Sub-types on work items (POST /api/subtype) and promotion evidence (GET /api/ontology/evidence). /api/kg/ttl exports TBox + ABox.",
       "anchors": [
-        "const CORE_ONTOLOGY",
+        "const WORK_ONTOLOGY",
+        "function ontologyIssues",
+        "function ontoRuleTable",
+        "owl:propertyChainAxiom",
         "function mergeIntoKg",
         "function kgLens",
-        "function applyPendingAll",
         "/api/analysis/apply",
         "function renderOntology",
         "function renderKgApprovals",

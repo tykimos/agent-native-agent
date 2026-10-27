@@ -154,19 +154,20 @@ The base is an operations board: notes, tasks and a calendar you run together wi
 
 | Scope | Who | Tabs | For |
 |---|---|---|---|
-| **Workspace** (name shown at the top) | members | **Work** (Tasks · Calendar · Notes) · **Knowledge** · **Files** · **Inbox** | the work and data of one workspace |
+| **Workspace** (name shown at the top) | members | **Work** (Tasks · Calendar · Notes · Links) · **Knowledge** · **Files** · **Inbox** | the work and data of one workspace |
 | **System** (dark header band) | admin | **Inbox** · **Roadmap** · **Ontology** · **Health** | decisions that apply to every workspace |
 
 On phones the bottom menu follows the scope (Work · Knowledge · Files · Inbox, plus System for the admin; in System: Inbox · Roadmap · Health · Workspace). On desktop a switch next to the logo changes scope.
 
 Each page shows one kind of thing at a time; pages with several kinds have sub-tabs, and each list filters *Open / Done*:
 
-- **Inbox (Workspace):** *Approvals* (data changes, analysis results to add to the knowledge graph, decisions, access) · *Work requests* (what the agent needs you to do or tell it) · *Evolve* (suggestions for running this workspace better) · *Sent* (what you asked the admin, your feature requests). The same words as System › Inbox.
-- **Knowledge:** *Links* (how items connect, where the flow breaks) · *Knowledge graph* (this workspace's entities and facts) · *Analysis* (the agent reads your items) · *Ontology* (the shared concepts, read-only).
+- **Inbox (Workspace):** *Approvals* (data changes, analysis results to add to the knowledge graph, decisions, access) · *Action requests* (what the agent needs you to do or tell it) · *Evolve* (suggestions for running this workspace better) · *Sent* (what you asked the admin, your feature requests). The same words as System › Inbox.
+- **Work › Links:** the work graph — how notes, tasks and events connect, where the flow breaks, links by kind. People may make new kinds of links (`BLOCKS`); they show as *(new)*.
+- **Knowledge:** one page — this workspace's knowledge graph (entities and facts found in the work), *Analyze* (the agent reads your work items), and the latest analysis (above the graph while it runs or waits for you). *Ontology* opens the shared ontology (admin: System › Ontology; members: read-only).
 - **Files** is the workspace's own folder, plus chat attachments (read-only).
-- **Inbox (System):** *Approvals* · *Work requests* (from members, the agent and the system checks) · *Evolve* (proposals to change the system — the admin starts them).
+- **Inbox (System):** *Approvals* · *Action requests* (from members, the agent and the system checks) · *Evolve* (proposals to change the system — the admin starts them).
 - **Roadmap:** *Requirements* · *Updates* (upstream) — where each change stands, one line per item with its stage (e.g. Request → Proposal → Building → Checked) and the next action. The Inbox is for deciding, the Roadmap for following progress.
-- **Ontology:** *Classes* · *Relations* — the concepts every workspace's knowledge graph uses. The core (Note, Task, Event, Day and the app's relations) is built in; the admin adds the rest, or approves the ones an analysis proposes. It is a lens, not a gate: what doesn't fit is kept and marked *not in the ontology yet*, and relations marked inverse / symmetric / transitive add *inferred* facts ([relations](docs/relations.md)).
+- **Ontology:** *Classes* · *Relations* · *Rules* — one page for both ontologies. The **Work ontology** is what this app's code stores (base: Note, Task, Event, Day and their links), declared in `work-schema.js` and changing with the code. The **Knowledge ontology** is what is found in the work; the admin adds to it or approves what analyses propose. A Knowledge class can be a kind of a Work class (Ticket ⊂ Task) and be put on a work item. **Rules** derive facts when the graph is read: inverse / symmetric / transitive, and **chain** rules (*if* x attends y, y part_of z *then* x involved_in z); **limit** rules mark facts that break them. It is a lens, not a gate: what doesn't fit is kept and marked *not in the ontology yet* ([relations](docs/relations.md)).
 - **Health:** *Trustworthiness* · *Safety* · *Security* (riskiest first, OK checks folded) · *Tests* (run this ANA's tests and see what failed) · *Usage* (stats and activity).
 
 **Where is Evolve?** Always in the **Inbox**: Workspace › Inbox › *Evolve* for this workspace (members start them), System › Inbox › *Evolve* for the system (the admin starts them). Same cards, same buttons — only the scope differs.
@@ -239,7 +240,7 @@ Workspaces are where **members** work; the **System** is decided by the **admin*
 |---|---|---|
 | Proposals | **Inbox › Suggestions**: better ways to run this workspace with existing features. Members start these themselves | **Roadmap**: features, screens, APIs, the shared ontology. Only the admin starts or cancels them |
 | Approval requests | data changes in the workspace (Inbox) | system changes, in **System › Inbox** |
-| Work requests | what the agent needs from the member (Inbox) | what only the admin can do (access, installs, connecting data), in **System › Inbox** |
+| Action requests | what the agent needs from the member (Inbox) | what only the admin can do (access, installs, connecting data), in **System › Inbox** |
 | Requirements | *Request a feature* | **Roadmap**: checked by the agent, turned into proposals, re-checked when built |
 
 - **Who is admin:** `ANA_ADMINS=email,…`. If it's empty, if the ANA has no identity header (single user), or for calls with no identity from this machine (you or the agent on it), everyone is admin, so single-user installs work as before.
@@ -353,6 +354,7 @@ dashboard.html        reference UI: three areas, Claude-app chat, Chip mode + dr
 agent-log.js          chat from the agent's own JSONL log (Claude Code + Codex): replies, tools, model, limits
 codex-settings.js     Codex model/effort catalog and switching through Codex's own menu
 graph.js              Notes·Tasks·Calendar relation graph on NodeRel (derived graph.sqlite per workspace)
+work-schema.js         what this app stores — the ontology's Work layer (classes + relations); graph.js reads it
 seed.js               two example flows for the first run
 features.json         feature manifest: anchors + skill per feature (used by ana-update)
 package.json          dependencies: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot

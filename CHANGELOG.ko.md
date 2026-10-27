@@ -5,6 +5,66 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.10.0] — 2026-10-27
+
+**워크와 지식.** ANA를 두 층으로 설명하고, 저장하고, 보여 줍니다. 층마다 온톨로지(종류)와 그래프(실제 것)가 짝입니다. [docs/relations.ko.md](docs/relations.ko.md)를 보세요.
+
+| | 워크 층 | 지식 층 |
+|---|---|---|
+| 실제 것 | 워크 항목(메모·할일·일정)과 그 사이의 연결 | 워크에서 알아낸 개체와 사실 |
+| 온톨로지(System) — 클래스, 관계, 규칙 | **워크 온톨로지**: `work-schema.js`, 코드에서 | **지식 온톨로지**: `.ana/ontology.json`, 관리자 |
+| 그래프(워크스페이스마다) | **워크 그래프**: `state.json` | **지식그래프**: `kg.json` |
+| 앱에서 | **Work**: Tasks · Calendar · Notes · **Links** | **Knowledge**: 한 페이지 |
+
+### Changed
+
+- **"built-in" 핵심이 없어집니다.** 앱이 저장하는 것은 **워크 온톨로지**이고, ANA마다 `work-schema.js`(새 파일)에 선언합니다. 모든 ANA 공통인 것은 없습니다. 할일이 없는 ANA에는 Task가 없습니다.
+  - `graph.js`와 *Links by kind* 표가 이 선언을 읽습니다. 앱이 실제로 만드는 노드·연결 종류가 선언과 정확히 같은지 테스트로 확인합니다.
+  - System › Ontology에서 워크 온톨로지는 **Work** 표시(읽기 전용)가 붙고, 두 층을 설명합니다. 연결은 잇는 클래스를 모두 보여 줍니다(Note · Task · Event).
+  - API: `core` 대신 `source: "work" | "knowledge"`
+- **화면이 층을 따릅니다.**
+  - 워크 그래프(예전 Knowledge › Links)는 **Work › Links**로 옮겼습니다.
+  - **Knowledge**는 한 페이지입니다. 지식그래프가 있고, 툴바에 *Analyze*가 있고, 최근 분석이 있습니다(진행 중이거나 승인을 기다리면 그래프 위, 아니면 아래). *Analysis*와 *Ontology* 하위 탭은 없앴습니다.
+  - 온톨로지 페이지는 System › Ontology 하나입니다. *Knowledge › Ontology*를 누르면 관리자는 그리로 가고, 실무자는 같은 내용을 읽기 전용 팝업으로 봅니다.
+- **워크 연결도 렌즈입니다.** `BLOCKS`(대문자_밑줄) 같은 새 연결 종류도 저장하고 *(new)* / *아직 워크 온톨로지에 없음*으로 보입니다. 그림, 항목 칩, *Links by kind* 모두에 보입니다. 아는 종류는 From → To를 지킵니다(앱 기능이 읽음). DUE_ON, ON은 손으로 못 만듭니다.
+- **Inbox: *Work requests* → *Action requests*(실행 요청).** "Work"는 워크 층만 뜻하게 했습니다.
+- **끊긴 참조를 숨기지 않습니다.** 종류가 사라졌는데(기능을 빼거나 개념을 지움) 다른 것이 아직 가리키면, `GET /api/ontology`가 `issues`를 돌려줍니다. System › Ontology가 목록을 보여 주고, 그 클래스를 *parent … missing* 표시와 함께 트리에 남깁니다.
+- 제거: 0.8.0 이전의 워크스페이스별 분석 온톨로지를 합치는 코드, `pending`으로 붙잡아 두던 사실
+
+### Added
+
+- **규칙: 온톨로지의 세 번째 부분**(System › Ontology › *Rules*). 이제 온톨로지는 **클래스 + 관계 + 규칙**입니다.
+  - **연쇄 규칙:** *만약* 관계 1~3개로 이어진 길이 있으면 *그러면* 관계 하나. 예: x attends y, y part_of z ⇒ x involved_in z. 단계를 거꾸로 걸을 수 있고(`^attends`: 같은 워크숍 참석자 ⇒ meets), 한 단계면 하위 관계가 됩니다.
+  - **제한 규칙:** From(또는 To) 하나에 그 관계는 최대 N개. 넘는 사실은 남기고 *규칙 위반*으로 표시합니다.
+  - 역관계·대칭·전이(관계에 표시)와 연쇄를 한 엔진에서 고정점까지 돌려, 규칙이 서로의 결과 위에서 이어집니다. 추론된 사실에는 `rule`, `ruleLabel`, `because`가 붙습니다. 워크 온톨로지의 계산 규칙(DUE_ON ← Task.due, ON ← Event.date)은 읽기 전용으로 보입니다.
+  - OWL로 내보냅니다: `rdfs:subPropertyOf`, `owl:propertyChainAxiom`, `owl:Restriction` + `owl:maxCardinality`. 규칙이 쓰는 관계는 지울 수 없고, 지워진 것을 가리키는 규칙은 `issues`에 나옵니다.
+  - API: `POST /api/ontology {kind: "rule"}`. [Analyze] 지시문에 규칙이 사실을 스스로 끌어낸다고 적었습니다.
+- **워크 항목의 하위 클래스.** 지식 클래스가 워크 클래스의 하위 클래스(Ticket ⊂ Task, Meeting ⊂ Event)이면 워크 항목에 붙일 수 있습니다(`POST /api/subtype`).
+  - 제목 옆 알약은 그런 하위 클래스가 있을 때만 보입니다.
+  - 앱은 그대로 할일로 다루고, 지식 쪽은 Ticket으로 읽습니다.
+- **승격 근거:** `GET /api/ontology/evidence`
+  - 쓰이는 새 연결 종류, 항목에 붙은 하위 클래스, 개체가 주로 한 종류의 항목에서 나오는 지식 클래스를 보여 줍니다.
+  - 시스템 [Evolve] 지시문이 이를 가리켜, 쓰임과 지식이 기능으로 올라갈 수 있습니다. 워크 온톨로지를 바꾸는 기능은 같은 변경에서 `work-schema.js`도 고칩니다.
+- **System › Inbox의 모든 탭에 *Ask the agent*.** Evolve뿐 아니라 Approvals와 Action requests에도 생겼습니다. 에이전트는 점검, 업데이트, 온톨로지, 사용 기록, 워크스페이스, 열린 관리자 항목을 읽고, 관리자에게 필요한 것을 등록합니다(`/api/admin/requests`).
+- **팝업 위에 그리기.** Chip을 켜면 팝업이 떠 있어도 펜을 쓸 수 있습니다. 캡처는 팝업이고, 칩에는 팝업 이름과 표시 아래의 입력창·버튼이 적힙니다. Chip을 켜도 열린 팝업이 닫히지 않습니다.
+- **온톨로지 행에 그리기:** `Relation "SCHEDULED_AS (Task → Event)"` 같은 칩이 됩니다. 그린 표시도 대상마다 정한 칩 글을 씁니다.
+
+### Fixed
+
+- **로그인이 풀린 뒤 "Not connected"로 굳던 것.** 로그인 게이트웨이 뒤에서 로그인이 만료되면 API가 `401 {"error":"Sign-in required"}`를 돌려줍니다. 페이지가 이것을 에이전트 상태로 읽어서, 직접 새로고침할 때까지 *Not connected*로 굳어 있었습니다.
+  - 이제 **Signed out — tap to sign in**으로 보입니다.
+  - 쓰던 글이나 올리는 파일이 없으면 한 번 스스로 새로고침해 다시 인증합니다(1분에 한 번까지).
+  - 서버에 닿지 못할 때는 5초가 아니라 2초마다 다시 확인합니다.
+- **분석 카드를 워크·지식 말로.**
+  - 요약은 "read 2 notes · 5 tasks → found 17 entities · 26 facts · 2 new classes · 1 new relation"처럼 보입니다.
+  - 주 버튼은 *Add to the knowledge graph*이고, 보기는 *Entities & facts · Classes & relations*입니다.
+  - 내보내기는 카드에서 빼고 지식그래프 도구 줄 한 곳에만 둡니다.
+  - 분석 팝업 이름은 *Analyze your work*입니다.
+- 팝업의 여러 줄 입력창과 *Send* 버튼에 스타일이 없었습니다.
+- 휴대폰 툴바에서 버튼이 화면 밖으로 밀리지 않습니다(짧은 이름, 줄임표, 작은 Open/Done 알약).
+- 부모가 사라진 클래스가 온톨로지 트리와 분석 결과 트리에서 사라지던 것을 고쳤습니다. 이제 맨 위에 표시와 함께 남습니다.
+- 남아 있던 "Collaborate" 문구, Tests 명령의 가로 밀림, /favicon.ico 404를 고쳤습니다.
+
 ## [0.9.0] — 2026-10-25
 
 온톨로지가 **관문이 아니라 렌즈**가 됩니다. 에이전트를 안내하고 ANA가 검사·추론하게 하지만, 에이전트가 찾거나 제안할 수 있는 것을 막지 않습니다. 지식그래프의 **규칙 추론**이 더해지고, 진화 제안은 늘 Inbox에 있습니다.

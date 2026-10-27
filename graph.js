@@ -31,27 +31,23 @@ const { NodeRel, describeNodeRel } = (() => {
   } finally { process.emitWarning = emit; }
 })();
 
-const WORK = ['Note', 'Task', 'Event'];
-const RULES = {
-  SPAWNED: { from: ['Note'], to: ['Task', 'Event'] },
-  SCHEDULED_AS: { from: ['Task'], to: ['Event'] },
-  REFERS_TO: { from: WORK, to: WORK },
-};
+// 어휘는 work-schema.js(워크 종류 — 온톨로지의 워크 층)에서 읽는다. 여기서 따로 적지 않는다.
+const WORK = require('./work-schema.js');
+const RULES = Object.fromEntries(WORK.relations.filter((r) => r.made === 'explicit').map((r) => [r.id, { from: r.from, to: r.to }]));
 const EXPLICIT = Object.keys(RULES);
-const MEANINGS = {
-  SPAWNED: 'The note is where this task or event came from',
-  SCHEDULED_AS: 'The task is worked on during this calendar event (time block)',
-  REFERS_TO: 'Manual reference between two notes, tasks or events',
-  DUE_ON: 'The task is due on this day (derived from Task.due)',
-  ON: 'The event happens on this day (derived from Event.date)',
-};
-const BASE_KINDS = new Set(['Note', 'Task', 'Event', 'Day']);
+const MEANINGS = Object.fromEntries(WORK.relations.map((r) => [r.id, r.desc]));
+const BASE_KINDS = new Set(WORK.classes.map((c) => c.id));
+// 워크 연결은 렌즈: 워크 종류에 없는 새 연결 종류(BLOCKS 등)도 저장하고 '아직 워크 종류에 없음'으로 보인다. 쓰임이 쌓이면 Evolve의 근거.
+// 워크 종류에 있는 연결은 From → To를 지킨다(앱 기능이 그 뜻으로 읽는다). 날짜에서 계산하는 연결은 손으로 못 만든다.
+const LINK_TYPE = /^[A-Z][A-Z0-9_]{1,39}$/;
+const DERIVED = new Set(WORK.relations.filter((r) => r.made === 'derived').map((r) => r.id));
+const isNewLinkType = (t) => typeof t === 'string' && LINK_TYPE.test(t) && !(t in RULES) && !DERIVED.has(t) && t !== 'MENTIONED_IN' && !t.startsWith('KG_');
 const BASE_TYPES = new Set(Object.keys(MEANINGS));
 const KG_PREFIX = 'kg:';
 const kgKind = (c) => (!c ? 'Entity' : BASE_KINDS.has(c) ? `${c}Entity` : c);          // 기본 kind와 겹치지 않게
 const kgType = (r) => (BASE_TYPES.has(r) || r === 'MENTIONED_IN' ? `kg_${r}` : r);
 const KG_MENTIONED = 'The knowledge-graph entity was found in this note, task or event (derived from the latest analysis)';
-const TITLES = { Note: 'Note title (or its first line)', Task: 'Task title', Event: 'Event title', Day: 'Date YYYY-MM-DD' };
+const TITLES = Object.fromEntries(WORK.classes.map((c) => [c.id, c.title || c.desc]));
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const dayId = (d) => `day:${d}`;
 
@@ -82,7 +78,7 @@ function snapshot(s, scope, kg) {
   }
   for (const n of s.notes) node({ id: n.id, kind: 'Note', scope, no: '', title: noteTitle(n), status: '', updated_at: n.updatedAt || '' });
   for (const d of [...days].sort()) node({ id: dayId(d), kind: 'Day', scope, no: d, title: d, status: '', updated_at: '' });
-  for (const l of s.links || []) if (EXPLICIT.includes(l.type)) edge(l.from, l.to, l.type, l.at ? { at: l.at } : {});
+  for (const l of s.links || []) if (EXPLICIT.includes(l.type) || isNewLinkType(l.type)) edge(l.from, l.to, l.type, { ...(l.at ? { at: l.at } : {}), ...(isNewLinkType(l.type) ? { newType: true } : {}) });
   if (kg && kg.graph) {
     const g = kg.graph;
     for (const e of g.entities || []) node({ id: KG_PREFIX + e.id, kind: kgKind(e.class), scope, no: kg.job === 'kg' ? 'knowledge graph' : `analysis #${kg.job}`, title: String(e.label || e.id), status: '', updated_at: '' });
@@ -116,7 +112,8 @@ function createGraph({ loadData, dataFileOf, loadKg }) {
   function view(ws, s) {
     const g = ensure(ws, s);
     const { links } = g.graph(ws);
-    return { links: links.filter((l) => BASE_TYPES.has(l.type)).map((l) => ({ from: l.from_id, to: l.to_id, type: l.type })) };
+    const extra = new Set(((s || loadData(ws)).links || []).map((l) => l.type).filter(isNewLinkType));   // 지식그래프 사실과 섞이지 않게 원천(state.json)에서
+    return { links: links.filter((l) => BASE_TYPES.has(l.type) || extra.has(l.type)).map((l) => ({ from: l.from_id, to: l.to_id, type: l.type, ...(BASE_TYPES.has(l.type) ? {} : { newType: true }) })) };
   }
   function nodeRows(g, ws) {
     const m = new Map();
@@ -143,9 +140,12 @@ function createGraph({ loadData, dataFileOf, loadKg }) {
     const g = ensure(ws), rows = nodeRows(g, ws);
     const st = g.stats(ws);
     const openOnly = (list) => list.filter((x) => (rows.get(x.id) || {}).status === 'open');
-    const kgKinds = st.kinds.filter((k) => !BASE_KINDS.has(k.kind)), kgTypes = st.types.filter((t) => !BASE_TYPES.has(t.type));
+    const extra = new Set((loadData(ws).links || []).map((l) => l.type).filter(isNewLinkType));   // 워크 쪽의 새 연결 종류
+    const isWork = (t) => BASE_TYPES.has(t) || extra.has(t);
+    const kgKinds = st.kinds.filter((k) => !BASE_KINDS.has(k.kind)), kgTypes = st.types.filter((t) => !isWork(t.type));
     return {
-      kinds: st.kinds.filter((k) => BASE_KINDS.has(k.kind)), types: st.types.filter((t) => BASE_TYPES.has(t.type)),
+      kinds: st.kinds.filter((k) => BASE_KINDS.has(k.kind)), types: st.types.filter((t) => isWork(t.type)),
+      newLinkTypes: st.types.filter((t) => extra.has(t.type)),
       kg: { entities: kgKinds.reduce((n, k) => n + k.count, 0), facts: kgTypes.filter((t) => t.type !== 'MENTIONED_IN').reduce((n, t) => n + t.count, 0) },
       gaps: {
         notesUnused: g.orphans({ scope: ws, kind: 'Note', type: 'SPAWNED', side: 'out' }),
@@ -160,7 +160,7 @@ function createGraph({ loadData, dataFileOf, loadKg }) {
     const d = describeNodeRel(fileOf(ws));
     d.provenance.businessMeanings = 'Supplied by the ANA base for its Notes/Tasks/Calendar graph; knowledge-graph kinds and relations come from the latest Relations analysis ontology.';
     const kg = kgOf(ws), o0 = (kg && kg.ontology) || { classes: [], relations: [] };
-    const o = { classes: o0.classes.filter((c) => !c.core), relations: o0.relations.filter((r) => !r.core) };   // 핵심(Note·SPAWNED…)은 위 기본 어휘가 이미 설명한다
+    const o = { classes: o0.classes.filter((c) => c.source !== 'work'), relations: o0.relations.filter((r) => r.source !== 'work') };   // 워크 층(Note·SPAWNED…)은 위 기본 어휘가 이미 설명한다
     const clsDesc = new Map(o.classes.map((c) => [kgKind(c.id), c.desc || c.label])), relDesc = new Map(o.relations.map((r) => [kgType(r.id), r]));
     d.scopes = d.scopes.filter((x) => x.scope === ws).map((sc) => ({
       ...sc,
@@ -172,7 +172,7 @@ function createGraph({ loadData, dataFileOf, loadKg }) {
       d.vocabulary.MENTIONED_IN = { meaning: KG_MENTIONED, from: ['<entity>'], to: ['Note', 'Task', 'Event'], editable: false };
       for (const r of o.relations) d.vocabulary[kgType(r.id)] = { meaning: [r.label, r.desc].filter(Boolean).join(' — '), from: [r.domain || 'any'], to: [r.range || 'any'], editable: false, source: `analysis #${kg.job}` };
       d.knowledgeGraph = { source: kg.job === 'kg' ? 'kg.json (approved analyses)' : `analysis #${kg.job}`, classes: o.classes.map((c) => ({ kind: kgKind(c.id), label: c.label, parent: c.parent ? kgKind(c.parent) : '', desc: c.desc })),
-        note: 'Entities have ids kg:<entity id>. They grow when an analysis is approved into the knowledge graph (Knowledge › Analysis); change them there, not with /api/link.' };
+        note: 'Entities have ids kg:<entity id>. They grow when an analysis is approved into the knowledge graph (Knowledge › Analyze); change them there, not with /api/link.' };
     }
     return d;
   }
@@ -181,12 +181,13 @@ function createGraph({ loadData, dataFileOf, loadKg }) {
 
 // ---- 원천(state.links) 편집 — 라우트가 부른다. 오류면 문자열, 성공이면 null ----
 function checkLink(s, { from, to, type }) {
-  if (!EXPLICIT.includes(type)) return `type must be ${EXPLICIT.join('|')}`;
+  if (DERIVED.has(type)) return `${type} is computed from dates — it can't be added by hand`;
+  if (!EXPLICIT.includes(type) && !isNewLinkType(type)) return `type: one of ${EXPLICIT.join('|')}, or a new kind in UPPER_SNAKE_CASE (e.g. BLOCKS)`;
   if (typeof from !== 'string' || typeof to !== 'string' || !from || !to) return 'from and to are required';
   if (from === to) return 'cannot link an item to itself';
   const fk = kindOf(s, from), tk = kindOf(s, to);
   if (!fk || !tk) return 'from/to not found';
-  if (!RULES[type].from.includes(fk) || !RULES[type].to.includes(tk)) return `${type} goes ${RULES[type].from.join('|')} → ${RULES[type].to.join('|')}, not ${fk} → ${tk}`;
+  if (RULES[type] && (!RULES[type].from.includes(fk) || !RULES[type].to.includes(tk))) return `${type} goes ${RULES[type].from.join('|')} → ${RULES[type].to.join('|')}, not ${fk} → ${tk}`;
   return null;
 }
 function addLink(s, link, by) {
@@ -209,4 +210,4 @@ function pruneLinks(s) {
   s.links = s.links.filter((l) => ids.has(l.from) && ids.has(l.to));
 }
 
-module.exports = { createGraph, snapshot, checkLink, addLink, removeLink, pruneLinks, kindOf, EXPLICIT, RULES, MEANINGS };
+module.exports = { createGraph, snapshot, checkLink, addLink, removeLink, pruneLinks, kindOf, isNewLinkType, EXPLICIT, RULES, MEANINGS };

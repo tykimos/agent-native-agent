@@ -154,7 +154,7 @@ node server.js           # → http://localhost:8809
 
 | 범위 | 누가 | 탭 | 용도 |
 |---|---|---|---|
-| **Workspace** (위에 워크스페이스 이름) | 실무자 | **Work**(할일·일정·메모) · **Knowledge** · **Files** · **Inbox** | 한 워크스페이스의 일과 데이터 |
+| **Workspace** (위에 워크스페이스 이름) | 실무자 | **Work**(할일·일정·메모·연결) · **Knowledge** · **Files** · **Inbox** | 한 워크스페이스의 일과 데이터 |
 | **System** (위쪽이 어두운 띠) | 관리자 | **Inbox** · **Roadmap** · **Ontology** · **Health** | 모든 워크스페이스에 걸리는 결정 |
 
 휴대폰에서는 하단 메뉴가 범위에 맞게 바뀝니다. Workspace에서는 Work · Knowledge · Files · Inbox(관리자는 System 추가), System에서는 Inbox · Roadmap · Health · Workspace입니다. 데스크톱에서는 로고 옆 전환 버튼으로 바꿉니다.
@@ -163,14 +163,15 @@ node server.js           # → http://localhost:8809
 
 - **Inbox(Workspace):** System › Inbox와 같은 말을 씁니다.
   - *Approvals*: 데이터 변경, 지식그래프에 더할 분석 결과, 결정, 접근
-  - *Work requests*: 에이전트가 맡기는 일이나 묻는 정보
+  - *Action requests*: 에이전트가 맡기는 일이나 묻는 정보
   - *Evolve*: 이 워크스페이스를 더 잘 쓰는 제안
   - *Sent*: 관리자에게 보낸 요청, 내 기능 요청
-- **Knowledge:** *Links*(관계, 흐름이 끊긴 곳) · *Knowledge graph*(이 워크스페이스의 개체와 사실) · *Analysis*(에이전트가 항목을 읽음) · *Ontology*(공용 개념, 읽기 전용)
+- **Work › Links:** 워크 그래프. 메모·할일·일정이 어떻게 이어졌는지, 흐름이 끊긴 곳, 종류별 연결 개수를 봅니다. 사람이 새 연결 종류(`BLOCKS`)를 만들 수 있고, *(new)*로 표시됩니다.
+- **Knowledge:** 한 페이지. 이 워크스페이스의 지식그래프(워크에서 알아낸 개체와 사실), *Analyze*(에이전트가 워크 항목을 읽음), 최근 분석(진행 중이거나 승인을 기다리면 그래프 위)이 있습니다. *Ontology*는 공용 온톨로지를 엽니다(관리자: System › Ontology, 실무자: 읽기 전용).
 - **Files:** 이 워크스페이스의 폴더와 채팅 첨부(읽기 전용)
-- **Inbox(System):** *Approvals* · *Work requests*(실무자, 에이전트, 시스템 점검이 올린 것) · *Evolve*(시스템을 바꾸는 제안, 관리자가 시작)
+- **Inbox(System):** *Approvals* · *Action requests*(실무자, 에이전트, 시스템 점검이 올린 것) · *Evolve*(시스템을 바꾸는 제안, 관리자가 시작)
 - **Roadmap:** *Requirements* · *Updates*(업스트림). 각 변경이 어디까지 왔는지 한 줄씩 단계(예: Request → Proposal → Building → Checked)와 다음 할 일로 보여 줍니다. Inbox에서 결정하고, Roadmap에서 진행을 봅니다.
-- **Ontology:** *Classes* · *Relations*. 모든 워크스페이스의 지식그래프가 쓰는 개념입니다. 핵심(Note, Task, Event, Day와 앱 관계)은 처음부터 있고, 나머지는 관리자가 더하거나 분석이 제안한 것을 승인합니다. 관문이 아니라 렌즈입니다. 틀에 안 맞는 것은 남기고 *아직 온톨로지에 없음*으로 표시하고, 역관계·대칭·전이로 표시한 관계는 *추론한* 사실을 더합니다([relations](docs/relations.ko.md)).
+- **Ontology:** *Classes* · *Relations* · *Rules*. 두 온톨로지가 한 페이지에 있습니다. **워크 온톨로지**는 이 앱의 코드가 저장하는 것입니다(base: Note, Task, Event, Day와 그 연결). `work-schema.js`에 선언하고 코드와 함께 바뀝니다. **지식 온톨로지**는 워크에서 알아낸 것의 틀입니다. 관리자가 더하거나 분석이 제안한 것을 승인합니다. 지식 클래스가 워크 클래스의 하위 클래스(Ticket ⊂ Task)이면 워크 항목에 붙일 수 있습니다. **규칙**은 그래프를 읽을 때 사실을 끌어냅니다. 역관계·대칭·전이와 **연쇄** 규칙(*만약* x attends y, y part_of z *이면* x involved_in z)이 있고, **제한** 규칙은 어긴 사실을 표시합니다. 관문이 아니라 렌즈입니다. 틀에 안 맞는 것은 남기고 *아직 온톨로지에 없음*으로 표시합니다([relations](docs/relations.ko.md)).
 - **Health:** *Trustworthiness* · *Safety* · *Security*(위험한 것부터, 괜찮은 점검은 접어 둠) · *Tests*(이 ANA의 테스트를 돌리고 실패를 봄) · *Usage*(통계·활동)
 
 **진화 제안(Evolve)은 어디에?** 늘 **Inbox**에 있습니다. 이 워크스페이스에 대한 것은 Workspace › Inbox › *Evolve*(실무자가 시작), 시스템에 대한 것은 System › Inbox › *Evolve*(관리자가 시작)입니다. 카드와 버튼은 같고, 범위만 다릅니다.
@@ -388,6 +389,7 @@ dashboard.html        레퍼런스 UI: 세 영역, Claude 앱 같은 채팅, 칩
 agent-log.js          에이전트 자체 JSONL 기록으로 채팅 표시(Claude Code + Codex): 응답·도구·모델·한도
 codex-settings.js     Codex 모델·추론 강도 목록, Codex 자체 메뉴로 전환
 graph.js              메모·할일·일정 관계 그래프 — NodeRel 기반(워크스페이스마다 파생 graph.sqlite)
+work-schema.js         이 앱이 저장하는 것 — 온톨로지의 워크 층(클래스 + 관계). graph.js가 읽는다
 seed.js               첫 실행용 예제 흐름 두 개
 features.json         기능 목록: 기능별 앵커 + 담당 스킬 (ana-update가 비교 기준으로 사용)
 package.json          의존성: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot

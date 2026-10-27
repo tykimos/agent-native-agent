@@ -490,7 +490,7 @@ t('D11 Codex dialog: selected option stays a button; footer is not an option des
     assert.deepEqual(snap.edges.map((e) => `${e.from}-${e.type}-${e.to}`).sort(), ['a1-DUE_ON-day:2026-10-01', 'e1-ON-day:2026-10-01']);
     assert.equal(snap.nodes.find((n) => n.id === 'n1').title, 'first line', '제목 없는 메모는 첫 줄이 제목');
   });
-  t('G2 addLink 규칙: 흐름 방향만 허용, 중복은 하나로', () => {
+  t('G2 addLink 규칙: 워크 종류의 연결은 방향을 지키고, 새 연결 종류는 받는다, 중복은 하나로', () => {
     const s = st();
     assert.equal(rg.addLink(s, { from: 'n1', to: 'a1', type: 'SPAWNED' }), null);
     assert.equal(rg.addLink(s, { from: 'n1', to: 'a1', type: 'SPAWNED' }), null);
@@ -499,7 +499,8 @@ t('D11 Codex dialog: selected option stays a button; footer is not an option des
     assert.equal(rg.addLink(s, { from: 'a1', to: 'e1', type: 'SCHEDULED_AS' }), null);
     assert.match(rg.addLink(s, { from: 'a1', to: 'a1', type: 'REFERS_TO' }), /itself/);
     assert.match(rg.addLink(s, { from: 'a1', to: 'day:2026-10-01', type: 'REFERS_TO' }), /not found/, 'Day는 파생 노드라 수동 연결 불가');
-    assert.match(rg.addLink(s, { from: 'a1', to: 'e1', type: 'DUE_ON' }), /type must be/, '파생 관계는 직접 만들 수 없다');
+    assert.match(rg.addLink(s, { from: 'a1', to: 'e1', type: 'DUE_ON' }), /computed from dates/, '파생 관계는 직접 만들 수 없다');
+    assert.equal(rg.addLink(s, { from: 'a1', to: 'e1', type: 'BLOCKS' }), null, '워크 종류에 없는 새 연결은 렌즈 — 저장된다');
   });
   t('G3 pruneLinks: 끝점이 사라진 관계는 저장 전에 걷힌다', () => {
     const s = st(); rg.addLink(s, { from: 'n1', to: 'a1', type: 'SPAWNED' }); rg.addLink(s, { from: 'n1', to: 'a2', type: 'SPAWNED' });
@@ -1010,14 +1011,16 @@ async function integration() {
 
     await ta('C18 온톨로지는 시스템, 지식그래프는 워크스페이스: 틀은 렌즈(버리지 않고 표시) · 새 개념은 관리자에게 정리 요청 · 결과는 승인해야 지식그래프에 · 규칙 추론 · NodeRel · TTL', async () => {
       // 시스템 온톨로지: 핵심(Note·Task·Event·Day, SPAWNED…)은 고정 + C16이 남긴 Org·client_of는 처음 읽을 때 옮겨 온다
-      let ont = await (await fetch(`${api}/api/ontology`)).json();
-      assert.ok(ont.classes.some((c) => c.id === 'Task' && c.core) && ont.relations.some((r) => r.id === 'SPAWNED' && r.core));
+      let ont = await (await fetch(`${api}/api/ontology`)).json(), r0;
+      assert.ok(ont.classes.some((c) => c.id === 'Task' && c.source === 'work') && ont.relations.some((r) => r.id === 'SPAWNED' && r.source === 'work' && r.made === 'explicit'));
+      assert.deepEqual(ont.relations.find((r) => r.id === 'REFERS_TO').from, ['Note', 'Task', 'Event'], 'App 관계는 여러 클래스를 잇는다');
       // C16 분석이 낸 새 개념(Org)은 시스템 온톨로지에 바로 들어가지 않고 관리자 승인요청이 됐다 → 승인(=추가)
       const orgReq = (await (await fetch(`${api}/api/admin/inbox`)).json()).items.find((x) => x.ref === 'onto:class:Org');
       assert.ok(orgReq && orgReq.action.kind === 'ontology.add', 'C16의 새 개념 → 관리자 승인요청');
       assert.ok(!ont.classes.some((c) => c.id === 'Org'));
       await post('/api/ontology', { action: 'add', kind: 'class', item: orgReq.action.item });
-      assert.equal((await post('/api/ontology', { action: 'remove', kind: 'class', item: { id: 'Task' } })).status, 400, '핵심은 못 바꾼다');
+      r0 = await post('/api/ontology', { action: 'remove', kind: 'class', item: { id: 'Task' } });
+      assert.equal(r0.status, 400); assert.match((await r0.json()).error, /is in the Work ontology/, '워크 종류는 코드에서 — 편집 폼으로 못 바꾼다');
       assert.equal((await (await post('/api/ontology', { action: 'add', kind: 'class', item: { id: 'Agent', label: 'Agent' } })).json()).ok, true);
       assert.equal((await post('/api/ontology', { action: 'add', kind: 'relation', item: { id: 'works_for', domain: 'Agent', range: 'Nope' } })).status, 400, '없는 클래스를 가리키면 거절');
       await post('/api/ontology', { action: 'add', kind: 'relation', item: { id: 'works_for', label: 'works for', domain: 'Agent', range: 'Org' } });
@@ -1043,7 +1046,6 @@ async function integration() {
       assert.equal((await fetch(`${api}/api/graph/neighbors?id=kg:acme`)).status, 404);
       const ap2 = await (await post('/api/analysis/apply', { id })).json();
       assert.deepEqual(ap2.added, { entities: 4, facts: 4 }, '모두 들어간다 — 기다리게 하지 않는다');
-      assert.deepEqual(ap2.pending, { entities: 0, facts: 0 });
       assert.equal((await post('/api/analysis/apply', { id })).status, 409, '두 번 더하지 않는다');
       let kg = await (await fetch(`${api}/api/kg`)).json();
       const ent = (x) => kg.entities.find((e) => e.id === x), fact = (a, r, b) => kg.facts.find((f) => f.from === a && f.rel === r && f.to === b);
