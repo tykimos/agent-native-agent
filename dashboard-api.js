@@ -531,6 +531,18 @@ function createDashboardApi(core, opts) {
     return null;
   }
 
+  // ---- 진화 제안: 거리·근거·밖의 사례 ----
+  const EVO_HORIZONS = ['tidy', 'improve', 'reimagine'];
+  function evoInsight(x) {
+    const out = {};
+    if (EVO_HORIZONS.includes(x.horizon)) out.horizon = x.horizon;
+    if (x.because) out.because = clip(x.because, 600);
+    const src = (Array.isArray(x.sources) ? x.sources : []).map((s0) => (typeof s0 === 'string' ? { url: s0 } : s0 || {}))
+      .filter((s0) => /^https?:\/\/[^\s]{3,500}$/.test(String(s0.url || ''))).slice(0, 5)
+      .map((s0) => ({ url: String(s0.url), title: clip(s0.title || '', 120), note: clip(s0.note || '', 300) }));
+    if (src.length) out.sources = src;
+    return out;
+  }
   // ---- 관리자 함 저장소 ----
   // item: {id, type: approval|work, title, desc, ref, ws, action?, from:{kind: member|agent|check, by}, status: open|doing|done|failed|rejected|cancelled, at, updatedAt, decidedBy?, note?}
   function loadAdmin() {
@@ -1890,7 +1902,7 @@ function createDashboardApi(core, opts) {
         ];
         return sendJson(res, 200, { id: j.id, focus: j.focus, items, links: (st.links || []).filter((l) => want.has(l.from) && want.has(l.to)),
           ontology: { ...systemOntology(),
-            note: 'The shared ontology of this ANA — a guide, not a limit. Two layers: source "work" = the Work ontology, what this app stores (its notes, tasks, events… — fixed by the code); source "knowledge" = the Knowledge ontology, what is found in the work (kept by the admin). Your entities and facts belong to the Knowledge layer. "rules" derive facts automatically when the graph is read (chains, inverse, symmetric, transitive) or mark facts that break a limit — do not state facts a rule already implies. Prefer these ids when they fit. When they do not, say what you actually found: add your own classes/relations (declare them in ontology.classes/relations). Nothing is dropped for not fitting; it is kept, shown as not fitting yet, and the admin is asked to add or adjust the concept.' },
+            note: 'The shared ontology of this ANA — a guide, not a limit. Two layers: source "work" = the Work ontology, what the work process needs to run (its notes, tasks, events… — fixed by the code); source "knowledge" = the Knowledge ontology, what accumulates from doing the work (kept by the admin). Your entities and facts belong to the Knowledge layer. "rules" derive facts automatically when the graph is read (chains, inverse, symmetric, transitive) or mark facts that break a limit — do not state facts a rule already implies. Prefer these ids when they fit. When they do not, say what you actually found: add your own classes/relations (declare them in ontology.classes/relations). Nothing is dropped for not fitting; it is kept, shown as not fitting yet, and the admin is asked to add or adjust the concept.' },
           rules: 'Use class ids for entity.class and relation ids for fact.rel — from the ontology or ones you declare. A fact should respect its relation\'s domain → range (sub-classes count); facts that do not are kept but marked as not fitting and listed under issues. Only facts pointing at missing entities are dropped.' }), true;
       }
       if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' }), true;
@@ -2026,6 +2038,7 @@ function createDashboardApi(core, opts) {
     }
 
     // 진화 제안 등록 (에이전트 curl)
+    // 진화 제안의 거리와 근거: horizon(tidy 정리 · improve 개선 · reimagine 재구상), because(무엇을 보고), sources(밖에서 본 사례 — http(s) 링크만)
     if (p === '/api/evolve' && req.method === 'POST') {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
       const body = await jsonBody(req, res); if (!body) return true;
@@ -2034,6 +2047,7 @@ function createDashboardApi(core, opts) {
       for (const x of incoming) {
         if (!x || typeof x !== 'object' || typeof x.title !== 'string' || !x.title.trim()) continue;
         if (x.type !== undefined && !['improve', 'add', 'remove'].includes(x.type)) return sendJson(res, 400, { error: `invalid type: ${x.type}` }), true;
+        if (x.horizon !== undefined && !EVO_HORIZONS.includes(x.horizon)) return sendJson(res, 400, { error: `horizon must be ${EVO_HORIZONS.join('|')}` }), true;
         valid.push(x);
       }
       if (!valid.length) return sendJson(res, 400, { error: 'proposals[] with title required' }), true;
@@ -2046,7 +2060,7 @@ function createDashboardApi(core, opts) {
         seen.add(title.trim());
         const scope = x.scope === 'workspace' ? 'workspace' : 'system';
         const pr = { id: ev.next++, type: x.type || 'improve', title, desc: String(x.desc || '').slice(0, 1000), status: 'new', at: new Date().toISOString(),
-          scope, ...(scope === 'workspace' ? { ws: curWs() } : {}) };
+          scope, ...(scope === 'workspace' ? { ws: curWs() } : {}), ...evoInsight(x) };
         if (Number.isInteger(x.reqId) && loadRequirements().items.some((r) => r.id === x.reqId)) pr.reqId = x.reqId;   // 어느 요구사항에서 나온 제안인지
         ev.proposals.push(pr); added.push(pr);
       }
@@ -2073,7 +2087,7 @@ function createDashboardApi(core, opts) {
         if (pr.escalatedTo && ev.proposals.some((x) => x.id === pr.escalatedTo && !['done', 'dismissed', 'failed'].includes(x.status)))
           return sendJson(res, 200, { ok: true, proposal: ev.proposals.find((x) => x.id === pr.escalatedTo), existing: true }), true;
         const np = { id: ev.next++, type: pr.type, title: pr.title, desc: [pr.desc, `From workspace proposal #${pr.id} (${pr.ws}).`].filter(Boolean).join('\n').slice(0, 1000),
-          status: 'new', at: new Date().toISOString(), scope: 'system', fromId: pr.id, fromWs: pr.ws, ...(pr.reqId ? { reqId: pr.reqId } : {}) };
+          status: 'new', at: new Date().toISOString(), scope: 'system', fromId: pr.id, fromWs: pr.ws, ...(pr.reqId ? { reqId: pr.reqId } : {}), ...evoInsight(pr) };
         ev.proposals.push(np); pr.escalatedTo = np.id; pr.updatedAt = np.at;
         if (ev.proposals.length > 80) ev.proposals = ev.proposals.slice(-80);
         ev.version = (ev.version || 1) + 1; saveEvolve(ev); broadcast({ kind: 'evolve', version: ev.version });

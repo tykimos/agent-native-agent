@@ -164,15 +164,15 @@ Each page shows one kind of thing at a time; pages with several kinds have sub-t
 - **Inbox (Workspace):** *Approvals* (data changes, analysis results to add to the knowledge graph, decisions, access) · *Action requests* (what the agent needs you to do or tell it) · *Evolve* (suggestions for running this workspace better) · *Sent* (what you asked the admin, your feature requests). The same words as System › Inbox.
 - **Graph:** *Work* · *Knowledge* — this workspace's two graphs.
   - *Work* is the work graph: how notes, tasks and events connect, where the flow breaks, links by kind. People may make new kinds of links (`BLOCKS`); they show as *(new)*.
-  - *Knowledge* is the knowledge graph (entities and facts found in the work), with *Analyze* (the agent reads your work items) and the latest analysis (above the graph while it runs or waits for you).
+  - *Knowledge* is the knowledge graph (entities and facts that accumulate from doing the work), with *Analyze* (the agent reads your work items) and the latest analysis (above the graph while it runs or waits for you).
   - *Ontology* on each tab opens that layer's ontology (admin: System › Ontology; members: read-only).
 - **Files** is the workspace's own folder, plus chat attachments (read-only).
 - **Inbox (System):** *Approvals* · *Action requests* (from members, the agent and the system checks) · *Evolve* (proposals to change the system — the admin starts them).
 - **Roadmap:** *Requirements* · *Updates* (upstream) — where each change stands, one line per item with its stage (e.g. Request → Proposal → Building → Checked) and the next action. The Inbox is for deciding, the Roadmap for following progress.
-- **Ontology:** *Work* · *Knowledge*, each with *Classes* · *Relations* · *Rules*. The **Work ontology** is what this app's code stores (base: Note, Task, Event, Day and their links), declared in `work-ontology.js` and changing with the code. The **Knowledge ontology** is what is found in the work; the admin adds to it or approves what analyses propose. A Knowledge class can be a kind of a Work class (Ticket ⊂ Task) and be put on a work item. **Rules** derive facts when the graph is read: inverse / symmetric / transitive, and **chain** rules (*if* x attends y, y part_of z *then* x involved_in z); **limit** rules mark facts that break them. It is a lens, not a gate: what doesn't fit is kept and marked *not in the ontology yet* ([Work and Knowledge](docs/work-and-knowledge.md)).
+- **Ontology:** *Work* · *Knowledge*, each with *Classes* · *Relations* · *Rules*. The **Work ontology** is what the work process needs to run (base: Note, Task, Event, Day and how they flow), declared in `work-ontology.js` and changing with the code. The **Knowledge ontology** is what accumulates from doing the work; the admin adds to it or approves what analyses propose. A Knowledge class can be a kind of a Work class (Ticket ⊂ Task) and be put on a work item. **Rules** derive facts when the graph is read: inverse / symmetric / transitive, and **chain** rules (*if* x attends y, y part_of z *then* x involved_in z); **limit** rules mark facts that break them. It is a lens, not a gate: what doesn't fit is kept and marked *not in the ontology yet* ([Work and Knowledge](docs/work-and-knowledge.md)).
 - **Health:** *Trustworthiness* · *Safety* · *Security* (riskiest first, OK checks folded) · *Tests* (run this ANA's tests and see what failed) · *Usage* (stats and activity).
 
-**Where is Evolve?** Always in the **Inbox**: Workspace › Inbox › *Evolve* for this workspace (members start them), System › Inbox › *Evolve* for the system (the admin starts them). Same cards, same buttons — only the scope differs.
+**Where is Evolve?** Always in the **Inbox**: Workspace › Inbox › *Evolve* for this workspace (members start them), System › Inbox › *Evolve* for the system (the admin starts them). Same cards, same buttons — only the scope differs. The agent reads the work and the knowledge, looks at how others in the domain work, and proposes at three horizons — **tidy**, **improve**, **reimagine** — each with *Because* (what it saw here) and *Seen elsewhere* (outside examples with links).
 
 ### Chat — like the Claude app
 
@@ -188,12 +188,18 @@ Turn on **Chip** (top right) and tap anything (a task, a card, a KPI) to attach 
 
 ### Work and Knowledge
 
-ANA keeps two layers, each a pair of an **ontology** (the kinds, in the System) and a **graph** (the actual things, per workspace):
+A **domain** (sales, storage operations, a team's own work…) is its **work** and its **knowledge**:
+- **Work** is what the work process needs to run: the items it handles and how they flow. It is designed with the process.
+- **Knowledge** is what accumulates from doing that work. It grows as the work is done.
+
+An ANA for a domain designs the first and lets the second grow; what grows can in turn reshape the process (Evolve). Base ANA's domain is a person's or a team's own work: notes → tasks → events.
+
+Each layer is a pair of an **ontology** (the kinds, in the System) and a **graph** (the actual things, per workspace):
 
 | | **Work layer** | **Knowledge layer** |
 |---|---|---|
 | **Ontology** — classes, relations, rules | **Work ontology** `work-ontology.js` (the app's code) | **Knowledge ontology** `.ana/knowledge-ontology.json` (the admin) |
-| **Graph** | **Work graph** `work-graph.json` — notes, tasks, events and their links | **Knowledge graph** `knowledge-graph.json` — entities and facts found in the work |
+| **Graph** | **Work graph** `work-graph.json` — notes, tasks, events and their links | **Knowledge graph** `knowledge-graph.json` — entities and facts that accumulate from the work |
 | **In the app** | **Graph › Work** (the System's **Ontology › Work**) | **Graph › Knowledge** — graph · *Analyze* · latest analysis (**Ontology › Knowledge**) |
 
 Both graphs are indexed in one [NodeRel](https://github.com/tykimos/NodeRel) index per workspace (`graph-index.js` → `graph-index.sqlite`, rebuilt whenever the files change), so the agent can walk from a note to the people in it.
@@ -364,7 +370,7 @@ dashboard.html        reference UI: three areas, Claude-app chat, Chip mode + dr
 agent-log.js          chat from the agent's own JSONL log (Claude Code + Codex): replies, tools, model, limits
 codex-settings.js     Codex model/effort catalog and switching through Codex's own menu
 graph-index.js        the NodeRel index of the Work graph and the knowledge graph (derived graph-index.sqlite per workspace)
-work-ontology.js      the Work ontology — what this app stores (classes, relations, compute rules); graph-index.js reads it
+work-ontology.js      the Work ontology — what the work process needs to run (classes, relations, compute rules); graph-index.js reads it
 seed.js               two example flows for the first run
 features.json         feature manifest: anchors + skill per feature (used by ana-update)
 package.json          dependencies: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot

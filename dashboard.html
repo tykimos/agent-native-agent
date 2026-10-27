@@ -437,6 +437,10 @@ body.ws-sorting, body.ws-sorting * { cursor: grabbing !important; user-select: n
 .evo-type.remove { background: var(--danger-bg); color: var(--danger); }
 .evo-t { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 800; overflow-wrap: anywhere; }
 .evo-st { font-size: 11.5px; font-weight: 800; color: var(--warm-fg); background: var(--warm-bg); border-radius: 999px; padding: 2px 8px; }
+.evo-hz { flex: 0 0 auto; font-size: 10.5px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; padding: 2px 7px; border-radius: 6px; margin-right: 6px; background: var(--surface-2); color: var(--text-sub); cursor: help; }
+.evo-hz.improve { background: var(--blue-weak, var(--surface-2)); color: var(--blue-700, var(--blue)); } .evo-hz.reimagine { background: color-mix(in srgb, #8B5CF6 16%, transparent); color: #7C3AED; }
+.evo-why, .evo-src { margin-top: 7px; font-size: 12.5px; color: var(--text-sub); line-height: 1.5; overflow-wrap: anywhere; } .evo-why b, .evo-src b { color: var(--text); font-weight: 800; margin-right: 4px; }
+.evo-src ul { margin: 3px 0 0 16px; } .evo-src a { color: var(--blue); font-weight: 700; text-decoration: none; } .evo-src a:hover { text-decoration: underline; }
 .evo-d { margin-top: 6px; font-size: 13px; color: var(--text-sub); line-height: 1.55; overflow-wrap: anywhere; }
 .evo-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 10px; }
 .evo-acts button { height: 36px; padding: 0 16px; border-radius: var(--r-sm); font-weight: 800; font-size: 13px; }
@@ -678,7 +682,7 @@ body.sys-mode .bottomnav button[data-scope="sys"] { display: flex !important; } 
 .onto-rules .rsay { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; color: var(--text); overflow-wrap: anywhere; }
 .onto-cls .otag.work, .onto-rel .otag.work, .onto-rules .otag.work { display: none; }   /* 층별 탭 안에서는 탭 이름이 이미 말한다 */
 .otag.warn { color: var(--orange, #E8701A); }
-.otag.work { color: var(--blue-700, var(--blue)); background: var(--blue-weak, var(--surface-2)); cursor: help; }   /* 워크 층 — 이 앱의 코드가 저장하는 워크 종류 */
+.otag.work { color: var(--blue-700, var(--blue)); background: var(--blue-weak, var(--surface-2)); cursor: help; }   /* 워크 층 — 업무 프로세스에 필요한 것(코드가 정함) */
 .onto-layers { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--text-sub); margin: 0 0 12px; line-height: 1.5; }
 .onto-layers b { color: var(--text); }
 .onto-issues { border: 1.5px solid var(--orange, #E8701A); border-radius: var(--r-sm, 10px); padding: 10px 12px; margin: 0 0 12px; font-size: 13px; }
@@ -1609,7 +1613,7 @@ body.sys-mode .ws-combo { display: none; }
       <div class="empty" id="reqEmpty"></div>
     </div>
     <div data-subsec="evolve">
-      <div class="evo-lead sub-lead">Better ways to run this workspace with the features it already has. If one needs a new feature, propose it to the system.</div>
+      <div class="evo-lead sub-lead">How the work here could evolve — from tidying up (<b>tidy</b>) to a better process (<b>improve</b>) to a new way of working the knowledge suggests (<b>reimagine</b>), with what was seen here and elsewhere. Ideas that need new features go to the system.</div>
       <div id="evoList"></div>
       <div class="empty" id="evoEmpty"></div>
     </div>
@@ -1676,7 +1680,7 @@ body.sys-mode .ws-combo { display: none; }
     <div class="toolbar"><div class="stseg two" data-stseg="adm" role="tablist" aria-label="Status"></div><span class="sp"></span><button class="ib-btn" id="sysApprAsk" data-for="approval">Ask the agent</button><button class="ib-btn" id="sysReqAsk" data-for="work">Ask the agent</button><button class="ib-btn" id="sysEvoAnalyze" data-for="evolve">Ask the agent</button></div>
     <div data-subsec="approval work"><div id="admList"></div><div class="empty" id="admEmpty"></div></div>
     <div data-subsec="evolve">
-      <div class="evo-lead sub-lead">Changes to the system itself — features, screens, APIs, the shared ontology. They affect every workspace; start the ones to build. Their progress shows on the Roadmap.</div>
+      <div class="evo-lead sub-lead">Changes to the system itself — processes, features, screens, the ontology, what the agent does on its own. From <b>tidy</b> fixes to <b>reimagined</b> ways of working, each with why and what others do. They affect every workspace; start the ones to build. Progress shows on the Roadmap.</div>
       <div id="sevoList"></div>
       <div class="empty" id="sevoEmpty"></div>
     </div>
@@ -2561,6 +2565,8 @@ async function refreshEvolve() {
 const evoScope = () => 'workspace';   // 받은함의 제안 = 이 워크스페이스. 시스템 제안은 Roadmap이 그린다
 const scopeOf = (p) => p.scope || 'system';
 const inScope = (p, sc) => scopeOf(p) === sc && (sc === 'system' || p.ws === (currentWs || 'default'));
+// 진화의 거리: 정리(지금 어긋난 것) · 개선(업무 프로세스를 낫게) · 재구상(쌓인 지식이 시사하는 새 방식)
+const EVO_HZ = { tidy: 'Tidy — fix what is off right now', improve: 'Improve — make the work process better', reimagine: 'Reimagine — a new way of working the knowledge suggests' };
 function evoCardsHtml(list) {
   const TYPES = { improve: 'improve', add: 'add', remove: 'remove' };
   const ACTS = {
@@ -2581,8 +2587,10 @@ function evoCardsHtml(list) {
     const links = [p.escalatedTo ? `<button class="evo-link" data-goevo="${Number(p.escalatedTo)}">Sent to the system as #${Number(p.escalatedTo)}</button>` : '',
       p.fromId ? `<span class="evo-link">From workspace proposal #${Number(p.fromId)}${p.fromWs ? ` · ${escapeHtml((wsById(p.fromWs) || {}).name || p.fromWs)}` : ''}</span>` : ''].join('');
     return `<div class="evo-card card ${escapeHtml(p.status)}${id === evoFocus ? ' focus' : ''}" data-eid="${id}"><div class="evo-top">
-      <span class="evo-type ${type}">${type}</span><span class="evo-t">${escapeHtml(p.title)}</span><span class="evo-when">#${id}${pk !== 'wait' && whenTxt(p) ? ' · ' + whenTxt(p) : ''}</span></div>
+      ${p.horizon ? `<span class="evo-hz ${escapeHtml(p.horizon)}" title="${escapeHtml(EVO_HZ[p.horizon] || '')}">${escapeHtml(p.horizon)}</span>` : `<span class="evo-type ${type}">${type}</span>`}<span class="evo-t">${escapeHtml(p.title)}</span><span class="evo-when">#${id}${pk !== 'wait' && whenTxt(p) ? ' · ' + whenTxt(p) : ''}</span></div>
       ${p.desc ? `<div class="evo-d">${escapeHtml(p.desc)}</div>` : ''}
+      ${p.because ? `<div class="evo-why"><b>Because</b> ${escapeHtml(p.because)}</div>` : ''}
+      ${(p.sources || []).length ? `<div class="evo-src"><b>Seen elsewhere</b><ul>${p.sources.map((x) => `<li><a href="${escapeHtml(x.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(x.title || x.url.replace(/^https?:\/\//, '').slice(0, 60))} ↗</a>${x.note ? ` — ${escapeHtml(x.note)}` : ''}</li>`).join('')}</ul></div>` : ''}
       ${p.reqId ? `<button class="evo-req" data-req="${Number(p.reqId)}" title="Open the requirement">From requirement #${Number(p.reqId)}${p.status === 'done' ? ' · marked for re-check' : ''}</button>` : ''}
       ${p.status === 'failed' ? `<div class="fail-why">✗ Failed${p.failReason ? ' — ' + escapeHtml(p.failReason) : ''}</div>` : ''}
       ${links}
@@ -2640,9 +2648,11 @@ async function evoAct(id, action, title, desc) {
   refreshEvolve();
   if (action === 'do') {
     const ws = p.ws || currentWs || 'default';
+    // 왜 이 제안인지와 밖의 사례도 함께 넘긴다 — 만드는 쪽이 같은 근거를 보고 만들게
+    const ctx = `${p.because ? ` Why: ${p.because}` : ''}${(p.sources || []).length ? ` Seen elsewhere: ${p.sources.map((x) => `${x.title || x.url} <${x.url}>${x.note ? ' (' + x.note + ')' : ''}`).join('; ')}.` : ''}`;
     const text = scopeOf(p) === 'workspace'
-      ? `[Evolve] Apply workspace proposal #${id} "${title}" in workspace "${ws}"${desc ? ' — ' + desc : ''}. Change only this workspace's data through the APIs (add ?ws=${encodeURIComponent(ws)}: data changes as a diff via POST /api/agent, links via /api/link) — do not change code. If it needs a new feature, escalate it: curl -s -X POST http://${agentHost}/api/evolve-act -H 'content-type: application/json' -d '{"id":${id},"action":"escalate"}'. Tell me when it's done.`
-      : `[Evolve] Implement/apply proposal #${id} "${title}"${desc ? ' — ' + desc : ''}. Tell me when it's done.`;
+      ? `[Evolve] Apply workspace proposal #${id} "${title}" in workspace "${ws}"${desc ? ' — ' + desc : ''}.${ctx} Change only this workspace's data through the APIs (add ?ws=${encodeURIComponent(ws)}: data changes as a diff via POST /api/agent, links via /api/link) — do not change code. If it needs a new feature, escalate it: curl -s -X POST http://${agentHost}/api/evolve-act -H 'content-type: application/json' -d '{"id":${id},"action":"escalate"}'. Tell me when it's done.`
+      : `[Evolve] Implement/apply proposal #${id} "${title}"${desc ? ' — ' + desc : ''}.${ctx} Tell me when it's done.`;
     openChat();
     post('/api/chat', { text, force: true }).then((x) => { if (!x.ok) x.json().then((e) => showErr(e.error || 'Failed to send the request (agent not connected?)')).catch(() => {}); })
       .catch(() => showErr('Failed to send the request'));
@@ -2652,10 +2662,36 @@ async function evoAct(id, action, title, desc) {
 function askEvolveAgent(sc, b) {
   b.disabled = true; const orig = b.textContent; b.textContent = 'Requesting…';
   const h = agentHost, ws = encodeURIComponent(currentWs || 'default');
-  const reg = (sc) => `curl -s -X POST "http://${h}/api/evolve${sc === 'workspace' ? `?ws=${ws}` : ''}" -H 'content-type: application/json' -d '{"proposals":[{"type":"improve","scope":"${sc}","title":"Title","desc":"Description"}]}' (type is improve|add|remove)`;
+  const api = (path) => `http://${h}${path}`, wq = `ws=${ws}`;
+  const reg = (sc) => `curl -s -X POST "${api('/api/evolve' + (sc === 'workspace' ? `?${wq}` : ''))}" -H 'content-type: application/json' --data-binary @evolve.json
+   evolve.json = {"proposals":[{"scope":"${sc}","horizon":"tidy|improve|reimagine","type":"improve|add|remove","title":"Short, concrete","desc":"What changes in the work, and what it means for the knowledge","because":"What you saw here that leads to it (numbers, examples)","sources":[{"title":"Who does this elsewhere","url":"https://…","note":"What they do and what we can take from it"}]}]}`;
+  // 두 진화 모두: 업무(워크)와 지식을 읽고, 밖의 사례를 찾아 보고, 세 가지 거리로 생각한다
+  const read = sc === 'system'
+    ? `- The work (how the process runs): the Work ontology GET ${api('/api/ontology')} (source "work"), usage GET ${api('/api/activity')}, and in each workspace its work graph and where the flow breaks GET ${api('/api/stats')}?ws=<id> (workspaces: GET ${api('/api/workspaces')}).
+- The knowledge (what has accumulated): the Knowledge ontology (same /api/ontology, source "knowledge"), each workspace's knowledge graph with inferred facts GET ${api('/api/kg')}?ws=<id>, and the evidence for promoting use and knowledge into features GET ${api('/api/ontology/evidence')}.
+- What people asked for: requirements GET ${api('/api/requirements')}, open proposals GET ${api('/api/evolve')}, and our recent conversation.`
+    : `- The work here: its work items and links GET ${api(`/api/state?${wq}`)}, where the flow breaks GET ${api(`/api/stats?${wq}`)}, usage GET ${api('/api/activity')}.
+- The knowledge here: entities, facts and what the rules infer GET ${api(`/api/kg?${wq}`)}, and the shared ontology GET ${api('/api/ontology')}.
+- Open proposals GET ${api('/api/evolve')} and our recent conversation.`;
+  const think = `Think at three horizons and propose at least one of each:
+- tidy — fix what is off right now (stale items, missing links, gaps in the flow).
+- improve — make the work process better (a step that keeps being done by hand, a routine, a check, a better screen).
+- reimagine — a new way of working that the knowledge suggests. Look for patterns: the same people, clients or problems coming back, work that always flows the same way, knowledge that grows but is never used. Ask what this work would look like if it were designed today, what the agent could do on its own, what outside services or data would change it. Be bold here — a person chooses before anything is built.
+Look outside too: search the web for how others in this domain work — products, open-source tools, case studies, research. When a practice elsewhere fits what you see here, say so and cite it in "sources" (title, url, what to take from it). Do not invent sources; only cite pages you actually opened.
+For every proposal, "because" says what you saw here (numbers, examples) that leads to it.`;
   const prompt = sc === 'system'
-    ? `[Evolve] Look at this app's current features, the data in it, and how it is being used (usage log: GET http://${h}/api/activity, plus our recent conversation), then propose how the SYSTEM should evolve — features, screens, APIs, the shared ontology. These need code changes and affect every workspace; the admin decides. Think freely: the ontology (GET http://${h}/api/ontology) is a guide to the domain, not a limit — you may propose things outside it, and changes to the ontology itself (new or renamed concepts, relation properties). Evidence for turning use and knowledge into features (Work ontology) — new kinds of links people make, sub-types put on items, knowledge mostly found in one kind of item (e.g. many Ticket entities all from tasks → a Ticket feature): GET http://${h}/api/ontology/evidence. The Work ontology (what the app stores) is in work-schema.js; a feature that changes it must update it in the same change.\nRegister: ${reg('system')}.\nHow notes, tasks and events relate: GET http://${h}/api/graph/schema (NodeRel graph) and /api/stats (graph.gaps).`
-    : `[Evolve] Look at THIS WORKSPACE (${currentWs || 'default'}) — its notes, tasks, events, links and how it is used (GET http://${h}/api/state?ws=${ws}, http://${h}/api/stats?ws=${ws}, http://${h}/api/activity) — and propose how the work here should evolve using only the features that already exist: tidying or merging data, missing links, routines, schedules. Register them as workspace proposals: ${reg('workspace')}. Anything that needs a new feature or a code change is a system proposal instead: same curl with "scope":"system". The shared ontology is a guide, not a limit: if the work here needs a concept it lacks, say so (a system proposal), don't bend the work to fit.`;
+    ? `[Evolve] Propose how the SYSTEM of this ANA should evolve — its processes, features, screens, APIs, the ontology, what the agent does by itself. These need code changes and affect every workspace; the admin decides.
+A domain is its work (what the process needs to run) and its knowledge (what accumulates from doing the work). Read both:
+${read}
+${think}
+The ontology is a guide, not a limit: you may propose things outside it and changes to it. The Work ontology lives in work-ontology.js; a feature that changes the process must update it in the same change.
+Register: ${reg('system')}`
+    : `[Evolve] Propose how the work in THIS WORKSPACE (${currentWs || 'default'}) should evolve.
+Read the work and the knowledge:
+${read}
+${think}
+Proposals that only use what already exists are workspace proposals ("scope":"workspace"). Anything that needs a new feature, process or code — including your bold ideas — is a system proposal: same file with "scope":"system". Never shrink an idea to fit the current features.
+Register: ${reg('workspace')}`;
   post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Analyze request failed')).catch(() => {}); else openChat(); })
     .catch(() => showErr('Analyze request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
 }
@@ -2835,8 +2871,8 @@ function ontoRuleTable(o, editable, layer) {
 }
 // 한 층(work | knowledge)의 온톨로지: 설명, 끊긴 참조, 그리고 클래스·관계·규칙 중 하나(part) 또는 셋 다
 const ONTO_LEAD = {
-  work: `<span class="otag work" title="From this app’s code (work-ontology.js)">Work</span> <b>Work ontology</b> — what this app stores: its work items (notes, tasks, events) and their links. It comes from the code and changes when the app changes, not here.`,
-  knowledge: `<b>Knowledge ontology</b> — what is found in the work: people, clients, projects and how they relate. The admin keeps it; analyses may propose more. A guide, not a limit.`,
+  work: `<span class="otag work" title="From this app’s code (work-ontology.js)">Work</span> <b>Work ontology</b> — what the work process needs to run: the work items it handles (notes, tasks, events) and how they flow. Designed with the process — it comes from the code and changes when the process changes, not here.`,
+  knowledge: `<b>Knowledge ontology</b> — what accumulates from doing the work: the people, clients, projects it involves and how they relate. The admin keeps it; analyses may propose more. A guide, not a limit.`,
 };
 function ontoLayer(o, layer) {
   const src = (x) => x.source === layer;
@@ -4753,8 +4789,8 @@ function instructionInfo(raw) {
   } else if (m[1] === 'Evolve') {
     const pm = /^Implement\/apply proposal #(\d+) "([^"]*)"/.exec(body), wm = /^Apply workspace proposal #(\d+) "([^"]*)"/.exec(body);
     summary = pm ? `Asked the agent to do proposal #${pm[1]} · ${pm[2]}` : wm ? `Asked the agent to apply workspace proposal #${wm[1]} · ${wm[2]}`
-      : /^Look at THIS WORKSPACE/.test(body) ? 'Asked the agent how this workspace should evolve' : 'Asked the agent to propose how the app should evolve';
-    view = wm || /^Look at THIS WORKSPACE/.test(body) ? 'inbox' : 'admin';
+      : /^(Look at|Propose how the work in) THIS WORKSPACE/.test(body) ? 'Asked the agent how this workspace should evolve' : 'Asked the agent to propose how the app should evolve';
+    view = wm || /^(Look at|Propose how the work in) THIS WORKSPACE/.test(body) ? 'inbox' : 'admin';
   } else if (m[1] === 'Requirements') {
     const n = g(/Check (\d+) of my requirements/), job = g(/requirements\/input\?job=(\d+)/);
     summary = `Asked the agent to check ${n ? `${n} requirement${n === '1' ? '' : 's'}` : 'your requirements'}${job ? ` · #${job}` : ''}`; view = 'roadmap';

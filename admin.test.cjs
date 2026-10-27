@@ -217,3 +217,20 @@ test('0.11 data names: state.json, kg.json, ontology.json move to work-graph.jso
   }
   assert.ok(!fs.existsSync(path.join(dir0, 'graph.sqlite')), 'old index cache removed');
 });
+
+test('Evolve proposals carry a horizon, the reason and outside sources (http(s) links only), and keep them when escalated', async (t) => {
+  const { api, stop } = await startServer({});
+  t.after(stop);
+  const post = (p, b) => fetch(api + p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b) });
+  assert.equal((await post('/api/evolve', { proposals: [{ title: 'x', horizon: 'moonshot' }] })).status, 400, 'horizon is tidy|improve|reimagine');
+  const r = await (await post('/api/evolve?ws=default', { proposals: [{ scope: 'workspace', horizon: 'reimagine', type: 'add', title: 'A client room per client',
+    desc: 'Group each client\'s notes, tasks and calls', because: '14 of 20 tasks mention Acme; the same call → quote → follow-up flow repeats',
+    sources: [{ title: 'Account-based workspaces', url: 'https://example.com/case', note: 'one space per account' }, { url: 'javascript:alert(1)' }, 'https://example.org/b'] }] })).json();
+  const list = (await (await fetch(api + '/api/evolve')).json()).proposals || [];
+  const pr = list.find((x) => x.id === r.ids[0]);
+  assert.equal(pr.horizon, 'reimagine'); assert.match(pr.because, /14 of 20/);
+  assert.deepEqual(pr.sources.map((x) => x.url), ['https://example.com/case', 'https://example.org/b'], 'only http(s) links are kept');
+  const esc = await (await post('/api/evolve-act', { id: pr.id, action: 'escalate' })).json();
+  const sys = ((await (await fetch(api + '/api/evolve')).json()).proposals || []).find((x) => x.id === (esc.proposal || {}).id);
+  assert.ok(sys && sys.scope === 'system' && sys.horizon === 'reimagine' && sys.sources.length === 2 && /14 of 20/.test(sys.because), 'escalation keeps the insight');
+});

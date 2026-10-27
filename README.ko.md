@@ -164,19 +164,19 @@ node server.js           # → http://localhost:8809
 - **Inbox(Workspace):** System › Inbox와 같은 말을 씁니다.
   - *Approvals*: 데이터 변경, 지식그래프에 더할 분석 결과, 결정, 접근
   - *Action requests*: 에이전트가 맡기는 일이나 묻는 정보
-  - *Evolve*: 이 워크스페이스를 더 잘 쓰는 제안
+  - *Evolve*: 이 워크스페이스의 일이 나아갈 방향(정리·개선·재구상)
   - *Sent*: 관리자에게 보낸 요청, 내 기능 요청
 - **Graph:** *Work* · *Knowledge*. 이 워크스페이스의 두 그래프입니다.
   - *Work*는 워크 그래프입니다. 메모·할일·일정이 어떻게 이어졌는지, 흐름이 끊긴 곳, 종류별 연결 개수를 봅니다. 사람이 새 연결 종류(`BLOCKS`)를 만들 수 있고, *(new)*로 표시됩니다.
-  - *Knowledge*는 지식그래프(워크에서 알아낸 개체와 사실)입니다. *Analyze*와 최근 분석이 함께 있습니다.
+  - *Knowledge*는 지식그래프(업무를 하며 쌓이는 개체와 사실)입니다. *Analyze*와 최근 분석이 함께 있습니다.
   - 각 탭의 *Ontology*는 그 층의 온톨로지를 엽니다(관리자: System › Ontology, 실무자: 읽기 전용).
 - **Files:** 이 워크스페이스의 폴더와 채팅 첨부(읽기 전용)
 - **Inbox(System):** *Approvals* · *Action requests*(실무자, 에이전트, 시스템 점검이 올린 것) · *Evolve*(시스템을 바꾸는 제안, 관리자가 시작)
 - **Roadmap:** *Requirements* · *Updates*(업스트림). 각 변경이 어디까지 왔는지 한 줄씩 단계(예: Request → Proposal → Building → Checked)와 다음 할 일로 보여 줍니다. Inbox에서 결정하고, Roadmap에서 진행을 봅니다.
-- **Ontology:** *Work* · *Knowledge*. 탭마다 *Classes* · *Relations* · *Rules*가 있습니다. **워크 온톨로지**는 이 앱의 코드가 저장하는 것입니다(base: Note, Task, Event, Day와 그 연결). `work-ontology.js`에 선언하고 코드와 함께 바뀝니다. **지식 온톨로지**는 워크에서 알아낸 것의 틀입니다. 관리자가 더하거나 분석이 제안한 것을 승인합니다. 지식 클래스가 워크 클래스의 하위 클래스(Ticket ⊂ Task)이면 워크 항목에 붙일 수 있습니다. **규칙**은 그래프를 읽을 때 사실을 끌어냅니다. 역관계·대칭·전이와 **연쇄** 규칙(*만약* x attends y, y part_of z *이면* x involved_in z)이 있고, **제한** 규칙은 어긴 사실을 표시합니다. 관문이 아니라 렌즈입니다. 틀에 안 맞는 것은 남기고 *아직 온톨로지에 없음*으로 표시합니다([워크와 지식](docs/work-and-knowledge.ko.md)).
+- **Ontology:** *Work* · *Knowledge*. 탭마다 *Classes* · *Relations* · *Rules*가 있습니다. **워크 온톨로지**는 업무 프로세스가 돌아가는 데 필요한 것입니다(base: Note, Task, Event, Day와 그 흐름). `work-ontology.js`에 선언하고 코드와 함께 바뀝니다. **지식 온톨로지**는 업무를 하며 쌓이는 것의 틀입니다. 관리자가 더하거나 분석이 제안한 것을 승인합니다. 지식 클래스가 워크 클래스의 하위 클래스(Ticket ⊂ Task)이면 워크 항목에 붙일 수 있습니다. **규칙**은 그래프를 읽을 때 사실을 끌어냅니다. 역관계·대칭·전이와 **연쇄** 규칙(*만약* x attends y, y part_of z *이면* x involved_in z)이 있고, **제한** 규칙은 어긴 사실을 표시합니다. 관문이 아니라 렌즈입니다. 틀에 안 맞는 것은 남기고 *아직 온톨로지에 없음*으로 표시합니다([워크와 지식](docs/work-and-knowledge.ko.md)).
 - **Health:** *Trustworthiness* · *Safety* · *Security*(위험한 것부터, 괜찮은 점검은 접어 둠) · *Tests*(이 ANA의 테스트를 돌리고 실패를 봄) · *Usage*(통계·활동)
 
-**진화 제안(Evolve)은 어디에?** 늘 **Inbox**에 있습니다. 이 워크스페이스에 대한 것은 Workspace › Inbox › *Evolve*(실무자가 시작), 시스템에 대한 것은 System › Inbox › *Evolve*(관리자가 시작)입니다. 카드와 버튼은 같고, 범위만 다릅니다.
+**진화 제안(Evolve)은 어디에?** 늘 **Inbox**에 있습니다. 이 워크스페이스에 대한 것은 Workspace › Inbox › *Evolve*(실무자가 시작), 시스템에 대한 것은 System › Inbox › *Evolve*(관리자가 시작)입니다. 카드와 버튼은 같고, 범위만 다릅니다. 에이전트는 업무와 지식을 읽고, 그 도메인에서 다른 곳은 어떻게 일하는지 살펴본 뒤, 세 가지 거리(**정리**·**개선**·**재구상**)로 제안합니다. 제안마다 *Because*(여기서 본 근거)와 *Seen elsewhere*(링크가 달린 밖의 사례)가 붙습니다.
 
 ### 채팅 — Claude 앱처럼
 
@@ -192,12 +192,18 @@ node server.js           # → http://localhost:8809
 
 ### 워크와 지식
 
-ANA는 두 층을 둡니다. 층마다 **온톨로지**(종류, System에 하나)와 **그래프**(실제 것, 워크스페이스마다)가 짝입니다.
+**도메인**(영업, 저장장치 운영, 팀의 일 등)은 그 **업무(워크)**와 **지식**으로 이루어집니다.
+- **워크**는 업무 프로세스가 돌아가는 데 필요한 것입니다. 업무가 다루는 항목과 그 흐름이고, 프로세스와 함께 설계합니다.
+- **지식**은 그 업무를 하면서 쌓이는 것입니다. 일할수록 자랍니다.
+
+도메인 ANA는 앞의 것을 설계하고 뒤의 것이 자라게 합니다. 자란 지식이 다시 업무 방식을 바꾸기도 합니다(Evolve). base ANA의 도메인은 개인·팀의 일이고, 업무는 메모 → 할일 → 일정의 흐름입니다.
+
+층마다 **온톨로지**(종류, System에 하나)와 **그래프**(실제 것, 워크스페이스마다)가 짝입니다.
 
 | | **워크 층** | **지식 층** |
 |---|---|---|
 | **온톨로지** — 클래스, 관계, 규칙 | **워크 온톨로지** `work-ontology.js`(앱 코드) | **지식 온톨로지** `.ana/knowledge-ontology.json`(관리자) |
-| **그래프** | **워크 그래프** `work-graph.json`: 메모·할일·일정과 그 연결 | **지식그래프** `knowledge-graph.json`: 워크에서 찾은 개체와 사실 |
+| **그래프** | **워크 그래프** `work-graph.json`: 메모·할일·일정과 그 연결 | **지식그래프** `knowledge-graph.json`: 업무를 하며 쌓이는 개체와 사실 |
 | **앱에서** | **Graph › Work**(System의 **Ontology › Work**) | **Graph › Knowledge**: 그래프 · *Analyze* · 최근 분석(**Ontology › Knowledge**) |
 
 두 그래프는 워크스페이스마다 [NodeRel](https://github.com/tykimos/NodeRel) 색인 하나에 들어갑니다(`graph-index.js` → `graph-index.sqlite`, 파일이 바뀌면 다시 만듦). 그래서 에이전트가 메모에서 그 안의 사람까지 따라갈 수 있습니다.
@@ -399,7 +405,7 @@ dashboard.html        레퍼런스 UI: 세 영역, Claude 앱 같은 채팅, 칩
 agent-log.js          에이전트 자체 JSONL 기록으로 채팅 표시(Claude Code + Codex): 응답·도구·모델·한도
 codex-settings.js     Codex 모델·추론 강도 목록, Codex 자체 메뉴로 전환
 graph-index.js        워크 그래프와 지식그래프의 NodeRel 색인(워크스페이스마다 파생 graph-index.sqlite)
-work-ontology.js      워크 온톨로지 — 이 앱이 저장하는 것(클래스, 관계, 계산 규칙). graph-index.js가 읽는다
+work-ontology.js      워크 온톨로지 — 업무 프로세스에 필요한 것(클래스, 관계, 계산 규칙). graph-index.js가 읽는다
 seed.js               첫 실행용 예제 흐름 두 개
 features.json         기능 목록: 기능별 앵커 + 담당 스킬 (ana-update가 비교 기준으로 사용)
 package.json          의존성: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot

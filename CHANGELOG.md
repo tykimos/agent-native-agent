@@ -5,6 +5,15 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.12.0] — 2026-10-27
+
+### Changed
+
+- **A domain is work + knowledge.** The Work layer is now described as *what the work process needs to run* (the items it handles and how they flow — designed, exact, a gate), and the Knowledge layer as *what accumulates from doing the work* (emerging, open, a lens). The docs open with this, and the ontology page, the analysis instruction and the README follow it.
+
+- **Evolve is no longer boxed in.** Both Evolve instructions now read the work *and* the knowledge, search the web for how others in the domain work, and propose at three horizons: **tidy** (fix what is off), **improve** (a better process), **reimagine** (a new way of working the knowledge suggests) — at least one of each. The workspace one no longer says "only existing features"; bigger ideas become system proposals.
+  - Proposals carry `horizon`, `because` (what was seen here) and `sources` (outside examples, http(s) links only, never invented). Cards show them as a horizon tag, *Because* and *Seen elsewhere*; starting a proposal passes them to the agent, and escalation keeps them.
+
 ## [0.11.0] — 2026-10-27
 
 ### Changed

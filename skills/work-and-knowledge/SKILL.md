@@ -3,7 +3,9 @@ name: work-and-knowledge
 description: Port ANA's Work and Knowledge layers — the Work ontology (work-ontology.js) and Work graph (work items and their links in work-graph.json: SPAWNED, SCHEDULED_AS, REFERS_TO, derived DUE_ON / ON, new link kinds as a lens), the Knowledge ontology (classes, relations, rules in .ana/knowledge-ontology.json) and per-workspace knowledge graph (knowledge-graph.json) built by Analyze, rule reasoning, the NodeRel index (graph-index.js) and /api/graph + /api/link + /api/kg + /api/ontology for the agent. Use when the user says "관계", "NodeRel", "온톨로지", "지식그래프", "워크 그래프", "규칙", "메모에서 할일로", "흐름이 끊긴 곳", or when ana-update reports work-graph / knowledge-analysis / ontology (formerly relations) missing.
 ---
 
-# work-and-knowledge — what people did, and what it means
+# work-and-knowledge — the work, and what it teaches
+
+A domain is **work + knowledge**. The **Work** layer is what the work process needs to run (the items it handles and how they flow) — designed with the process, exact, a gate. The **Knowledge** layer is what accumulates from doing the work — emerging, open, a lens. When porting to a domain ANA, design its work (`work-ontology.js` and screens) and let its knowledge grow.
 
 `work-graph.json` (one per workspace; `state.json` before 0.11) stays the **source of truth**, including a `links[]` array. `graph-index.sqlite` is a **derived index**, built by NodeRel from a snapshot of the state and rebuilt whenever the snapshot signature changes. So any write path (UI, agent diff, hand edit) is covered, and the index can be deleted at any time.
 

@@ -1,6 +1,20 @@
-# Relations in ANA — Work and Knowledge
+# Work and Knowledge in ANA
 
 **English** · [한국어](work-and-knowledge.ko.md)
+
+## A domain is work + knowledge
+
+| | **Work** | **Knowledge** |
+|---|---|---|
+| **What it is** | what the work process needs to run — the items it handles and how they flow | what accumulates from doing the work — who and what it involves, and how they relate |
+| **Nature** | designed (prescriptive): the process decides what exists and where it goes next | emerging (descriptive): it shows up while the work is done |
+| **Examples** | base: note → task → event · storage: disk → volume → mount | clients, people, projects, issues, and the facts between them |
+| **Changes when** | the process changes (code, Evolve) | the work is done (Analyze, approval) |
+| **Must be** | exact — the process reads it and acts on it, so it is a **gate** | open — what will accumulate can't be known in advance, so it is a **lens** |
+
+Rules belong to both: work rules compute and constrain (a task's due date ⇒ the day it is due); knowledge rules infer and check (attends + part_of ⇒ involved_in).
+
+An ANA for a domain **designs the work** (its Work ontology and screens) and **lets the knowledge grow** (starting with a few Knowledge classes). What grows can reshape the work: when knowledge keeps showing the same thing, it can be promoted into the process (Evolve). Base ANA's domain is a person's or a team's own work: notes → tasks → events.
 
 ## The model in one table
 
@@ -23,9 +37,9 @@ More about each layer:
 
 | | **Work layer** | **Knowledge layer** |
 |---|---|---|
-| **In one line** | what people leave in the app while they work | what is found in that work |
-| **Made by** | people in the app, or the agent's data changes once approved | an analysis (LLM) proposes it, a member approves it |
-| **How sure** | settled — people wrote it | inferred — every entity and fact cites the work items it came from |
+| **In one line** | what the work process needs to run | what accumulates from doing the work |
+| **Made by** | the process, as people do the work in the app (or the agent's data changes once approved) | an analysis (LLM) proposes it, a member approves it |
+| **How sure** | exact — the process reads it and acts on it | inferred — every entity and fact cites the work items it came from |
 | **Ontology changed by** | the code (a developer or an Evolve proposal), in the same commit as the feature | the admin (System › Ontology), or by approving what an analysis proposed |
 | **In the app** | **Graph › Work** · System **Ontology › Work** | **Graph › Knowledge** (graph, *Analyze*, latest analysis) · System **Ontology › Knowledge** |
 | **API** | `source: "work"` | `source: "knowledge"` |
@@ -96,7 +110,7 @@ The ontology guides and checks; it never limits what people or the agent may say
 | Concept | What it is | Where |
 |---|---|---|
 | **Ontology** | classes, relations and rules, in two layers — the Work ontology (from the code) and the Knowledge ontology (the admin's) | System |
-| **Knowledge graph** | the entities and facts found in the work, each citing the work items it came from | each Workspace |
+| **Knowledge graph** | the entities and facts that accumulate from the work, each citing the work items it came from | each Workspace |
 | **System** | what applies to every workspace: features, the ontology, health | admin |
 | **Workspace** | one team's work items, files, and knowledge graph | members |
 | **NodeRel** | one index (`graph-index.sqlite`) of the work graph + the knowledge graph, so the agent can trace note → entity → entity | both |
