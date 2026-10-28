@@ -5,6 +5,16 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.14.0] — 2026-10-28
+
+### Added
+
+- **tmux 세션마다 다른 Claude 계정.** `tmux new -e CLAUDE_CONFIG_DIR=~/.claude-alice …`로 세션을 시작하고 거기서 로그인하면, ANA가 그 세션은 그 계정을 따라갑니다.
+  - 채팅은 그 계정 폴더의 대화를 보여 줍니다.
+  - 사용량 표시는 그 계정의 5시간·주간 한도입니다. 오늘 토큰, 로그인 만료, 로그인 파일 점검도 그 계정을 따릅니다.
+  - ANA는 세션마다 폴더를 찾습니다. 순서는 프로세스 환경 변수 → tmux 세션 환경 변수 → `~/.claude`입니다. macOS에서는 Claude Code와 같은 이름 규칙으로 키체인에서 로그인을 읽습니다(`Claude Code-credentials-<sha256(폴더) 앞 8자>`).
+  - 안내: [docs/multi-account.ko.md](docs/multi-account.ko.md). 이 때문에 넣었던 로컬 패치(`claudeConfigDirOf`)는 이제 필요 없습니다.
+
 ## [0.13.0] — 2026-10-27
 
 ### Changed

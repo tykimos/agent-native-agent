@@ -255,3 +255,24 @@ test('Evolve insights come first: stored, linked to the proposals that follow, d
   assert.equal((await (await fetch(api + '/api/evolve')).json()).insights.find((x) => x.id === ins.id).status, 'dismissed');
   assert.equal((await post('/api/evolve', { insights: [{ title: '' }] })).status, 400, 'needs a proposal or an insight with a title');
 });
+
+test('Multi-account sessions: the chat log is read from the Claude config folder of that tmux session (CLAUDE_CONFIG_DIR)', async (t) => {
+  const { execFileSync } = require('node:child_process');
+  try { execFileSync('tmux', ['-V']); } catch { t.skip('no tmux'); return; }
+  const tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'ana-acct-'))), sock = `ana-acct-${process.pid}`;
+  const bin = path.join(tmp, 'bin', 'claude'), work = path.join(tmp, 'work'), alice = path.join(tmp, 'alice');
+  fs.mkdirSync(path.dirname(bin), { recursive: true }); fs.mkdirSync(work); fs.mkdirSync(path.join(alice, 'sessions'), { recursive: true });
+  fs.copyFileSync('/bin/sleep', bin); fs.chmodSync(bin, 0o755);
+  if (process.platform === 'darwin') execFileSync('codesign', ['-s', '-', '-f', bin], { stdio: 'ignore' });   // 복사한 시스템 실행 파일은 다시 서명해야 돈다
+  t.after(() => { try { execFileSync('tmux', ['-L', sock, 'kill-server'], { stdio: 'ignore' }); } catch {} fs.rmSync(tmp, { recursive: true, force: true }); });
+  execFileSync('tmux', ['-L', sock, 'new-session', '-d', '-s', 'x-ana-claude-alice', '-c', work, '-e', `CLAUDE_CONFIG_DIR=${alice}`, `${bin} 600`]);
+  await new Promise((r) => setTimeout(r, 600));
+  const pid = String(execFileSync('tmux', ['-L', sock, 'display-message', '-p', '-t', 'x-ana-claude-alice', '#{pane_pid}'])).trim();
+  const proj = path.join(alice, 'projects', work.replace(/[^A-Za-z0-9]/g, '-')); fs.mkdirSync(proj, { recursive: true });
+  fs.writeFileSync(path.join(alice, 'sessions', `${pid}.json`), JSON.stringify({ sessionId: 'aaaabbbb-1111', cwd: work }));
+  fs.writeFileSync(path.join(proj, 'aaaabbbb-1111.jsonl'), '');
+  const { createAgentLog } = require('./agent-log.js');
+  const r = await createAgentLog({ socket: sock }).resolve('x-ana-claude-alice');
+  assert.equal(r.kind, 'claude'); assert.equal(r.configDir, alice); assert.equal(r.configExplicit, true);
+  assert.equal(r.file, path.join(proj, 'aaaabbbb-1111.jsonl'), 'the conversation comes from that account\'s folder, not ~/.claude');
+});

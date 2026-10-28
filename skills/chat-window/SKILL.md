@@ -96,3 +96,7 @@ Opening a session loads only the **latest 40 items** (`pageItems`). Every item c
   - the combo popup doesn't overflow
   - ↓ appears when scrolled up
 - Security: `/api/agent-setting` rejects `{"model":"sonnet; rm -rf ~"}` with 400; no token in any response.
+
+## Multi-account sessions
+
+Each tmux session may run Claude Code with its own account (`CLAUDE_CONFIG_DIR`, see `docs/multi-account.md`). `agent-log.js` finds that folder per pane (`claudeConfig`: process env via `/proc` or `ps eww` → `tmux show-environment` → `~/.claude`) and reads `projects/` and `sessions/` from it; `resolve()` returns `configDir` / `configExplicit`. `dashboard-api.js` reads the login per folder (`readOauth(cfg)`: macOS keychain `Claude Code-credentials[-<sha256(dir)[0:8]>]`, else `<dir>/.credentials.json`) and caches `/api/limits` and `/api/usage` per folder (`claudeConfigOf(target)`), so the usage rings show the selected session's account.

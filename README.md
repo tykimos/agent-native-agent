@@ -177,7 +177,7 @@ Each page shows one kind of thing at a time; pages with several kinds have sub-t
 ### Chat — like the Claude app
 
 - **Rendered from the agent's own log**, not the screen: Claude Code's transcript (`~/.claude/projects/…`) or Codex's rollout (`~/.codex/sessions/…`). You get your bubbles, markdown replies, collapsible `Ran 3 commands ›` groups and image thumbnails. Agents without a log fall back to the screen mirror.
-- **Session combo:** pick the tmux session (Claude Code or Codex). Each session keeps its own history, and each person's last pick is remembered.
+- **Session combo:** pick the tmux session (Claude Code or Codex). Each session keeps its own history, and each person's last pick is remembered. Sessions can even use **different Claude accounts** (`CLAUDE_CONFIG_DIR` per tmux session); the chat and the usage rings then follow that account — see [docs/multi-account.md](docs/multi-account.md).
 - **Composer:** ＋ attach files · **model pill** (the real model, e.g. `Opus 5.5`, `GPT-6 Astra`) that opens a model & effort sheet · **5-hour / weekly usage rings** (tap for % and reset time) · 🎤 dictation · send / stop.
 - Floating input with a ↓ jump button. It sits right on top of the phone keyboard.
 - **Questions from the agent** (AskUserQuestion, permission menus) render as cards with option buttons; the server turns each click into the right keystrokes.

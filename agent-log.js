@@ -21,8 +21,9 @@ const path = require('node:path');
 const { execFile } = require('node:child_process');
 
 const MAX_RESULT = 4000;          // 도구 결과 본문 상한(화면용)
-const PROJECTS = path.join(os.homedir(), '.claude', 'projects');
-const CLAUDE_SESSIONS = path.join(os.homedir(), '.claude', 'sessions');   // <pid>.json — 실행 중인 Claude Code 프로세스의 sessionId
+// Claude Code의 설정 폴더 — 기본은 ~/.claude. 세션마다 다른 계정을 쓰면 CLAUDE_CONFIG_DIR로 바뀐다(docs/multi-account.md).
+// 대화 기록(projects/), 실행 중 세션(sessions/<pid>.json), 로그인은 모두 그 폴더 안에 있다.
+const DEFAULT_CLAUDE_DIR = path.join(os.homedir(), '.claude');
 const CODEX_SESSIONS = path.join(process.env.CODEX_HOME || path.join(os.homedir(), '.codex'), 'sessions');
 
 const VERB = {
@@ -133,18 +134,44 @@ function createAgentLog({ socket = '' } = {}) {
       });
     });
   }
-  // 팬에서 도는 Claude Code의 sessionId — 팬 프로세스와 그 자식들 중 ~/.claude/sessions/<pid>.json 이 있는 것.
+  // 팬의 프로세스들(팬 자신, 자식, 손자) — 셸에서 claude를 쳤으면 claude는 셸의 자식, 실행기가 exec 했으면 팬 자신
+  async function paneProcs(panePid) {
+    if (!/^\d+$/.test(String(panePid || ''))) return [];
+    const kids = await childPids(panePid);
+    return [String(panePid), ...kids, ...(await Promise.all(kids.map(childPids))).flat()];
+  }
+  // 프로세스 환경변수 하나 — Linux는 /proc/<pid>/environ, macOS는 ps eww(같은 사용자 프로세스만 보인다)
+  function procEnv(pid, name) {
+    if (process.platform === 'linux') {
+      try { const kv = fs.readFileSync(`/proc/${pid}/environ`, 'utf8').split('\0').find((x) => x.startsWith(name + '=')); return Promise.resolve(kv ? kv.slice(name.length + 1) : null); } catch { return Promise.resolve(null); }
+    }
+    return new Promise((resolve) => execFile('ps', ['eww', '-o', 'command=', '-p', String(pid)], { timeout: 2000 }, (err, out) => {
+      if (err) return resolve(null);
+      const m = new RegExp(`(?:^|\\s)${name}=(\\S+)`).exec(String(out)); resolve(m ? m[1] : null);
+    }));
+  }
+  // tmux 세션 환경변수(tmux new -e NAME=… 로 넣은 것) — 없으면 null
+  function tmuxEnv(target, name) {
+    return new Promise((resolve) => execFile('tmux', [...(socket ? ['-L', socket] : []), 'show-environment', '-t', String(target).split(':')[0], name], { timeout: 2000 }, (err, out) => {
+      const m = !err && /^([^=\n]+)=(.*)$/m.exec(String(out)); resolve(m && m[1] === name ? m[2] : null);
+    }));
+  }
+  // 이 팬의 Claude Code가 쓰는 설정 폴더: 프로세스 환경 → tmux 세션 환경 → ~/.claude.
+  // explicit = CLAUDE_CONFIG_DIR이 정해져 있는지(macOS 키체인 항목 이름이 이것에 따라 달라진다)
+  async function claudeConfig(target, panePid) {
+    for (const pid of await paneProcs(panePid)) { const v = await procEnv(pid, 'CLAUDE_CONFIG_DIR'); if (v !== null && v !== undefined) return { dir: v || DEFAULT_CLAUDE_DIR, explicit: !!v }; }
+    const t = await tmuxEnv(target, 'CLAUDE_CONFIG_DIR');
+    return t ? { dir: t, explicit: true } : { dir: DEFAULT_CLAUDE_DIR, explicit: false };
+  }
+  // 팬에서 도는 Claude Code의 sessionId — 팬 프로세스와 그 자식들 중 <설정 폴더>/sessions/<pid>.json 이 있는 것.
   // (셸에서 claude 를 친 팬이면 claude 는 셸의 자식이다. 실행기가 exec 하면 팬 프로세스 자신이다.)
   function childPids(pid) {
     return new Promise((resolve) => execFile('pgrep', ['-P', String(pid)], { timeout: 2000 }, (err, out) => resolve(err ? [] : String(out).split(/\s+/).filter(Boolean))));
   }
-  async function claudeSessionId(panePid, cwd) {
-    if (!/^\d+$/.test(String(panePid || ''))) return '';
-    const kids = await childPids(panePid);
-    const grand = (await Promise.all(kids.map(childPids))).flat();
-    for (const pid of [panePid, ...kids, ...grand]) {
+  async function claudeSessionId(panePid, cwd, configDir = DEFAULT_CLAUDE_DIR) {
+    for (const pid of await paneProcs(panePid)) {
       try {
-        const j = JSON.parse(fs.readFileSync(path.join(CLAUDE_SESSIONS, `${pid}.json`), 'utf8'));
+        const j = JSON.parse(fs.readFileSync(path.join(configDir, 'sessions', `${pid}.json`), 'utf8'));
         if (j && j.sessionId && (!j.cwd || !cwd || j.cwd === cwd)) return String(j.sessionId);
       } catch {}
     }
@@ -155,15 +182,16 @@ function createAgentLog({ socket = '' } = {}) {
     const hit = where.get(target);
     if (hit && Date.now() - hit.at < 5000) return hit;
     const info = await tmuxInfo(target);
-    let file = null, kind = '';
+    let file = null, kind = '', config = null;
     if (info && info.cwd && !/claude/i.test(info.cmd || '') && /codex/i.test(`${info.cmd} ${info.start} ${target}`)) {
       kind = 'codex'; file = findCodexRollout(info.cwd);
     } else if (info && /claude/i.test(info.cmd || '') && info.cwd) {
       kind = 'claude';
-      const dir = path.join(PROJECTS, info.cwd.replace(/[^A-Za-z0-9]/g, '-'));
+      config = await claudeConfig(target, info.pid);
+      const dir = path.join(config.dir, 'projects', info.cwd.replace(/[^A-Za-z0-9]/g, '-'));
       // 이 팬의 대화부터 — 같은 폴더의 다른 Claude 세션 기록을 집지 않게. 아직 한 마디도 안 한 새 세션은 파일이 없는데,
       // 그때도 그 경로를 쓴다(없으면 빈 대화) — 최근 파일로 넘어가면 남의 대화가 보인다.
-      const sid = [await claudeSessionId(info.pid, info.cwd), info.sid].find((x) => /^[0-9a-f-]{8,}$/i.test(x || ''));
+      const sid = [await claudeSessionId(info.pid, info.cwd, config.dir), info.sid].find((x) => /^[0-9a-f-]{8,}$/i.test(x || ''));
       if (sid) file = path.join(dir, `${sid}.jsonl`);
       if (!file) try {
         file = fs.readdirSync(dir).filter((f) => f.endsWith('.jsonl'))
@@ -171,7 +199,7 @@ function createAgentLog({ socket = '' } = {}) {
           .sort((a, b) => b.m - a.m)[0]?.f || null;
       } catch { file = null; }
     }
-    const r = { file, kind, cwd: info && info.cwd, start: (info && info.start) || '', at: Date.now() };
+    const r = { file, kind, cwd: info && info.cwd, start: (info && info.start) || '', ...(config ? { configDir: config.dir, configExplicit: config.explicit } : {}), at: Date.now() };
     where.set(target, r);
     return r;
   }

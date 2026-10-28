@@ -742,16 +742,26 @@ function createDashboardApi(core, opts) {
   // ---- 사용량/로그인 세션 (1시간 캐시) ----
   // 오늘 토큰 사용량: ~/.claude/projects/**/*.jsonl 중 오늘 수정된 파일만 스캔.
   // 로그인 만료: macOS keychain(Claude Code-credentials) → ~/.claude/.credentials.json 폴백. 토큰 값은 절대 노출하지 않는다.
-  let usageCache = { at: 0, data: null };
-  // Claude Code 로그인 정보(macOS keychain → ~/.claude/.credentials.json). 토큰은 서버 밖으로 내보내지 않는다.
-  async function readOauth() {
+  // 세션마다 계정이 다를 수 있다(CLAUDE_CONFIG_DIR — docs/multi-account.md). 그래서 사용량·로그인은 '설정 폴더'별로 읽고 캐시한다.
+  const DEFAULT_CLAUDE = { dir: path.join(os.homedir(), '.claude'), explicit: false };
+  const cfgKey = (c) => `${c.dir}|${c.explicit ? 1 : 0}`;
+  const usageCache = new Map();   // cfgKey → {at, data}
+  async function claudeConfigOf(target) {
+    if (!target) return DEFAULT_CLAUDE;
+    const r = await agentLog.resolve(target).catch(() => ({}));
+    return r && r.configDir ? { dir: r.configDir, explicit: !!r.configExplicit } : DEFAULT_CLAUDE;
+  }
+  // Claude Code 로그인 정보(macOS keychain → <설정 폴더>/.credentials.json). 토큰은 서버 밖으로 내보내지 않는다.
+  // 키체인 항목 이름은 Claude Code와 같게: CLAUDE_CONFIG_DIR이 있으면 'Claude Code-credentials-<sha256(폴더) 앞 8자>'
+  async function readOauth(cfg = DEFAULT_CLAUDE) {
     let raw = '';
     if (process.platform === 'darwin') {
+      const svc = `Claude Code-credentials${cfg.explicit ? '-' + crypto.createHash('sha256').update(String(cfg.dir).normalize('NFC')).digest('hex').slice(0, 8) : ''}`;
       raw = await new Promise((resolve) => execFile('security',
-        ['find-generic-password', '-s', 'Claude Code-credentials', '-w'],
+        ['find-generic-password', '-s', svc, '-w'],
         { timeout: 3000 }, (e, so) => resolve(e ? '' : String(so))));
     }
-    if (!raw) raw = await fsp.readFile(path.join(os.homedir(), '.claude', '.credentials.json'), 'utf8').catch(() => '');
+    if (!raw) raw = await fsp.readFile(path.join(cfg.dir, '.credentials.json'), 'utf8').catch(() => '');
     try { return (JSON.parse(raw) || {}).claudeAiOauth || null; } catch { return null; }
   }
   // ---- 시스템 › Trustworthiness · Safety · Security ----
@@ -788,7 +798,7 @@ function createDashboardApi(core, opts) {
     }
     const intr = (log && log.items || []).filter((x) => x.kind === 'event' && x.text === 'Interrupted').length;
     if (intr) rel.push({ id: 'interrupts', status: intr >= 5 ? 'warn' : 'info', label: 'Interrupted turns', value: `${intr} recently`, detail: 'Stopped by you or by an error before finishing.' });
-    const lim = where.kind === 'codex' ? log && log.limits : limitsCache.data;
+    const lim = where.kind === 'codex' ? log && log.limits : (limitsCache.get(cfgKey(where.configDir ? { dir: where.configDir, explicit: !!where.configExplicit } : DEFAULT_CLAUDE)) || {}).data;
     for (const [k, name] of [['fiveHour', '5-hour limit'], ['week', 'Weekly limit']]) {
       const v = lim && lim.available && lim[k]; if (!v) continue;
       rel.push({ id: `limit-${k}`, status: v.percent >= 95 ? 'risk' : v.percent >= 80 ? 'warn' : 'ok', label: `Plan usage · ${name}`, value: `${v.percent}% used`, detail: v.percent >= 80 ? 'The agent may stop mid-task when the limit is reached.' : '' });
@@ -828,9 +838,9 @@ function createDashboardApi(core, opts) {
     sec.push({ id: 'csrf', status: 'ok', label: 'Requests from other sites are blocked', value: 'origin + content-type check on every write' });
     sec.push({ id: 'token', status: 'ok', label: 'Your AI login stays on the server', detail: 'Usage limits are read with your local login; the token is never sent to the browser.' });
     try {
-      const cf = path.join(os.homedir(), '.claude', '.credentials.json');
+      const cf = path.join(where.configDir || DEFAULT_CLAUDE.dir, '.credentials.json');
       const st = await fsp.stat(cf);
-      if (st.mode & 0o077) sec.push({ id: 'credfile', status: 'warn', label: 'Claude login file is readable by other users', value: `~/.claude/.credentials.json (${(st.mode & 0o777).toString(8)})`, detail: 'Run: chmod 600 ~/.claude/.credentials.json' });
+      if (st.mode & 0o077) sec.push({ id: 'credfile', status: 'warn', label: 'Claude login file is readable by other users', value: `${cf.replace(os.homedir(), '~')} (${(st.mode & 0o777).toString(8)})`, detail: 'Run: chmod 600 ~/.claude/.credentials.json' });
     } catch {}
     if (/--remote-control\b/.test(start)) sec.push({ id: 'remote', status: 'info', label: 'Remote control is on', detail: 'This agent session can also be driven from your claude.ai account.' });
     const found = [];
@@ -848,9 +858,9 @@ function createDashboardApi(core, opts) {
   }
 
   // 요금제 한도(5시간·주간) — Claude Code의 /usage와 같은 곳(api.anthropic.com/api/oauth/usage)에서 읽는다. 1분 캐시.
-  let limitsCache = { at: 0, data: null };
-  async function collectLimits() {
-    const oa = await readOauth();
+  const limitsCache = new Map();   // cfgKey → {at, data}
+  async function collectLimits(cfg = DEFAULT_CLAUDE) {
+    const oa = await readOauth(cfg);
     if (!oa || !oa.accessToken) return { available: false, error: 'Not signed in to Claude Code' };
     const r = await fetch('https://api.anthropic.com/api/oauth/usage', {
       headers: { Authorization: `Bearer ${oa.accessToken}`, 'anthropic-beta': 'oauth-2025-04-20' }, signal: AbortSignal.timeout(8000),
@@ -860,10 +870,10 @@ function createDashboardApi(core, opts) {
     const pick = (x) => (x && Number.isFinite(x.utilization) ? { percent: Math.round(x.utilization), resetsAt: x.resets_at || null } : null);
     return { available: true, fiveHour: pick(j.five_hour), week: pick(j.seven_day), checkedAt: Date.now() };
   }
-  async function collectUsage() {
-    const out = { checkedAt: Date.now(), today: null, login: null };
+  async function collectUsage(cfg = DEFAULT_CLAUDE) {
+    const out = { checkedAt: Date.now(), today: null, login: null, account: cfg.explicit ? cfg.dir.replace(os.homedir(), '~') : null };
     try {
-      const root = path.join(os.homedir(), '.claude', 'projects');
+      const root = path.join(cfg.dir, 'projects');
       const day = new Date(); day.setHours(0, 0, 0, 0); const since = day.getTime();
       let input = 0, output = 0, cacheRead = 0, msgs = 0;
       const dirs = await fsp.readdir(root, { withFileTypes: true }).catch(() => []);
@@ -891,7 +901,7 @@ function createDashboardApi(core, opts) {
       out.today = { inputTokens: input, outputTokens: output, cacheReadTokens: cacheRead, messages: msgs };
     } catch {}
     try {
-      const oa = await readOauth();
+      const oa = await readOauth(cfg);
       if (oa && Number.isFinite(oa.expiresAt)) out.login = {
         expiresAt: oa.expiresAt,
         daysLeft: Math.floor((oa.expiresAt - Date.now()) / 86400000),
@@ -1118,18 +1128,19 @@ function createDashboardApi(core, opts) {
         const r = await agentLog.resolve(target);
         if (r.kind === 'codex') { const d = await agentLog.read(target, 1e12).catch(() => null); return sendJson(res, 200, (d && d.limits) || { available: false }), true; }
       }
-      if (!limitsCache.data || Date.now() - limitsCache.at > 60_000) {
-        let data; try { data = await collectLimits(); } catch (e) { data = { available: false, error: 'Usage unavailable' }; }
-        limitsCache = { at: Date.now(), data };
+      // 이 세션의 계정(설정 폴더)의 한도 — 세션마다 다른 Claude 계정을 쓰면 각자 자기 한도가 보인다
+      const cfg = await claudeConfigOf(target && /^[\w.:@%+-]{1,100}$/.test(target) ? target : ctx.target), key = cfgKey(cfg), hit = limitsCache.get(key);
+      if (!hit || Date.now() - hit.at > 60_000) {
+        let data; try { data = await collectLimits(cfg); } catch (e) { data = { available: false, error: 'Usage unavailable' }; }
+        limitsCache.set(key, { at: Date.now(), data });
       }
-      return sendJson(res, 200, limitsCache.data), true;
+      return sendJson(res, 200, limitsCache.get(key).data), true;
     }
 
     if (p === '/api/usage' && req.method === 'GET') {
-      if (!usageCache.data || Date.now() - usageCache.at > 3600_000) {
-        usageCache = { at: Date.now(), data: await collectUsage() };
-      }
-      return sendJson(res, 200, usageCache.data), true;
+      const t0 = String(url.searchParams.get('target') || ''), cfg = await claudeConfigOf(t0 && /^[\w.:@%+-]{1,100}$/.test(t0) ? t0 : ctx.target), key = cfgKey(cfg), hit = usageCache.get(key);
+      if (!hit || Date.now() - hit.at > 3600_000) usageCache.set(key, { at: Date.now(), data: await collectUsage(cfg) });
+      return sendJson(res, 200, usageCache.get(key).data), true;
     }
 
     // 예제 정리: 첫 실행 예제(id가 n-/a-/e-ex-로 시작)를 지우거나(clear) 그대로 두기로(keep) 한다

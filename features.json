@@ -44,6 +44,17 @@
       ]
     },
     {
+      "id": "multi-account",
+      "title": "A different Claude account per tmux session",
+      "skill": "chat-window",
+      "summary": "Sessions may run Claude Code with their own CLAUDE_CONFIG_DIR. The chat log, usage limits, today's tokens, login expiry and the login-file check follow each session's config folder (process env → tmux session env → ~/.claude; macOS keychain name per folder). docs/multi-account.md.",
+      "anchors": [
+        "async function claudeConfig",
+        "function claudeConfigOf",
+        "Claude Code-credentials"
+      ]
+    },
+    {
       "id": "chat-delivery",
       "title": "Reliable send state",
       "skill": "chat-window",

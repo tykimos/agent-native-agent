@@ -5,6 +5,16 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.14.0] — 2026-10-28
+
+### Added
+
+- **A different Claude account per tmux session.** Start a session with `tmux new -e CLAUDE_CONFIG_DIR=~/.claude-alice …` and sign in there. ANA then follows that account for the session.
+  - The chat shows the conversation from that account's folder.
+  - The usage rings show that account's 5-hour and weekly limits. Today's tokens, login expiry and the login-file check follow it too.
+  - ANA finds the folder per session: process environment → tmux session environment → `~/.claude`. On macOS it reads the login from the keychain with Claude Code's own naming (`Claude Code-credentials-<sha256(folder)[0:8]>`).
+  - Guide: [docs/multi-account.md](docs/multi-account.md). A local `claudeConfigDirOf` patch made for this is no longer needed.
+
 ## [0.13.0] — 2026-10-27
 
 ### Changed
