@@ -1,0 +1,1066 @@
+<meta charset="utf-8">
+<title>웹툰 식자 스튜디오</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@700&family=Nanum+Pen+Script&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+/* Layout: a proofing desk in three columns — job setup + agent rail, the manuscript under the red pencil, the approval sheet */
+:root {
+  --bg: #eceef2;
+  --panel: #ffffff;
+  --sunk: #f4f5f8;
+  --ink: #15171c;
+  --muted: #5b6270;
+  --line: #d8dce3;
+  --viewer: #d3d7de;
+  --accent: #d81e5b;
+  --accent-ink: #ffffff;
+  --accent-soft: #fbe3ec;
+  --ok: #17804f;
+  --ok-soft: #dcf2e6;
+  --warn: #9a6205;
+  --warn-soft: #fbefd6;
+  --bad: #c2312f;
+  --bad-soft: #fbe1e0;
+  --info: #3d5a99;
+  --info-soft: #e3e9f6;
+  --f-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-display: "Black Han Sans", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --r: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121418; --panel: #1a1d23; --sunk: #15181d; --ink: #e8eaee; --muted: #9aa1ad; --line: #2c3139; --viewer: #0d0f12;
+    --accent: #ff5c8a; --accent-ink: #1a0710; --accent-soft: #3a1825;
+    --ok: #46c48b; --ok-soft: #15301f; --warn: #e4a63c; --warn-soft: #33270f; --bad: #f26b6b; --bad-soft: #3a1a1a; --info: #8aa6e8; --info-soft: #1c2438;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121418; --panel: #1a1d23; --sunk: #15181d; --ink: #e8eaee; --muted: #9aa1ad; --line: #2c3139; --viewer: #0d0f12;
+  --accent: #ff5c8a; --accent-ink: #1a0710; --accent-soft: #3a1825;
+  --ok: #46c48b; --ok-soft: #15301f; --warn: #e4a63c; --warn-soft: #33270f; --bad: #f26b6b; --bad-soft: #3a1a1a; --info: #8aa6e8; --info-soft: #1c2438;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-ui); }
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { height: 100%; display: flex; flex-direction: column; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 12px; }
+header.bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-block: 12px; }
+.brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.brand h1 { margin: 0; font: 400 24px/1 var(--f-display); letter-spacing: .5px; }
+.brand h1 em { font-style: normal; color: var(--accent); }
+.badge { font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--info-soft); color: var(--info); white-space: nowrap; }
+.bar-spacer { flex: 1; }
+.progress { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.meter { width: 120px; height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.meter > i { display: block; height: 100%; width: 0; background: var(--ok); transition: width .25s; }
+
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+.btn:hover:not(:disabled) { border-color: var(--muted); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn.small { padding: 3px 9px; font-size: 12.5px; }
+.btn.ghost { background: transparent; }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: var(--panel); padding: 5px 10px; cursor: pointer; font-size: 13px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+.desk { flex: 1; min-height: 0; display: grid; grid-template-columns: 280px minmax(0, 1fr) 400px; gap: 12px; }
+.col { min-height: 0; overflow: auto; }
+.rail, .sheet { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); }
+.rail { padding: 14px; display: flex; flex-direction: column; gap: 18px; }
+.sheet { display: flex; flex-direction: column; }
+.sec h2 { margin: 0 0 8px; font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--muted); }
+.drop { border: 1.5px dashed var(--line); border-radius: 6px; padding: 10px; display: grid; gap: 6px; font-size: 13px; }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop .file { font-weight: 600; overflow-wrap: anywhere; }
+.drop .meta { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+textarea#script { width: 100%; min-height: 150px; resize: vertical; border: 1px solid var(--line); border-radius: 6px; background: var(--sunk); padding: 8px; font-size: 13px; line-height: 1.55; }
+.hint { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
+details.params summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.field { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; font-size: 13px; margin-top: 8px; }
+.field input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
+.field output { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.run { display: grid; gap: 6px; }
+.run .btn { width: 100%; padding: 9px; }
+
+.agents { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.agent { border: 1px solid var(--line); border-radius: 6px; padding: 10px; background: var(--sunk); }
+.agent-head { display: flex; align-items: center; gap: 8px; }
+.step { width: 22px; height: 22px; flex: none; border-radius: 50%; display: grid; place-items: center; font: 500 12px var(--f-mono); background: var(--panel); border: 1px solid var(--line); }
+.agent b { font-size: 13.5px; flex: 1; }
+.agent .role { margin: 4px 0 0 30px; font-size: 12px; color: var(--muted); }
+.agent .engine { margin: 2px 0 0 30px; font-size: 11.5px; font-family: var(--f-mono); color: var(--info); }
+.agent .log { margin: 6px 0 0 30px; padding: 0; list-style: none; font-size: 12px; display: grid; gap: 2px; }
+.agent .log li { overflow-wrap: anywhere; }
+.agent .log li.err { color: var(--bad); }
+.chip { font-size: 11.5px; padding: 1px 8px; border-radius: 99px; white-space: nowrap; background: var(--line); color: var(--muted); }
+.agent[data-state="running"] .chip { background: var(--info-soft); color: var(--info); }
+.agent[data-state="done"] .chip { background: var(--ok-soft); color: var(--ok); }
+.agent[data-state="waiting"] .chip { background: var(--accent-soft); color: var(--accent); }
+.agent[data-state="error"] .chip { background: var(--bad-soft); color: var(--bad); }
+.agent[data-state="running"] .step { border-color: var(--info); color: var(--info); }
+.agent[data-state="done"] .step { background: var(--ok); border-color: var(--ok); color: var(--panel); }
+.agent[data-state="waiting"] .step { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.agent[data-state="waiting"] { border-color: var(--accent); }
+
+.stage { background: var(--viewer); border-radius: var(--r); position: relative; display: flex; flex-direction: column; min-height: 0; }
+.stage.col { overflow: hidden; }
+.stage-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px; position: sticky; top: 0; z-index: 3; background: var(--viewer); border-bottom: 1px solid var(--line); }
+.stage-tools .mode-note { font-size: 12.5px; color: var(--accent); font-weight: 600; }
+.stage-scroll { flex: 1; min-height: 0; overflow: auto; padding: 16px; }
+.page { position: relative; width: 100%; max-width: 820px; margin: 0 auto; box-shadow: 0 1px 8px rgba(0,0,0,.18); background: #fff; line-height: 0; }
+.page canvas, .page img { width: 100%; height: auto; display: block; }
+.overlay { position: absolute; inset: 0; line-height: 1.2; }
+.overlay.mode { cursor: crosshair; }
+.bx { position: absolute; border: 2px solid var(--accent); border-radius: 3px; cursor: pointer; background: transparent; padding: 0; }
+.bx > span { position: absolute; left: -2px; top: -2px; transform: translateY(-100%); font: 600 11px/1 var(--f-mono); background: var(--accent); color: var(--accent-ink); padding: 3px 5px; border-radius: 3px 3px 3px 0; }
+.bx.free { border-style: dashed; }
+.bx.ignored { border-color: #8a8f99; border-style: dotted; }
+.bx.ignored > span { background: #8a8f99; color: #fff; }
+.bx.sel { box-shadow: 0 0 0 3px rgba(216, 30, 91, .35); background: rgba(216, 30, 91, .08); }
+.bx.done { border-color: var(--ok); }
+.bx.done > span { background: var(--ok); color: #fff; }
+.pin { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--accent); border: 2px solid #fff; cursor: pointer; padding: 0; }
+.drag-rect { position: absolute; border: 2px dashed var(--accent); background: rgba(216,30,91,.1); pointer-events: none; }
+.hide-overlay .bx, .hide-overlay .pin { display: none; }
+.empty-stage { line-height: 1.5; padding: 60px 20px; text-align: center; color: var(--muted); }
+
+.sheet-head { padding: 14px 14px 10px; border-bottom: 1px solid var(--line); display: grid; gap: 6px; }
+.sheet-head h2 { margin: 0; font-size: 15px; }
+.sheet-head p { margin: 0; font-size: 12.5px; color: var(--muted); }
+.sheet-body { padding: 12px 14px 16px; display: grid; gap: 12px; align-content: start; }
+.card { border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+.card.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.card.complete { border-color: var(--ok); }
+.card-head { display: flex; align-items: center; gap: 8px; padding: 9px 10px 0; flex-wrap: wrap; }
+.idtag { font: 600 12px var(--f-mono); padding: 2px 7px; border-radius: 4px; background: var(--ink); color: var(--bg); cursor: pointer; border: 0; }
+.speaker { font-weight: 600; font-size: 13px; }
+.stylechip { font-size: 11.5px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+.src { margin-left: auto; font-size: 11px; color: var(--muted); font-family: var(--f-mono); }
+.quote { margin: 6px 10px 0; padding: 7px 9px; background: var(--sunk); border-radius: 4px; font-size: 13.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.checks { list-style: none; margin: 8px 0 0; padding: 0; }
+.check { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 8px 10px; border-top: 1px solid var(--line); align-items: start; }
+.check .lbl { font-size: 13px; font-weight: 600; display: flex; gap: 6px; align-items: center; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--muted); }
+.dot.pass { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.fail { background: var(--bad); } .dot.info { background: var(--info); }
+.note { grid-column: 1; font-size: 12px; color: var(--muted); display: grid; gap: 2px; }
+.note .by { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .02em; margin-right: 4px; color: var(--info); }
+.note .warn { color: var(--warn); } .note .fail { color: var(--bad); }
+.verdict { grid-row: 1 / span 2; grid-column: 2; display: flex; gap: 4px; align-self: center; }
+.verdict button { border: 1px solid var(--line); background: var(--panel); border-radius: 5px; padding: 3px 9px; font-size: 12.5px; cursor: pointer; }
+.verdict button.ok[aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: #fff; }
+.verdict button.no[aria-pressed="true"] { background: var(--bad); border-color: var(--bad); color: #fff; }
+.card-foot { display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.editor { padding: 10px; border-top: 1px dashed var(--line); background: var(--sunk); display: grid; gap: 8px; border-radius: 0 0 6px 6px; }
+.editor label { font-size: 12px; color: var(--muted); display: grid; gap: 3px; }
+.editor textarea, .editor select, .editor input[type=number] { border: 1px solid var(--line); border-radius: 5px; background: var(--panel); padding: 6px; font-size: 13px; width: 100%; }
+.editor textarea { min-height: 54px; resize: vertical; }
+.editor .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.editor input[type=range] { accent-color: var(--accent); width: 100%; }
+.editor .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.group-title { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--muted); margin: 4px 0 -4px; }
+.leftover { display: grid; gap: 6px; padding: 9px 10px; border-top: 1px solid var(--line); }
+.leftover .t { font-size: 13px; overflow-wrap: anywhere; }
+.leftover .acts { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.leftover select { border: 1px solid var(--line); border-radius: 5px; background: var(--panel); padding: 3px 6px; font-size: 12.5px; }
+.export { border: 1px solid var(--ok); border-radius: 6px; padding: 12px; display: grid; gap: 10px; background: var(--ok-soft); }
+.export.locked { border-color: var(--line); background: var(--sunk); }
+.export h3 { margin: 0; font-size: 14px; }
+.export p { margin: 0; font-size: 12.5px; color: var(--muted); }
+.export .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 13px; }
+.export select, .export input { border: 1px solid var(--line); border-radius: 5px; background: var(--panel); padding: 4px 6px; font-size: 13px; }
+.export input { width: 90px; font-variant-numeric: tabular-nums; }
+.empty { color: var(--muted); font-size: 13px; padding: 18px 4px; text-align: center; }
+.toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 6px; font-size: 13px; max-width: calc(100% - 32px); z-index: 10; }
+
+@media (max-width: 1080px) {
+  .app { height: auto; min-height: 100%; }
+  .desk { grid-template-columns: minmax(0, 1fr); }
+  .col { overflow: visible; }
+  .stage.col { overflow: visible; }
+  .stage-scroll { max-height: 75vh; }
+  .agents { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <header class="bar">
+    <div class="brand"><h1>웹툰 <em>식자</em> 스튜디오</h1><span class="badge" id="sampleBadge">예시 원고</span></div>
+    <div class="bar-spacer"></div>
+    <div class="progress" aria-live="polite"><span id="progText">검수 0/0</span><div class="meter"><i id="progBar"></i></div></div>
+  </header>
+
+  <div class="desk">
+    <aside class="col rail" aria-label="작업 설정과 에이전트">
+      <section class="sec">
+        <h2>원고</h2>
+        <label class="drop" id="drop">
+          <span class="file" id="fileName">예시 원고.png</span>
+          <span class="meta" id="fileMeta">800 × 2400 px</span>
+          <span><input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp"></span>
+          <span class="meta">말풍선만 그려진 PNG·JPG. 끌어다 놓거나 붙여넣어도 돼요.</span>
+        </label>
+      </section>
+      <section class="sec">
+        <h2><label for="script">대본</label></h2>
+        <textarea id="script" spellcheck="false"></textarea>
+        <p class="hint">한 줄에 대사 하나. <code>화자: 대사</code> 형식이면 화자를 인식해요. <code>나레이션:</code>, <code>효과음:</code>, 괄호 속 대사(속마음)는 스타일로 반영돼요.</p>
+      </section>
+      <section class="sec">
+        <details class="params">
+          <summary>검출 설정</summary>
+          <div class="field"><label for="pThr">흰색 기준 밝기</label><output id="oThr">232</output><input type="range" id="pThr" min="200" max="250" value="232"></div>
+          <div class="field"><label for="pFill">채움 비율 하한</label><output id="oFill">0.50</output><input type="range" id="pFill" min="30" max="80" value="50"></div>
+          <p class="hint">회색 말풍선이 안 잡히면 밝기를 낮추고, 하늘·벽이 잡히면 채움 비율을 올리세요.</p>
+        </details>
+      </section>
+      <section class="sec run">
+        <button class="btn primary" id="runBtn">에이전트 실행</button>
+        <span class="hint" id="runHint">검출 → 매칭 → 식자 → 검수 순서로 진행해요. 검수만 직접 승인합니다.</span>
+      </section>
+      <section class="sec">
+        <h2>에이전트</h2>
+        <ol class="agents" id="agents"></ol>
+      </section>
+    </aside>
+
+    <main class="col stage" aria-label="원고">
+      <div class="stage-tools">
+        <div class="seg" role="group" aria-label="보기">
+          <button id="vOut" aria-pressed="true">식자본</button><button id="vSrc" aria-pressed="false">원본</button>
+        </div>
+        <button class="btn small" id="ovBtn" aria-pressed="true">번호 표시</button>
+        <button class="btn small" id="addBoxBtn" aria-pressed="false">말풍선 직접 추가</button>
+        <span class="mode-note" id="modeNote" hidden></span>
+      </div>
+      <div class="stage-scroll" id="stageScroll">
+        <div class="page" id="page">
+          <img id="srcImg" alt="원본 원고" hidden>
+          <canvas id="out" aria-label="식자된 원고"></canvas>
+          <div class="overlay" id="overlay"></div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="col sheet" aria-label="검수">
+      <div class="sheet-head">
+        <h2>검수 · 항목별 승인</h2>
+        <p>검수 에이전트가 먼저 점검한 의견을 보고 항목마다 승인하거나 반려하세요. 반려하면 바로 고칠 수 있고, 고친 말풍선은 다시 승인해야 해요. 모두 승인해야 저장할 수 있어요.</p>
+      </div>
+      <div class="sheet-body" id="sheet"></div>
+    </aside>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+'use strict';
+// ─────────────── styles (Python letter.py와 같은 값, 가로 800px 기준) ───────────────
+const STYLES = {
+  dialogue:  { label: '대사',     family: 'Nanum Gothic',     weight: 700, size: 30, color: '#111111' },
+  whisper:   { label: '속삭임',   family: 'Nanum Gothic',     weight: 400, size: 24, color: '#333333' },
+  thought:   { label: '속마음',   family: 'Nanum Myeongjo',   weight: 700, size: 28, color: '#222222' },
+  shout:     { label: '외침',     family: 'Black Han Sans',   weight: 400, size: 40, color: '#111111', lineSpacing: 1.12 },
+  narration: { label: '나레이션', family: 'Nanum Myeongjo',   weight: 700, size: 27, color: '#111111', shape: 'rect' },
+  hand:      { label: '손글씨',   family: 'Nanum Pen Script', weight: 400, size: 36, color: '#222222' },
+  sfx:       { label: '효과음',   family: 'Black Han Sans',   weight: 400, size: 72, color: '#ffffff', stroke: 6, strokeColor: '#111111', lineSpacing: 1.0 },
+};
+const BASE = { lineSpacing: 1.28, stroke: 0, strokeColor: '#ffffff', minScale: 0.6, shape: null };
+const INNER = { ellipse: 0.72, rect: 0.86 };
+const CHECKS = [['match', '대사 매칭'], ['style', '스타일'], ['fit', '글자 맞춤'], ['position', '위치']];
+const st = k => Object.assign({}, BASE, STYLES[k] || STYLES.dialogue);
+const fontStr = (s, px) => `${s.weight} ${px}px "${s.family}", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
+
+const SAMPLE_SCRIPT = `나레이션: 그 여름, 우리는 같은 버스 정류장에서 처음 만났다.
+지우: 저기… 혹시 이 버스, 시청 가요?
+민호: 아, 네! 저도 거기 가요.
+지우: (생각보다 친절하네.)
+민호: 잠깐, 우리 어디서 본 적 있지 않아요?!
+효과음: 쿵!`;
+
+const S = {
+  img: null, url: null, W: 0, H: 0, name: '', isSample: true,
+  lines: [], bubbles: [], items: [], leftover: [], nextItem: 1,
+  global: { lines: { s: 'pending' }, empty: { s: 'pending' } }, globalKey: '',
+  agents: {
+    detect: { n: 1, name: '검출 에이전트', role: '흰 닫힌 영역에서 말풍선 후보를 찾고 읽는 순서로 번호를 매겨요', engine: '규칙 기반 · 브라우저', state: 'idle', log: [] },
+    match:  { n: 2, name: '매칭 에이전트', role: '그림과 대본을 보고 대사를 말풍선에 배정하고 스타일을 골라요', engine: '확인 중…', state: 'idle', log: [] },
+    render: { n: 3, name: '식자 에이전트', role: '폰트·자동 줄바꿈·크기 맞춤으로 글자를 얹어요', engine: '캔버스 렌더러 · 한글 폰트 4종', state: 'idle', log: [] },
+    review: { n: 4, name: '검수 에이전트', role: '항목별로 먼저 점검하고 의견을 남겨요. 승인은 사람이 해요', engine: '규칙 점검', state: 'idle', log: [] },
+  },
+  sample: null, limits: null, downloads: null,
+  view: 'out', overlay: true, sel: null, mode: null, editing: new Set(), busy: false, armed: 0,
+};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let toastT;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3600); }
+function log(agent, msg, err) { const a = S.agents[agent]; a.log.push({ msg, err }); if (a.log.length > 5) a.log.shift(); renderAgents(); }
+function setAgent(agent, state, engine) { S.agents[agent].state = state; if (engine) S.agents[agent].engine = engine; renderAgents(); }
+const tick = () => new Promise(r => setTimeout(r, 30));
+
+// ─────────────── 대본 ───────────────
+function guessStyle(speaker, text) {
+  const sp = speaker.replace(/\s/g, '').toLowerCase();
+  if (/^(나레이션|내레이션|n|na|narration)$/.test(sp)) return 'narration';
+  if (/^(효과음|sfx|fx)$/.test(sp)) return 'sfx';
+  if (/^(메모|쪽지|손글씨)$/.test(sp)) return 'hand';
+  if (/속삭/.test(sp)) return 'whisper';
+  if (/^[(（].*[)）]$/.test(text)) return 'thought';
+  if (/[!！]{2,}|\?!|!\?/.test(text)) return 'shout';
+  return 'dialogue';
+}
+function parseScript(src) {
+  return src.split(/\r?\n/).map(t => t.trim()).filter(Boolean).map((raw, i) => {
+    let speaker = '', text = raw;
+    const m = raw.match(/^([^:：]{1,12}?)\s*[:：]\s*(.+)$/);
+    if (m) { speaker = m[1].trim(); text = m[2].trim(); }
+    text = text.replace(/\\n/g, '\n');
+    return { n: i + 1, speaker, text, hint: guessStyle(speaker, text) };
+  });
+}
+
+// ─────────────── 예시 원고 ───────────────
+function makeSample() {
+  const W = 800, H = 2400, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+  const panel = (x, y, w, h, c1, c2) => {
+    const gr = g.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, c1); gr.addColorStop(1, c2);
+    g.fillStyle = gr; g.fillRect(x, y, w, h);
+  };
+  const border = (x, y, w, h) => { g.lineWidth = 4; g.strokeStyle = '#111'; g.strokeRect(x, y, w, h); };
+  const person = (x, y, r, hair, shirt, bottom) => {
+    g.fillStyle = shirt; g.beginPath(); g.moveTo(x - r * 1.7, bottom); g.quadraticCurveTo(x - r * 1.6, y + r * 1.2, x, y + r * 1.1);
+    g.quadraticCurveTo(x + r * 1.6, y + r * 1.2, x + r * 1.7, bottom); g.closePath(); g.fill();
+    g.fillStyle = '#e9bf98'; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+    g.fillStyle = hair; g.beginPath(); g.arc(x, y - r * 0.15, r * 1.04, Math.PI * 1.02, Math.PI * 1.98); g.quadraticCurveTo(x, y - r * 0.5, x - r * 1.03, y - r * 0.1); g.fill();
+    g.fillStyle = '#2a2320'; g.beginPath(); g.arc(x - r * 0.35, y + r * 0.1, r * 0.08, 0, 7); g.arc(x + r * 0.35, y + r * 0.1, r * 0.08, 0, 7); g.fill();
+  };
+  const bubble = (cx, cy, rx, ry, tail) => {
+    g.lineWidth = 6; g.strokeStyle = '#111'; g.lineJoin = 'round';
+    const ell = () => { g.beginPath(); g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); };
+    const tri = () => { g.beginPath(); g.moveTo(...tail[0]); g.lineTo(...tail[2]); g.lineTo(...tail[1]); g.closePath(); };
+    ell(); g.stroke(); if (tail) { tri(); g.stroke(); }
+    g.fillStyle = '#fff'; ell(); g.fill(); if (tail) { tri(); g.fill(); }
+  };
+  const dotBubble = (x, y, r) => { g.lineWidth = 4; g.strokeStyle = '#111'; g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.stroke(); };
+  // 1컷: 정류장
+  panel(30, 40, 740, 700, '#9fcbe8', '#c4e0f2');
+  g.fillStyle = '#7d8a97'; g.fillRect(30, 600, 740, 140);
+  g.fillStyle = '#4a5866'; g.fillRect(90, 330, 14, 280); g.fillRect(70, 300, 120, 50);
+  person(590, 520, 55, '#3a2a22', '#d9786c', 740);
+  g.fillStyle = '#fff'; g.fillRect(60, 70, 340, 96); g.lineWidth = 3; g.strokeStyle = '#111'; g.strokeRect(60, 70, 340, 96);
+  bubble(470, 300, 200, 92, [[520, 360], [580, 350], [585, 430]]);
+  border(30, 40, 740, 700);
+  // 2컷: 마주 봄
+  panel(30, 790, 740, 760, '#e6d2b2', '#d8bd95');
+  person(220, 1370, 60, '#1f1f24', '#4f6fa8', 1550);
+  person(590, 1380, 55, '#3a2a22', '#d9786c', 1550);
+  bubble(250, 1000, 175, 85, [[215, 1060], [265, 1065], [228, 1170]]);
+  bubble(560, 1130, 170, 78, null); dotBubble(600, 1232, 13); dotBubble(612, 1268, 8);
+  border(30, 790, 740, 760);
+  // 3컷: 외침 + 효과음 자리
+  panel(30, 1600, 740, 760, '#c6dcc6', '#a9c7aa');
+  g.save(); g.beginPath(); g.rect(30, 1600, 740, 760); g.clip();
+  g.strokeStyle = 'rgba(30,40,30,.35)'; g.lineWidth = 3;
+  for (let a = 0; a < Math.PI * 2; a += Math.PI / 18) { g.beginPath(); g.moveTo(250 + Math.cos(a) * 140, 2150 + Math.sin(a) * 140); g.lineTo(250 + Math.cos(a) * 420, 2150 + Math.sin(a) * 420); g.stroke(); }
+  g.restore();
+  person(250, 2150, 80, '#1f1f24', '#4f6fa8', 2360);
+  g.beginPath();
+  for (let i = 0; i <= 36; i++) { const a = i / 36 * Math.PI * 2, k = i % 2 ? 1.0 : 1.12; const x = 430 + Math.cos(a) * 265 * k, y = 1790 + Math.sin(a) * 120 * k; i ? g.lineTo(x, y) : g.moveTo(x, y); }
+  g.closePath(); g.fillStyle = '#fff'; g.fill(); g.lineWidth = 5; g.strokeStyle = '#111'; g.lineJoin = 'miter'; g.stroke();
+  border(30, 1600, 740, 760);
+  return c;
+}
+
+// ─────────────── 1. 검출 (letter.py detect 이식) ───────────────
+function detect(img, W, H, threshold, minFill) {
+  const s = Math.min(1, 400 / W), w = Math.max(1, Math.round(W * s)), h = Math.max(1, Math.round(H * s));
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d', { willReadFrequently: true }); g.imageSmoothingQuality = 'high';
+  g.drawImage(img, 0, 0, w, h);
+  const px = g.getImageData(0, 0, w, h).data, N = w * h;
+  const mask = new Uint8Array(N);
+  for (let i = 0, j = 0; i < N; i++, j += 4) mask[i] = (px[j] * 299 + px[j + 1] * 587 + px[j + 2] * 114) / 1000 >= threshold ? 1 : 0;
+  const lab = new Int32Array(N), q = new Int32Array(N), comps = [];
+  for (let i = 0; i < N; i++) {
+    if (!mask[i] || lab[i]) continue;
+    const id = comps.length + 1; let qh = 0, qt = 0; q[qt++] = i; lab[i] = id;
+    let x0 = w, x1 = -1, y0 = h, y1 = -1, area = 0, edge = false;
+    while (qh < qt) {
+      const p = q[qh++], x = p % w, y = (p / w) | 0; area++;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      if (x === 0 || x === w - 1) edge = true;
+      if (x > 0 && mask[p - 1] && !lab[p - 1]) { lab[p - 1] = id; q[qt++] = p - 1; }
+      if (x < w - 1 && mask[p + 1] && !lab[p + 1]) { lab[p + 1] = id; q[qt++] = p + 1; }
+      if (y > 0 && mask[p - w] && !lab[p - w]) { lab[p - w] = id; q[qt++] = p - w; }
+      if (y < h - 1 && mask[p + w] && !lab[p + w]) { lab[p + w] = id; q[qt++] = p + w; }
+    }
+    comps.push({ id, x0, x1, y0, y1, area, edge });
+  }
+  const found = [];
+  for (const cp of comps) {
+    if (cp.edge) continue;
+    const bw = cp.x1 - cp.x0 + 1, bh = cp.y1 - cp.y0 + 1;
+    if (bw < 0.08 * w || bh < 40 * s || bw > 0.95 * w) continue;
+    const fill = cp.area / (bw * bh);
+    if (fill < minFill) continue;
+    // 구멍 메우기 + 거리 변환 → 꼬리를 피한 몸통 중심
+    const cw = bw + 2, ch = bh + 2, m = new Uint8Array(cw * ch);
+    for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) if (lab[(cp.y0 + y) * w + cp.x0 + x] === cp.id) m[(y + 1) * cw + x + 1] = 1;
+    const out = new Uint8Array(cw * ch); let qh = 0, qt = 0; out[0] = 1; q[qt++] = 0;
+    while (qh < qt) {
+      const p = q[qh++], x = p % cw, y = (p / cw) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= cw || ny >= ch) continue;
+        const np = ny * cw + nx; if (!m[np] && !out[np]) { out[np] = 1; q[qt++] = np; }
+      }
+    }
+    const d = new Float32Array(cw * ch), INF = 1e9, R2 = Math.SQRT2;
+    for (let i = 0; i < cw * ch; i++) d[i] = out[i] ? 0 : INF;
+    for (let y = 1; y < ch - 1; y++) for (let x = 1; x < cw - 1; x++) { const p = y * cw + x; if (!d[p]) continue; d[p] = Math.min(d[p], d[p - 1] + 1, d[p - cw] + 1, d[p - cw - 1] + R2, d[p - cw + 1] + R2); }
+    let mx = 0;
+    for (let y = ch - 2; y >= 1; y--) for (let x = cw - 2; x >= 1; x--) { const p = y * cw + x; if (!d[p]) continue; d[p] = Math.min(d[p], d[p + 1] + 1, d[p + cw] + 1, d[p + cw + 1] + R2, d[p + cw - 1] + R2); if (d[p] > mx) mx = d[p]; }
+    let sx = 0, sy = 0, sn = 0;
+    for (let y = 1; y < ch - 1; y++) for (let x = 1; x < cw - 1; x++) if (d[y * cw + x] >= 0.8 * mx) { sx += x - 1; sy += y - 1; sn++; }
+    const cx = sn ? sx / sn : bw / 2, cy = sn ? sy / sn : bh / 2;
+    found.push({
+      box: [Math.round(cp.x0 / s), Math.round(cp.y0 / s), Math.round(bw / s), Math.round(bh / s)],
+      center: [Math.round((cp.x0 + cx + 0.5) / s), Math.round((cp.y0 + cy + 0.5) / s)],
+      shape: fill > 0.9 ? 'rect' : 'ellipse',
+    });
+  }
+  const band = Math.max(40, Math.floor(W / 20));
+  found.sort((a, b) => Math.floor(a.box[1] / band) - Math.floor(b.box[1] / band) || a.box[0] - b.box[0]);
+  found.forEach((b, k) => b.id = k + 1);
+  return found;
+}
+
+// ─────────────── 3. 식자 (letter.py render 이식) ───────────────
+const mctx = document.createElement('canvas').getContext('2d');
+function greedyWrap(text, width, maxW) {
+  const lines = [];
+  for (const para of text.split('\n')) {
+    let cur = '';
+    for (let wd of para.split(' ')) {
+      const trial = cur ? cur + ' ' + wd : wd;
+      if (width(trial) <= maxW) { cur = trial; continue; }
+      if (cur) lines.push(cur);
+      cur = '';
+      let ch = [...wd];
+      while (width(wd) > maxW && ch.length > 1) {
+        let k = ch.length;
+        while (k > 1 && width(ch.slice(0, k).join('')) > maxW) k--;
+        lines.push(ch.slice(0, k).join('')); ch = ch.slice(k); wd = ch.join('');
+      }
+      cur = wd;
+    }
+    lines.push(cur);
+  }
+  return lines;
+}
+function wrap(text, width, maxW) {
+  const n = greedyWrap(text, width, maxW).length;
+  let lo = maxW * 0.4, hi = maxW;
+  while (hi - lo > 2) { const mid = (lo + hi) / 2; if (greedyWrap(text, width, mid).length === n) hi = mid; else lo = mid; }
+  return greedyWrap(text, width, hi);
+}
+function layoutText(text, s, size, maxW, maxH, doWrap, size0, strokeBase) {
+  const stroke = s.stroke ? Math.round(strokeBase * size / size0) : 0;
+  mctx.font = fontStr(s, size);
+  const width = t => mctx.measureText(t).width + 2 * stroke;
+  const lines = doWrap ? wrap(text, width, maxW) : text.split('\n');
+  const lh = size * s.lineSpacing;
+  const bw = Math.max(...lines.map(width)), bh = lh * (lines.length - 1) + size + 2 * stroke;
+  return { stroke, lines, lh, bw, bh, ok: bw <= maxW + 0.5 && bh <= maxH + 0.5 };
+}
+const bubbleById = id => S.bubbles.find(b => b.id === id);
+function place(ctx, it, scale) {
+  const s = st(it.style), size0 = Math.max(8, Math.round(s.size * scale * (it.sizeMul || 1))), strokeBase = (s.stroke || 0) * scale;
+  let cx, cy, lay, size = size0, status = 'ok', box = null;
+  if (it.at) {
+    [cx, cy] = it.at; lay = layoutText(it.text, s, size, 1e9, 1e9, false, size0, strokeBase);
+  } else {
+    const b = bubbleById(it.bubble); if (!b) return { status: 'missing' };
+    box = b.box; const [x, y, w, h] = b.box; [cx, cy] = b.center;
+    const shape = s.shape || b.shape, f = it.inner ?? INNER[shape];
+    const maxW = 2 * Math.min(cx - x, x + w - cx) * f, maxH = 2 * Math.min(cy - y, y + h - cy) * f;
+    const minSize = Math.max(8, Math.round(size0 * s.minScale));
+    for (;;) { lay = layoutText(it.text, s, size, maxW, maxH, true, size0, strokeBase); if (lay.ok || size <= minSize) break; size--; }
+    status = !lay.ok ? 'overflow' : size < size0 ? 'shrunk' : 'ok';
+  }
+  cx += it.offset[0]; cy += it.offset[1];
+  ctx.save(); ctx.translate(cx, cy); if (it.rotate) ctx.rotate(-it.rotate * Math.PI / 180);
+  ctx.font = fontStr(s, size); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const top = -lay.bh / 2 + lay.stroke;
+  lay.lines.forEach((ln, i) => {
+    const yy = top + i * lay.lh + size / 2;
+    if (lay.stroke) { ctx.lineWidth = 2 * lay.stroke; ctx.lineJoin = 'round'; ctx.strokeStyle = s.strokeColor; ctx.strokeText(ln, 0, yy); }
+    ctx.fillStyle = s.color; ctx.fillText(ln, 0, yy);
+  });
+  ctx.restore();
+  return { size0, size, status, box, bbox: [cx - lay.bw / 2, cy - lay.bh / 2, lay.bw, lay.bh], nLines: lay.lines.length };
+}
+async function ensureFonts() {
+  const text = [...S.items.map(i => i.text), ...S.leftover.map(l => l.text), '가나다ABC!?…'].join('');
+  const seen = new Set(), loads = [];
+  for (const s of Object.values(STYLES)) { const k = s.weight + s.family; if (seen.has(k)) continue; seen.add(k); loads.push(document.fonts.load(fontStr(s, 32), text).catch(() => null)); }
+  await Promise.race([Promise.all(loads), new Promise(r => setTimeout(r, 8000))]);
+}
+async function renderAll() {
+  await ensureFonts();
+  const c = $('out');
+  if (c.width !== S.W || c.height !== S.H) { c.width = S.W; c.height = S.H; }
+  const ctx = c.getContext('2d'); ctx.clearRect(0, 0, S.W, S.H); ctx.drawImage(S.img, 0, 0, S.W, S.H);
+  const scale = S.W / 800;
+  for (const it of S.items) it.r = place(ctx, it, scale);
+}
+
+// ─────────────── 2. 매칭 ───────────────
+function newItem(line, bubble, style, source, extra) {
+  const it = { id: S.nextItem++, line: line?.n ?? null, speaker: line?.speaker || '', text: line ? line.text : '', style, bubble, at: null, sizeMul: 1, inner: null, offset: [0, 0], rotate: 0, source, confidence: null, reason: '', checks: {}, r: null };
+  for (const [k] of CHECKS) it.checks[k] = { s: 'pending', agent: null, claude: null };
+  return Object.assign(it, extra || {});
+}
+function matchByRules() {
+  const free = S.bubbles.filter(b => !b.ignored);
+  const items = [], leftover = [];
+  let bi = 0;
+  for (const l of S.lines) {
+    if (l.hint === 'sfx' || bi >= free.length) { leftover.push(l); continue; }
+    items.push(newItem(l, free[bi++].id, l.hint, 'rule', { confidence: 'medium', reason: '읽는 순서(위→아래, 왼→오)대로 배정했어요' }));
+  }
+  return { items, leftover };
+}
+function annotatedPieces(maxCount) {
+  let w = Math.min(800, S.W), k = w / S.W, Hs = S.H * k, ph = 2 * w, n = Math.ceil(Hs / ph);
+  while (n > maxCount && w > 320) { w -= 80; k = w / S.W; Hs = S.H * k; ph = 2 * w; n = Math.ceil(Hs / ph); }
+  if (n > maxCount) { n = maxCount; ph = Math.ceil(Hs / n); }
+  const pieces = [];
+  for (let i = 0; i < n; i++) {
+    const top = i * ph, hh = Math.min(ph, Math.ceil(Hs - top)); if (hh <= 0) break;
+    const c = document.createElement('canvas'); c.width = Math.round(w); c.height = hh; const g = c.getContext('2d');
+    g.drawImage(S.img, 0, top / k, S.W, hh / k, 0, 0, c.width, hh);
+    g.lineWidth = 3; g.font = '700 22px sans-serif'; g.textBaseline = 'top';
+    for (const b of S.bubbles) {
+      const [x, y, bw, bh] = b.box.map(v => v * k); if (y + bh < top || y > top + hh) continue;
+      g.strokeStyle = '#ff2d55'; g.strokeRect(x, y - top, bw, bh);
+      g.lineWidth = 4; g.strokeStyle = '#fff'; g.strokeText(String(b.id), x + 5, y - top + 4); g.fillStyle = '#ff2d55'; g.fillText(String(b.id), x + 5, y - top + 4); g.lineWidth = 3;
+    }
+    pieces.push({ c, y0: Math.round(top / k), y1: Math.round((top + hh) / k) });
+  }
+  return pieces;
+}
+const toBlob = (c, type = 'image/jpeg', q = 0.86) => new Promise(r => c.toBlob(r, type, q));
+async function matchByClaude() {
+  const maxCount = Math.max(1, S.limits.images.maxCount);
+  const pieces = annotatedPieces(Math.min(maxCount, 8));
+  log('match', `원고를 조각 ${pieces.length}장으로 나눠 Claude에게 보냈어요`);
+  const blobs = await Promise.all(pieces.map(p => toBlob(p.c)));
+  const prompt = `너는 웹툰 식자 작업의 "매칭 에이전트"다. 첨부 이미지 ${pieces.length}장은 세로 원고(원본 ${S.W}×${S.H}px)를 위에서 아래로 자른 조각이다(${pieces.map((p, i) => `${i + 1}번: y ${p.y0}~${p.y1}`).join(', ')}). 빨간 박스와 번호는 자동 검출된 말풍선 후보다.
+
+할 일: 대본의 각 줄을 알맞은 말풍선 번호에 배정하고 스타일을 고른다.
+근거: 읽는 순서(위→아래, 같은 높이면 왼→오), 말풍선 꼬리가 가리키는 인물, 말풍선 모양(사각 박스=나레이션, 점·구름 꼬리=속마음, 뾰족한 테두리=외침).
+규칙:
+- 한 말풍선에 대본 한 줄. 같은 줄을 두 번 쓰지 않는다.
+- 하늘·벽처럼 말풍선이 아닌 흰 면으로 보이는 후보 번호는 not_bubbles에 넣는다.
+- 효과음 줄은 말풍선에 넣지 않는다(배정하지 말 것).
+- 확신이 없으면 confidence를 "low"로 하고 reason에 이유를 쓴다.
+스타일: dialogue(일반 대사), whisper(속삭임), thought(속마음), shout(외침), narration(나레이션), hand(손글씨), sfx(효과음)
+
+말풍선 후보: ${JSON.stringify(S.bubbles.map(b => ({ id: b.id, box: b.box, shape: b.shape })))}
+
+대본:
+${S.lines.map(l => `${l.n}. ${l.speaker ? l.speaker + ': ' : ''}${l.text.replace(/\n/g, ' / ')}`).join('\n')}
+
+JSON 하나만 답하라:
+{"items":[{"bubble":번호,"line":대본줄번호,"style":"dialogue","confidence":"high|medium|low","reason":"한국어 한 문장 근거"}],"not_bubbles":[번호]}`;
+  const res = await S.sample.json(prompt, { images: blobs, modelTier: 'default' });
+  const usedB = new Set(), usedL = new Set(), items = [];
+  for (const b of S.bubbles) b.ignored = false;
+  for (const nb of res?.not_bubbles || []) { const b = bubbleById(Number(nb)); if (b) b.ignored = true; }
+  for (const r of res?.items || []) {
+    const b = bubbleById(Number(r.bubble)), l = S.lines.find(x => x.n === Number(r.line));
+    if (!b || !l || usedB.has(b.id) || usedL.has(l.n) || b.ignored) continue;
+    usedB.add(b.id); usedL.add(l.n);
+    const style = STYLES[r.style] ? r.style : l.hint;
+    items.push(newItem(l, b.id, style, 'claude', { confidence: ['high', 'medium', 'low'].includes(r.confidence) ? r.confidence : 'medium', reason: String(r.reason || '').slice(0, 160) }));
+  }
+  items.sort((a, b) => a.line - b.line);
+  return { items, leftover: S.lines.filter(l => !usedL.has(l.n)) };
+}
+
+// ─────────────── 4. 검수 (규칙 점검 + Claude 의견) ───────────────
+function ruleReview(it) {
+  const c = it.checks, r = it.r || {};
+  const conf = { high: 'pass', medium: 'info', low: 'warn' };
+  if (it.source === 'claude') { c.match.agent = null; c.match.claude = { level: conf[it.confidence] || 'info', note: `확신도 ${({ high: '높음', medium: '보통', low: '낮음' })[it.confidence] || '보통'} · ${it.reason || '근거 없음'}` }; }
+  else c.match.agent = it.source === 'rule' ? { level: 'info', note: it.reason + '. 그림과 맞는지 확인하세요' } : { level: 'pass', note: '직접 지정했어요' };
+  const b = bubbleById(it.bubble), s = st(it.style), line = S.lines.find(l => l.n === it.line);
+  if (it.style === 'narration' && b && b.shape !== 'rect') c.style.agent = { level: 'warn', note: '나레이션인데 둥근 말풍선이에요' };
+  else if (it.style !== 'narration' && b && b.shape === 'rect' && it.style !== 'hand') c.style.agent = { level: 'warn', note: `사각 박스인데 ${s.label} 스타일이에요` };
+  else if (line && line.hint !== it.style && it.source !== 'manual') c.style.agent = { level: 'info', note: `대본 표기로는 ${STYLES[line.hint].label}, ${it.source === 'claude' ? 'Claude' : '에이전트'}는 ${s.label}을 골랐어요` };
+  else c.style.agent = { level: 'pass', note: `${s.label} · ${s.family}` };
+  c.fit.agent = r.status === 'overflow' ? { level: 'fail', note: `최소 크기(${r.size}px)로도 넘쳐요. 줄을 나누거나(\\n) 여백을 늘리세요` }
+    : r.status === 'shrunk' ? { level: 'warn', note: `${r.size0}px → ${r.size}px로 줄여서 들어갔어요 (${r.nLines}줄)` }
+    : r.status === 'missing' ? { level: 'fail', note: '배정된 말풍선이 없어요' }
+    : { level: 'pass', note: `기본 크기 ${r.size}px로 들어갔어요 (${r.nLines}줄)` };
+  if (it.at) c.position.agent = { level: 'info', note: `직접 찍은 위치 (${Math.round(it.at[0] + it.offset[0])}, ${Math.round(it.at[1] + it.offset[1])})${it.rotate ? ` · ${it.rotate}° 회전` : ''}` };
+  else if (r.box) {
+    const [x, y, w, h] = r.box, [tx, ty, tw, th] = r.bbox, inside = tx >= x - 2 && ty >= y - 2 && tx + tw <= x + w + 2 && ty + th <= y + h + 2;
+    const moved = it.offset[0] || it.offset[1] ? ` · 중심에서 (${it.offset[0]}, ${it.offset[1]})px 옮김` : '';
+    c.position.agent = inside ? { level: 'pass', note: '말풍선 몸통 중심에 놓였어요' + moved } : { level: 'warn', note: '글자가 말풍선 박스 밖으로 나가요' + moved };
+  } else c.position.agent = { level: 'fail', note: '위치를 정할 수 없어요' };
+}
+function cropFor(it) {
+  const src = $('out'), [bx, by, bw, bh] = it.r.box || it.r.bbox, m = 0.15;
+  const x = Math.max(0, bx - bw * m), y = Math.max(0, by - bh * m), w = Math.min(S.W - x, bw * (1 + 2 * m)), h = Math.min(S.H - y, bh * (1 + 2 * m));
+  const k = Math.min(1, 480 / Math.max(w, h)), c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
+  c.getContext('2d').drawImage(src, x, y, w, h, 0, 0, c.width, c.height);
+  return c;
+}
+async function claudeReview(items) {
+  const per = Math.max(1, Math.min(S.limits.images.maxCount, 10));
+  for (let i = 0; i < items.length; i += per) {
+    const batch = items.slice(i, i + per).filter(it => it.r && it.r.bbox);
+    if (!batch.length) continue;
+    log('review', `식자된 말풍선 ${batch.length}개를 Claude가 보는 중…`);
+    const blobs = await Promise.all(batch.map(it => toBlob(cropFor(it))));
+    const prompt = `너는 웹툰 식자 작업의 "검수 에이전트"다. 첨부 이미지 ${batch.length}장은 글자를 얹은 말풍선을 잘라낸 것이다. 순서대로:
+${batch.map((it, j) => `${j + 1}번 이미지 = 항목 ${it.id}: 화자 "${it.speaker || '없음'}", 스타일 ${st(it.style).label}, 의도한 대사 "${it.text.replace(/\n/g, ' / ')}"`).join('\n')}
+
+각 이미지마다 판단하라:
+- fit: 글자가 말풍선 테두리·꼬리에 닿거나 넘치지 않고, 줄바꿈이 자연스럽고 읽기 쉬우면 "ok", 아니면 "check"
+- style: 장면·말풍선 모양에 비해 스타일(글꼴 느낌·크기)이 어울리면 "ok", 아니면 "check"
+- note: 사람이 승인할 때 참고할 한국어 한 문장(문제가 있으면 무엇을 고치면 되는지)
+JSON 하나만 답하라: {"reviews":[{"item":항목번호,"fit":"ok|check","style":"ok|check","note":"..."}]}`;
+    const res = await S.sample.json(prompt, { images: blobs, modelTier: 'quick' });
+    for (const rv of res?.reviews || []) {
+      const it = S.items.find(x => x.id === Number(rv.item)); if (!it) continue;
+      const note = String(rv.note || '').slice(0, 160);
+      it.checks.fit.claude = { level: rv.fit === 'ok' ? 'pass' : 'warn', note };
+      it.checks.style.claude = { level: rv.style === 'ok' ? 'pass' : 'warn', note: rv.style === 'ok' ? '장면에 어울려요' : note };
+    }
+  }
+}
+function globalReview() {
+  const free = S.bubbles.filter(b => !b.ignored && !S.items.some(i => i.bubble === b.id));
+  const key = S.leftover.map(l => l.n).join(',') + '|' + free.map(b => b.id).join(',');
+  if (key !== S.globalKey) { S.global.lines.s = 'pending'; S.global.empty.s = 'pending'; S.globalKey = key; }
+  S.global.lines.agent = S.leftover.length ? { level: 'warn', note: `대사 ${S.leftover.length}줄이 아직 배치되지 않았어요. 아래에서 말풍선을 정하거나 위치를 찍어 주세요. 일부러 뺀 거라면 승인하세요` } : { level: 'pass', note: '대본의 모든 줄이 배치됐어요' };
+  S.global.empty.agent = free.length ? { level: 'warn', note: `대사가 없는 말풍선: ${free.map(b => '#' + b.id).join(', ')}. 비워 두는 게 맞으면 승인하세요` } : { level: 'pass', note: '모든 말풍선에 대사가 들어갔어요' };
+  S.freeBubbles = free;
+}
+
+// ─────────────── 파이프라인 ───────────────
+const claudeReady = () => !!(S.sample && S.limits && S.limits.images);
+async function runPipeline(useClaude) {
+  if (S.busy) return; S.busy = true; $('runBtn').disabled = true;
+  for (const a of Object.values(S.agents)) { a.state = 'idle'; a.log = []; }
+  S.items = []; S.leftover = []; S.editing.clear(); S.sel = null; S.globalKey = ''; S.nextItem = 1;
+  S.lines = parseScript($('script').value);
+  renderSheet(); renderOverlay();
+  try {
+    setAgent('detect', 'running'); await tick();
+    S.bubbles = detect(S.img, S.W, S.H, +$('pThr').value, +$('pFill').value / 100);
+    log('detect', `말풍선 후보 ${S.bubbles.length}개 (${S.bubbles.filter(b => b.shape === 'rect').length}개는 사각 박스)`);
+    if (!S.bubbles.length) log('detect', '찾지 못했어요. 흰색 기준 밝기를 낮춰 보세요', true);
+    setAgent('detect', 'done'); renderOverlay();
+
+    setAgent('match', 'running'); await tick();
+    log('match', `대본 ${S.lines.length}줄`);
+    let m = null;
+    if (useClaude && claudeReady() && S.bubbles.length && S.lines.length) {
+      setAgent('match', 'running', 'Claude · 원고 이미지 판독');
+      try { m = await matchByClaude(); log('match', `${m.items.length}줄 배정 · 말풍선 아님 ${S.bubbles.filter(b => b.ignored).length}개`); }
+      catch (e) { log('match', `Claude 매칭 실패(${e.code || e.message}) → 규칙 기반으로 진행`, true); }
+    }
+    if (!m) {
+      if (!useClaude || !claudeReady()) setAgent('match', 'running', claudeReady() ? '규칙 기반 (예시 데이터 — 실행하면 Claude 사용)' : '규칙 기반 (Claude 연결 안 됨)');
+      for (const b of S.bubbles) b.ignored = false;
+      m = matchByRules(); log('match', `읽는 순서대로 ${m.items.length}줄 배정`);
+    }
+    S.items = m.items; S.leftover = m.leftover;
+    if (S.leftover.length) log('match', `남은 줄 ${S.leftover.length}개 (효과음 등)`);
+    setAgent('match', 'done');
+
+    setAgent('render', 'running'); await tick();
+    await renderAll();
+    const shr = S.items.filter(i => i.r?.status === 'shrunk').length, ovf = S.items.filter(i => i.r?.status === 'overflow').length;
+    log('render', `${S.items.length}개 식자 · 축소 ${shr} · 넘침 ${ovf}`, ovf > 0);
+    setAgent('render', 'done'); setView('out');
+
+    setAgent('review', 'running', useClaude && claudeReady() ? '규칙 점검 + Claude 이미지 판독' : '규칙 점검'); await tick();
+    S.items.forEach(ruleReview); globalReview();
+    const flagged = () => S.items.reduce((n, it) => n + CHECKS.filter(([k]) => ['warn', 'fail'].includes(it.checks[k].agent?.level) || it.checks[k].claude?.level === 'warn').length, 0);
+    log('review', `규칙 점검 완료 · 주의 ${flagged()}건`);
+    if (useClaude && claudeReady() && S.items.length) {
+      try { await claudeReview(S.items); log('review', `Claude 의견 반영 · 주의 ${flagged()}건`); }
+      catch (e) { log('review', `Claude 검수 의견을 받지 못했어요(${e.code || e.message})`, true); }
+    }
+    setAgent('review', 'waiting');
+  } catch (e) {
+    console.error(e); toast('실행 중 오류: ' + (e.message || e));
+    for (const a of Object.values(S.agents)) if (a.state === 'running') { a.state = 'error'; a.log.push({ msg: String(e.message || e), err: true }); }
+  }
+  S.busy = false; $('runBtn').disabled = false;
+  renderAgents(); renderOverlay(); renderSheet();
+}
+
+// 수정 → 다시 식자 → 그 항목만 승인 초기화
+async function reletter(changed) {
+  await renderAll();
+  for (const it of S.items) {
+    ruleReview(it);
+    if (changed.includes(it.id)) for (const [k] of CHECKS) { it.checks[k].s = 'pending'; if (it.checks[k].claude) it.checks[k].claude = { level: 'info', note: '수정 전 의견이에요' }; }
+  }
+  globalReview(); renderOverlay(); renderSheet();
+}
+
+// ─────────────── 화면 ───────────────
+const AGENT_STATE = { idle: '대기', running: '작업 중', done: '완료', waiting: '승인 대기', error: '오류' };
+function renderAgents() {
+  $('agents').innerHTML = Object.entries(S.agents).map(([k, a]) => `
+    <li class="agent" data-state="${a.state}">
+      <div class="agent-head"><span class="step">${a.n}</span><b>${a.name}</b><span class="chip">${AGENT_STATE[a.state]}</span></div>
+      <p class="role">${a.role}</p><p class="engine">${esc(a.engine)}</p>
+      ${a.log.length ? `<ol class="log">${a.log.map(l => `<li${l.err ? ' class="err"' : ''}>${esc(l.msg)}</li>`).join('')}</ol>` : ''}
+    </li>`).join('');
+}
+function setView(v) {
+  S.view = v; $('vOut').setAttribute('aria-pressed', v === 'out'); $('vSrc').setAttribute('aria-pressed', v === 'src');
+  $('out').hidden = v !== 'out'; $('srcImg').hidden = v !== 'src';
+}
+const pct = (v, t) => (v / t * 100) + '%';
+function itemDone(it) { return CHECKS.every(([k]) => it.checks[k].s === 'approved'); }
+function renderOverlay() {
+  const ov = $('overlay'); if (!S.W) { ov.innerHTML = ''; return; }
+  const used = new Map(S.items.filter(i => i.bubble).map(i => [i.bubble, i]));
+  let html = S.bubbles.map(b => {
+    const it = used.get(b.id), [x, y, w, h] = b.box;
+    const cls = ['bx', b.ignored ? 'ignored' : it ? '' : 'free', it && S.sel === it.id ? 'sel' : '', it && itemDone(it) ? 'done' : ''].join(' ');
+    return `<button class="${cls}" data-bubble="${b.id}" style="left:${pct(x, S.W)};top:${pct(y, S.H)};width:${pct(w, S.W)};height:${pct(h, S.H)}" aria-label="말풍선 ${b.id}${b.ignored ? ' (말풍선 아님)' : it ? '' : ' (비어 있음)'}"><span>${b.id}${b.ignored ? ' ×' : ''}</span></button>`;
+  }).join('');
+  html += S.items.filter(i => i.at).map(i => `<button class="pin" data-item="${i.id}" style="left:${pct(i.at[0] + i.offset[0], S.W)};top:${pct(i.at[1] + i.offset[1], S.H)}" aria-label="배치 항목 ${i.id}"></button>`).join('');
+  ov.innerHTML = html;
+  ov.classList.toggle('mode', !!S.mode);
+  $('page').classList.toggle('hide-overlay', !S.overlay);
+}
+function noteHtml(c) {
+  const parts = [];
+  if (c.agent) parts.push(`<span class="${c.agent.level === 'warn' || c.agent.level === 'fail' ? c.agent.level : ''}"><span class="by">규칙</span>${esc(c.agent.note)}</span>`);
+  if (c.claude) parts.push(`<span class="${c.claude.level === 'warn' ? 'warn' : ''}"><span class="by">Claude</span>${esc(c.claude.note)}</span>`);
+  return parts.join('');
+}
+function worst(c) { const order = ['fail', 'warn', 'info', 'pass']; const ls = [c.agent?.level, c.claude?.level].filter(Boolean); return ls.sort((a, b) => order.indexOf(a) - order.indexOf(b))[0] || 'info'; }
+function checkRow(scope, id, key, label, c) {
+  return `<li class="check"><span class="lbl"><i class="dot ${worst(c)}"></i>${label}</span>
+    <span class="verdict"><button class="ok" data-act="approve" data-scope="${scope}" data-id="${id}" data-key="${key}" aria-pressed="${c.s === 'approved'}">승인</button><button class="no" data-act="reject" data-scope="${scope}" data-id="${id}" data-key="${key}" aria-pressed="${c.s === 'rejected'}">반려</button></span>
+    <span class="note">${noteHtml(c)}</span></li>`;
+}
+function styleOptions(sel) { return Object.entries(STYLES).map(([k, s]) => `<option value="${k}"${k === sel ? ' selected' : ''}>${s.label}</option>`).join(''); }
+function bubbleOptions(cur) {
+  const free = S.bubbles.filter(b => !b.ignored && (b.id === cur || !S.items.some(i => i.bubble === b.id)));
+  return free.map(b => `<option value="${b.id}"${b.id === cur ? ' selected' : ''}>#${b.id}${b.shape === 'rect' ? ' (사각)' : ''}</option>`).join('');
+}
+function editorHtml(it) {
+  return `<div class="editor" data-editor="${it.id}">
+    <label>대사 <textarea id="e-text-${it.id}">${esc(it.text)}</textarea></label>
+    <div class="row">
+      <label>스타일 <select id="e-style-${it.id}">${styleOptions(it.style)}</select></label>
+      ${it.at ? `<label>회전(°) <input type="number" id="e-rot-${it.id}" value="${it.rotate}" step="1" min="-45" max="45"></label>` : `<label>말풍선 <select id="e-bub-${it.id}">${bubbleOptions(it.bubble)}</select></label>`}
+    </div>
+    <div class="row">
+      <label>글자 크기 <span id="e-szv-${it.id}">${Math.round(it.sizeMul * 100)}%</span><input type="range" id="e-sz-${it.id}" min="60" max="150" value="${Math.round(it.sizeMul * 100)}"></label>
+      ${it.at ? '<span></span>' : `<label>글자 영역 <span id="e-inv-${it.id}">${Math.round((it.inner ?? INNER[st(it.style).shape || bubbleById(it.bubble)?.shape || 'ellipse']) * 100)}%</span><input type="range" id="e-in-${it.id}" min="50" max="98" value="${Math.round((it.inner ?? INNER[st(it.style).shape || bubbleById(it.bubble)?.shape || 'ellipse']) * 100)}"></label>`}
+    </div>
+    <div class="row">
+      <label>가로 이동(px) <input type="number" id="e-dx-${it.id}" value="${it.offset[0]}" step="2"></label>
+      <label>세로 이동(px) <input type="number" id="e-dy-${it.id}" value="${it.offset[1]}" step="2"></label>
+    </div>
+    <div class="acts">
+      <button class="btn small primary" data-act="apply" data-id="${it.id}">적용하고 다시 식자</button>
+      ${it.at ? `<button class="btn small" data-act="move" data-id="${it.id}">위치 다시 찍기</button>` : ''}
+      <button class="btn small ghost" data-act="unassign" data-id="${it.id}">대사 빼기</button>
+      <button class="btn small ghost" data-act="close" data-id="${it.id}">닫기</button>
+    </div>
+  </div>`;
+}
+function progress() {
+  let total = 2, ok = (S.global.lines.s === 'approved') + (S.global.empty.s === 'approved');
+  for (const it of S.items) for (const [k] of CHECKS) { total++; if (it.checks[k].s === 'approved') ok++; }
+  return { ok, total, complete: S.items.length > 0 && ok === total };
+}
+function renderSheet() {
+  const sh = $('sheet');
+  const p = progress();
+  $('progText').textContent = S.items.length ? `검수 ${p.ok}/${p.total}` : '검수 대기';
+  $('progBar').style.width = S.items.length ? pct(p.ok, p.total) : '0';
+  if (!S.items.length && !S.leftover.length) {
+    sh.innerHTML = `<p class="empty">${S.busy ? '에이전트가 작업 중이에요…' : '원고와 대본을 넣고 <b>에이전트 실행</b>을 누르면 말풍선마다 검수 항목이 여기에 나타나요.'}</p>`;
+    return;
+  }
+  const big = S.H > S.W * 3;
+  const exp = `<section class="export${p.complete ? '' : ' locked'}">
+    <h3>${p.complete ? '모두 승인됐어요 · 저장할 수 있어요' : `저장 잠김 · 남은 항목 ${p.total - p.ok}개`}</h3>
+    <p>${p.complete ? '식자본을 이미지로 저장하거나, 터미널 스킬(letter.py)에서 쓰는 layout.json으로 저장하세요.' : '모든 항목을 승인하면 저장 버튼이 열려요.'}</p>
+    <div class="row">
+      <label>형식 <select id="xFmt"><option value="png">PNG</option><option value="jpg">JPG</option></select></label>
+      <label>나눠 저장(px) <input type="number" id="xSplit" min="0" step="100" value="${big ? 1600 : 0}"></label>
+    </div>
+    <div class="row">
+      <button class="btn primary" data-act="export" ${p.complete ? '' : 'disabled'}>이미지 저장</button>
+      <button class="btn" data-act="exportLayout" ${p.complete ? '' : 'disabled'}>layout.json 저장</button>
+    </div>
+  </section>`;
+  const g = S.global;
+  const globalCard = `<div class="group-title">원고 전체</div>
+  <article class="card${g.lines.s === 'approved' && g.empty.s === 'approved' ? ' complete' : ''}">
+    <ul class="checks" style="margin:0">
+      ${checkRow('global', 0, 'lines', '남은 대사', g.lines)}
+      ${checkRow('global', 0, 'empty', '빈 말풍선', g.empty)}
+    </ul>
+    ${S.leftover.map(l => `<div class="leftover"><span class="t"><b>${esc(l.speaker || '대사')}</b> · ${esc(l.text)} <span class="stylechip">${STYLES[l.hint].label}</span></span>
+      <span class="acts">${S.freeBubbles?.length ? `<select id="lo-${l.n}" aria-label="넣을 말풍선">${S.freeBubbles.map(b => `<option value="${b.id}">#${b.id}</option>`).join('')}</select><button class="btn small" data-act="assign" data-line="${l.n}">이 말풍선에 넣기</button>` : ''}
+      <button class="btn small" data-act="place" data-line="${l.n}">원고에서 위치 찍기</button></span></div>`).join('')}
+  </article>`;
+  const cards = S.items.map(it => {
+    const done = itemDone(it);
+    return `<article class="card${S.sel === it.id ? ' sel' : ''}${done ? ' complete' : ''}" id="card-${it.id}">
+      <div class="card-head"><button class="idtag" data-act="select" data-id="${it.id}">${it.at ? '배치' : '#' + it.bubble}</button>
+        <span class="speaker">${esc(it.speaker || '—')}</span><span class="stylechip">${st(it.style).label}</span>
+        <span class="src">${it.source === 'claude' ? 'Claude 매칭' : it.source === 'rule' ? '규칙 매칭' : '직접 지정'}${it.line ? ' · ' + it.line + '줄' : ''}</span></div>
+      <div class="quote">${esc(it.text)}</div>
+      <ul class="checks">${CHECKS.map(([k, label]) => checkRow('item', it.id, k, label, it.checks[k])).join('')}</ul>
+      <div class="card-foot">
+        <button class="btn small" data-act="approveAll" data-id="${it.id}" ${done ? 'disabled' : ''}>이 말풍선 4개 항목 모두 승인</button>
+        <button class="btn small ghost" data-act="edit" data-id="${it.id}">${S.editing.has(it.id) ? '수정 닫기' : '수정'}</button>
+      </div>
+      ${S.editing.has(it.id) ? editorHtml(it) : ''}
+    </article>`;
+  }).join('');
+  sh.innerHTML = exp + globalCard + `<div class="group-title">말풍선별 (${S.items.length})</div>` + cards;
+}
+function select(id, scroll) {
+  S.sel = id; renderOverlay();
+  document.querySelectorAll('.card').forEach(c => c.classList.toggle('sel', c.id === 'card-' + id));
+  if (scroll) $('card-' + id)?.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+}
+function setMode(mode) {
+  S.mode = mode;
+  $('addBoxBtn').setAttribute('aria-pressed', mode?.type === 'box');
+  const n = $('modeNote');
+  n.hidden = !mode;
+  n.textContent = !mode ? '' : mode.type === 'box' ? '원고 위에서 말풍선 영역을 끌어서 그리세요 · Esc 취소' : '글자를 놓을 중심을 원고에서 클릭하세요 · Esc 취소';
+  if (mode) setView('out');
+  renderOverlay();
+}
+
+// ─────────────── 이벤트 ───────────────
+$('sheet').addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]'); if (!b || S.busy) return;
+  const act = b.dataset.act, id = Number(b.dataset.id), it = S.items.find(i => i.id === id);
+  if (act === 'approve' || act === 'reject') {
+    const c = b.dataset.scope === 'global' ? S.global[b.dataset.key] : it.checks[b.dataset.key];
+    const v = act === 'approve' ? 'approved' : 'rejected';
+    c.s = c.s === v ? 'pending' : v;
+    if (act === 'reject' && it && c.s === 'rejected') S.editing.add(it.id);
+    if (it) S.sel = it.id;
+    renderSheet(); renderOverlay();
+  } else if (act === 'approveAll') { for (const [k] of CHECKS) it.checks[k].s = 'approved'; S.editing.delete(id); renderSheet(); renderOverlay(); }
+  else if (act === 'edit') { S.editing.has(id) ? S.editing.delete(id) : S.editing.add(id); S.sel = id; renderSheet(); renderOverlay(); }
+  else if (act === 'close') { S.editing.delete(id); renderSheet(); }
+  else if (act === 'select') select(id, false);
+  else if (act === 'apply') {
+    it.text = $('e-text-' + id).value.replace(/\\n/g, '\n').trim() || it.text;
+    it.style = $('e-style-' + id).value;
+    if (!it.at) { const nb = Number($('e-bub-' + id).value); if (nb && nb !== it.bubble) it.bubble = nb; it.inner = Number($('e-in-' + id).value) / 100; }
+    else it.rotate = Number($('e-rot-' + id).value) || 0;
+    it.sizeMul = Number($('e-sz-' + id).value) / 100;
+    it.offset = [Number($('e-dx-' + id).value) || 0, Number($('e-dy-' + id).value) || 0];
+    if (it.source !== 'manual') { it.source = 'manual'; }
+    S.editing.delete(id);
+    await reletter([id]); select(id, true); toast('다시 식자했어요. 이 말풍선은 다시 승인해 주세요');
+  } else if (act === 'unassign') {
+    const line = S.lines.find(l => l.n === it.line);
+    S.items = S.items.filter(i => i.id !== id); S.editing.delete(id);
+    if (line && !S.leftover.some(l => l.n === line.n)) { S.leftover.push(line); S.leftover.sort((a, b) => a.n - b.n); }
+    await reletter([]);
+  } else if (act === 'assign') {
+    const ln = Number(b.dataset.line), line = S.lines.find(l => l.n === ln), bid = Number($('lo-' + ln).value);
+    const n = newItem(line, bid, line.hint === 'sfx' ? 'dialogue' : line.hint, 'manual');
+    S.items.push(n); S.items.sort((a, b2) => (a.line ?? 1e9) - (b2.line ?? 1e9));
+    S.leftover = S.leftover.filter(l => l.n !== ln);
+    await reletter([n.id]); select(n.id, true);
+  } else if (act === 'place') setMode({ type: 'place', line: Number(b.dataset.line) });
+  else if (act === 'move') setMode({ type: 'move', item: id });
+  else if (act === 'export') exportImage();
+  else if (act === 'exportLayout') exportLayout();
+});
+$('sheet').addEventListener('input', e => {
+  const m = e.target.id.match(/^e-(sz|in)-(\d+)$/); if (!m) return;
+  $(`e-${m[1] === 'sz' ? 'szv' : 'inv'}-${m[2]}`).textContent = e.target.value + '%';
+});
+
+const ov = $('overlay');
+const toImg = ev => { const r = ov.getBoundingClientRect(); return [Math.round((ev.clientX - r.left) / r.width * S.W), Math.round((ev.clientY - r.top) / r.height * S.H)]; };
+let drag = null;
+ov.addEventListener('pointerdown', ev => {
+  if (S.mode?.type === 'box') { ev.preventDefault(); ov.setPointerCapture(ev.pointerId); drag = { p0: toImg(ev), el: document.createElement('div') }; drag.el.className = 'drag-rect'; ov.appendChild(drag.el); }
+});
+ov.addEventListener('pointermove', ev => {
+  if (!drag) return; const [x0, y0] = drag.p0, [x1, y1] = toImg(ev);
+  Object.assign(drag.el.style, { left: pct(Math.min(x0, x1), S.W), top: pct(Math.min(y0, y1), S.H), width: pct(Math.abs(x1 - x0), S.W), height: pct(Math.abs(y1 - y0), S.H) });
+});
+ov.addEventListener('pointerup', async ev => {
+  if (!drag) return; const [x0, y0] = drag.p0, [x1, y1] = toImg(ev); drag = null;
+  const box = [Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)];
+  setMode(null);
+  if (box[2] < 20 || box[3] < 20) { toast('영역이 너무 작아요. 다시 끌어 주세요'); return; }
+  const id = Math.max(0, ...S.bubbles.map(b => b.id)) + 1;
+  S.bubbles.push({ id, box, center: [box[0] + box[2] / 2, box[1] + box[3] / 2], shape: 'ellipse', manual: true });
+  log('detect', `말풍선 #${id}을 직접 추가했어요`);
+  await reletter([]); toast(`말풍선 #${id}을 추가했어요. 원고 전체 카드에서 대사를 넣을 수 있어요`);
+});
+ov.addEventListener('click', async ev => {
+  if (S.mode && S.mode.type !== 'box') {
+    const at = toImg(ev), mode = S.mode; setMode(null);
+    if (mode.type === 'place') {
+      const line = S.lines.find(l => l.n === mode.line);
+      const n = newItem(line, null, line.hint, 'manual', { at });
+      S.items.push(n); S.items.sort((a, b) => (a.line ?? 1e9) - (b.line ?? 1e9));
+      S.leftover = S.leftover.filter(l => l.n !== mode.line);
+      await reletter([n.id]); select(n.id, true);
+    } else { const it = S.items.find(i => i.id === mode.item); it.at = at; it.offset = [0, 0]; await reletter([it.id]); select(it.id, true); }
+    return;
+  }
+  const t = ev.target.closest('[data-bubble],[data-item]'); if (!t) return;
+  const it = t.dataset.item ? S.items.find(i => i.id === Number(t.dataset.item)) : S.items.find(i => i.bubble === Number(t.dataset.bubble));
+  if (it) select(it.id, true); else toast(`말풍선 #${t.dataset.bubble}은 비어 있어요`);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.mode) { drag?.el.remove(); drag = null; setMode(null); } });
+$('addBoxBtn').onclick = () => setMode(S.mode?.type === 'box' ? null : { type: 'box' });
+$('vOut').onclick = () => setView('out');
+$('vSrc').onclick = () => setView('src');
+$('ovBtn').onclick = () => { S.overlay = !S.overlay; $('ovBtn').setAttribute('aria-pressed', S.overlay); renderOverlay(); };
+$('pThr').oninput = e => $('oThr').textContent = e.target.value;
+$('pFill').oninput = e => $('oFill').textContent = (e.target.value / 100).toFixed(2);
+$('runBtn').onclick = () => {
+  const p = progress();
+  if (p.ok > 0 && Date.now() - S.armed > 4000) {
+    S.armed = Date.now(); $('runHint').textContent = `지금까지 승인한 ${p.ok}개 항목이 초기화돼요. 계속하려면 한 번 더 누르세요.`;
+    setTimeout(() => { if (Date.now() - S.armed >= 4000) $('runHint').textContent = '검출 → 매칭 → 식자 → 검수 순서로 진행해요. 검수만 직접 승인합니다.'; }, 4100);
+    return;
+  }
+  S.armed = 0; $('runHint').textContent = '검출 → 매칭 → 식자 → 검수 순서로 진행해요. 검수만 직접 승인합니다.';
+  runPipeline(true);
+};
+
+// 원고 넣기
+async function loadFile(file) {
+  if (!file || !/^image\//.test(file.type)) { toast('PNG·JPG·WEBP 이미지를 넣어 주세요'); return; }
+  const url = URL.createObjectURL(file), img = new Image(); img.src = url;
+  try { await img.decode(); } catch { toast('이미지를 열지 못했어요'); return; }
+  if (img.naturalHeight > 32000) toast('세로가 32000px을 넘으면 브라우저에서 저장이 실패할 수 있어요');
+  if (S.url) URL.revokeObjectURL(S.url);
+  Object.assign(S, { img, url, W: img.naturalWidth, H: img.naturalHeight, name: file.name, isSample: false, bubbles: [], items: [], leftover: [] });
+  $('srcImg').src = url; $('sampleBadge').hidden = true;
+  $('fileName').textContent = file.name; $('fileMeta').textContent = `${S.W} × ${S.H} px`;
+  const c = $('out'); c.width = S.W; c.height = S.H; c.getContext('2d').drawImage(img, 0, 0);
+  for (const a of Object.values(S.agents)) { a.state = 'idle'; a.log = []; }
+  S.agents.match.engine = claudeReady() ? 'Claude · 원고 이미지 판독' : '규칙 기반 (Claude 연결 안 됨)';
+  S.agents.review.engine = claudeReady() ? '규칙 점검 + Claude 이미지 판독' : '규칙 점검';
+  if (S.isSample === false && $('script').value === SAMPLE_SCRIPT) $('script').value = '';
+  renderAgents(); renderOverlay(); renderSheet(); setView('out');
+  toast('원고를 불러왔어요. 대본을 넣고 에이전트 실행을 누르세요');
+}
+$('fileInput').onchange = e => loadFile(e.target.files[0]);
+const drop = $('drop'), stage = $('stageScroll');
+for (const el of [drop, stage]) {
+  el.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+  el.addEventListener('dragleave', () => drop.classList.remove('over'));
+  el.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); loadFile(e.dataTransfer.files[0]); });
+}
+document.addEventListener('paste', e => { const f = [...(e.clipboardData?.files || [])].find(f => /^image\//.test(f.type)); if (f) loadFile(f); });
+
+// 저장
+const stem = () => (S.name || '원고').replace(/\.[^.]+$/, '');
+async function save(filename, data) {
+  if (!S.downloads && !window.claude) { // claude.ai 밖(일반 웹 호스팅)에서는 브라우저 다운로드로 저장
+    const url = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type: 'application/json' }));
+    const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000); toast(`${filename}을 저장했어요`); return true;
+  }
+  if (!S.downloads) { toast('이 화면에서는 파일 저장을 쓸 수 없어요. claude.ai에서 열어 주세요'); return false; }
+  try { await S.downloads.save({ filename, data }); toast(`${filename} 저장을 요청했어요`); return true; }
+  catch (e) { toast(e.code === 'declined' ? '저장을 취소했어요' : `저장하지 못했어요 (${e.code || e.message})`); return false; }
+}
+async function exportImage() {
+  if (!progress().complete) return;
+  const fmt = $('xFmt').value, split = Math.max(0, Number($('xSplit').value) || 0);
+  const type = fmt === 'jpg' ? 'image/jpeg' : 'image/png', c = $('out');
+  if (split && S.H > split) {
+    if (!window.JSZip) { toast('압축 도구를 불러오지 못했어요. 나눠 저장을 0으로 두고 다시 시도하세요'); return; }
+    const zip = new JSZip(); let n = 0;
+    for (let top = 0; top < S.H; top += split) {
+      n++; const h = Math.min(split, S.H - top), p = document.createElement('canvas'); p.width = S.W; p.height = h;
+      p.getContext('2d').drawImage(c, 0, top, S.W, h, 0, 0, S.W, h);
+      zip.file(`${stem()}_${String(n).padStart(2, '0')}.${fmt}`, await toBlob(p, type, 0.92));
+    }
+    await save(`${stem()}_식자_${n}장.zip`, await zip.generateAsync({ type: 'blob' }));
+  } else await save(`${stem()}_식자.${fmt}`, await toBlob(c, type, 0.92));
+}
+async function exportLayout() {
+  if (!progress().complete) return;
+  const items = S.items.map(it => {
+    const o = it.at ? { at: it.at.map(Math.round) } : { bubble: it.bubble };
+    o.text = it.text; o.style = it.style;
+    if (it.sizeMul !== 1) o.size = Math.round(STYLES[it.style].size * it.sizeMul);
+    if (it.inner != null) o.inner = +it.inner.toFixed(2);
+    if (it.offset[0] || it.offset[1]) o.offset = it.offset;
+    if (it.rotate) o.rotate = it.rotate;
+    return o;
+  });
+  const layout = { image: `../raw/${S.name || stem() + '.png'}`, bubbles: `${stem()}.bubbles.json`, output: `../out/${stem()}.png`, defaults: { style: 'dialogue' }, items };
+  const bubbles = { image: S.name, size: [S.W, S.H], bubbles: S.bubbles.filter(b => !b.ignored).map(({ id, box, center, shape }) => ({ id, box, center: center.map(Math.round), shape })) };
+  if (window.JSZip) {
+    const zip = new JSZip(); zip.file(`${stem()}.layout.json`, JSON.stringify(layout, null, 1)); zip.file(`${stem()}.bubbles.json`, JSON.stringify(bubbles, null, 1));
+    await save(`${stem()}_layout.zip`, await zip.generateAsync({ type: 'blob' }));
+  } else await save(`${stem()}.layout.json`, JSON.stringify({ ...layout, bubbles: undefined, items: items.map(i => i.bubble ? { ...i, box: bubbleById(i.bubble).box, bubble: undefined } : i) }, null, 1));
+}
+
+// ─────────────── 시작 ───────────────
+(async function init() {
+  renderAgents();
+  $('script').value = SAMPLE_SCRIPT;
+  const c = makeSample();
+  const blob = await toBlob(c, 'image/png');
+  const url = URL.createObjectURL(blob), img = new Image(); img.src = url; await img.decode();
+  Object.assign(S, { img, url, W: c.width, H: c.height, name: '예시 원고.png' });
+  $('srcImg').src = url;
+  await runPipeline(false);
+  // 런타임 기능은 첫 화면을 막지 않게 나중에 연결
+  if (window.claude?.use) {
+    const [sample, downloads] = await Promise.all([claude.use('sample').catch(() => null), claude.use('downloads').catch(() => null)]);
+    S.sample = sample; S.downloads = downloads;
+    if (sample) S.limits = await sample.limits().catch(() => null);
+  }
+  if (S.agents.match.state === 'done' && S.isSample) S.agents.match.engine = claudeReady() ? '규칙 기반 (예시 데이터 — 실행하면 Claude 사용)' : '규칙 기반 (Claude 연결 안 됨)';
+  $('runHint').textContent = claudeReady() ? '검출 → 매칭(Claude) → 식자 → 검수(Claude 의견) 순서로 진행해요. 검수만 직접 승인합니다.' : '검출 → 매칭 → 식자 → 검수 순서로 진행해요. 이 화면에서는 Claude를 쓸 수 없어 규칙 기반으로 매칭해요.';
+  renderAgents();
+})();
+</script>
