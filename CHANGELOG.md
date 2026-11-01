@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.18.2] — 2026-11-01
+
+### Changed
+
+- **What a PRD is, in plain words.** The start card explains it — a one-page description of the product: what it is for, who uses it, what it does; ANA builds the screens from it — with an example (*Studio sales*). Talk to ANA's first message does the same in one or two sentences before asking "What product do you want to make?".
+
 ## [0.18.1] — 2026-11-01
 
 ### Changed
