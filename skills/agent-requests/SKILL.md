@@ -1,17 +1,18 @@
 ---
 name: agent-requests
-description: Port ANA's Requests, Evolve and PRD tabs — Requests (what the agent needs from the user — pending data-change diffs, approval / decision / access requests, work only the user can do, missing information), Evolve (the agent looks at the work and the usage log and proposes what to do now and how the app should change, then builds the approved ones) and PRD (what this ANA is and does — the agent writes it, people edit it, every version is kept). Every card speaks plainly (why / ask / effect / ifNot). Also triggers on "PRD", "요구사항 문서". Use when the user says "Requests 탭", "에이전트가 요청", "사용자에게 요청", "Evolve", "진화 제안", "개선 제안 탭", or when ana-update reports agent-requests / agent-evolve missing.
+description: Port ANA's Requests, Evolve, PRD and Knowledge tabs — Requests (what the agent needs from the user — pending data-change diffs, approval / decision / access requests, work only the user can do, missing information), Evolve (the agent looks at the work and the usage log and proposes what to do now and how the app should change, then builds the approved ones) and PRD (what this ANA is and does — the agent writes it, people edit it, every version is kept). Knowledge (an ontology and a graph that start empty and the agent fills from the work). Every card speaks plainly (why / ask / effect / ifNot). Also triggers on "PRD", "요구사항 문서", "지식", "온톨로지". Use when the user says "Requests 탭", "에이전트가 요청", "사용자에게 요청", "Evolve", "진화 제안", "개선 제안 탭", or when ana-update reports agent-requests / agent-evolve missing.
 ---
 
 # agent-requests — the agent talks first
 
-Three tabs (see app-shell):
+Four tabs (see app-shell):
 
 | Tab | 한국어 | What |
 |---|---|---|
 | Requests | 요청 | what the agent needs from you: pending diffs (`/api/approve`) + requests of kind `approval`, `decision`, `access`, `action` (work only you can do), `info` (information it lacks) |
 | Evolve | 진화 | what to do now and how the app should change, from the work and the usage log (`/api/activity`) |
 | PRD | PRD | what this ANA is and does — the agent writes it, people edit it, every version is kept |
+| Knowledge | 지식 | what the work is about: an ontology (kinds, relations) and a graph (things, facts) — empty at first, filled by the agent |
 
 | Channel | Direction | Example |
 |---|---|---|
@@ -59,6 +60,15 @@ Card actions follow the list:
 - **Versions:** every save is a new version `{v, md, note, source: agent|person, by, at}` in `prd.json` (last 50 kept); saving the same text is not a new version. *History* lists earlier versions, each viewable and restorable (restore = a new version with the old text; nothing is lost).
 - **API:** `GET /api/prd` → `{current, history}`; `POST /api/prd {md, note, source}`; `POST /api/prd {action:'restore', v}`. Large text is fine (up to 200 000 chars); post it with `--data-binary @-` from a file.
 - **UI:** `#prdView` with sub-tabs Current · History; `refreshPrd`, `renderPrd` (markdown through `mdHtml`), `#prdForm`, `#prdHist`.
+
+## Knowledge
+
+- **What:** *Ontology* — `classes` (kinds of things the work is about, with `parent` for a sub-kind) and `relations` (`domain` → `range`). *Graph* — `entities` (actual things with a `class` and the `items` — note / task / event ids — that mention them) and `facts` (`from` —`rel`→ `to`, with `items`). Stored in `knowledge.json`.
+- **Starts empty.** *Ask the agent* sends a `[Knowledge]` instruction: read the work (`/api/state`) and the knowledge so far, reuse what is there, add only what the items actually say, then `POST /api/knowledge`.
+- **A lens, not a gate.** Things and facts whose kind or relation is not in the ontology are kept and marked *new*.
+- **People remove what is wrong** (✕ on each row; removing a thing removes its facts).
+- **API:** `GET /api/knowledge`; `POST /api/knowledge {classes?, relations?, entities?, facts?}` (same id = update, same from/rel/to = one fact; nothing valid → 400); `POST /api/knowledge {action:'remove', kind: class|relation|entity|fact, id | from,rel,to}`.
+- **UI:** `#knowledgeView` with sub-tabs Ontology · Graph; `refreshKnowledge`, `renderKnowledge`, `kGraphSvg` (things on a circle grouped by kind, facts as lines, a legend), item chips that jump to the work item. Analysis jobs, rule inference, approvals and OWL export are ANA Pro.
 
 ## Porting
 

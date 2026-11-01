@@ -213,9 +213,9 @@
     },
     {
       "id": "app-tabs",
-      "title": "Tabs: Work · Requests · Evolve · PRD · Update",
+      "title": "Tabs: PRD · Work · Knowledge · Requests · Evolve · Update",
       "skill": "app-shell",
-      "summary": "One workspace. Five top tabs (a bottom menu on phones): Work, with a sub-tab per kind of work (base: Tasks · Calendar · Notes); Requests, Evolve and Update, each with Waiting · In progress · Done; PRD with Current · History. Badges count what is waiting.",
+      "summary": "One workspace. Six top tabs (a bottom menu on phones): PRD with Current · History; Work, with a sub-tab per kind of work (base: Tasks · Calendar · Notes); Knowledge with Ontology · Graph; Requests, Evolve and Update, each with Waiting · In progress · Done. Badges count what is waiting.",
       "anchors": [
         "function selectTab",
         "function showTab",
@@ -254,6 +254,20 @@
         "function renderUpdates",
         "UPDATES_FILE",
         "updateView"
+      ]
+    },
+    {
+      "id": "knowledge",
+      "title": "Knowledge (ontology and graph, filled by the agent)",
+      "skill": "agent-requests",
+      "summary": "Knowledge tab: Ontology (kinds of things and the relations between them) and Graph (the actual things and the facts between them, each tied to the notes / tasks / events it came from). Starts empty; Ask the agent has it read the work and add to both (POST /api/knowledge, same id = update, same fact = one). Things outside the ontology are kept and marked new. People remove what is wrong (removing a thing removes its facts).",
+      "anchors": [
+        "/api/knowledge",
+        "KNOWLEDGE_FILE",
+        "function mergeKnowledge",
+        "knowledgeView",
+        "function renderKnowledge",
+        "function kGraphSvg"
       ]
     }
   ]

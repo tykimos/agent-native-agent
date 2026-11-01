@@ -588,6 +588,21 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .prd-acts { display: flex; justify-content: flex-end; gap: 8px; } .prd-acts button { height: 36px; padding: 0 14px; border-radius: 10px; font-weight: 700; background: var(--surface-2); }
 .prd-acts .ok { background: var(--acc, var(--blue)); color: #fff; }
 .upd-last { font-size: 12.5px; color: var(--text-sub); }
+/* Knowledge: 온톨로지 목록 · 그래프 */
+.k-list { padding: 4px 0; margin-bottom: 16px; }
+.k-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-top: 1px solid var(--line-2); } .k-row:first-child { border-top: none; }
+.k-main { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.k-main code { font-size: 11.5px; color: var(--text-weak); } .k-sub { font-size: 12.5px; color: var(--text-sub); }
+.k-desc { flex-basis: 100%; font-size: 12.5px; color: var(--text-sub); } .k-main .rels { flex-basis: 100%; margin: 2px 0 0; }
+.k-rel { color: var(--acc, var(--blue)); font-weight: 700; } .k-dot { width: 10px; height: 10px; border-radius: 999px; flex: 0 0 auto; }
+.k-new { font-size: 10.5px; font-weight: 800; padding: 1px 7px; border-radius: 999px; background: var(--surface-2); color: var(--text-weak); }
+.k-del { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 8px; color: var(--text-weak); } .k-del:hover { background: var(--surface-2); color: var(--danger); }
+.k-graph { padding: 8px; margin-bottom: 16px; } .k-graph[hidden], .k-list[hidden] { display: none; }
+.k-svg { width: 100%; height: auto; display: block; }
+.k-edge { stroke: var(--line); stroke-width: 1.5; } .k-elabel { font-size: 10px; fill: var(--text-weak); text-anchor: middle; }
+.k-node text { font-size: 11.5px; font-weight: 700; fill: var(--text); text-anchor: middle; } .k-node circle { stroke: var(--surface); stroke-width: 2; }
+.k-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 4px 8px 6px; font-size: 12px; color: var(--text-sub); }
+.k-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 999px; margin-right: 5px; vertical-align: 0; }
 [data-subsec][hidden], .ib-btn[hidden], .toolbar [hidden] { display: none !important; }
 .ex-wrap { padding-bottom: 0 !important; margin-bottom: -6px; } .ex-wrap[hidden] { display: none; }
 .ex-banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; background: var(--blue-weak); box-shadow: 0 0 0 1px color-mix(in srgb, var(--blue) 30%, transparent); }
@@ -1188,10 +1203,11 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
   <nav class="topnav" aria-label="Main menu" role="tablist">
     <div class="topnav-brand"><img src="/ana-logo.png" alt="ANA logo"><span class="bname">ANA</span></div>
     <div class="tabstrip">
+      <button class="tab" data-view="prd" role="tab" aria-selected="false">PRD</button>
       <button class="tab on" data-view="work" role="tab" aria-selected="true">Work</button>
+      <button class="tab" data-view="knowledge" role="tab" aria-selected="false">Knowledge</button>
       <button class="tab" data-view="requests" role="tab" aria-selected="false">Requests<span class="tbadge" data-reqbadge>0</span></button>
       <button class="tab" data-view="evolve" role="tab" aria-selected="false">Evolve<span class="tbadge" data-evobadge>0</span></button>
-      <button class="tab" data-view="prd" role="tab" aria-selected="false">PRD</button>
       <button class="tab" data-view="update" role="tab" aria-selected="false">Update<span class="tbadge" data-updbadge>0</span></button>
     </div>
     <button id="modeToggle" class="mode-toggle" role="switch" aria-checked="false" aria-label="Chip mode">
@@ -1285,6 +1301,27 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
     </div>
   </div></section>
 
+
+  <!-- Knowledge: 일에서 쌓이는 것 — 온톨로지(종류 · 관계)와 그래프(개체 · 사실). 처음엔 비어 있고 에이전트가 채운다 -->
+  <section class="view" id="knowledgeView" role="tabpanel"><div class="wrap">
+    <nav class="subtabs" data-sub="knowledge" role="tablist" aria-label="Knowledge"></nav>
+    <div class="toolbar"><span class="cnt" id="kSum"></span><span class="sp"></span><button class="ib-btn" id="kAsk">Ask the agent</button></div>
+    <div data-subsec="ontology">
+      <div class="sub-lead">The kinds of things your work is about (clients, people, projects…) and how they relate. It starts empty; the agent adds to it from your work.</div>
+      <div class="sec-head" id="kClsHead" hidden><h2>Kinds</h2><span class="cnt" id="kClsCnt"></span></div>
+      <div class="card k-list" id="kCls" hidden></div>
+      <div class="sec-head" id="kRelHead" hidden><h2>Relations</h2><span class="cnt" id="kRelCnt"></span></div>
+      <div class="card k-list" id="kRel" hidden></div>
+      <div class="empty" id="kOntoEmpty">The ontology is empty — press [Ask the agent] to have it propose kinds and relations from your work</div>
+    </div>
+    <div data-subsec="graph">
+      <div class="sub-lead">The actual things and the facts between them, each tied to the notes, tasks and events it came from.</div>
+      <div class="card k-graph" id="kGraph" hidden></div>
+      <div class="sec-head" id="kFactHead" hidden><h2>Facts</h2><span class="cnt" id="kFactCnt"></span></div>
+      <div class="card k-list" id="kFacts" hidden></div>
+      <div class="empty" id="kGraphEmpty">The graph is empty — press [Ask the agent] to have it find the things and facts in your work</div>
+    </div>
+  </div></section>
 
   <!-- Requests: 에이전트가 나에게 필요한 것 — 데이터 변경 · 승인 · 결정 · 접근 · 할 일 · 정보. 상태별(대기 · 진행 · 완료) -->
   <section class="view" id="requestsView" role="tabpanel"><div class="wrap">
@@ -1425,12 +1462,13 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
     <button id="drawDone" class="dok" disabled>Add to chat</button>
   </div>
 </div>
-<!-- 하단 메뉴(모바일): 위 탭과 같은 다섯 — Work · Requests · Evolve · PRD · Update -->
+<!-- 하단 메뉴(모바일): 위 탭과 같은 여섯 — PRD · Work · Knowledge · Requests · Evolve · Update -->
 <nav class="bottomnav" aria-label="Menu">
+  <button data-view="prd" data-nav="prd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>PRD</button>
   <button data-view="work" data-nav="work"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Work</button>
+  <button data-view="knowledge" data-nav="knowledge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="7" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8.3 6.4l7.4.4M7.3 8.2l3.6 7.7M16.8 9.2l-3.6 6.7"/></svg>Knowledge</button>
   <button data-view="requests" data-nav="requests"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></svg>Requests<span class="tbadge" data-reqbadge>0</span></button>
   <button data-view="evolve" data-nav="evolve"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8"/></svg>Evolve<span class="tbadge" data-evobadge>0</span></button>
-  <button data-view="prd" data-nav="prd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>PRD</button>
   <button data-view="update" data-nav="update"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>Update<span class="tbadge" data-updbadge>0</span></button>
 </nav>
 <!-- 모델 선택 시트(Claude Code 세션) — Claude 앱과 같은 모양 -->
@@ -2078,7 +2116,7 @@ $('evoAnalyze').onclick = () => askEvolveAgent($('evoAnalyze'));
 
 
 /* ---- 하위 탭: 한 화면에 한 갈래만 ----
-   Work(업무별 화면 — base: Tasks · Calendar · Notes), Requests · Evolve · Update(대기 · 진행 · 완료), PRD(지금 · 이력).
+   PRD(지금 · 이력), Work(업무별 화면 — base: Tasks · Calendar · Notes), Knowledge(온톨로지 · 그래프), Requests · Evolve · Update(대기 · 진행 · 완료).
    [data-subsec]는 그 갈래의 내용. Work의 하위 탭은 화면(view) 자체를 바꾼다. */
 const STATUS_TABS = [['wait', 'Waiting'], ['doing', 'In progress'], ['done', 'Done']];
 var SUBTABS = {
@@ -2086,6 +2124,7 @@ var SUBTABS = {
   requests: STATUS_TABS,
   evolve: STATUS_TABS,
   prd: [['current', 'Current'], ['history', 'History']],
+  knowledge: [['ontology', 'Ontology'], ['graph', 'Graph']],
   update: STATUS_TABS,
 };
 var subSel = {}; try { subSel = JSON.parse(localStorage.getItem('ana-subtabs') || '{}') || {}; } catch {}
@@ -2162,6 +2201,75 @@ $('prdAsk').onclick = () => {
 Read: the code in this folder (dashboard.html, dashboard-api.js, server.js, features.json, CHANGELOG.md), the work data GET ${api('/api/state')}, finished Evolve proposals GET ${api('/api/evolve')}, the current PRD GET ${api('/api/prd')}, and our recent conversation.
 Write it in markdown for a person who uses the app, not for a developer: # title, then ## Purpose (who it is for and what problem it solves), ## Users, ## Features (what people can do, one line each), ## Screens (each tab and what it shows), ## Data (what is kept and how items link), ## Agent (what the agent does on its own and what it asks for), ## Not yet (known gaps). Keep what a person wrote by hand unless it is no longer true.
 Save it as a new version: write the markdown to prd.md, then: node -e 'process.stdout.write(JSON.stringify({md: require("fs").readFileSync("prd.md", "utf8"), note: process.argv[1], source: "agent"}))' "What changed in one line" | curl -s -X POST "${api('/api/prd')}" -H 'content-type: application/json' --data-binary @-`;
+  post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
+    .catch(() => showErr('Request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
+};
+
+/* ---- Knowledge: 온톨로지(종류 · 관계)와 그래프(개체 · 사실) ----
+   처음엔 비어 있다. 에이전트가 일(메모 · 할일 · 일정)을 읽고 채우고(Ask the agent · POST /api/knowledge), 사람은 보고 틀린 것을 지운다.
+   틀에 없는 종류·관계를 쓴 개체·사실도 버리지 않고 '아직 온톨로지에 없음'으로 보인다. */
+let kCache = { classes: [], relations: [], entities: [], facts: [] };
+async function refreshKnowledge() {
+  try { kCache = await getJSON('/api/knowledge'); } catch { return; }
+  renderKnowledge();
+}
+const K_COLORS = ['#3182F6', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6', '#06B6D4', '#EC4899', '#84CC16'];
+const kLabel = (arr, id) => (arr.find((x) => x.id === id) || {}).label || id;
+const kNew = '<span class="k-new" title="Not in the ontology yet">new</span>';
+const kDel = (attrs) => `<button class="k-del" ${attrs} aria-label="Remove" title="Remove">✕</button>`;
+// 근거 항목(메모 · 할일 · 일정) 칩 — 누르면 그 항목으로
+const kItems = (ids) => (ids || []).map(nodeOf).filter(Boolean).map((n) => `<span class="rel k-${n.kind}" role="button" tabindex="0" data-go="${escapeHtml(n.id)}"><span class="rk">${n.kind}</span><span class="rt">${escapeHtml(n.label)}</span></span>`).join('');
+function renderKnowledge() {
+  const k = kCache, cls = k.classes || [], rel = k.relations || [], ent = k.entities || [], facts = k.facts || [];
+  const hasC = new Set(cls.map((c) => c.id)), hasR = new Set(rel.map((r) => r.id));
+  $('kSum').textContent = cls.length + rel.length + ent.length ? `${cls.length} kinds · ${rel.length} relations · ${ent.length} things · ${facts.length} facts` : '';
+  setSubCount('knowledge', 'ontology', 0); setSubCount('knowledge', 'graph', 0);
+  // 온톨로지
+  $('kCls').innerHTML = cls.map((c) => `<div class="k-row"><div class="k-main"><span class="k-dot" style="background:${K_COLORS[cls.indexOf(c) % K_COLORS.length]}"></span><b class="k-t">${escapeHtml(c.label)}</b><code>${escapeHtml(c.id)}</code>${c.parent ? `<span class="k-sub">a kind of ${escapeHtml(kLabel(cls, c.parent))}</span>` : ''}${c.desc ? `<div class="k-desc">${escapeHtml(c.desc)}</div>` : ''}</div>${kDel(`data-kind="class" data-id="${escapeHtml(c.id)}"`)}</div>`).join('');
+  $('kRel').innerHTML = rel.map((r) => `<div class="k-row"><div class="k-main"><b class="k-t">${escapeHtml(r.label)}</b><code>${escapeHtml(r.id)}</code><span class="k-sub">${escapeHtml(r.domain ? kLabel(cls, r.domain) : 'anything')} → ${escapeHtml(r.range ? kLabel(cls, r.range) : 'anything')}</span>${r.desc ? `<div class="k-desc">${escapeHtml(r.desc)}</div>` : ''}</div>${kDel(`data-kind="relation" data-id="${escapeHtml(r.id)}"`)}</div>`).join('');
+  $('kClsHead').hidden = $('kCls').hidden = !cls.length; $('kClsCnt').textContent = cls.length || '';
+  $('kRelHead').hidden = $('kRel').hidden = !rel.length; $('kRelCnt').textContent = rel.length || '';
+  $('kOntoEmpty').style.display = cls.length || rel.length ? 'none' : 'block';
+  // 그래프
+  const name = (id) => kLabel(ent, id);
+  $('kFacts').innerHTML = facts.map((f) => `<div class="k-row"><div class="k-main"><span class="k-t">${escapeHtml(name(f.from))} <span class="k-rel">${escapeHtml(hasR.has(f.rel) ? kLabel(rel, f.rel) : f.rel.replace(/_/g, ' '))}</span> ${escapeHtml(name(f.to))}</span>${hasR.has(f.rel) ? '' : kNew}${(f.items || []).length ? `<div class="rels">${kItems(f.items)}</div>` : ''}</div>${kDel(`data-kind="fact" data-from="${escapeHtml(f.from)}" data-rel="${escapeHtml(f.rel)}" data-to="${escapeHtml(f.to)}"`)}</div>`).join('');
+  $('kFactHead').hidden = $('kFacts').hidden = !facts.length; $('kFactCnt').textContent = facts.length || '';
+  $('kGraph').hidden = !ent.length; $('kGraph').innerHTML = ent.length ? kGraphSvg(ent, facts, cls, hasC) : '';
+  $('kGraphEmpty').style.display = ent.length ? 'none' : 'block';
+}
+// 원 위에 개체를 놓고(종류별로 모아서) 사실을 선으로 — 개체가 적은 처음 단계에 맞춘 단순한 그림
+function kGraphSvg(ent, facts, cls, hasC) {
+  const order = [...ent].sort((a, b) => String(a.class).localeCompare(String(b.class)) || String(a.label).localeCompare(String(b.label)));
+  const W = 720, H = Math.max(320, Math.min(620, 160 + order.length * 14)), cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 70;
+  const pos = new Map(order.map((e, i) => { const a = (i / order.length) * Math.PI * 2 - Math.PI / 2; return [e.id, order.length === 1 ? [cx, cy] : [cx + R * Math.cos(a), cy + R * Math.sin(a)]]; }));
+  const color = (e) => (hasC.has(e.class) ? K_COLORS[cls.findIndex((c) => c.id === e.class) % K_COLORS.length] : '#9CA3AF');
+  const edges = facts.filter((f) => pos.has(f.from) && pos.has(f.to)).map((f) => {
+    const [x1, y1] = pos.get(f.from), [x2, y2] = pos.get(f.to);
+    return `<line class="k-edge" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>${facts.length <= 30 ? `<text class="k-elabel" x="${x1 + (x2 - x1) * 0.35}" y="${y1 + (y2 - y1) * 0.35 - 4}">${escapeHtml(f.rel.replace(/_/g, ' '))}</text>` : ''}`;
+  }).join('');
+  const nodes = order.map((e) => { const [x, y] = pos.get(e.id); return `<g class="k-node" data-eid="${escapeHtml(e.id)}"><title>${escapeHtml(e.label)}${e.class ? ` (${escapeHtml(e.class)})` : ''}</title><circle cx="${x}" cy="${y}" r="9" fill="${color(e)}"/><text x="${x}" y="${y + 24}">${escapeHtml(String(e.label).slice(0, 24))}</text></g>`; }).join('');
+  const legend = [...new Set(order.map((e) => e.class || ''))].map((c) => `<span><i style="background:${hasC.has(c) ? K_COLORS[cls.findIndex((x) => x.id === c) % K_COLORS.length] : '#9CA3AF'}"></i>${escapeHtml(c ? kLabel(cls, c) : 'no kind')}${c && !hasC.has(c) ? ' ' + kNew : ''}</span>`).join('');
+  return `<svg class="k-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Knowledge graph">${edges}${nodes}</svg><div class="k-legend">${legend}</div>`;
+}
+$('knowledgeView').addEventListener('click', async (e) => {
+  const b = e.target.closest('.k-del'); if (!b) return;
+  const d = b.dataset, what = d.kind === 'fact' ? 'This fact' : `${d.kind === 'class' ? 'The kind' : d.kind === 'relation' ? 'The relation' : 'The thing'} "${d.id}"${d.kind === 'entity' ? ' and its facts' : ''}`;
+  if (!(await confirmDelete(what))) return;
+  const r = await post('/api/knowledge', { action: 'remove', kind: d.kind, id: d.id, from: d.from, rel: d.rel, to: d.to }).catch(() => null);
+  if (!r || !r.ok) { showErr('Could not remove it'); return; }
+  refreshKnowledge();
+});
+$('kAsk').onclick = () => {
+  const b = $('kAsk'); b.disabled = true; const orig = b.textContent; b.textContent = 'Asking…';
+  const api = (path) => `http://${agentHost}${path}`;
+  const prompt = `[Knowledge] Read my work and add what it is about to this ANA's knowledge — the kinds of things and how they relate (ontology), and the actual things and facts (graph).
+Read: notes, tasks and events GET ${api('/api/state')}, the knowledge so far GET ${api('/api/knowledge')}.
+Ontology: "classes" are kinds of things the work is about (Client, Person, Project, Place…), with "parent" for a sub-kind; "relations" say how they connect, with "domain" → "range" classes (works_for: Person → Client). Reuse what is there; add only what is missing.
+Graph: "entities" are the actual things (Acme, a Client) with "items" = ids of the notes / tasks / events that mention them; "facts" connect two entities with a relation ({"from":"acme","rel":"client_of","to":"our_team","items":["…"]}). Only what the items actually say — nothing invented.
+ids are short and stable (letters, digits, _ - . :); labels are the words people use.
+Save: write the JSON to knowledge.json, then: curl -s -X POST "${api('/api/knowledge')}" -H 'content-type: application/json' --data-binary @knowledge.json
+   knowledge.json = {"classes":[{"id":"Client","label":"Client","desc":"…","parent":""}],"relations":[{"id":"client_of","label":"client of","domain":"Client","range":"Team"}],"entities":[{"id":"acme","label":"Acme","class":"Client","items":["<note/task/event id>"]}],"facts":[{"from":"acme","rel":"client_of","to":"our_team","items":["<id>"]}]}
+Then tell me in two or three sentences what you added.`;
   post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
     .catch(() => showErr('Request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
 };
@@ -2413,10 +2521,10 @@ $('meLogout').onclick = () => { if (logoutUrl) location.href = logoutUrl; };
 $('menuLogout').onclick = () => { if (!logoutUrl) return; $('meMenu').hidden = true; location.href = logoutUrl; };
 
 /* ================= 탭 전환 ================= */
-// 위 탭: Work · Requests · Evolve · PRD · Update. Work는 하위 탭(Tasks · Calendar · Notes)마다 화면이 따로다
-const TABS = ['work', 'requests', 'evolve', 'prd', 'update'];
+// 위 탭: PRD · Work · Knowledge · Requests · Evolve · Update. Work는 하위 탭(Tasks · Calendar · Notes)마다 화면이 따로다
+const TABS = ['prd', 'work', 'knowledge', 'requests', 'evolve', 'update'];
 const WORK_VIEWS = new Set(['todo', 'schedule', 'memo']);
-const VIEWS = [...WORK_VIEWS, 'requests', 'evolve', 'prd', 'update'];
+const VIEWS = ['prd', ...WORK_VIEWS, 'knowledge', 'requests', 'evolve', 'update'];
 let lastTab = 'work';
 try { const t = localStorage.getItem('ana-tab'); if (TABS.includes(t)) lastTab = t; } catch {}
 // 사용 기록: 화면 안에서만 일어나는 일(탭 열기 등)을 서버에 남긴다 — 종류와 대상 id만. 같은 탭을 1분 안에 다시 열면 한 번으로
@@ -2426,7 +2534,7 @@ function logEvent(action, target) {
   if (action === 'tab.view' && now - (logSeen.get(k) || 0) < 60000) return;
   logSeen.set(k, now); post('/api/activity', { action, target: String(target) }).catch(() => {});
 }
-const REFRESH_TAB = { requests: () => refreshRequests(), evolve: () => refreshEvolve(), prd: () => refreshPrd(), update: () => refreshUpdates() };
+const REFRESH_TAB = { knowledge: () => refreshKnowledge(), requests: () => refreshRequests(), evolve: () => refreshEvolve(), prd: () => refreshPrd(), update: () => refreshUpdates() };
 // 탭 선택은 click()이 아니라 이 함수로 — 클릭 처리 중인 버튼에 다시 click()을 부르면 브라우저가 무시한다
 function selectTab(b) {
   if (!b) b = document.querySelector('.topnav .tab[data-view="work"]');
@@ -2457,7 +2565,7 @@ function tabEdges() {
 function revealTab(b) { try { b.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' }); } catch {} setTimeout(tabEdges, 350); }
 document.querySelector('.tabstrip').addEventListener('scroll', tabEdges, { passive: true });
 window.addEventListener('resize', tabEdges);
-// 하단 메뉴(휴대폰): 위 탭과 같은 다섯, 지금 탭에 불
+// 하단 메뉴(휴대폰): 위 탭과 같은 여섯, 지금 탭에 불
 function syncBottomNav(tab) {
   document.querySelectorAll('.bottomnav button').forEach((x) => { const on = x.dataset.nav === tab; x.classList.toggle('on', on); x.setAttribute('aria-current', on ? 'page' : 'false'); });
 }
@@ -3339,9 +3447,9 @@ function mdHtml(src) {
 const ID_PREFIX = /^\[([^\]·]{1,40})·([^\]\s]{3,80})\]\s*/;
 const stripSender = (t) => String(t).replace(ID_PREFIX, '');
 /* ---- ANA가 대신 보낸 지시문 → 한 줄 카드 ----
-   [Evolve] [Requests] [Approvals] [PRD] [Update] [Request #n]은 화면의 버튼이 보낸 긴 지시문(curl 포함)이라
+   [Evolve] [Requests] [Approvals] [PRD] [Knowledge] [Update] [Request #n]은 화면의 버튼이 보낸 긴 지시문(curl 포함)이라
    내가 쓴 말풍선처럼 보이면 안 된다. '무엇을 시켰는지' 한 줄 + 해당 화면으로 가는 Open + 펼쳐 보는 원문으로 보여 준다. */
-const INSTR_RE = /^\[(Evolve|Requests|Approvals|PRD|Update|Request #(\d+))\]\s*/;
+const INSTR_RE = /^\[(Evolve|Requests|Approvals|PRD|Knowledge|Update|Request #(\d+))\]\s*/;
 function instructionInfo(raw) {
   const full = stripSender(String(raw || '').replace(/<\/?pasted_content[^>]*>/g, '')).trim();
   const m = INSTR_RE.exec(full); if (!m) return null;
@@ -3355,6 +3463,7 @@ function instructionInfo(raw) {
     summary = pm ? `Asked the agent to do proposal #${pm[1]} · ${pm[2]}` : 'Asked the agent how the work and ANA could evolve';
     view = 'evolve'; sub = pm ? 'doing' : 'wait';
   } else if (m[1] === 'PRD') { summary = /^Update/.test(body) ? 'Asked the agent to update the PRD' : 'Asked the agent to write the PRD'; view = 'prd'; sub = 'current'; }
+  else if (m[1] === 'Knowledge') { summary = 'Asked the agent to add to the knowledge from your work'; view = 'knowledge'; sub = 'graph'; }
   else if (m[1] === 'Update') { const t = (/^Bring "([^"]+)"/.exec(body) || [])[1]; summary = `Asked the agent to bring in ${t ? `“${t}”` : 'an update'} from upstream`; view = 'update'; sub = 'doing'; }
   else { summary = 'Asked the agent what it needs from you'; sub = 'wait'; }
   return { tag: m[2] ? 'Request' : m[1], summary, view, sub, full };
@@ -3537,6 +3646,7 @@ function connect() {
       case 'target': if (d.user === youKey && d.target !== streamTarget) switchStream(); break;
       case 'evolve': refreshEvolve(); break;
       case 'prd': if ($('prdView').classList.contains('on')) refreshPrd(); break;
+      case 'knowledge': if ($('knowledgeView').classList.contains('on')) refreshKnowledge(); break;
       case 'updates': refreshUpdates(); break;
       case 'requests': refreshRequests(); break;
     }
@@ -3981,6 +4091,8 @@ const CAP = [
   ['.upd-card', 'Update', (el) => el.querySelector('.evo-t')?.textContent || el.textContent],
   ['.prd-ver', 'PRD version', (el) => el.querySelector('.evo-t')?.textContent || el.textContent],
   ['#prdBody', 'PRD', (el) => (el.textContent || '').trim().slice(0, 120)],
+  ['.k-row', 'Knowledge', (el) => el.querySelector('.k-t')?.textContent || el.textContent],
+  ['.k-node', 'Entity', (el) => el.textContent],
 ];
 
 /* ---- 칩 스캔: 새로 생긴 기능의 요소를 칩 대상(CAP)에 등록 ----

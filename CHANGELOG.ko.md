@@ -5,6 +5,16 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.16.0] — 2026-11-01
+
+### Added
+
+- **Knowledge 탭(Ontology · Graph).** 내 일이 무엇에 관한 것인지 담습니다: 사물의 종류와 그 관계(*Ontology*), 실제 사물과 그 사이의 사실 — 각각 나온 메모·할일·일정이 붙습니다(*Graph*). 처음엔 비어 있습니다. *Ask the agent*를 누르면 에이전트가 일을 읽고 둘 다 채웁니다. 온톨로지에 아직 없는 종류나 관계를 쓴 것도 버리지 않고 *new*로 표시합니다. 틀린 것은 ✕로 지웁니다(사물을 지우면 그 사실도). API: `GET /api/knowledge`, `POST /api/knowledge {classes?, relations?, entities?, facts?}` 또는 `{action:'remove', kind, id}`.
+
+### Changed
+
+- **탭 순서: PRD · Work · Knowledge · Requests · Evolve · Update.** 앱은 여전히 Work에서 열립니다. 휴대폰 아래 메뉴도 같은 여섯입니다.
+
 ## [0.15.0] — 2026-10-31
 
 **두 에디션 — 이 저장소는 간소한 Agent-Native Agent입니다.** 전체판은 **ANA Pro**(상용, [COMMERCIAL.ko.md](COMMERCIAL.ko.md) 참고)로 이어집니다. 이 저장소에는 한 사람이 코딩 에이전트와 일을 굴리는 데 필요한 것이 남습니다. 워크스페이스 하나에 탭 다섯: **Work** · **Requests** · **Evolve** · **PRD** · **Update**.

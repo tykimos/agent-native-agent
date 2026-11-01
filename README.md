@@ -6,7 +6,7 @@
 
 ### Build apps you operate by watching and talking.
 
-> **Two editions.** **Agent-Native Agent** (this repository, AGPL) is the simple one: chat with your coding agent and five tabs — Work (tasks, calendar, notes and how they link), Requests, Evolve, PRD and Update. **Agent-Native Agent Pro** (commercial) adds a knowledge layer that grows from the work (analysis, knowledge graph, ontology with rules), the Graph view, a System scope with admin and member roles, Roadmap and Health, several workspaces, a Claude account per session and an offline edition. Ask about Pro: [COMMERCIAL.md](COMMERCIAL.md).
+> **Two editions.** **Agent-Native Agent** (this repository, AGPL) is the simple one: chat with your coding agent and six tabs — PRD, Work (tasks, calendar, notes and how they link), Knowledge, Requests, Evolve and Update. **Agent-Native Agent Pro** (commercial) adds a knowledge layer that grows from the work (analysis, knowledge graph, ontology with rules), the Graph view, a System scope with admin and member roles, Roadmap and Health, several workspaces, a Claude account per session and an offline edition. Ask about Pro: [COMMERCIAL.md](COMMERCIAL.md).
 
 [![Stars](https://img.shields.io/github/stars/tykimos/agent-native-agent?style=for-the-badge&logo=github&color=CC785C)](https://github.com/tykimos/agent-native-agent/stargazers)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-1f6feb?style=for-the-badge)](LICENSE)
@@ -146,14 +146,15 @@ Open **http://localhost:8809** and tap the chat button. The server needs **no la
 
 ## What's in the base
 
-The base is an operations board: notes, tasks and a calendar you run together with a coding agent. It has one workspace and five tabs (a bottom menu on phones):
+The base is an operations board: notes, tasks and a calendar you run together with a coding agent. It has one workspace and six tabs (a bottom menu on phones):
 
 | Tab | Sub-tabs | What |
 |---|---|---|
+| **PRD** | Current · History | what this ANA is and does — purpose, users, features, screens, data. The agent writes it from the code and data (*Ask the agent*) and you can edit it; every save is a new version you can view or restore |
 | **Work** | Tasks · Calendar · Notes | your work items and how they connect — a domain ANA puts its own kinds of work here |
+| **Knowledge** | Ontology · Graph | what your work is about: the kinds of things and how they relate (ontology), and the actual things and the facts between them, each tied to the items it came from (graph). It starts empty; *Ask the agent* has it read your work and add to both, and you remove what is wrong |
 | **Requests** | Waiting · In progress · Done | what the agent needs from you: data changes it proposes (nothing changes until you approve), approvals, decisions, access, things only you can do, missing information |
 | **Evolve** | Waiting · In progress · Done | what to do now and how ANA could change, at three horizons — **tidy** (fix what is off), **improve** (a better way of doing this work), **reimagine** (a new way of working) — with what was seen, what changes for people and what others do (links). *Do it* hands it to the agent |
-| **PRD** | Current · History | what this ANA is and does — purpose, users, features, screens, data. The agent writes it from the code and data (*Ask the agent*) and you can edit it; every save is a new version you can view or restore |
 | **Update** | Waiting · In progress · Done | features that are new in [agent-native-agent](https://github.com/tykimos/agent-native-agent) and not yet here. *Check for updates* compares this ANA with the latest upstream feature by feature; *Bring it in* has the agent port one with its skill |
 
 Every Requests and Evolve card answers the same questions in plain words — **What's going on · What is asked · What it changes · If not**. The agent updates the PRD when an Evolve proposal or an update changes what the app does.
@@ -199,7 +200,7 @@ Links show as chips on both ends; click one to jump to that item. A new kind of 
 
 ### Requests, Evolve and PRD — the API
 
-*Ask the agent* has it fill the list. The agent registers items with `POST /api/requests {requests:[{kind, title, why, ask, effect, ifNot, options?, ref?}]}` (`ref` = a task/event/note id shown as a link) and data changes with `POST /api/agent {text, diff, why, effect}`. Your answer goes straight to the agent in chat. *Resolved* / *Not now* notify it (`POST /api/request-act {id, action: answer|done|dismiss|reopen}`). Evolve proposals come in through `POST /api/evolve` and are handled with `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen}`. The PRD is `GET /api/prd` (current + history) and `POST /api/prd {md, note, source}` (a new version) or `{action:'restore', v}`. Updates: `GET /api/updates`, `POST /api/update/check`, `POST /api/update-act {id, action}`.
+*Ask the agent* has it fill the list. The agent registers items with `POST /api/requests {requests:[{kind, title, why, ask, effect, ifNot, options?, ref?}]}` (`ref` = a task/event/note id shown as a link) and data changes with `POST /api/agent {text, diff, why, effect}`. Your answer goes straight to the agent in chat. *Resolved* / *Not now* notify it (`POST /api/request-act {id, action: answer|done|dismiss|reopen}`). Evolve proposals come in through `POST /api/evolve` and are handled with `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen}`. Knowledge is `GET /api/knowledge` and `POST /api/knowledge {classes?, relations?, entities?, facts?}` (same id = update) or `{action:'remove', kind, id}`. The PRD is `GET /api/prd` (current + history) and `POST /api/prd {md, note, source}` (a new version) or `{action:'restore', v}`. Updates: `GET /api/updates`, `POST /api/update/check`, `POST /api/update-act {id, action}`.
 
 ### Sharing it with other people (optional)
 
@@ -259,8 +260,8 @@ claude plugin install ana@agent-native-agent          # later: claude plugin upd
 | [`ana-update`](skills/ana-update/SKILL.md) | bring an existing, customized ANA up to date, feature by feature |
 | [`chat-window`](skills/chat-window/SKILL.md) | the Claude-app chat: session combo, log-based rendering, model sheet, usage rings, voice, attachments, Codex |
 | [`context-chips`](skills/context-chips/SKILL.md) | Chip mode, ✎ draw-on-screen annotation, ⟳ register new elements |
-| [`app-shell`](skills/app-shell/SKILL.md) | the five tabs (Work · Requests · Evolve · PRD · Update), sub-tabs, the bottom menu on phones |
-| [`agent-requests`](skills/agent-requests/SKILL.md) | Requests, Evolve and PRD |
+| [`app-shell`](skills/app-shell/SKILL.md) | the six tabs (PRD · Work · Knowledge · Requests · Evolve · Update), sub-tabs, the bottom menu on phones |
+| [`agent-requests`](skills/agent-requests/SKILL.md) | Requests, Evolve, PRD and Knowledge |
 
 ### Updating an existing ANA
 
@@ -287,8 +288,8 @@ node skills/ana-update/scripts/ana-diff.mjs --target ~/ana/my-ana --record   # a
 ```
 channel-core.js     ★ the whole ANA runtime — tmux inject / capture-pane mirror / per-session ledgers (0 deps)
 server.js             base app: mounts channel-core + dashboard-api, serves dashboard.html
-dashboard-api.js      base API: tasks · events · notes · links · requests · approvals · evolve · PRD · updates
-dashboard.html        reference UI: Work · Requests · Evolve · PRD · Update, Claude-app chat, Chip mode + drawing, relation chips
+dashboard-api.js      base API: tasks · events · notes · links · knowledge · requests · approvals · evolve · PRD · updates
+dashboard.html        reference UI: PRD · Work · Knowledge · Requests · Evolve · Update, Claude-app chat, Chip mode + drawing, relation chips
 agent-log.js          chat from the agent's own JSONL log (Claude Code + Codex): replies, tools, model, limits
 codex-settings.js     Codex model/effort catalog and switching through Codex's own menu
 graph-index.js        the NodeRel index of the links (derived graph-index.sqlite)

@@ -97,3 +97,24 @@ test('Update: the list is there before any check; acting on an unknown item is 4
   const r = await fetch(api + '/api/update-act', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: 1, action: 'do' }) });
   assert.equal(r.status, 404);
 });
+
+test('Knowledge starts empty; the agent adds kinds, relations, things and facts; people remove what is wrong', async (t) => {
+  const { api, stop } = await startServer({});
+  t.after(stop);
+  const post = (p, b) => fetch(api + p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b) });
+  const k0 = await (await fetch(api + '/api/knowledge')).json();
+  assert.deepEqual([k0.classes, k0.relations, k0.entities, k0.facts], [[], [], [], []], 'empty at first');
+  assert.equal((await post('/api/knowledge', { classes: [{ id: 'bad id!' }] })).status, 400, 'nothing valid → 400');
+  await post('/api/knowledge', { classes: [{ id: 'Client', label: 'Client' }, { id: 'Team', label: 'Team' }], relations: [{ id: 'client_of', label: 'client of', domain: 'Client', range: 'Team' }],
+    entities: [{ id: 'acme', label: 'Acme', class: 'Client', items: ['n1'] }, { id: 'us', label: 'Our team', class: 'Team' }, { id: 'seoul', label: 'Seoul', class: 'Place' }],
+    facts: [{ from: 'acme', rel: 'client_of', to: 'us', items: ['n1'] }, { from: 'acme', rel: 'located_in', to: 'seoul' }] });
+  await post('/api/knowledge', { classes: [{ id: 'Client', label: 'Customer' }], facts: [{ from: 'acme', rel: 'client_of', to: 'us', items: ['n2'] }] });
+  let k = await (await fetch(api + '/api/knowledge')).json();
+  assert.equal(k.classes.find((c) => c.id === 'Client').label, 'Customer', 'same id is updated, not duplicated'); assert.equal(k.classes.length, 2);
+  assert.equal(k.facts.length, 2, 'the same fact stays one'); assert.deepEqual(k.facts.find((f) => f.rel === 'client_of').items, ['n2']);
+  assert.ok(k.entities.some((e) => e.class === 'Place') && k.facts.some((f) => f.rel === 'located_in'), 'things outside the ontology are kept');
+  assert.equal((await post('/api/knowledge', { action: 'remove', kind: 'entity', id: 'acme' })).status, 200);
+  k = await (await fetch(api + '/api/knowledge')).json();
+  assert.ok(!k.entities.some((e) => e.id === 'acme') && !k.facts.length, 'removing a thing removes its facts');
+  assert.equal((await post('/api/knowledge', { action: 'remove', kind: 'class', id: 'Nope' })).status, 404);
+});

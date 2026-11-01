@@ -29,6 +29,8 @@ function createDashboardApi(core, opts) {
   const REQUESTS_FILE = opts.REQUESTS_FILE || path.join(path.dirname(EVOLVE_FILE), 'requests.json');
   // PRD — 이 ANA가 무엇을 하는 앱인지. 에이전트가 쓰고 사람이 고친다. 판마다 이력으로 남는다
   const PRD_FILE = opts.PRD_FILE || path.join(path.dirname(EVOLVE_FILE), 'prd.json');
+  // Knowledge — 일에서 쌓이는 것: 온톨로지(종류 · 관계)와 그래프(개체 · 사실). 처음엔 비어 있고 에이전트가 채운다
+  const KNOWLEDGE_FILE = opts.KNOWLEDGE_FILE || path.join(path.dirname(EVOLVE_FILE), 'knowledge.json');
   // Update — 업스트림(agent-native-agent)과 기능 단위로 비교한 결과와 그 처리 상태
   const UPDATES_FILE = opts.UPDATES_FILE || path.join(path.dirname(EVOLVE_FILE), 'updates.json');
   const UPSTREAM_DIR = opts.UPSTREAM_DIR || path.join(path.dirname(EVOLVE_FILE), 'upstream');
@@ -267,6 +269,30 @@ function createDashboardApi(core, opts) {
     d.versions.push(v); while (d.versions.length > PRD_KEEP) d.versions.shift();
     d.version = (d.version || 1) + 1; writeJsonAtomic(PRD_FILE, d);
     return { d, v };
+  }
+  // ---- Knowledge: 온톨로지(classes · relations)와 그래프(entities · facts). id로 덮어쓰고(같은 사실은 하나), 지울 수 있다 ----
+  const K_ID = /^[\w:.-]{1,60}$/;
+  function loadKnowledge() {
+    const k = readJsonStrict(KNOWLEDGE_FILE, () => ({}));
+    const arr = (x) => (Array.isArray(x) ? x : []);
+    return { version: (k && k.version) || 1, classes: arr(k && k.classes), relations: arr(k && k.relations), entities: arr(k && k.entities), facts: arr(k && k.facts) };
+  }
+  const saveKnowledge = (k) => { k.version = (k.version || 1) + 1; writeJsonAtomic(KNOWLEDGE_FILE, k); };
+  const factKey = (f) => `${f.from}|${f.rel}|${f.to}`;
+  // 받은 것을 다듬어 더한다. 틀에 없는 종류·관계를 쓴 개체·사실도 버리지 않는다(화면이 '아직 온톨로지에 없음'으로 보인다)
+  function mergeKnowledge(k, b) {
+    const list = (x, n) => (Array.isArray(x) ? x : []).slice(0, n);
+    const upsert = (arr, x) => { const i = arr.findIndex((y) => y.id === x.id); if (i < 0) arr.push(x); else arr[i] = { ...arr[i], ...x }; };
+    let n = 0;
+    for (const c of list(b.classes, 200)) if (c && K_ID.test(c.id)) { upsert(k.classes, { id: c.id, label: clip(c.label || c.id, 80), desc: clip(c.desc, 300), parent: K_ID.test(c.parent || '') ? c.parent : '' }); n++; }
+    for (const r of list(b.relations, 200)) if (r && K_ID.test(r.id)) { upsert(k.relations, { id: r.id, label: clip(r.label || r.id, 80), desc: clip(r.desc, 300), domain: K_ID.test(r.domain || '') ? r.domain : '', range: K_ID.test(r.range || '') ? r.range : '' }); n++; }
+    for (const e of list(b.entities, 1000)) if (e && K_ID.test(e.id)) { upsert(k.entities, { id: e.id, label: clip(e.label || e.id, 120), class: K_ID.test(e.class || '') ? e.class : '', items: list(e.items, 20).map(String).filter((x) => K_ID.test(x)) }); n++; }
+    for (const f of list(b.facts, 3000)) {
+      if (!f || !K_ID.test(f.from || '') || !K_ID.test(f.rel || '') || !K_ID.test(f.to || '')) continue;
+      const x = { from: f.from, rel: f.rel, to: f.to, items: list(f.items, 20).map(String).filter((y) => K_ID.test(y)) };
+      const i = k.facts.findIndex((y) => factKey(y) === factKey(x)); if (i < 0) k.facts.push(x); else k.facts[i] = x; n++;
+    }
+    return n;
   }
   function loadRequests() {
     const s = readJsonStrict(REQUESTS_FILE, () => ({ next: 1, requests: [] }));
@@ -1084,6 +1110,31 @@ function createDashboardApi(core, opts) {
       return sendJson(res, 200, { ok: true, status: it.status, item: it, upstreamDir: UPSTREAM_DIR }), true;
     }
 
+    // Knowledge — GET: 온톨로지와 그래프 / POST {classes?, relations?, entities?, facts?}: 더하기(같은 id는 고침)
+    //   POST {action:'remove', kind: class|relation|entity|fact, id | from,rel,to}: 지우기(개체를 지우면 그 개체의 사실도)
+    if (p === '/api/knowledge' && req.method === 'GET') return sendJson(res, 200, loadKnowledge()), true;
+    if (p === '/api/knowledge' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res, 2 * 1024 * 1024); if (!body) return true;
+      const k = loadKnowledge();
+      if (body.action === 'remove') {
+        const before = k.classes.length + k.relations.length + k.entities.length + k.facts.length;
+        if (body.kind === 'class') k.classes = k.classes.filter((x) => x.id !== body.id);
+        else if (body.kind === 'relation') k.relations = k.relations.filter((x) => x.id !== body.id);
+        else if (body.kind === 'entity') { k.entities = k.entities.filter((x) => x.id !== body.id); k.facts = k.facts.filter((f) => f.from !== body.id && f.to !== body.id); }
+        else if (body.kind === 'fact') k.facts = k.facts.filter((f) => factKey(f) !== factKey(body));
+        else return sendJson(res, 400, { error: 'kind must be class|relation|entity|fact' }), true;
+        if (k.classes.length + k.relations.length + k.entities.length + k.facts.length === before) return sendJson(res, 404, { error: 'not found' }), true;
+        saveKnowledge(k); audit(actor(req), 'knowledge.remove', `${body.kind} ${clip(body.id || factKey(body), 60)}`);
+        broadcast({ kind: 'knowledge', version: k.version });
+        return sendJson(res, 200, { ok: true, version: k.version }), true;
+      }
+      const n = mergeKnowledge(k, body);
+      if (!n) return sendJson(res, 400, { error: 'nothing to add — send classes, relations, entities or facts with valid ids' }), true;
+      saveKnowledge(k); audit(actor(req), 'knowledge.add', `${n} items`);
+      broadcast({ kind: 'knowledge', version: k.version });
+      return sendJson(res, 200, { ok: true, added: n, version: k.version }), true;
+    }
     // PRD — GET: 지금 판 + 이력 / POST {md, note, source}: 새 판 / POST {action:'restore', v}: 옛 판을 새 판으로
     if (p === '/api/prd' && req.method === 'GET') {
       const d = loadPrd();
@@ -1183,10 +1234,10 @@ function createDashboardApi(core, opts) {
   // 채널 코어가 '사람별 최근 세션'을 기억할 때 쓰는 키 — 신원이 없으면 빈 값(단일 사용자)
   const userKey = (req) => who(req);
   // 화면 버튼이 대신 보낸 지시문은 채팅이 아니라 그 일의 요청으로 기록한다(사용 기록이 실제 사용을 보여 주게)
-  const INSTR_ACTION = { Evolve: 'evolve.request', PRD: 'prd.request', Update: 'update.request', Requests: 'requests.request', Approvals: 'approvals.request' };
+  const INSTR_ACTION = { Evolve: 'evolve.request', PRD: 'prd.request', Knowledge: 'knowledge.request', Update: 'update.request', Requests: 'requests.request', Approvals: 'approvals.request' };
   const onChat = (req, text) => {
     const me = actor(req); touchUser(me);
-    const t = String(text), m = /^\[(Evolve|Requests|Approvals|PRD|Update|Request #\d+)\]\s*/.exec(t);
+    const t = String(text), m = /^\[(Evolve|Requests|Approvals|PRD|Knowledge|Update|Request #\d+)\]\s*/.exec(t);
     // 대화 원문은 에이전트 기록에 이미 있다 — 여기에는 앞 60자와 길이만
     if (!m) { const one = t.replace(/\s+/g, ' ').trim(); return audit(me, 'chat.send', one.length > 60 ? one.slice(0, 60) + '…' : one, `${t.length} chars`); }
     audit(me, m[1].startsWith('Request #') ? 'request.answer' : INSTR_ACTION[m[1]], `${m[1].startsWith('Request #') ? m[1].slice(8) + ' ' : ''}${t.slice(m[0].length).split('\n')[0]}`.replace(/\s+/g, ' ').slice(0, 80));

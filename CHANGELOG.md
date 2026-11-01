@@ -5,6 +5,16 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.16.0] — 2026-11-01
+
+### Added
+
+- **Knowledge tab (Ontology · Graph).** What your work is about: the kinds of things and how they relate (*Ontology*), and the actual things and the facts between them, each tied to the notes, tasks and events it came from (*Graph*). It starts empty. *Ask the agent* has it read your work and add to both; things whose kind or relation is not in the ontology yet are kept and marked *new*. Remove what is wrong with ✕ (removing a thing removes its facts). API: `GET /api/knowledge`, `POST /api/knowledge {classes?, relations?, entities?, facts?}` or `{action:'remove', kind, id}`.
+
+### Changed
+
+- **Tab order: PRD · Work · Knowledge · Requests · Evolve · Update.** The app still opens on Work. The phone's bottom menu has the same six.
+
 ## [0.15.0] — 2026-10-31
 
 **Two editions — this one is the simple Agent-Native Agent.** The full version continues as **ANA Pro** (commercial; see [COMMERCIAL.md](COMMERCIAL.md)). This repository keeps what one person needs to run their work with a coding agent, in one workspace and five tabs: **Work** · **Requests** · **Evolve** · **PRD** · **Update**.

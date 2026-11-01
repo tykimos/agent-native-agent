@@ -6,7 +6,7 @@
 
 ### 보면서 대화하는 것만으로 운영하는 앱을 만드세요.
 
-> **두 에디션.** **Agent-Native Agent**(이 저장소, AGPL)는 간소한 판입니다. 코딩 에이전트와의 채팅과 탭 다섯 — Work(할일·캘린더·메모와 그 연결), Requests, Evolve, PRD, Update가 있습니다. **Agent-Native Agent Pro**(상용)는 여기에 일에서 쌓이는 지식 층(분석, 지식그래프, 규칙이 있는 온톨로지), Graph 화면, 관리자·실무자 역할이 있는 System 범위와 Roadmap·Health, 여러 워크스페이스, 세션별 Claude 계정, 오프라인판을 더합니다. Pro 문의: [COMMERCIAL.ko.md](COMMERCIAL.ko.md).
+> **두 에디션.** **Agent-Native Agent**(이 저장소, AGPL)는 간소한 판입니다. 코딩 에이전트와의 채팅과 탭 여섯 — PRD, Work(할일·캘린더·메모와 그 연결), Knowledge, Requests, Evolve, Update가 있습니다. **Agent-Native Agent Pro**(상용)는 여기에 일에서 쌓이는 지식 층(분석, 지식그래프, 규칙이 있는 온톨로지), Graph 화면, 관리자·실무자 역할이 있는 System 범위와 Roadmap·Health, 여러 워크스페이스, 세션별 Claude 계정, 오프라인판을 더합니다. Pro 문의: [COMMERCIAL.ko.md](COMMERCIAL.ko.md).
 
 [![Stars](https://img.shields.io/github/stars/tykimos/agent-native-agent?style=for-the-badge&logo=github&color=CC785C)](https://github.com/tykimos/agent-native-agent/stargazers)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-1f6feb?style=for-the-badge)](LICENSE)
@@ -146,14 +146,15 @@ node server.js           # → http://localhost:8809
 
 ## base에 들어 있는 것
 
-베이스는 메모, 할일, 일정을 코딩 에이전트와 함께 굴리는 운영 보드입니다. 워크스페이스는 하나이고, 탭은 다섯입니다(휴대폰에서는 아래 메뉴).
+베이스는 메모, 할일, 일정을 코딩 에이전트와 함께 굴리는 운영 보드입니다. 워크스페이스는 하나이고, 탭은 여섯입니다(휴대폰에서는 아래 메뉴).
 
 | 탭 | 하위 탭 | 내용 |
 |---|---|---|
+| **PRD** | Current · History | 이 ANA가 무엇을 하는 앱인지 — 목적, 사용자, 기능, 화면, 데이터. 에이전트가 코드와 데이터를 읽고 쓰며(*Ask the agent*) 사람이 고칠 수 있습니다. 저장할 때마다 새 판이 되고, 옛 판을 보거나 되돌릴 수 있습니다 |
 | **Work** | Tasks · Calendar · Notes | 내 업무 항목과 그 연결. 도메인 ANA는 자기 업무의 종류를 여기에 둡니다 |
+| **Knowledge** | Ontology · Graph | 내 일이 무엇에 관한 것인지: 사물의 종류와 그 관계(온톨로지), 실제 사물과 그 사이의 사실 — 각각 나온 항목이 붙음(그래프). 처음엔 비어 있고, *Ask the agent*를 누르면 에이전트가 일을 읽고 채우며, 틀린 것은 지울 수 있습니다 |
 | **Requests** | Waiting · In progress · Done | 에이전트가 나에게 필요한 것: 에이전트가 제안한 데이터 변경(승인하기 전에는 아무것도 바뀌지 않음), 승인, 결정, 접근 권한, 나만 할 수 있는 일, 모자란 정보 |
 | **Evolve** | Waiting · In progress · Done | 지금 할 일과 ANA가 바뀔 방향을 세 거리로 — **tidy**(어긋난 것 정리), **improve**(이 일을 더 낫게), **reimagine**(새로운 일하는 방식). 본 것, 사람에게 달라지는 것, 다른 곳의 사례(링크)가 붙습니다. *Do it*을 누르면 에이전트가 맡습니다 |
-| **PRD** | Current · History | 이 ANA가 무엇을 하는 앱인지 — 목적, 사용자, 기능, 화면, 데이터. 에이전트가 코드와 데이터를 읽고 쓰며(*Ask the agent*) 사람이 고칠 수 있습니다. 저장할 때마다 새 판이 되고, 옛 판을 보거나 되돌릴 수 있습니다 |
 | **Update** | Waiting · In progress · Done | [agent-native-agent](https://github.com/tykimos/agent-native-agent)에 새로 나왔지만 여기에는 아직 없는 기능. *Check for updates*가 최신 업스트림과 기능 단위로 비교하고, *Bring it in*을 누르면 에이전트가 그 기능의 스킬로 옮겨 옵니다 |
 
 Requests와 Evolve의 카드는 같은 질문에 사람 말로 답합니다 — **무슨 일인지(What's going on) · 무엇을 해 달라는지(What is asked) · 하면 무엇이 달라지는지(What it changes) · 안 하면(If not)**. Evolve 제안이나 업데이트로 앱이 하는 일이 바뀌면 에이전트가 PRD도 고칩니다.
@@ -199,7 +200,7 @@ Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           due / date에서 계�
 
 ### Requests, Evolve, PRD — API
 
-*Ask the agent*를 누르면 에이전트가 목록을 채웁니다. 에이전트는 `POST /api/requests {requests:[{kind, title, why, ask, effect, ifNot, options?, ref?}]}`로 항목을 올리고(`ref` = 링크로 보일 할일·일정·메모 id), 데이터 변경은 `POST /api/agent {text, diff, why, effect}`로 올립니다. 내 답은 채팅으로 바로 에이전트에게 갑니다. *Resolved* / *Not now*도 알려 줍니다(`POST /api/request-act {id, action: answer|done|dismiss|reopen}`). Evolve 제안은 `POST /api/evolve`로 들어오고 `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen}`로 처리합니다. PRD는 `GET /api/prd`(지금 판 + 이력)와 `POST /api/prd {md, note, source}`(새 판) 또는 `{action:'restore', v}`입니다. 업데이트는 `GET /api/updates`, `POST /api/update/check`, `POST /api/update-act {id, action}`입니다.
+*Ask the agent*를 누르면 에이전트가 목록을 채웁니다. 에이전트는 `POST /api/requests {requests:[{kind, title, why, ask, effect, ifNot, options?, ref?}]}`로 항목을 올리고(`ref` = 링크로 보일 할일·일정·메모 id), 데이터 변경은 `POST /api/agent {text, diff, why, effect}`로 올립니다. 내 답은 채팅으로 바로 에이전트에게 갑니다. *Resolved* / *Not now*도 알려 줍니다(`POST /api/request-act {id, action: answer|done|dismiss|reopen}`). Evolve 제안은 `POST /api/evolve`로 들어오고 `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen}`로 처리합니다. Knowledge는 `GET /api/knowledge`와 `POST /api/knowledge {classes?, relations?, entities?, facts?}`(같은 id는 고침) 또는 `{action:'remove', kind, id}`입니다. PRD는 `GET /api/prd`(지금 판 + 이력)와 `POST /api/prd {md, note, source}`(새 판) 또는 `{action:'restore', v}`입니다. 업데이트는 `GET /api/updates`, `POST /api/update/check`, `POST /api/update-act {id, action}`입니다.
 
 ### 여러 사람과 함께 쓰기 (선택)
 
@@ -259,8 +260,8 @@ claude plugin install ana@agent-native-agent          # 이후: claude plugin up
 | [`ana-update`](skills/ana-update/SKILL.md) | 이미 쓰고 있는 ANA를 기능 단위로 최신화 |
 | [`chat-window`](skills/chat-window/SKILL.md) | Claude 앱 같은 채팅: 세션 콤보, 기록 기반 표시, 모델 시트, 사용량 링, 음성, 첨부, Codex |
 | [`context-chips`](skills/context-chips/SKILL.md) | 칩 모드, ✎ 화면 그리기, ⟳ 새 요소 등록 |
-| [`app-shell`](skills/app-shell/SKILL.md) | 다섯 탭(Work · Requests · Evolve · PRD · Update), 하위 탭, 휴대폰의 하단 메뉴 |
-| [`agent-requests`](skills/agent-requests/SKILL.md) | Requests, Evolve, PRD |
+| [`app-shell`](skills/app-shell/SKILL.md) | 여섯 탭(PRD · Work · Knowledge · Requests · Evolve · Update), 하위 탭, 휴대폰의 하단 메뉴 |
+| [`agent-requests`](skills/agent-requests/SKILL.md) | Requests, Evolve, PRD, Knowledge |
 
 ### 기존 ANA 업데이트
 
@@ -287,8 +288,8 @@ node skills/ana-update/scripts/ana-diff.mjs --target ~/ana/my-ana --record   # �
 ```
 channel-core.js     ★ ANA 런타임 전부 — tmux 주입 / capture-pane 미러 / 세션별 원장 (의존성 0)
 server.js             베이스 앱: channel-core + dashboard-api 마운트, dashboard.html 제공
-dashboard-api.js      베이스 API: 할일 · 일정 · 메모 · 관계 · 요청 · 승인 · 진화 · PRD · 업데이트
-dashboard.html        레퍼런스 UI: Work · Requests · Evolve · PRD · Update, Claude 앱 같은 채팅, 칩 모드 + 그리기, 관계 칩
+dashboard-api.js      베이스 API: 할일 · 일정 · 메모 · 관계 · 지식 · 요청 · 승인 · 진화 · PRD · 업데이트
+dashboard.html        레퍼런스 UI: PRD · Work · Knowledge · Requests · Evolve · Update, Claude 앱 같은 채팅, 칩 모드 + 그리기, 관계 칩
 agent-log.js          에이전트 자체 JSONL 기록으로 채팅 표시(Claude Code + Codex): 응답·도구·모델·한도
 codex-settings.js     Codex 모델·추론 강도 목록, Codex 자체 메뉴로 전환
 graph-index.js        연결의 NodeRel 색인(파생 graph-index.sqlite)

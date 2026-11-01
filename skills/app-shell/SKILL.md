@@ -1,31 +1,32 @@
 ---
 name: app-shell
-description: Port ANA's app shell — one workspace, five top tabs (Work with a sub-tab per kind of work, Requests · Evolve · Update with Waiting / In progress / Done, PRD with Current / History), the bottom menu on phones, sub-tabs, badges, right-aligned profile, "New version available" reload pill, and the remembered tab. Use when the user says "하단 메뉴", "탭 구조", "모바일 네비게이션", "워크 탭", "서브탭", or when ana-update reports app-tabs missing.
+description: Port ANA's app shell — one workspace, six top tabs (PRD with Current / History, Work with a sub-tab per kind of work, Knowledge with Ontology / Graph, Requests · Evolve · Update with Waiting / In progress / Done), the bottom menu on phones, sub-tabs, badges, right-aligned profile, "New version available" reload pill, and the remembered tab. Use when the user says "하단 메뉴", "탭 구조", "모바일 네비게이션", "워크 탭", "서브탭", or when ana-update reports app-tabs missing.
 ---
 
 # app-shell — where things live
 
-One workspace, five tabs:
+One workspace, six tabs, in this order:
 
 | Tab | Sub-tabs | What |
 |---|---|---|
+| **PRD** | Current · History | what this ANA is and does (see agent-requests) |
 | **Work** | one per kind of work (base: Tasks · Calendar · Notes) | where work is done — the domain's own screens |
+| **Knowledge** | Ontology · Graph | what the work is about — kinds and relations, things and facts; starts empty, the agent fills it (see agent-requests) |
 | **Requests** | Waiting · In progress · Done | what the agent needs from you (see agent-requests) |
 | **Evolve** | Waiting · In progress · Done | proposals for the work and the app (see agent-requests) |
-| **PRD** | Current · History | what this ANA is and does (see agent-requests) |
 | **Update** | Waiting · In progress · Done | features from upstream not yet here (see ana-update) |
 
 ## UX spec
 
 ```
 Mobile (≤768px)                                        Desktop
-┌───────────────────────────────────┐                  [logo ANA]  Work  Requests•3  Evolve•1  PRD  Update•2     (Chip)(✎)(⟳)(A)
+┌───────────────────────────────────┐                  [logo ANA]  PRD  Work  Knowledge  Requests•3  Evolve•1  Update•2   (Chip)(✎)(⟳)(A)
 │[logo]                  (Chip)(A)  │                  ─────────────────────────────────────────
 │ Tasks  Calendar  Notes            │  ← sub-tabs      Tasks  Calendar  Notes
 │ …                                  │
 │                        (chat FAB)  │  FAB sits above the bottom nav
 ├───────────────────────────────────┤
-│ Work  Requests•3 Evolve•1 PRD Update│
+│ PRD Work Knowl. Requests Evolve Upd│
 └───────────────────────────────────┘
 ```
 
@@ -39,7 +40,7 @@ Mobile (≤768px)                                        Desktop
 
 ## Anchors / code (upstream `dashboard.html`)
 
-Top tabs and bottom-menu buttons carry `data-view` = `work | requests | evolve | prd | update`. `TABS`, `WORK_VIEWS`, `VIEWS` list them. Functions: `selectTab(b)` (the one place that switches tabs; for Work it shows `curSub('work')`), `showTab(v)` (any screen, including a Work screen → picks that sub-tab), `syncBottomNav(tab)`, `setBadge`. Sub-tabs: `SUBTABS`, `renderSubtabs` (renders every `.subtabs[data-sub=v]`, toggles `[data-subsec]`), `openSub`, `curSub`, `setSubCount`, `RENDER_SUB` (re-renders a status list when its sub-tab changes), `REFRESH_TAB` (loads a tab's data when it opens).
+Top tabs and bottom-menu buttons carry `data-view` = `prd | work | knowledge | requests | evolve | update`. `TABS`, `WORK_VIEWS`, `VIEWS` list them. Functions: `selectTab(b)` (the one place that switches tabs; for Work it shows `curSub('work')`), `showTab(v)` (any screen, including a Work screen → picks that sub-tab), `syncBottomNav(tab)`, `setBadge`. Sub-tabs: `SUBTABS`, `renderSubtabs` (renders every `.subtabs[data-sub=v]`, toggles `[data-subsec]`), `openSub`, `curSub`, `setSubCount`, `RENDER_SUB` (re-renders a status list when its sub-tab changes), `REFRESH_TAB` (loads a tab's data when it opens).
 
 ## Porting
 
@@ -49,7 +50,7 @@ Top tabs and bottom-menu buttons carry `data-view` = `work | requests | evolve |
 
 ## Verify (390px and 1280px)
 
-- Five tabs on desktop and in the bottom menu on phones; no horizontal scroll.
+- Six tabs on desktop and in the bottom menu on phones, in the order PRD · Work · Knowledge · Requests · Evolve · Update; the app opens on Work. No horizontal scroll.
 - Work: each sub-tab opens its screen; a relation chip that points to an event opens Work › Calendar.
 - Requests / Evolve / Update: Waiting · In progress · Done each show their items; badges count Waiting.
 - Reload returns to the same tab and sub-tab. An instruction card's *Open* goes to its tab and sub-tab.
