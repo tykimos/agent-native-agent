@@ -120,6 +120,14 @@ function pageItems(all, since, limit = 40, before) {
 }
 const resultText = (c) => (typeof c === 'string' ? c : Array.isArray(c) ? c.filter((x) => x.type === 'text').map((x) => x.text).join('\n') : '');
 
+// Claude Code인지: tmux가 보이는 프로세스 이름이 예전엔 'claude'(macOS에선 'claude.exe')였고, 2.1.3xx부터는 버전 번호('2.1.316')다.
+// 버전 번호 모양이어도 다른 에이전트를 띄운 팬(시작 명령에 codex 등)이면 아니다.
+function isClaudeCommand(cmd, start = '') {
+  const c = String(cmd || '');
+  if (/claude/i.test(c)) return true;
+  return /^\d+\.\d+\.\d+/.test(c) && !/\b(codex|gemini|aider)\b/i.test(String(start || ''));
+}
+
 function createAgentLog({ socket = '' } = {}) {
   const logs = new Map();       // file → 파서 상태
   const where = new Map();      // target → {file, cwd, at}
@@ -162,9 +170,9 @@ function createAgentLog({ socket = '' } = {}) {
     if (hit && Date.now() - hit.at < 5000) return hit;
     const info = await tmuxInfo(target);
     let file = null, kind = '', config = null;
-    if (info && info.cwd && !/claude/i.test(info.cmd || '') && /codex/i.test(`${info.cmd} ${info.start} ${target}`)) {
+    if (info && info.cwd && !isClaudeCommand(info.cmd, info.start) && /codex/i.test(`${info.cmd} ${info.start} ${target}`)) {
       kind = 'codex'; file = findCodexRollout(info.cwd);
-    } else if (info && /claude/i.test(info.cmd || '') && info.cwd) {
+    } else if (info && isClaudeCommand(info.cmd, info.start) && info.cwd) {
       kind = 'claude';
       config = await claudeConfig(target, info.pid);
       const dir = path.join(config.dir, 'projects', info.cwd.replace(/[^A-Za-z0-9]/g, '-'));
@@ -369,4 +377,4 @@ function createAgentLog({ socket = '' } = {}) {
   return { read, image, resolve, prefetch, update, logs };
 }
 
-module.exports = { createAgentLog, toolLabel, cleanUser, systemNotice, modelName, codexModelName, codexLimits, findCodexRollout, pageItems };
+module.exports = { createAgentLog, isClaudeCommand, toolLabel, cleanUser, systemNotice, modelName, codexModelName, codexLimits, findCodexRollout, pageItems };

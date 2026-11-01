@@ -129,3 +129,12 @@ test('A new ANA starts with no PRD, no work and no knowledge — the first conve
   assert.equal(k.classes.length + k.entities.length, 0, 'knowledge empty');
   assert.ok(require('node:fs').readFileSync(path.join(__dirname, 'prd-template.md'), 'utf8').includes('## Sketches'), 'the template the agent writes from');
 });
+
+test('Claude Code is recognized whether tmux shows "claude", "claude.exe" or a version number (2.1.316+)', () => {
+  const { isClaudeCommand } = require('./agent-log.js');
+  for (const c of ['claude', 'claude.exe', '2.1.316', '2.2.0']) assert.ok(isClaudeCommand(c, 'exec claude --dangerously-skip-permissions'), c);
+  assert.ok(isClaudeCommand('2.1.316', ''), 'a shell where claude was typed has no start command');
+  assert.ok(!isClaudeCommand('node', 'exec codex'), 'Codex runs as node');
+  assert.ok(!isClaudeCommand('0.46.0', 'exec codex --yolo'), 'a version-like name with a codex start command is not Claude');
+  assert.ok(!isClaudeCommand('zsh', ''));
+});

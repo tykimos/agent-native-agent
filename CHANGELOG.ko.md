@@ -5,6 +5,12 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.18.3] — 2026-11-01
+
+### Fixed
+
+- **새 Claude Code(2.1.3xx)를 다시 알아봅니다.** tmux가 프로세스 이름을 `claude`가 아니라 버전 번호(`2.1.316`)로 보이게 되어, ANA가 그 세션을 Claude Code로 보지 못했습니다. 그래서 채팅이 터미널 화면을 그대로 긁어 보였고, 모델 알약·모델 시트·권한 모드·사용량 링이 사라졌습니다. 이제 `claude`, `claude.exe`, 버전 번호(다른 에이전트로 시작한 팬이 아니면)를 모두 Claude Code로 보고, 에이전트 이름도 *Claude Code*로 나옵니다.
+
 ## [0.18.2] — 2026-11-01
 
 ### Changed

@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.18.3] — 2026-11-01
+
+### Fixed
+
+- **Newer Claude Code (2.1.3xx) is recognized again.** tmux now shows its process as a version number (`2.1.316`) instead of `claude`, so ANA stopped treating the session as Claude Code: the chat fell back to the raw screen, and the model pill, model sheet, permission mode and usage rings disappeared. ANA now accepts `claude`, `claude.exe` or a version number (unless the pane was started with another agent), and the agent label says *Claude Code*.
+
 ## [0.18.2] — 2026-11-01
 
 ### Changed

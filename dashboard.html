@@ -2316,6 +2316,7 @@ const AGENTS = { claude: 'Claude Code', codex: 'Codex', gemini: 'Gemini CLI', ai
 const agentName = (cmd, session) => {
   const c = String(cmd || '').replace(/\.exe$/i, '').toLowerCase();
   if (AGENTS[c]) return AGENTS[c];
+  if (/^\d+\.\d+\.\d+/.test(c) && !/codex|gemini|aider/.test(String(session || '').toLowerCase())) return AGENTS.claude;   // Claude Code 2.1.3xx는 프로세스 이름이 버전 번호다
   const hint = Object.keys(AGENTS).find((k) => String(session || '').toLowerCase().includes(k));
   if (hint && /^(node|python3?|bun|deno)?$/.test(c)) return AGENTS[hint];
   return c || 'Agent';
