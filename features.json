@@ -232,7 +232,7 @@
       "id": "prd",
       "title": "PRD (what this ANA is and does)",
       "skill": "agent-requests",
-      "summary": "PRD tab, first and where a new ANA opens: what this ANA is and does in markdown — purpose, users, work, knowledge, agent, what is here now. A new ANA starts from a sample (prd-sample.md). People edit it, or tell the agent in chat and it updates the PRD (CLAUDE.md / AGENTS.md say so); Ask the agent asks what is unclear and updates it. Every save is a new version (sample, agent or person, with a note); History keeps earlier versions, each viewable and restorable. Build Work from the PRD (Work tab) has the agent build the Work screens from it.",
+      "summary": "PRD tab, first and where a new ANA opens: what this ANA is and does. A new ANA has no PRD — it is written from the first conversation: the person says (or sketches) what they want, the agent asks what it still needs, then in the same turn saves the PRD (sections of prd-template.md) and builds the first Work screen (CLAUDE.md / AGENTS.md). Starter examples and Talk to ANA open the chat; Edit lets a person write it; every save is a new version, History keeps earlier ones (viewable, restorable).",
       "anchors": [
         "/api/prd",
         "PRD_FILE",
@@ -240,8 +240,9 @@
         "prdView",
         "function renderPrd",
         "function refreshPrd",
-        "prd-sample.md",
-        "workBuild"
+        "prd-template.md",
+        "data-starter",
+        "data-talk"
       ]
     },
     {
@@ -270,6 +271,19 @@
         "knowledgeView",
         "function renderKnowledge",
         "function kGraphSvg"
+      ]
+    },
+    {
+      "id": "sketch",
+      "title": "Sketch a screen",
+      "skill": "context-chips",
+      "summary": "A blank sketch pad (pen, box, text, eraser; black / red / blue; undo, clear) to draw a rough screen. Send to ANA attaches it to the chat as a PNG; the agent builds from it and keeps it in the PRD under Sketches (markdown images from /uploads/ are shown). Opened from the PRD, the start card and the empty Work tab.",
+      "anchors": [
+        "sketchLayer",
+        "function openSketch",
+        "skCanvas",
+        "data-sketch",
+        "md-img"
       ]
     }
   ]

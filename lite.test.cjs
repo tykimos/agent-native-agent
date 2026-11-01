@@ -119,13 +119,13 @@ test('Knowledge starts empty; the agent adds kinds, relations, things and facts;
   assert.equal((await post('/api/knowledge', { action: 'remove', kind: 'class', id: 'Nope' })).status, 404);
 });
 
-test('A new ANA starts with a sample PRD and empty work; the sample is written once', async (t) => {
-  const { api, stop } = await startServer({ ANA_SEED: '1' });
+test('A new ANA starts with no PRD, no work and no knowledge — the first conversation writes them', async (t) => {
+  const { api, stop } = await startServer({ ANA_SEED: '1' });   // 예전 판의 견본 스위치가 켜져 있어도 비어 있다
   t.after(stop);
-  const prd = await (await fetch(api + '/api/prd')).json();
-  assert.equal(prd.current.v, 1); assert.equal(prd.current.source, 'sample'); assert.match(prd.current.md, /## Work/);
+  assert.equal((await (await fetch(api + '/api/prd')).json()).current, null, 'no PRD');
   const st = await (await fetch(api + '/api/state')).json();
   assert.deepEqual([st.items.length, st.events.length, st.notes.length], [0, 0, 0], 'no example work');
   const k = await (await fetch(api + '/api/knowledge')).json();
   assert.equal(k.classes.length + k.entities.length, 0, 'knowledge empty');
+  assert.ok(require('node:fs').readFileSync(path.join(__dirname, 'prd-template.md'), 'utf8').includes('## Sketches'), 'the template the agent writes from');
 });

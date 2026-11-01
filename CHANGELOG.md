@@ -5,6 +5,17 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.18.0] — 2026-11-01
+
+### Changed
+
+- **Start by talking, not with a form.** A new ANA has **no PRD**. It opens on the PRD tab with *What should this ANA do?*, three example starts and *Talk to ANA*; on a wide screen the chat opens and the input says *Tell ANA what this ANA should do*. The agent asks only what it still needs, then in the same turn writes the PRD (sections of `prd-template.md`) and builds the first Work screen (`CLAUDE.md` / `AGENTS.md`). The sample PRD of 0.17.0 is gone.
+- The Work tab says to talk to ANA; *Build from the PRD as it is* stays as a shortcut.
+
+### Added
+
+- **Sketch a screen.** A blank pad on the PRD and Work tabs — pen, box, text, eraser, three colors, undo. *Send to ANA* attaches the drawing to the chat as a PNG; the agent builds from it and keeps it in the PRD under *Sketches*. Pictures from `/uploads/` now show inside the PRD.
+
 ## [0.17.0] — 2026-11-01
 
 ### Changed

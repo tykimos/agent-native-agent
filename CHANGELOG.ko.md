@@ -5,6 +5,17 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.18.0] — 2026-11-01
+
+### Changed
+
+- **양식이 아니라 대화로 시작합니다.** 새 ANA에는 **PRD가 없습니다.** PRD 탭에서 *What should this ANA do?*, 시작 예시 세 개, *Talk to ANA*가 보이고, 넓은 화면에서는 채팅이 열려 입력창이 *Tell ANA what this ANA should do*라고 안내합니다. 에이전트는 모자란 것만 묻고, 같은 대화에서 PRD(`prd-template.md`의 절 구성)를 쓰고 첫 Work 화면을 만듭니다(`CLAUDE.md` / `AGENTS.md`). 0.17.0의 견본 PRD는 없앴습니다.
+- Work 탭은 ANA와 이야기하라고 안내합니다. *Build from the PRD as it is*는 지름길로 남깁니다.
+
+### Added
+
+- **화면 그리기(Sketch a screen).** PRD·Work 탭의 빈 그림판 — 펜, 상자, 글자, 지우개, 세 가지 색, 되돌리기. *Send to ANA*를 누르면 그림이 PNG로 채팅에 붙고, 에이전트가 그걸 보고 만들며 PRD의 *Sketches*에 남깁니다. PRD 안에서 `/uploads/`의 그림이 보입니다.
+
 ## [0.17.0] — 2026-11-01
 
 ### Changed

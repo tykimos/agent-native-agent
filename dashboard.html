@@ -484,6 +484,25 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .prd-acts { display: flex; justify-content: flex-end; gap: 8px; } .prd-acts button { height: 36px; padding: 0 14px; border-radius: 10px; font-weight: 700; background: var(--surface-2); }
 .prd-acts .ok { background: var(--acc, var(--blue)); color: #fff; }
 .upd-last { font-size: 12.5px; color: var(--text-sub); }
+/* 시작 카드(PRD가 없을 때) · 손그림판 · 마크다운 그림 */
+.start-card { padding: 28px 26px; text-align: center; } .start-card h2 { font-size: 20px; font-weight: 800; margin: 0 0 8px; }
+.start-card p { color: var(--text-sub); max-width: 560px; margin: 0 auto 16px; line-height: 1.6; }
+.starters { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0 0 18px; }
+.starters button { padding: 8px 14px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--text); }
+.starters button:hover { border-color: var(--acc, var(--blue)); }
+.work-more { margin-top: 14px; font-size: 12.5px; color: var(--text-weak); } .work-more button { font-size: 12.5px; color: var(--text-sub); text-decoration: underline; text-underline-offset: 2px; }
+.md-img { max-width: 100%; border-radius: 10px; border: 1px solid var(--line); background: #fff; margin: 4px 0; }
+.sketch-layer { position: fixed; inset: 0; z-index: 120; background: rgba(15, 17, 21, .55); display: flex; flex-direction: column; padding: 14px; gap: 8px; } .sketch-layer[hidden] { display: none; }
+.sketch-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; background: var(--surface); border-radius: 14px; padding: 8px 10px; box-shadow: 0 6px 24px rgba(0,0,0,.18); }
+.sketch-bar .sk-title { font-weight: 800; font-size: 14px; margin-right: 6px; } .sketch-bar .sp { flex: 1; } .sk-sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+.sketch-bar button { height: 34px; padding: 0 12px; border-radius: 10px; font-weight: 700; font-size: 13px; background: var(--surface-2); }
+.sketch-bar button.on { background: var(--acc-weak, var(--blue-weak)); color: var(--acc-strong, var(--blue-700)); } .sketch-bar button:disabled { opacity: .45; }
+.sketch-bar .sk-color { width: 26px; height: 26px; padding: 0; border-radius: 999px; border: 3px solid var(--surface); box-shadow: 0 0 0 1px var(--line); }
+.sketch-bar .sk-color.on { box-shadow: 0 0 0 2px var(--acc, var(--blue)); }
+.sketch-bar .ok { background: var(--acc, var(--blue)); color: #fff; }
+.sketch-paper { flex: 1; min-height: 0; background: #fff; border-radius: 14px; overflow: hidden; touch-action: none; } .sketch-paper canvas { display: block; cursor: crosshair; touch-action: none; }
+.sk-hint { text-align: center; color: #fff; font-size: 12.5px; opacity: .9; }
+body.sketching { overflow: hidden; }
 /* Work: 처음엔 비어 있다 */
 .work-empty { padding: 28px 26px; text-align: center; margin-top: 8px; } .work-empty[hidden] { display: none; }
 .work-empty h2 { font-size: 19px; font-weight: 800; margin: 0 0 8px; } .work-empty p { color: var(--text-sub); max-width: 520px; margin: 0 auto 18px; line-height: 1.6; }
@@ -1136,8 +1155,9 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
     <div id="workArea"></div>
     <div class="card work-empty" id="workEmpty">
       <h2>Work is empty</h2>
-      <p>This is where the screens for your work will go — the lists, boards and forms your ANA needs. Start with the <b>PRD</b>: write down what this ANA is for, or tell the agent in chat. Then have the agent build Work from it.</p>
-      <div class="work-acts"><button class="ib-btn" id="workPrd">Open the PRD</button><button class="ok" id="workBuild">Build Work from the PRD</button></div>
+      <p>The screens for your work go here — the lists, boards and forms this ANA needs. Tell ANA in the chat what your work is (or sketch a screen and send it); it builds them with you and keeps the <b>PRD</b> up to date.</p>
+      <div class="work-acts"><button class="ib-btn" data-sketch>Sketch a screen</button><button class="ok" data-talk>Talk to ANA</button></div>
+      <div class="work-more"><button id="workBuild">Build from the PRD as it is</button> · <button id="workPrd">Open the PRD</button></div>
     </div>
   </div></section>
 
@@ -1186,14 +1206,23 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
   <section class="view" id="prdView" role="tabpanel"><div class="wrap">
     <nav class="subtabs" data-sub="prd" role="tablist" aria-label="PRD"></nav>
     <div data-subsec="current">
-      <div class="toolbar"><span class="cnt" id="prdMeta"></span><span class="sp"></span><button class="ib-btn" id="prdEdit">Edit</button><button class="ib-btn" id="prdAsk">Ask the agent</button></div>
+      <div class="toolbar"><span class="cnt" id="prdMeta"></span><span class="sp"></span><button class="ib-btn" id="prdEdit">Edit</button><button class="ib-btn" data-sketch>Sketch</button><button class="ib-btn" id="prdAsk">Ask the agent</button></div>
       <form class="card prd-form" id="prdForm" autocomplete="off" hidden>
         <textarea id="prdText" rows="18" aria-label="PRD (markdown)"></textarea>
         <input id="prdNote" maxlength="300" placeholder="What changed (optional)" aria-label="What changed">
         <div class="prd-acts"><button type="button" id="prdCancel">Cancel</button><button type="submit" class="ok">Save as a new version</button></div>
       </form>
       <div class="card prd-md md" id="prdBody" hidden></div>
-      <div class="empty" id="prdEmpty">No PRD yet — press [Ask the agent] to have it written from this ANA, or [Edit] to write it yourself</div>
+      <div class="card start-card" id="prdEmpty">
+        <h2>What should this ANA do?</h2>
+        <p>Tell ANA in the chat — what the work is, who it is for, what you want to see. It asks what it needs, writes this PRD and builds the first screens with you. Drawing helps too: sketch a screen roughly and send it.</p>
+        <div class="starters" id="prdStarters">
+          <button data-starter="I run a small studio with a partner. I want to keep track of leads, quotes and follow-ups.">A small studio's leads and quotes</button>
+          <button data-starter="I want one place for my research: papers I read, notes on each, and what I still need to read.">Research notes and a reading list</button>
+          <button data-starter="I organize events. I need venues, guests, a budget and a checklist per event.">Planning events</button>
+        </div>
+        <div class="work-acts"><button class="ib-btn" data-sketch>Sketch a screen</button><button class="ok" data-talk>Talk to ANA</button></div>
+      </div>
     </div>
     <div data-subsec="history">
       <div id="prdHist"></div>
@@ -1300,6 +1329,19 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
     <button id="drawCancel">Cancel</button>
     <button id="drawDone" class="dok" disabled>Add to chat</button>
   </div>
+</div>
+<!-- 손그림판: 원하는 화면을 대충 그려 ANA에게 보낸다(그림은 채팅 첨부로 간다) -->
+<div class="sketch-layer" id="sketchLayer" hidden role="dialog" aria-modal="true" aria-label="Sketch a screen">
+  <div class="sketch-bar" role="toolbar" aria-label="Sketch tools">
+    <span class="sk-title">Sketch a screen</span>
+    <button class="sk-tool on" data-tool="pen" aria-label="Pen">✎ Pen</button><button class="sk-tool" data-tool="box" aria-label="Box">▭ Box</button><button class="sk-tool" data-tool="text" aria-label="Text">T Text</button><button class="sk-tool" data-tool="erase" aria-label="Eraser">⌫ Erase</button>
+    <span class="sk-sep"></span>
+    <button class="sk-color on" data-color="#111111" aria-label="Black" style="background:#111111"></button><button class="sk-color" data-color="#E5484D" aria-label="Red" style="background:#E5484D"></button><button class="sk-color" data-color="#3182F6" aria-label="Blue" style="background:#3182F6"></button>
+    <span class="sp"></span>
+    <button id="skUndo">Undo</button><button id="skClear">Clear</button><button id="skCancel">Cancel</button><button id="skSend" class="ok">Send to ANA</button>
+  </div>
+  <div class="sketch-paper"><canvas id="skCanvas"></canvas></div>
+  <div class="sk-hint">Rough is fine — boxes for lists and buttons, a few words. ANA reads it and asks what is unclear.</div>
 </div>
 <!-- 하단 메뉴(모바일): 위 탭과 같은 여섯 — PRD · Work · Knowledge · Requests · Evolve · Update -->
 <nav class="bottomnav" aria-label="Menu">
@@ -1408,7 +1450,7 @@ $('workBuild').onclick = () => {
   const b = $('workBuild'); b.disabled = true; const orig = b.textContent; b.textContent = 'Asking…';
   const api = (path) => `http://${agentHost}${path}`;
   const prompt = `[Work] Build the Work tab of this ANA from its PRD.
-Read the PRD GET ${api('/api/prd')} and the code in this folder (dashboard.html, dashboard-api.js, server.js). If the PRD does not yet say what the work is — what people handle, what they need to see and do — ask me first, and write what we agree into the PRD before building.
+Read the PRD GET ${api('/api/prd')} and the code in this folder (dashboard.html, dashboard-api.js, server.js). If there is no PRD or it does not yet say what the work is — what people handle, what they need to see and do — ask me first, and write what we agree into the PRD before building. Follow any sketches in it (## Sketches).
 Build it into #workArea in dashboard.html (sub-tabs with <nav class="subtabs" data-sub="work"> and SUBTABS.work if there is more than one kind of work), with the data and API routes it needs in dashboard-api.js, matching the look of the rest of the app. Keep PRD, Knowledge, Requests, Evolve and Update as they are.
 Verify with the tests and a look at the page. Then update the PRD so it says what Work now has (POST ${api('/api/prd')} {"md":"…","note":"Built Work","source":"agent"}) and tell me what you built.`;
   post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
@@ -1669,6 +1711,7 @@ Object.keys(SUBTABS).forEach(renderSubtabs);
 /* ---- PRD: 이 ANA가 무엇을 하는 앱인지 ----
    에이전트가 코드·데이터·진화 기록을 읽고 쓰며(Ask the agent), 사람이 고친다(Edit). 저장할 때마다 새 판이 되고 옛 판은 History에 남는다. */
 let prdCache = { current: null, history: [] };
+var noPrd = false;   // PRD가 아직 없으면 입력창 안내가 '무엇을 할지 말해 주세요'(var: 부팅 중 renderStatus가 먼저 읽어도 안전)
 async function refreshPrd() {
   try { prdCache = await getJSON('/api/prd'); } catch { return; }
   renderPrd();
@@ -1677,6 +1720,7 @@ const prdWho = (x) => (x.source === 'agent' ? 'the agent' : x.source === 'sample
 const prdLine = (x) => `v${x.v} · ${escapeHtml(fmtWhen(x.at))} · by ${escapeHtml(prdWho(x))}${x.note ? ` · ${escapeHtml(x.note)}` : ''}`;
 function renderPrd() {
   const c = prdCache.current, editing = !$('prdForm').hidden;
+  if (noPrd && c) { noPrd = false; if (!sw) $('input').placeholder = 'Message ANA — Enter to send'; }
   $('prdMeta').innerHTML = c ? prdLine(c) : '';
   $('prdBody').hidden = !c || editing; $('prdBody').innerHTML = c ? mdHtml(c.md) : '';
   $('prdEmpty').style.display = c || editing ? 'none' : 'block';
@@ -1712,14 +1756,88 @@ $('prdHist').addEventListener('click', async (e) => {
 $('prdAsk').onclick = () => {
   const b = $('prdAsk'); b.disabled = true; const orig = b.textContent; b.textContent = 'Asking…';
   const api = (path) => `http://${agentHost}${path}`;
-  const prompt = `[PRD] ${prdCache.current ? `Update this ANA's PRD (now version ${prdCache.current.v}) so it matches what the app does today.` : "Write this ANA's PRD — what this app is and does."}
+  const prompt = `[PRD] ${prdCache.current ? `Update this ANA's PRD (now version ${prdCache.current.v}) so it matches what the app does today.` : "There is no PRD yet. Let's write the first one together — what this ANA is for and does."}
 Read: the code in this folder (dashboard.html, dashboard-api.js, server.js, features.json, CHANGELOG.md), the work data GET ${api('/api/state')}, finished Evolve proposals GET ${api('/api/evolve')}, the current PRD GET ${api('/api/prd')}, and our recent conversation.
-If the PRD is still the sample or leaves out what the work is, ask me a few short questions first (what this ANA is for, who uses it, what the work is made of) and write in what I answer.
-Write it in markdown for a person who uses the app, not for a developer, keeping the sections of the current one: # title, ## Purpose, ## Users, ## Work (what people handle, see and do — the Work tab is built from this), ## Knowledge, ## Agent, ## What is here now (each tab and what it shows — only what really exists), ## Not yet. Keep what a person wrote by hand unless it is no longer true.
+If there is no PRD yet, or it leaves out what the work is, ask me a few short questions first (what this ANA is for, who uses it, what the work is made of — a rough sketch is welcome) and write in what I answer.
+Write it in markdown for a person who uses the app, not for a developer, with the sections of prd-template.md in this folder: # title, ## Purpose, ## Users, ## Work (what people handle, see and do — the Work tab is built from this), ## Sketches (the drawings I sent, as ![…](/uploads/<file>)), ## Knowledge, ## Agent, ## What is here now (each tab and what it shows — only what really exists), ## Not yet. Keep what a person wrote by hand unless it is no longer true.
 Save it as a new version: write the markdown to prd.md, then: node -e 'process.stdout.write(JSON.stringify({md: require("fs").readFileSync("prd.md", "utf8"), note: process.argv[1], source: "agent"}))' "What changed in one line" | curl -s -X POST "${api('/api/prd')}" -H 'content-type: application/json' --data-binary @-`;
   post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
     .catch(() => showErr('Request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
 };
+
+/* ---- 손그림판: 원하는 화면을 대충 그려 ANA에게 보낸다 ----
+   흰 종이에 펜 · 상자 · 글자 · 지우개. 보내면 PNG로 채팅에 첨부되고, 에이전트가 그것을 보고 화면을 만들며 PRD의 Sketches에 남긴다. */
+let skItems = [], skCur = null, skTool = 'pen', skColor = '#111111';
+function skRepaint() {
+  const c = $('skCanvas'), g = c.getContext('2d'), dpr = window.devicePixelRatio || 1;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+  for (const it of skCur ? [...skItems, skCur] : skItems) skDraw(g, it);
+  $('skUndo').disabled = !skItems.length; $('skSend').disabled = !skItems.length;
+}
+function skDraw(g, it) {
+  g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = g.fillStyle = it.color;
+  if (it.tool === 'pen' || it.tool === 'erase') {
+    if (it.tool === 'erase') g.strokeStyle = '#fff';
+    g.lineWidth = it.tool === 'erase' ? 22 : 3; g.beginPath();
+    it.pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    if (it.pts.length === 1) g.lineTo(it.pts[0][0] + 0.1, it.pts[0][1]);
+    g.stroke();
+  } else if (it.tool === 'box') {
+    const [[x1, y1], [x2, y2]] = it.pts; g.lineWidth = 2.5; g.strokeRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
+  } else if (it.tool === 'text') { g.font = '600 18px system-ui, -apple-system, sans-serif'; g.textBaseline = 'middle'; g.fillText(it.text, it.pts[0][0], it.pts[0][1]); }
+}
+function skResize() {
+  const c = $('skCanvas'), r = c.parentElement.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); c.style.width = `${r.width}px`; c.style.height = `${r.height}px`; skRepaint();
+}
+function openSketch() {
+  skItems = []; skCur = null; $('sketchLayer').hidden = false; document.body.classList.add('sketching');
+  requestAnimationFrame(skResize); logEvent('tab.view', 'sketch');
+}
+function closeSketch() { $('sketchLayer').hidden = true; document.body.classList.remove('sketching'); skItems = []; skCur = null; }
+const skPos = (e) => { const r = $('skCanvas').getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+$('skCanvas').addEventListener('pointerdown', (e) => {
+  e.preventDefault(); const p = skPos(e);
+  if (skTool === 'text') { const t = (window.prompt('Text') || '').trim(); if (t) { skItems.push({ tool: 'text', color: skColor, text: t.slice(0, 80), pts: [p] }); skRepaint(); } return; }
+  $('skCanvas').setPointerCapture(e.pointerId);
+  skCur = { tool: skTool, color: skColor, pts: skTool === 'box' ? [p, p] : [p] }; skRepaint();
+});
+$('skCanvas').addEventListener('pointermove', (e) => {
+  if (!skCur) return; const p = skPos(e);
+  if (skCur.tool === 'box') skCur.pts[1] = p; else skCur.pts.push(p);
+  skRepaint();
+});
+const skEnd = () => { if (!skCur) return; skItems.push(skCur); skCur = null; skRepaint(); };
+$('skCanvas').addEventListener('pointerup', skEnd); $('skCanvas').addEventListener('pointercancel', skEnd);
+$('sketchLayer').addEventListener('click', (e) => {
+  const t = e.target.closest('[data-tool]'), c = e.target.closest('[data-color]');
+  if (t) { skTool = t.dataset.tool; document.querySelectorAll('.sk-tool').forEach((x) => x.classList.toggle('on', x === t)); }
+  if (c) { skColor = c.dataset.color; document.querySelectorAll('.sk-color').forEach((x) => x.classList.toggle('on', x === c)); if (skTool === 'erase') document.querySelector('.sk-tool[data-tool="pen"]').click(); }
+});
+$('skUndo').onclick = () => { skItems.pop(); skRepaint(); };
+$('skClear').onclick = () => { skItems = []; skRepaint(); };
+$('skCancel').onclick = closeSketch;
+$('skSend').onclick = () => {
+  $('skCanvas').toBlob((blob) => {
+    if (!blob) { showErr('Could not save the sketch'); return; }
+    const d = new Date(), stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
+    closeSketch(); openChat();
+    attachFiles([new File([blob], `sketch-${stamp}.png`, { type: 'image/png' })]);
+    if (!$('input').value.trim()) { $('input').value = 'Here is a rough sketch of a screen I want: '; autoGrow(); }
+    setTimeout(() => { const i = $('input'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 80);
+  }, 'image/png');
+};
+window.addEventListener('resize', () => { if (!$('sketchLayer').hidden) skResize(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('sketchLayer').hidden) closeSketch(); });
+// 어디서든: [data-sketch] 손그림판, [data-talk] 채팅 열기, [data-starter] 예시 문장을 입력창에
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-sketch]')) { openSketch(); return; }
+  const st = e.target.closest('[data-starter]');
+  if (st || e.target.closest('[data-talk]')) {
+    if (st) { $('input').value = st.dataset.starter; autoGrow(); }
+    openChat(); setTimeout(() => $('input').focus(), 80);
+  }
+});
 
 /* ---- Knowledge: 온톨로지(종류 · 관계)와 그래프(개체 · 사실) ----
    처음엔 비어 있다. 에이전트가 일(메모 · 할일 · 일정)을 읽고 채우고(Ask the agent · POST /api/knowledge), 사람은 보고 틀린 것을 지운다.
@@ -2847,6 +2965,7 @@ function mdHtml(src) {
     t = escapeHtml(t)
       .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
       .replace(/(^|[^*\w])\*([^*\n]+?)\*(?!\w)/g, '$1<em>$2</em>')
+      .replace(/!\[([^\]\n]*)\]\((\/uploads\/[^\s)"<>]+)\)/g, '<img class="md-img" src="$2" alt="$1" loading="lazy">')   // 올린 그림(손그림 등)만
       .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
       .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>');
     return t.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${escapeHtml(codes[i])}</code>`);
@@ -3117,6 +3236,12 @@ function connect() {
 }
 connect();
 refreshData();
+// 처음(PRD가 없을 때): 대화부터 — 입력창이 무엇을 말하면 되는지 알려 주고, 넓은 화면에서는 채팅을 연다
+getJSON('/api/prd').then((d) => {
+  if (d.current) return;
+  noPrd = true; $('input').placeholder = 'Tell ANA what this ANA should do — the work, who it is for…';
+  if (!matchMedia('(max-width: 768px)').matches) openChat();
+}).catch(() => {});
 refreshEvolve();
 refreshRequests();
 refreshUpdates();   // Update 배지
@@ -3232,7 +3357,7 @@ function updateSendMode() {
   const setup = dialogInfo?.kind === 'onboarding';
   b.disabled = !sesAlive() || setup || !!sw;
   $('input').disabled = setup || !!sw;          // 세션 전환·기록 불러오는 중에는 보내지 않는다
-  $('input').placeholder = sw ? `Loading ${sw.target}…` : setup ? 'Complete Claude setup above' : 'Message ANA — Enter to send';
+  $('input').placeholder = sw ? `Loading ${sw.target}…` : setup ? 'Complete Claude setup above' : noPrd ? 'Tell ANA what this ANA should do — the work, who it is for…' : 'Message ANA — Enter to send';
   if (b.classList.contains('stop') !== stop) b.innerHTML = stop ? STOP_GLYPH : SEND_GLYPH;
   b.classList.toggle('stop', stop);
   b.title = stop ? 'Stop the current task' : 'Send';

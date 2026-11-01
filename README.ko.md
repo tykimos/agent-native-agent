@@ -146,16 +146,18 @@ node server.js           # → http://localhost:8809
 
 ## base에 들어 있는 것
 
-베이스는 **비어 있는 채로** 시작합니다. PRD에 이 ANA가 무엇을 할지 적으면(또는 에이전트에게 말하면) 나머지는 에이전트가 함께 만듭니다. 워크스페이스는 하나이고, 탭은 여섯입니다(휴대폰에서는 아래 메뉴).
+베이스는 **비어 있는 채로** 시작합니다. 채팅으로 무슨 일을 하는지 말하거나 대충 그려 보내면, 에이전트가 PRD를 쓰고 화면을 함께 만듭니다. 쓰는 것이 곧 만드는 것입니다. 워크스페이스는 하나이고, 탭은 여섯입니다(휴대폰에서는 아래 메뉴).
 
 | 탭 | 하위 탭 | 내용 |
 |---|---|---|
-| **PRD** | Current · History | 이 ANA가 무엇을 하는 앱인지 — 목적, 사용자, 일, 지식, 에이전트가 하는 일. **새 ANA는 견본이 든 이 탭에서 열립니다.** 직접 고치거나, 채팅으로 에이전트에게 말하면 PRD를 고칩니다. 저장할 때마다 새 판이 되고, 옛 판을 보거나 되돌릴 수 있습니다 |
-| **Work** | — | 내 일을 위한 화면. **처음엔 비어 있습니다.** *Build Work from the PRD*를 누르면 에이전트가 PRD의 *Work* 절을 보고 만듭니다(일의 종류가 여럿이면 하위 탭과 함께) |
+| **PRD** | Current · History | 이 ANA가 무엇을 하는 앱인지 — 목적, 사용자, 일, 손그림, 지식, 에이전트가 하는 일. **새 ANA에는 PRD가 없습니다. 이 탭에서 열리고, 대화로 시작합니다.** 채팅으로 무슨 일을 하는지 말하면(예시를 고르거나 화면을 그려 보내도 됨) 에이전트가 필요한 것만 묻고, 같은 대화에서 PRD를 쓰고 첫 Work 화면을 만듭니다. 언제든 고칠 수 있고, 저장할 때마다 새 판이 되어 옛 판을 보거나 되돌릴 수 있습니다 |
+| **Work** | — | 내 일을 위한 화면. **처음엔 비어 있고,** 대화하면서 에이전트가 만듭니다(일의 종류가 여럿이면 하위 탭과 함께) |
 | **Knowledge** | Ontology · Graph | 내 일이 무엇에 관한 것인지: 사물의 종류와 그 관계(온톨로지), 실제 사물과 그 사이의 사실 — 각각 나온 항목이 붙음(그래프). 처음엔 비어 있고, *Ask the agent*를 누르면 에이전트가 일을 읽고 채우며, 틀린 것은 지울 수 있습니다 |
 | **Requests** | Waiting · In progress · Done | 에이전트가 나에게 필요한 것: 에이전트가 제안한 데이터 변경(승인하기 전에는 아무것도 바뀌지 않음), 승인, 결정, 접근 권한, 나만 할 수 있는 일, 모자란 정보 |
 | **Evolve** | Waiting · In progress · Done | 지금 할 일과 ANA가 바뀔 방향을 세 거리로 — **tidy**(어긋난 것 정리), **improve**(이 일을 더 낫게), **reimagine**(새로운 일하는 방식). 본 것, 사람에게 달라지는 것, 다른 곳의 사례(링크)가 붙습니다. *Do it*을 누르면 에이전트가 맡습니다 |
 | **Update** | Waiting · In progress · Done | [agent-native-agent](https://github.com/tykimos/agent-native-agent)에 새로 나왔지만 여기에는 아직 없는 기능. *Check for updates*가 최신 업스트림과 기능 단위로 비교하고, *Bring it in*을 누르면 에이전트가 그 기능의 스킬로 옮겨 옵니다 |
+
+**Sketch a screen**(PRD·Work 탭)을 누르면 빈 그림판이 열립니다 — 펜, 상자, 글자, 지우개. 그린 것은 그림으로 채팅에 붙고, 에이전트가 그걸 보고 화면을 만들며 PRD의 *Sketches*에 남깁니다.
 
 Requests와 Evolve의 카드는 같은 질문에 사람 말로 답합니다 — **무슨 일인지(What's going on) · 무엇을 해 달라는지(What is asked) · 하면 무엇이 달라지는지(What it changes) · 안 하면(If not)**. Evolve 제안이나 업데이트로 앱이 하는 일이 바뀌면 에이전트가 PRD도 고칩니다.
 
@@ -294,8 +296,8 @@ agent-log.js          에이전트 자체 JSONL 기록으로 채팅 표시(Claud
 codex-settings.js     Codex 모델·추론 강도 목록, Codex 자체 메뉴로 전환
 graph-index.js        연결의 NodeRel 색인(파생 graph-index.sqlite)
 work-ontology.js      업무 항목과 연결의 종류(클래스, 관계, 계산 규칙). graph-index.js가 읽는다
-prd-sample.md         새 ANA가 시작하는 PRD 견본
-CLAUDE.md · AGENTS.md 에이전트가 여기서 지키는 것(PRD 먼저, 채팅으로 고치기, PRD로 Work 만들기)
+prd-template.md       에이전트가 첫 PRD를 쓸 때 따르는 절 구성
+CLAUDE.md · AGENTS.md 에이전트가 여기서 하는 일(대화로 시작, 한 번에 PRD와 첫 화면, PRD를 늘 맞게)
 features.json         기능 목록: 기능별 앵커 + 담당 스킬 (ana-update가 비교 기준으로 사용)
 package.json          의존성: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot
 test.cjs              단위 + 통합 테스트(npm test), mock_agent.py = 테스트용 결정적 TUI

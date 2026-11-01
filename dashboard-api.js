@@ -38,7 +38,6 @@ function createDashboardApi(core, opts) {
   const UPDATE_TARGET = opts.UPDATE_TARGET || ROOT;   // 비교할 ANA 폴더(기본: 이 ANA). 시험·호스트용으로 바꿀 수 있다
   const NOTIFY_AGENT = opts.NOTIFY_AGENT !== false;
   const MAX_TEXT = opts.MAX_TEXT || 8000;
-  const SEED = !!opts.SEED;
   // Claude Code 세션의 구조화된 대화 기록(읽기 전용) — 채팅을 Claude 앱과 같은 모양으로 그린다
   const agentLog = createAgentLog({ socket: opts.TMUX_SOCKET || '' });
   const permOverride = new Map();
@@ -286,11 +285,6 @@ function createDashboardApi(core, opts) {
       const i = k.facts.findIndex((y) => factKey(y) === factKey(x)); if (i < 0) k.facts.push(x); else k.facts[i] = x; n++;
     }
     return n;
-  }
-  // 처음 뜬 ANA에는 PRD 견본을 넣는다(opts.SEED, 평생 한 번). 사람이 고치거나 채팅으로 에이전트가 고치며 시작한다
-  if (SEED && !require('node:fs').existsSync(PRD_FILE)) {
-    try { addPrdVersion(require('node:fs').readFileSync(path.join(__dirname, 'prd-sample.md'), 'utf8'), 'Sample — edit it, or tell the agent what this ANA is for', 'sample', 'ana'); }
-    catch (e) { console.error(`[ana] could not write the sample PRD: ${e.message}`); }
   }
   function loadRequests() {
     const s = readJsonStrict(REQUESTS_FILE, () => ({ next: 1, requests: [] }));

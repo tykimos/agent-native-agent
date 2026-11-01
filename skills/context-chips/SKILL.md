@@ -52,3 +52,8 @@ The user shouldn't have to type "the second task on the Tasks tab". They switch 
 - ✎ → circle an item in red → Add to chat → at 390px the chat opens, the thumbnail shows the red circle, and the chip for that item exists.
 - Add a new kind of card to a view → ⟳ → toast says 1 new type → tapping it in Chip mode makes a chip, and it survives a reload.
 - Chip off hides ✎, and ⟳ remains.
+
+## Sketch a screen
+
+A blank pad for drawing a rough screen, separate from ✎ Draw (which marks up the live page). `#sketchLayer` with `#skCanvas`: pen, box, text, eraser, black / red / blue, Undo, Clear, Cancel, **Send to ANA** (PNG via `attachFiles`, input prefilled "Here is a rough sketch of a screen I want: "). Opened by any `[data-sketch]` button (PRD toolbar, the start card, the empty Work tab). The agent keeps sketches in the PRD as `![…](/uploads/<file>)`; `mdHtml` shows images from `/uploads/` only (`.md-img`).
+
