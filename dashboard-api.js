@@ -135,13 +135,6 @@ function createDashboardApi(core, opts) {
   // ---- 상태 파일 (원자적 + shape 검증) ----
   function loadData(ws) {
     const file = dataFileOf(ws || curWs());
-    // 처음 뜬 기본 워크스페이스에는 관계를 바로 볼 수 있는 예제 두 개를 넣는다(opts.SEED, 평생 한 번만).
-    // 넣었다는 표시(.seeded)를 남겨, 사용자가 지우거나 상태 파일을 지워도 예제가 다시 생기지 않게 한다.
-    const fsm = require('node:fs'), mark = path.join(path.dirname(file), '.seeded');
-    if (SEED && (ws || curWs()) === DEFAULT_WS && !fsm.existsSync(file) && !fsm.existsSync(mark)) {
-      writeJsonAtomic(file, require('./seed.js').seedState());
-      try { fsm.writeFileSync(mark, new Date().toISOString() + '\n'); } catch {}
-    }
     const s = readJsonStrict(file, () => ({ version: 1, items: [], events: [], notes: [] }));
     if (!s || typeof s !== 'object' || Array.isArray(s) || !Array.isArray(s.items))
       throw new Error(`work graph file shape invalid (${file})`);
@@ -154,7 +147,7 @@ function createDashboardApi(core, opts) {
   const clip = (v, n) => String(v == null ? '' : v).slice(0, n);
   const newId = (p) => p + Date.now().toString(36) + crypto.randomBytes(2).toString('hex');
   const CLIENT_EVENTS = { 'tab.view': /^[a-z]{2,20}(\.[a-z]{2,20})?$/ };
-  const isExample = (x) => /^[nae]-ex-/.test(String((x && x.id) || ''));   // seed.js의 예제 id
+  const isExample = (x) => /^[nae]-ex-/.test(String((x && x.id) || ''));   // 예전 판(seed.js)이 넣은 예제 id
   const saveData = (s, ws) => { relgraph.pruneLinks(s); writeJsonAtomic(dataFileOf(ws || curWs()), s); };
   // NodeRel 색인 — 워크 그래프(work-graph.json)에서 파생(graph-index.sqlite). 아래 함수들은 요청 때만 불린다.
   const graph = relgraph.createGraph({ loadData, dataFileOf });
@@ -265,7 +258,7 @@ function createDashboardApi(core, opts) {
   function addPrdVersion(md, note, source, by) {
     const d = loadPrd(), cur = d.versions[d.versions.length - 1];
     if (cur && cur.md === md) return { d, v: cur, unchanged: true };
-    const v = { v: d.next++, md, note: clip(note, 300), source: source === 'agent' ? 'agent' : 'person', by, at: new Date().toISOString() };
+    const v = { v: d.next++, md, note: clip(note, 300), source: ['agent', 'sample'].includes(source) ? source : 'person', by, at: new Date().toISOString() };
     d.versions.push(v); while (d.versions.length > PRD_KEEP) d.versions.shift();
     d.version = (d.version || 1) + 1; writeJsonAtomic(PRD_FILE, d);
     return { d, v };
@@ -293,6 +286,11 @@ function createDashboardApi(core, opts) {
       const i = k.facts.findIndex((y) => factKey(y) === factKey(x)); if (i < 0) k.facts.push(x); else k.facts[i] = x; n++;
     }
     return n;
+  }
+  // 처음 뜬 ANA에는 PRD 견본을 넣는다(opts.SEED, 평생 한 번). 사람이 고치거나 채팅으로 에이전트가 고치며 시작한다
+  if (SEED && !require('node:fs').existsSync(PRD_FILE)) {
+    try { addPrdVersion(require('node:fs').readFileSync(path.join(__dirname, 'prd-sample.md'), 'utf8'), 'Sample — edit it, or tell the agent what this ANA is for', 'sample', 'ana'); }
+    catch (e) { console.error(`[ana] could not write the sample PRD: ${e.message}`); }
   }
   function loadRequests() {
     const s = readJsonStrict(REQUESTS_FILE, () => ({ next: 1, requests: [] }));
@@ -586,7 +584,7 @@ function createDashboardApi(core, opts) {
       return sendJson(res, 200, usageCache.get(key).data), true;
     }
 
-    // 예제 정리: 첫 실행 예제(id가 n-/a-/e-ex-로 시작)를 지우거나(clear) 그대로 두기로(keep) 한다
+    // 예제 정리: 예전 판이 첫 실행에 넣은 예제(id가 n-/a-/e-ex-로 시작)를 지우거나(clear) 그대로 두기로(keep) 한다
     if (p === '/api/examples' && req.method === 'POST') {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
       const body = await jsonBody(req, res); if (!body) return true;

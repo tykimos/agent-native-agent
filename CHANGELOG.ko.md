@@ -5,6 +5,18 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.17.0] — 2026-11-01
+
+### Changed
+
+- **새 ANA는 비어 있고, PRD에서 시작합니다.** **PRD** 탭에서 열리고 고칠 견본이 들어 있습니다. 직접 고치거나, 이 ANA가 무엇을 할지 채팅으로 에이전트에게 말하면 PRD를 고칩니다(`CLAUDE.md` / `AGENTS.md`가 에이전트에게 그렇게 하라고 합니다). PRD의 *Ask the agent*는 아직 견본이면 짧은 질문부터 합니다.
+- **Work는 비어 있습니다** — Tasks · Calendar · Notes도 예제 데이터도 없습니다. *Build Work from the PRD*를 누르면 에이전트가 PRD의 *Work* 절로 Work 화면을 만들고, PRD의 *What is here now*를 고칩니다.
+- Requests, Evolve, Knowledge는 일과 함께 PRD도 읽습니다.
+
+### Removed
+
+- Tasks · Calendar · Notes 화면과 첫 실행 예제(`seed.js`). 데이터 API(`/api/state`, diff, 연결)는 에이전트가 만드는 화면을 위해 남겨 둡니다.
+
 ## [0.16.0] — 2026-11-01
 
 ### Added

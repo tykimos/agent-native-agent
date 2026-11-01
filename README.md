@@ -146,12 +146,12 @@ Open **http://localhost:8809** and tap the chat button. The server needs **no la
 
 ## What's in the base
 
-The base is an operations board: notes, tasks and a calendar you run together with a coding agent. It has one workspace and six tabs (a bottom menu on phones):
+The base starts **empty**: you say what your ANA is for in the PRD (or tell the agent), and the agent builds the rest with you. It has one workspace and six tabs (a bottom menu on phones):
 
 | Tab | Sub-tabs | What |
 |---|---|---|
-| **PRD** | Current · History | what this ANA is and does — purpose, users, features, screens, data. The agent writes it from the code and data (*Ask the agent*) and you can edit it; every save is a new version you can view or restore |
-| **Work** | Tasks · Calendar · Notes | your work items and how they connect — a domain ANA puts its own kinds of work here |
+| **PRD** | Current · History | what this ANA is and does — purpose, users, work, knowledge, what the agent does. **A new ANA opens here, on a sample.** Edit it, or tell the agent in chat and it updates the PRD; every save is a new version you can view or restore |
+| **Work** | — | the screens for your work. **Empty at first:** *Build Work from the PRD* has the agent build them from the PRD's *Work* section (with sub-tabs if there are several kinds of work) |
 | **Knowledge** | Ontology · Graph | what your work is about: the kinds of things and how they relate (ontology), and the actual things and the facts between them, each tied to the items it came from (graph). It starts empty; *Ask the agent* has it read your work and add to both, and you remove what is wrong |
 | **Requests** | Waiting · In progress · Done | what the agent needs from you: data changes it proposes (nothing changes until you approve), approvals, decisions, access, things only you can do, missing information |
 | **Evolve** | Waiting · In progress · Done | what to do now and how ANA could change, at three horizons — **tidy** (fix what is off), **improve** (a better way of doing this work), **reimagine** (a new way of working) — with what was seen, what changes for people and what others do (links). *Do it* hands it to the agent |
@@ -294,7 +294,8 @@ agent-log.js          chat from the agent's own JSONL log (Claude Code + Codex):
 codex-settings.js     Codex model/effort catalog and switching through Codex's own menu
 graph-index.js        the NodeRel index of the links (derived graph-index.sqlite)
 work-ontology.js      the kinds of work items and links (classes, relations, compute rules); graph-index.js reads it
-seed.js               two example flows for the first run
+prd-sample.md         the sample PRD a new ANA starts from
+CLAUDE.md · AGENTS.md what the agent keeps doing here (PRD first, update it from chat, build Work from it)
 features.json         feature manifest: anchors + skill per feature (used by ana-update)
 package.json          dependencies: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot
 test.cjs              unit + integration tests (npm test), mock_agent.py = deterministic TUI stand-in

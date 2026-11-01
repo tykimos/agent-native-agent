@@ -5,6 +5,18 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.17.0] — 2026-11-01
+
+### Changed
+
+- **A new ANA starts empty, from its PRD.** It opens on the **PRD** tab with a sample to change: edit it, or tell the agent in chat what this ANA is for and it updates the PRD (`CLAUDE.md` / `AGENTS.md` tell the agent to). *Ask the agent* on the PRD asks a few questions when the PRD is still the sample.
+- **Work is empty** — no Tasks · Calendar · Notes and no example data. *Build Work from the PRD* has the agent build the Work screens from the PRD's *Work* section, then update the PRD's *What is here now*.
+- Requests, Evolve and Knowledge read the PRD along with the work.
+
+### Removed
+
+- The Tasks · Calendar · Notes screens and the first-run examples (`seed.js`). The data API (`/api/state`, diffs, links) stays for the screens the agent builds.
+
 ## [0.16.0] — 2026-11-01
 
 ### Added

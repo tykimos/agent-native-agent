@@ -56,7 +56,7 @@ const apiOpts = {
   MAX_TEXT: Number(env.MAX_TEXT || 8000),
   BIND, PORT,
   TMUX_SOCKET: SOCKET,                                 // 대화 기록(agent-log.js)이 팬 경로를 물을 때 같은 tmux 소켓을 쓴다
-  SEED: env.ANA_SEED !== '0' && !env.ANA_TEST,          // 첫 실행 예제(seed.js). ANA_SEED=0이면 빈 보드로 시작
+  SEED: env.ANA_SEED !== '0' && !env.ANA_TEST,          // 첫 실행에 PRD 견본(prd-sample.md). ANA_SEED=0이면 PRD도 빈 채로 시작
   // 신원은 앞단(리버스 프록시·SSO 게이트웨이)이 헤더로 실어 줄 때만 잡힌다. 미지정이면 단일 사용자.
   IDENTITY_HEADER: env.ANA_IDENTITY_HEADER || '',
   LOGOUT_URL: env.ANA_LOGOUT_URL || '',

@@ -10,7 +10,7 @@ One workspace, six tabs, in this order:
 | Tab | Sub-tabs | What |
 |---|---|---|
 | **PRD** | Current · History | what this ANA is and does (see agent-requests) |
-| **Work** | one per kind of work (base: Tasks · Calendar · Notes) | where work is done — the domain's own screens |
+| **Work** | none at first; one per kind of work once built | empty until the agent builds it from the PRD (*Build Work from the PRD*) into `#workArea` |
 | **Knowledge** | Ontology · Graph | what the work is about — kinds and relations, things and facts; starts empty, the agent fills it (see agent-requests) |
 | **Requests** | Waiting · In progress · Done | what the agent needs from you (see agent-requests) |
 | **Evolve** | Waiting · In progress · Done | proposals for the work and the app (see agent-requests) |

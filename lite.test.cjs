@@ -118,3 +118,14 @@ test('Knowledge starts empty; the agent adds kinds, relations, things and facts;
   assert.ok(!k.entities.some((e) => e.id === 'acme') && !k.facts.length, 'removing a thing removes its facts');
   assert.equal((await post('/api/knowledge', { action: 'remove', kind: 'class', id: 'Nope' })).status, 404);
 });
+
+test('A new ANA starts with a sample PRD and empty work; the sample is written once', async (t) => {
+  const { api, stop } = await startServer({ ANA_SEED: '1' });
+  t.after(stop);
+  const prd = await (await fetch(api + '/api/prd')).json();
+  assert.equal(prd.current.v, 1); assert.equal(prd.current.source, 'sample'); assert.match(prd.current.md, /## Work/);
+  const st = await (await fetch(api + '/api/state')).json();
+  assert.deepEqual([st.items.length, st.events.length, st.notes.length], [0, 0, 0], 'no example work');
+  const k = await (await fetch(api + '/api/knowledge')).json();
+  assert.equal(k.classes.length + k.entities.length, 0, 'knowledge empty');
+});

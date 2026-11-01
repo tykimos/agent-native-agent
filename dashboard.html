@@ -122,12 +122,10 @@ body.modal-open :is(.mode-toggle, .draw-btn) { position: relative; z-index: 72; 
 /* 스캔으로 새로 등록된 요소를 잠깐 표시 */
 body.ana-mode .chip-new { outline: 2px dashed var(--blue); outline-offset: 2px; border-radius: 10px; }
 /* ANA 모드: 캡처 가능한 요소에 클릭 어포던스(클릭 시 컨텍스트 칩으로 추가) */
-body.ana-mode .item, body.ana-mode .kpi, body.ana-mode .up-item, body.ana-mode .ev-item,
-body.ana-mode .memo-item, body.ana-mode .evo-card { cursor: copy; }
-body.ana-mode .item:hover, body.ana-mode .kpi:hover, body.ana-mode .up-item:hover, body.ana-mode .ev-item:hover,
-body.ana-mode .memo-item:hover, body.ana-mode .evo-card:hover { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 10px; }
+body.ana-mode .item, body.ana-mode .evo-card { cursor: copy; }
+body.ana-mode .item:hover, body.ana-mode .evo-card:hover { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 10px; }
 /* ANA 모드: 메모 내용은 드래그 선택 → 칩 */
-body.ana-mode #mmBody { cursor: text; }
+
 /* 컨텍스트 칩 (채팅 컴포저 위) */
 .chips { display: none; flex-wrap: wrap; gap: 6px; padding: 8px 12px 0; }
 body.chatting .chips.has { display: flex; }
@@ -152,16 +150,8 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .sec-head h2 { font-size: 18px; font-weight: 800; letter-spacing: -0.03em; }
 .sec-head .cnt { font-size: 13px; color: var(--text-weak); font-weight: 700; }
 .sec-head .sp { flex: 1; }
-.add-btn { display: inline-flex; align-items: center; gap: 5px; height: 38px; padding: 0 16px; border-radius: 999px;
-  background: var(--blue); color: var(--white); font-size: 14px; font-weight: 800; box-shadow: var(--sh-fab); }
-.add-btn:active { transform: scale(.97); }
 
 /* 할일 KPI */
-.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
-.kpi { padding: 14px; }
-.kpi .n { font-size: clamp(24px, 5vw, 30px); font-weight: 800; letter-spacing: -0.045em; line-height: 1; }
-.kpi .l { font-size: 12px; color: var(--text-sub); font-weight: 700; margin-top: 6px; }
-.kpi.total .n { color: var(--text); } .kpi.open .n { color: var(--blue); } .kpi.done .n { color: var(--green); }
 
 /* 할일 리스트 */
 .item { display: flex; align-items: flex-start; gap: 11px; padding: 13px 15px; margin-bottom: 8px; cursor: pointer; transition: transform .08s; }
@@ -172,18 +162,13 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .chk svg { width: 13px; height: 13px; stroke: var(--white); stroke-width: 3; fill: none; opacity: 0; }
 .item.done .chk svg { opacity: 1; }
 .item .body { flex: 1; min-width: 0; }
-.item .trow { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 0; } .item .trow .title { flex: 0 1 auto; min-width: 0; }
+
 .item .title { display: block; font-size: 14.5px; font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
 .item.done .title { text-decoration: line-through; }
-.itby { display: block; margin-top: 5px; }
+
 .item .due { font-size: 12px; color: var(--warm-fg); font-weight: 700; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
 .item .due svg { width: 13px; height: 13px; opacity: .75; }
-.item .del { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 999px; color: var(--text-weak); font-size: 16px; opacity: 0; transition: .12s; }
-.item:hover .del { opacity: 1; }
-.item .sch { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 999px; color: var(--blue-700); display: grid; place-items: center; opacity: 0; transition: .12s; }
-.item .sch svg { width: 15px; height: 15px; }
-.item:hover .sch, .item .sch:focus-visible { opacity: 1; }
-@media (hover: none) { .item .sch { opacity: 1; } }
+
 /* 관계 칩 — NodeRel 그래프의 명시적 관계(SPAWNED·SCHEDULED_AS·REFERS_TO). 누르면 그 항목으로 이동 */
 .rels { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 .rel { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; min-height: 24px; padding: 2px 9px; border-radius: 999px;
@@ -197,96 +182,18 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .rel:hover .rx, .rel:focus-within .rx { display: inline-block; }
 @media (hover: none) { .rel .rx { display: inline-block; } }
 .rel .rx:hover { color: var(--danger); }
-.rels-none { font-size: 12px; color: var(--text-weak); font-weight: 600; }
+
 @keyframes relFlash { 0% { box-shadow: 0 0 0 3px var(--blue); } 100% { box-shadow: 0 0 0 3px transparent; } }
-.flash { animation: relFlash 1.4s ease-out; }
+
 .empty { text-align: center; color: var(--text-weak); padding: 40px 0; font-weight: 600; font-size: 13.5px; }
 
 /* 일정 달력 — 3단: 좌(다가오는 일정) / 중앙(달력) / 우(선택일 시간 항목) */
-#scheduleView .wrap { max-width: 1200px; }
-.sched-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr) 270px; gap: 16px; align-items: start; }
-.up-panel { padding: 14px; min-width: 0; }
-.cal-box { min-width: 0; }
-.up-panel .phead { font-size: 13.5px; font-weight: 800; color: var(--text-sub); margin-bottom: 8px; }
-.up-item { display: flex; align-items: center; gap: 8px; padding: 8px 7px; border-radius: var(--r-xs); cursor: pointer; transition: background .12s; }
-.up-item:hover { background: var(--surface-2); }
-.up-item .mark { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 999px; background: var(--blue); }
-.up-item.todo .mark { border-radius: 2px; background: var(--warm-fg); }
-.up-item .ud { flex: 0 0 auto; font-size: 11.5px; font-weight: 800; color: var(--text-weak); min-width: 40px; }
-.up-item .ut { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-.cal-head .mtitle { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; min-width: 130px; text-align: center; }
-.cal-nav { width: 36px; height: 36px; border-radius: 999px; background: var(--surface); box-shadow: var(--sh-card); font-size: 16px; color: var(--text-sub); display: grid; place-items: center; }
-.cal-today { height: 34px; padding: 0 12px; border-radius: 999px; background: var(--surface); box-shadow: var(--sh-card); font-size: 12.5px; font-weight: 800; color: var(--blue-700); }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-.cal-dow { text-align: center; font-size: 11.5px; font-weight: 800; color: var(--text-weak); padding: 2px 0 6px; }
-.cal-dow.sun { color: var(--c-1); } .cal-dow.sat { color: var(--blue); }
-.cal-cell { position: relative; aspect-ratio: 1 / 1; border-radius: var(--r-sm); background: var(--surface); box-shadow: var(--sh-card);
-  display: flex; flex-direction: column; align-items: center; padding-top: 7px; cursor: pointer; transition: transform .08s; overflow: hidden; }
-.cal-cell:active { transform: scale(.96); }
-.cal-cell.blank { background: none; box-shadow: none; cursor: default; }
-.cal-cell.today { outline: 2px solid var(--blue); }
-.cal-cell.sel { background: var(--blue-weak); }
-.cal-cell .dnum { font-size: 13px; font-weight: 800; color: var(--text); }
-.cal-cell.sun .dnum { color: var(--c-1); } .cal-cell.sat .dnum { color: var(--blue); }
-.cal-cell .dots { display: flex; gap: 2px; margin-top: 3px; flex-wrap: wrap; justify-content: center; }
-.cal-cell .dot-e { width: 5px; height: 5px; border-radius: 999px; background: var(--blue); }
-.cal-cell .dot-e.done { background: var(--text-weak); }
-.cal-cell .dot-t { width: 5px; height: 5px; border-radius: 1.5px; background: var(--warm-fg); }
-.cal-cell .dot-t.done { background: var(--text-weak); }
-@media (max-width: 500px) { .cal-grid { gap: 4px; } .cal-cell { padding-top: 4px; } .cal-cell .dnum { font-size: 12px; } }
 
 /* 선택 날짜 일정 리스트 (우측 패널) */
-.day-panel { min-width: 0; }
-.day-panel .dhead { font-size: 14px; font-weight: 800; color: var(--text-sub); margin: 0 2px 10px; }
-@media (max-width: 899px) {
-  .sched-layout { grid-template-columns: minmax(0, 1fr); }
-  .cal-box { order: 1; } .day-panel { order: 2; } .up-panel { order: 3; }
-}
-.ev-item { display: flex; align-items: center; gap: 11px; padding: 12px 14px; margin-bottom: 8px; }
-.ev-item.done { opacity: .55; }
-.ev-item .chk { margin-top: 0; }
-.ev-item.done .chk { background: var(--green); border-color: var(--green); }
-.ev-item .etime { flex: 0 0 auto; font-size: 13px; font-weight: 800; color: var(--blue-700); min-width: 44px; }
-.ev-item .etitle { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 700; overflow-wrap: anywhere; }
-.ev-item.done .etitle { text-decoration: line-through; }
-.ev-item .etitle .rels { margin-top: 5px; }
-.ev-item .del { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 999px; color: var(--text-weak); font-size: 16px; }
-.ev-item .ebadge { flex: 0 0 auto; font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: var(--warm-bg); color: var(--warm-fg); }
 
 /* 메모 탭 — 좌: 목록 / 우: 편집기 */
-#memoView .wrap { max-width: 1100px; }
-.memo-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; align-items: start; }
-.memo-side { padding: 8px; min-width: 0; max-height: calc(100dvh - var(--header-h) - 130px); overflow-y: auto; overflow-x: hidden; }
-.memo-item { padding: 10px 12px; border-radius: var(--r-xs); cursor: pointer; transition: background .12s; }
-.memo-item:hover { background: var(--surface-2); }
-.memo-item.sel { background: var(--blue-weak); }
-.memo-item .mtop { display: flex; align-items: center; gap: 8px; }
-.memo-item .mt { flex: 1; min-width: 0; font-size: 14px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.memo-item .del { flex: 0 0 auto; width: 24px; height: 24px; border-radius: 999px; color: var(--text-weak); font-size: 14px; opacity: 0; transition: .12s; }
-.memo-item:hover .del { opacity: 1; }
-.memo-item .mp { font-size: 12px; color: var(--text-weak); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-.memo-item .md { font-size: 11px; color: var(--text-weak); font-weight: 700; margin-top: 3px; }
+
 /* 목록 맨 아래 항목형 추가 버튼 — 상단 ＋메모 버튼 대체 */
-.memo-add { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; margin-top: 4px;
-  padding: 10px 12px; border-radius: var(--r-xs); font-size: 14px; font-weight: 800; color: var(--blue-700); transition: background .12s; }
-.memo-add:hover { background: var(--blue-weak); }
-.memo-add:active { transform: scale(.98); }
-.memo-editor { display: flex; flex-direction: column; padding: 18px 20px; min-height: min(64vh, 560px); }
-.memo-editor input { border: none; background: none; outline: none; font-size: 18px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); padding: 0 0 10px; border-bottom: 1px solid var(--line-2); }
-.memo-editor input::placeholder, .memo-editor textarea::placeholder { color: var(--text-weak); }
-.memo-editor textarea { flex: 1; border: none; background: none; outline: none; resize: none; font-family: inherit; font-size: 14.5px; line-height: 1.7; color: var(--text); padding: 12px 0 0; min-height: 320px; }
-.memo-ebar { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-.memo-ebar .sp { flex: 1; }
-.memo-ebar .mstate { font-size: 12px; color: var(--text-weak); font-weight: 700; }
-.memo-rels { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line-2); }
-.memo-rels .rels { margin-top: 0; }
-.memo-ebar { flex-wrap: wrap; }
-.memo-ebar .mact { height: 32px; padding: 0 12px; border-radius: 999px; background: var(--blue-weak); color: var(--blue-700); font-size: 12.5px; font-weight: 800; }
-.memo-ebar .mdel { height: 32px; padding: 0 13px; border-radius: 999px; background: var(--danger-bg); color: var(--danger); font-size: 12.5px; font-weight: 800; }
-.memo-none { display: flex; align-items: center; justify-content: center; min-height: 300px; color: var(--text-weak); font-weight: 600; font-size: 13.5px; }
-@media (max-width: 899px) { .memo-layout { grid-template-columns: minmax(0, 1fr); } .memo-side { max-height: 260px; } }
-.memo-main { min-width: 0; }
 
 .toast { position: fixed; left: 50%; transform: translateX(-50%); top: calc(var(--safe-t) + 74px); z-index: 96;
   width: max-content; max-width: min(420px, calc(100vw - 32px)); text-align: center; line-height: 1.45; overflow-wrap: anywhere;
@@ -341,15 +248,6 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 
 .people { margin-top: 10px; }
 .person { display: flex; align-items: center; gap: 10px; padding: 11px 14px; margin-bottom: 8px; }
-
-.lk-list { max-height: 46vh; overflow-y: auto; margin-top: 10px; }
-.lk-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 10px; border-radius: var(--r-xs); text-align: left; font-size: 14px; font-weight: 700; color: var(--text); }
-.lk-item:hover, .lk-item:focus-visible { background: var(--blue-weak); outline: none; }
-.lk-item .rk { flex: 0 0 auto; font-size: 11px; font-weight: 800; color: var(--blue-700); min-width: 40px; }
-.lk-item.k-Note .rk { color: var(--warm-fg); }
-.lk-item.k-Event .rk { color: var(--success); }
-.lk-item .lt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fld-from { font-size: 12.5px; font-weight: 700; color: var(--text-sub); background: var(--surface-2); border-radius: var(--r-xs); padding: 8px 11px; margin-bottom: 12px; overflow-wrap: anywhere; }
 
 /* 새 버전 알림 — 열어 둔 탭이 옛 코드일 때만 뜬다 */
 .newver { display: none; position: fixed; left: 50%; transform: translateX(-50%); top: calc(var(--safe-t) + 66px); z-index: 97; max-width: calc(100vw - 32px); cursor: pointer;
@@ -540,9 +438,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .typing { display: none; align-items: center; gap: 8px; color: var(--text-sub); font-size: 12.5px; font-weight: 700; min-width: 0; white-space: nowrap; }
 .typing.on { display: flex; }
 .typing #typTx { overflow: hidden; text-overflow: ellipsis; }
-.typing .dots { display: inline-flex; gap: 3px; }
-.typing .dots i { width: 6px; height: 6px; border-radius: 999px; background: var(--blue); animation: blink 1.2s infinite both; }
-.typing .dots i:nth-child(2) { animation-delay: .2s; } .typing .dots i:nth-child(3) { animation-delay: .4s; }
+
 @keyframes blink { 0%,80%,100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
 
 .evo-card.focus { outline: 2px solid var(--blue); outline-offset: 2px; }
@@ -588,6 +484,11 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .prd-acts { display: flex; justify-content: flex-end; gap: 8px; } .prd-acts button { height: 36px; padding: 0 14px; border-radius: 10px; font-weight: 700; background: var(--surface-2); }
 .prd-acts .ok { background: var(--acc, var(--blue)); color: #fff; }
 .upd-last { font-size: 12.5px; color: var(--text-sub); }
+/* Work: 처음엔 비어 있다 */
+.work-empty { padding: 28px 26px; text-align: center; margin-top: 8px; } .work-empty[hidden] { display: none; }
+.work-empty h2 { font-size: 19px; font-weight: 800; margin: 0 0 8px; } .work-empty p { color: var(--text-sub); max-width: 520px; margin: 0 auto 18px; line-height: 1.6; }
+.work-acts { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.work-acts .ok { height: 36px; padding: 0 16px; border-radius: 999px; font-weight: 700; background: var(--acc, var(--blue)); color: #fff; }
 /* Knowledge: 온톨로지 목록 · 그래프 */
 .k-list { padding: 4px 0; margin-bottom: 16px; }
 .k-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-top: 1px solid var(--line-2); } .k-row:first-child { border-top: none; }
@@ -604,11 +505,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .k-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 4px 8px 6px; font-size: 12px; color: var(--text-sub); }
 .k-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 999px; margin-right: 5px; vertical-align: 0; }
 [data-subsec][hidden], .ib-btn[hidden], .toolbar [hidden] { display: none !important; }
-.ex-wrap { padding-bottom: 0 !important; margin-bottom: -6px; } .ex-wrap[hidden] { display: none; }
-.ex-banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; background: var(--blue-weak); box-shadow: 0 0 0 1px color-mix(in srgb, var(--blue) 30%, transparent); }
-.ex-t { flex: 1 1 260px; font-size: 13px; color: var(--text-sub); line-height: 1.5; } .ex-t b { color: var(--text); }
-.ex-acts { display: flex; gap: 8px; } .ex-acts button { height: 32px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--surface); box-shadow: 0 0 0 1px var(--line); }
-.ex-acts button.ok { background: var(--blue); color: var(--white); box-shadow: none; }
+
 .icard { align-self: flex-end; max-width: min(92%, 560px); margin: 6px 0; padding: 8px 10px; border-radius: 12px; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line-2); font-size: 13px; }
 .icard-h { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
 .icard-tag { flex: 0 0 auto; margin-top: 1px; font-size: 11px; font-weight: 800; color: var(--blue-700); background: var(--blue-weak); border-radius: 6px; padding: 1px 6px; }
@@ -804,7 +701,7 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
   color: var(--text); background: var(--surface-2); outline: none; resize: vertical; }
 .fld textarea:focus { border-color: var(--blue); background: var(--surface); }
 .fld textarea::placeholder, .fld input::placeholder { color: var(--text-weak); }
-.frow { display: flex; gap: 10px; } .frow .fld { flex: 1; }
+
 .modal-acts { display: flex; gap: 9px; margin-top: 20px; }
 .modal-acts button { flex: 1; height: 48px; border-radius: var(--r-sm); font-weight: 800; font-size: 15px; }
 .modal-acts .cancel { background: var(--surface-2); color: var(--text-sub); box-shadow: var(--sh-card); }
@@ -1234,73 +1131,15 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
       <span>Log out<span class="mm-hint" id="menuLogoutHint" hidden></span></span></button>
   </div>
 
-  <!-- 첫 실행 예제가 남아 있을 때: 지우거나 그대로 두기 -->
-  <div class="wrap ex-wrap" id="exBanner" hidden><div class="ex-banner card" role="status">
-    <div class="ex-t"><b>These are examples</b><span id="exText"></span></div>
-    <div class="ex-acts"><button class="ok" id="exClear">Clear them</button><button id="exKeep">Keep</button></div>
-  </div></div>
-  <!-- 할일 -->
-  <section class="view on" id="todoView" role="tabpanel"><div class="wrap">
-    <nav class="subtabs" data-sub="work" role="tablist" aria-label="Work"></nav>
-    <div class="kpis">
-      <div class="kpi card total"><div class="n" id="kTotal">0</div><div class="l">Total</div></div>
-      <div class="kpi card open"><div class="n" id="kOpen">0</div><div class="l">Open</div></div>
-      <div class="kpi card done"><div class="n" id="kDone">0</div><div class="l">Done</div></div>
-    </div>
-    <div class="sec-head"><h2>Tasks</h2><span class="cnt" id="todoMeta"></span><span class="sp"></span>
-      <button class="add-btn" id="addTodoBtn">＋ Task</button></div>
-    <div id="todoList"></div>
-    <div class="empty" id="todoEmpty">No tasks yet — add one with ＋ Task or via chat</div>
-  </div></section>
-
-  <!-- 일정 (달력) -->
-  <section class="view" id="scheduleView" role="tabpanel"><div class="wrap">
-    <nav class="subtabs" data-sub="work" role="tablist" aria-label="Work"></nav>
-    <div class="sec-head"><span class="sp"></span><button class="add-btn" id="addEventBtn">＋ Event</button></div>
-    <div class="sched-layout">
-      <aside class="up-panel card" aria-label="Upcoming">
-        <div class="phead">Upcoming</div>
-        <div id="upList"></div>
-      </aside>
-      <div class="cal-box">
-        <div class="cal-head">
-          <button class="cal-nav" id="calPrev" aria-label="Previous month">‹</button>
-          <div class="mtitle" id="calTitle"></div>
-          <button class="cal-nav" id="calNext" aria-label="Next month">›</button>
-          <span class="sp"></span>
-          <button class="cal-today" id="calToday">Today</button>
-        </div>
-        <div class="cal-grid" id="calGrid"></div>
-      </div>
-      <aside class="day-panel" aria-label="Selected day"><div class="dhead" id="dayHead"></div><div id="dayList"></div></aside>
+  <!-- Work: 이 ANA가 하는 일의 화면. 처음엔 비어 있다 — PRD에 적은 대로 에이전트가 만든다(도메인 ANA는 여기에 자기 화면을 둔다) -->
+  <section class="view" id="workView" role="tabpanel"><div class="wrap">
+    <div id="workArea"></div>
+    <div class="card work-empty" id="workEmpty">
+      <h2>Work is empty</h2>
+      <p>This is where the screens for your work will go — the lists, boards and forms your ANA needs. Start with the <b>PRD</b>: write down what this ANA is for, or tell the agent in chat. Then have the agent build Work from it.</p>
+      <div class="work-acts"><button class="ib-btn" id="workPrd">Open the PRD</button><button class="ok" id="workBuild">Build Work from the PRD</button></div>
     </div>
   </div></section>
-
-  <!-- 메모 (좌: 목록 / 우: 편집기) -->
-  <section class="view" id="memoView" role="tabpanel"><div class="wrap">
-    <nav class="subtabs" data-sub="work" role="tablist" aria-label="Work"></nav>
-    <div class="memo-layout">
-      <aside class="memo-side card" aria-label="Note list">
-        <div id="memoList"></div>
-        <div class="empty" id="memoEmpty" style="padding:24px 0">No notes yet — add one with the ＋ button below</div>
-        <button class="memo-add" id="addMemoBtn" aria-label="Add new note">＋ New note</button>
-      </aside>
-      <div class="memo-main">
-        <div class="memo-editor card" id="memoEditor" style="display:none">
-          <input id="mmTitle" placeholder="Title" aria-label="Note title" autocomplete="off">
-          <textarea id="mmBody" placeholder="Write something…" aria-label="Note body"></textarea>
-          <div class="memo-rels" id="mmRels" aria-label="Links"></div>
-          <div class="memo-ebar"><span class="mstate" id="mmState"></span><span class="sp"></span>
-            <button class="mact" id="mmToTask" title="Make a task from the selected text (or the note title)">→ Task</button>
-            <button class="mact" id="mmToEvent" title="Make an event from the selected text (or the note title)">→ Event</button>
-            <button class="mact" id="mmLink" title="Link this note to a task, event or another note">＋ Link</button>
-            <button class="mdel" id="mmDel">Delete</button></div>
-        </div>
-        <div class="memo-none" id="memoNone">Select a note, or add one with the ＋ button in the list</div>
-      </div>
-    </div>
-  </div></section>
-
 
   <!-- Knowledge: 일에서 쌓이는 것 — 온톨로지(종류 · 관계)와 그래프(개체 · 사실). 처음엔 비어 있고 에이전트가 채운다 -->
   <section class="view" id="knowledgeView" role="tabpanel"><div class="wrap">
@@ -1315,7 +1154,7 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
       <div class="empty" id="kOntoEmpty">The ontology is empty — press [Ask the agent] to have it propose kinds and relations from your work</div>
     </div>
     <div data-subsec="graph">
-      <div class="sub-lead">The actual things and the facts between them, each tied to the notes, tasks and events it came from.</div>
+      <div class="sub-lead">The actual things and the facts between them, each tied to the work it came from.</div>
       <div class="card k-graph" id="kGraph" hidden></div>
       <div class="sec-head" id="kFactHead" hidden><h2>Facts</h2><span class="cnt" id="kFactCnt"></span></div>
       <div class="card k-list" id="kFacts" hidden></div>
@@ -1521,31 +1360,6 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
   <div class="modal-acts"><button class="cancel" id="cfNo">Cancel</button><button class="danger-act" id="cfYes">Delete</button></div>
 </div>
 <div class="scrim" id="scrim"></div>
-<div class="modal" id="todoModal" role="dialog" aria-modal="true" aria-label="Add task">
-  <h3>Add task</h3>
-  <div class="fld-from" id="tFrom" hidden></div>
-  <div class="fld"><label>Title</label><input id="tTitle" placeholder="e.g. Review the proposal" autocomplete="off"></div>
-  <div class="fld"><label>Due date (optional)</label><input id="tDue" type="date"></div>
-  <div class="modal-acts"><button class="cancel" data-close>Cancel</button><button class="save" id="tSave">Add</button></div>
-</div>
-<!-- 모달: 참조 연결(REFERS_TO) -->
-<div class="modal" id="linkModal" role="dialog" aria-modal="true" aria-labelledby="lkTitle">
-  <h3 id="lkTitle">Link to…</h3>
-  <div class="fld"><input id="lkQ" placeholder="Search tasks, events and notes" autocomplete="off" aria-label="Search items to link"></div>
-  <div class="lk-list" id="lkList" role="listbox" aria-label="Items"></div>
-  <div class="modal-acts"><button class="cancel" data-close>Cancel</button></div>
-</div>
-<!-- 모달: 일정 추가 -->
-<div class="modal" id="eventModal" role="dialog" aria-modal="true" aria-label="Add event">
-  <h3>Add event</h3>
-  <div class="fld-from" id="eFrom" hidden></div>
-  <div class="fld"><label>Title</label><input id="eTitle" placeholder="e.g. Team meeting" autocomplete="off"></div>
-  <div class="frow">
-    <div class="fld"><label>Date</label><input id="eDate" type="date"></div>
-    <div class="fld"><label>Time (optional)</label><input id="eTime" type="time"></div>
-  </div>
-  <div class="modal-acts"><button class="cancel" data-close>Cancel</button><button class="save" id="eSave">Add</button></div>
-</div>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -1563,46 +1377,18 @@ let sw = null, logAgain = false;   // sw = 세션 전환·긴 대화 불러오�
 let logMode = false, logRev = 0, logSession = '', logTimer = null, logBusy = false, logModel = '', logServerModel = '', logServerEffort = '', logEffort = '', msheetBusy = false, logKind = '', limits = null, permInfo = null, permBusy = false, permPollAt = 0, logOldest = 0, logHasOlder = false, logLoadingOlder = false;
 const logOpen = new Set();          // 사용자가 펼쳐 둔 도구 묶음(다시 그려도 유지)   // attachments: {name, size, path, pending}
 
-/* ================= 데이터 (할일 + 일정) ================= */
-let dataVersion = 0, items = [], events = [], notes = [], graphLinks = [];
+/* ================= 데이터 ================= */
+// 일 데이터(work-graph.json) — Work 화면은 처음엔 비어 있지만, 요청·지식 카드가 항목 이름을 보이고 데이터 변경 승인이 이 버전을 따른다
+let dataVersion = 0, items = [], events = [], notes = [];
 const proposals = new Map();
 async function refreshData() {
   let s;
   try { s = await (await getJSON('/api/state')); } catch { return; }
   dataVersion = s.version || 1;
   items = s.items || []; events = s.events || []; notes = s.notes || [];
-  graphLinks = (s.graph && s.graph.links) || [];   // NodeRel이 만든 관계(파생 DUE_ON/ON 포함)
   (s.proposals || []).forEach((p) => proposals.set(p.id, p)); renderApprovals();
-  renderTodos(); renderCalendar(); renderDay(); renderUpcoming(); renderMemos();
-  refreshPropCards(); renderExamples(s);
+  refreshPropCards();
 }
-// 첫 실행 예제(seed.js, id n-/a-/e-ex-…)가 남아 있으면 알린다 — Stats·흐름이 끊긴 곳·분석이 가짜 데이터를 설명하지 않게
-const isExample = (x) => /^[nae]-ex-/.test(String((x && x.id) || ''));
-function renderExamples(s) {
-  const ex = [...items, ...events, ...notes].filter(isExample).length, mine = items.length + events.length + notes.length - ex;
-  $('exBanner').hidden = !ex || !!(s && s.examplesKept);
-  if (!ex) return;
-  $('exText').textContent = mine ? ` ${ex} example item${ex === 1 ? ' is' : 's are'} still here next to your own ${mine}. Clear them so Evolve looks only at your data.`
-    : ` The notes, tasks and events here were added on first run to show how they link. Clear them when you start using ANA.`;
-}
-$('exClear').onclick = async () => {
-  if (!(await confirmDelete('All example notes, tasks and events'))) return;
-  const r = await post('/api/examples', { action: 'clear' }).catch(() => null);
-  if (!r || !r.ok) { showErr('Could not clear the examples'); return; }
-  toast('Examples cleared'); refreshData();
-};
-$('exKeep').onclick = async () => { await post('/api/examples', { action: 'keep' }).catch(() => {}); refreshData(); };
-
-/* ---- 관계 (NodeRel) ----
-   서버가 state.json에서 NodeRel 그래프를 만들어 /api/state의 graph.links로 내려준다.
-   화면에는 명시적 관계만 칩으로 보인다 — 날짜 관계(DUE_ON/ON)는 이미 기한·달력으로 보이기 때문. */
-const REL = {
-  SPAWNED: { out: 'Made', in: 'From note' },
-  SCHEDULED_AS: { out: 'Scheduled', in: 'For task' },
-  REFERS_TO: { out: 'Refers to', in: 'Referenced by' },
-};
-// 아직 워크 종류에 없는 새 연결(BLOCKS 등)은 그 이름 그대로 — 나가는 쪽 'BLOCKS', 들어오는 쪽 '← BLOCKS'
-const relWord = (l, out) => (REL[l.type] ? REL[l.type][out ? 'out' : 'in'] : `${out ? '' : '← '}${l.type}`);
 const noteTitle = (n) => (n.title || '').trim() || (n.text || '').trim().split('\n')[0].slice(0, 40) || 'Untitled';
 const mdDate = (d) => (d ? `${+d.slice(5, 7)}/${+d.slice(8, 10)}` : '');
 function nodeOf(id) {
@@ -1614,291 +1400,20 @@ function nodeOf(id) {
   if (x) return { id, kind: 'Note', x, title: noteTitle(x), label: noteTitle(x) };
   return null;
 }
-function relsOf(id) {
-  return graphLinks.filter((l) => (REL[l.type] || l.newType) && (l.from === id || l.to === id)).map((l) => {
-    const out = l.from === id, o = nodeOf(out ? l.to : l.from);
-    return o ? { l, out, o } : null;
-  }).filter(Boolean);
-}
-function relChips(id, emptyText) {
-  const rs = relsOf(id);
-  if (!rs.length) return emptyText ? `<div class="rels-none">${escapeHtml(emptyText)}</div>` : '';
-  return `<div class="rels">${rs.map(({ l, out, o }) => `<span class="rel k-${o.kind}" role="button" tabindex="0" data-go="${escapeHtml(o.id)}"
-      data-lf="${escapeHtml(l.from)}" data-lt="${escapeHtml(l.to)}" data-ly="${l.type}" title="${escapeHtml(`${relWord(l, out)} ${o.kind.toLowerCase()}: ${o.label}${l.newType ? ' (not in the Work ontology yet)' : ''}`)}">
-      <span class="rk">${escapeHtml(relWord(l, out))}</span><span class="rt">${escapeHtml(o.label)}</span>
-      <button class="rx" data-unlink aria-label="Remove link">✕</button></span>`).join('')}</div>`;
-}
-function flash(sel) {
-  requestAnimationFrame(() => {
-    const el = document.querySelector(sel); if (!el) return;
-    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
-  });
-}
-// 관계를 따라 다른 탭의 그 항목으로 이동한다
-function gotoNode(id) {
-  const n = nodeOf(id); if (!n) return;
-  const q = (v) => (window.CSS && CSS.escape ? CSS.escape(v) : v);
-  if (n.kind === 'Task') { showTab('todo'); flash(`#todoList .item[data-id="${q(id)}"]`); }
-  else if (n.kind === 'Event') { showTab('schedule'); gotoDate(n.x.date); flash(`#dayList .ev-item[data-id="${q(id)}"]:not([data-kind])`); }
-  else { showTab('memo'); cleanupEmptyMemos(id); memoSel = id; renderMemos(); flash('#memoEditor'); }
-}
-document.addEventListener('click', (e) => {
-  const chip = e.target.closest('.rel[data-go]'); if (!chip || document.body.classList.contains('ana-mode')) return;
-  e.stopPropagation();
-  if (e.target.closest('[data-unlink]')) {
-    const { lf: from, lt: to, ly: type } = chip.dataset;
-    confirmDelete(`Link "${chip.querySelector('.rk').textContent} ${chip.querySelector('.rt').textContent}"`).then((ok) => {
-      if (ok) post('/api/link', { action: 'remove', from, to, type }).then((r) => { if (!r.ok) showErr('Failed to remove the link'); refreshData(); });
-    });
-    return;
-  }
-  gotoNode(chip.dataset.go);
-}, true);
-document.addEventListener('keydown', (e) => {
-  if (e.key !== 'Enter' && e.key !== ' ') return;
-  const chip = e.target.closest && e.target.closest('.rel[data-go]'); if (!chip || e.target.closest('[data-unlink]')) return;
-  e.preventDefault(); e.stopPropagation(); gotoNode(chip.dataset.go);
-}, true);
 
-/* ---- 할일 ---- */
-function renderTodos() {
-  const done = items.filter((x) => x.done).length;
-  $('kTotal').textContent = items.length;
-  $('kOpen').textContent = items.length - done;
-  $('kDone').textContent = done;
-  $('todoMeta').textContent = `v${dataVersion}`;
-  $('todoList').innerHTML = items.map((it) => `
-    <div class="item card ${it.done ? 'done' : ''}" data-id="${escapeHtml(it.id)}" role="button" tabindex="0" aria-pressed="${!!it.done}">
-      <span class="chk"><svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg></span>
-      <span class="body"><span class="trow"><span class="title">${escapeHtml(it.title || it.text || '')}</span></span>${it.due ? `<span class="due"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${escapeHtml(it.due)}</span>` : ''}${it.by ? `<span class="itby">${byBadge(it.by)}</span>` : ''}${relChips(it.id)}</span>
-      <button class="sch" data-sched="${escapeHtml(it.id)}" aria-label="Schedule time for this task" title="Schedule time for this task"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg></button>
-      ${isMine(it) ? `<button class="del" data-del="${escapeHtml(it.id)}" aria-label="Delete">✕</button>` : ''}
-    </div>`).join('');
-  $('todoEmpty').style.display = items.length ? 'none' : 'block';
-}
-function toggleTodo(el) {
-  const done = !el.classList.contains('done');
-  post('/api/done', { id: el.dataset.id, done }).then((r) => { if (!r.ok) refreshData(); }).catch(() => refreshData());
-  el.classList.toggle('done', done); el.setAttribute('aria-pressed', String(done));
-}
-$('todoList').addEventListener('click', (e) => {
-  const sch = e.target.closest('[data-sched]');
-  if (sch) { openEventFrom(sch.dataset.sched); return; }
-  const del = e.target.closest('[data-del]');
-  if (del) {
-    const t = del.closest('.item')?.querySelector('.title')?.textContent || 'this task';
-    confirmDelete(`Task "${t}"`).then((ok) => { if (ok) post('/api/todo-remove', { id: del.dataset.del }).then(refreshData); });
-    return;
-  }
-  // 완료 처리는 앞의 체크박스(.chk)를 눌렀을 때만 — 항목 본문 클릭으로는 체크되지 않는다
-  if (e.target.closest('.chk')) { const el = e.target.closest('.item'); if (el) toggleTodo(el); }
-});
-$('todoList').addEventListener('keydown', (e) => {
-  if (e.key !== 'Enter' && e.key !== ' ') return;
-  const el = e.target.closest('.item'); if (!el) return; e.preventDefault(); toggleTodo(el);
-});
-
-/* ---- 일정 (달력) ---- */
-let calY, calM, selDate; // calM: 0-11
-const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
-const weekLater = () => { const d = new Date(); d.setDate(d.getDate() + 7); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
-function initCal() { const d = new Date(); calY = d.getFullYear(); calM = d.getMonth(); selDate = today(); }
-const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-function renderCalendar() {
-  $('calTitle').textContent = `${MONTHS[calM]} ${calY}`;
-  const first = new Date(calY, calM, 1).getDay();
-  const days = new Date(calY, calM + 1, 0).getDate();
-  const byDate = {};
-  events.forEach((e) => { (byDate[e.date] = byDate[e.date] || []).push(e); });
-  const todoByDate = {};
-  items.forEach((t) => { if (t.due) (todoByDate[t.due] = todoByDate[t.due] || []).push(t); });
-  let html = DOW.map((d, i) => `<div class="cal-dow ${i===0?'sun':i===6?'sat':''}">${d}</div>`).join('');
-  for (let i = 0; i < first; i++) html += `<div class="cal-cell blank"></div>`;
-  for (let d = 1; d <= days; d++) {
-    const date = `${calY}-${String(calM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const dow = new Date(calY, calM, d).getDay();
-    const evs = byDate[date] || [];
-    const tds = todoByDate[date] || [];
-    const dots = evs.slice(0, 3).map((e) => `<span class="dot-e ${e.done?'done':''}"></span>`).join('')
-      + tds.slice(0, 3).map((t) => `<span class="dot-t ${t.done?'done':''}"></span>`).join('');
-    html += `<div class="cal-cell ${dow===0?'sun':dow===6?'sat':''} ${date===today()?'today':''} ${date===selDate?'sel':''}" data-date="${date}">
-      <span class="dnum">${d}</span><div class="dots">${dots}</div></div>`;
-  }
-  $('calGrid').innerHTML = html;
-}
-$('calGrid').addEventListener('click', (e) => {
-  const cell = e.target.closest('.cal-cell[data-date]'); if (!cell) return;
-  selDate = cell.dataset.date; renderCalendar(); renderDay();
-});
-function renderDay() {
-  const evs = events.filter((e) => e.date === selDate).sort((a, b) => (a.time || '99').localeCompare(b.time || '99'));
-  const dues = items.filter((x) => x.due === selDate);
-  const [y, m, d] = selDate.split('-');
-  $('dayHead').textContent = `${MONTHS[+m - 1]} ${+d} · ${evs.length} event${evs.length === 1 ? '' : 's'}${dues.length ? ` · ${dues.length} due` : ''}`;
-  const evHtml = evs.map((e) => `
-    <div class="ev-item card ${e.done ? 'done' : ''}" data-id="${escapeHtml(e.id)}">
-      <span class="chk" data-toggle><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#fff;stroke-width:3;fill:none;opacity:${e.done?1:0}"><path d="M4 12l5 5L20 6"/></svg></span>
-      <span class="etime">${e.time ? escapeHtml(e.time) : 'All day'}</span>
-      <span class="etitle">${escapeHtml(e.title)}${relChips(e.id)}</span>
-      <button class="del" data-del aria-label="Delete">✕</button>
-    </div>`).join('');
-  const dueHtml = dues.map((x) => `
-    <div class="ev-item card ${x.done ? 'done' : ''}" data-id="${escapeHtml(x.id)}" data-kind="todo">
-      <span class="chk" data-toggle><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#fff;stroke-width:3;fill:none;opacity:${x.done?1:0}"><path d="M4 12l5 5L20 6"/></svg></span>
-      <span class="ebadge">Task due</span>
-      <span class="etitle">${escapeHtml(x.title || x.text || '')}${relChips(x.id)}</span>
-    </div>`).join('');
-  $('dayList').innerHTML = (evHtml + dueHtml) || `<div class="empty" style="padding:24px 0">No events on this day</div>`;
-}
-$('dayList').addEventListener('click', (e) => {
-  const el = e.target.closest('.ev-item'); if (!el) return;
-  const id = el.dataset.id;
-  if (el.dataset.kind === 'todo') {
-    if (e.target.closest('[data-toggle]')) { post('/api/done', { id, done: !el.classList.contains('done') }).then((r) => { if (!r.ok) refreshData(); }); el.classList.toggle('done'); }
-    return;
-  }
-  if (e.target.closest('[data-del]')) {
-    const t = e.target.closest('.ev-item')?.querySelector('.etitle')?.textContent || 'this event';
-    confirmDelete(`Event "${t}"`).then((ok) => { if (ok) post('/api/event', { action: 'remove', id }).then(refreshData); });
-    return;
-  }
-  if (e.target.closest('[data-toggle]')) { post('/api/event', { action: 'done', id, done: !el.classList.contains('done') }).then((r) => { if (!r.ok) refreshData(); }); el.classList.toggle('done'); return; }
-});
-
-/* ---- 다가오는 일정 리스트 (달력 좌측) ---- */
-function gotoDate(date) { selDate = date; const p = date.split('-'); calY = +p[0]; calM = +p[1] - 1; renderCalendar(); renderDay(); }
-function renderUpcoming() {
-  const t = today();
-  const ups = [
-    ...events.filter((e) => !e.done && e.date >= t).map((e) => ({ kind: 'event', date: e.date, time: e.time || '', title: e.title })),
-    ...items.filter((x) => !x.done && x.due && x.due >= t).map((x) => ({ kind: 'todo', date: x.due, time: '', title: x.title || x.text || '' })),
-  ].sort((a, b) => (a.date + (a.time || '99:99')).localeCompare(b.date + (b.time || '99:99'))).slice(0, 15);
-  $('upList').innerHTML = ups.length ? ups.map((u) => `
-    <div class="up-item ${u.kind === 'todo' ? 'todo' : ''}" data-date="${u.date}" role="button" tabindex="0" title="${escapeHtml(u.title)}">
-      <span class="mark"></span>
-      <span class="ud">${+u.date.slice(5, 7)}/${+u.date.slice(8, 10)}</span>
-      <span class="ut">${escapeHtml(u.title)}${u.time ? ` · ${escapeHtml(u.time)}` : ''}</span>
-    </div>`).join('') : `<div class="empty" style="padding:14px 0;font-size:12.5px">Nothing coming up</div>`;
-}
-$('upList').addEventListener('click', (e) => {
-  const el = e.target.closest('.up-item[data-date]'); if (el) gotoDate(el.dataset.date);
-});
-$('upList').addEventListener('keydown', (e) => {
-  if (e.key !== 'Enter' && e.key !== ' ') return;
-  const el = e.target.closest('.up-item[data-date]'); if (el) { e.preventDefault(); gotoDate(el.dataset.date); }
-});
-$('calPrev').onclick = () => { if (--calM < 0) { calM = 11; calY--; } renderCalendar(); };
-$('calNext').onclick = () => { if (++calM > 11) { calM = 0; calY++; } renderCalendar(); };
-$('calToday').onclick = () => { const d = new Date(); calY = d.getFullYear(); calM = d.getMonth(); selDate = today(); renderCalendar(); renderDay(); };
-
-/* ---- 메모 (좌: 목록 / 우: 편집기, 자동 저장) ---- */
-let memoSel = null, memoSaveTimer = null;
-const memoEditing = () => (document.activeElement === $('mmTitle') || document.activeElement === $('mmBody')) && $('memoEditor').dataset.id === memoSel;
-function renderMemos() {
-  const list = [...notes].sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
-  if (memoSel && !list.some((n) => n.id === memoSel)) memoSel = null;
-  if (!memoSel && list.length) memoSel = list[0].id;
-  $('memoList').innerHTML = list.map((n) => {
-    const title = (n.title || '').trim() || (n.text || '').trim().split('\n')[0].slice(0, 40) || 'Untitled';
-    const prev = (n.text || '').trim().replace(/\s+/g, ' ').slice(0, 60);
-    const d = String(n.updatedAt || '').slice(0, 10);
-    return `<div class="memo-item ${n.id === memoSel ? 'sel' : ''}" data-id="${escapeHtml(n.id)}" role="button" tabindex="0">
-      <div class="mtop"><span class="mt">${escapeHtml(title)}</span>${
-        isMine(n) ? `<button class="del" data-del="${escapeHtml(n.id)}" aria-label="Delete note">✕</button>` : ''}</div>
-      ${prev ? `<div class="mp">${escapeHtml(prev)}</div>` : ''}
-      <div class="md">${d ? escapeHtml(d) : ''}${n.by ? ' · ' + escapeHtml(displayName(n.by)) : ''}</div>
-    </div>`; }).join('');
-  $('memoEmpty').style.display = list.length ? 'none' : 'block';
-  fillMemoEditor();
-}
-function fillMemoEditor() {
-  const n = notes.find((x) => x.id === memoSel);
-  $('memoEditor').style.display = n ? 'flex' : 'none';
-  $('memoNone').style.display = n ? 'none' : 'flex';
-  if (!n) { $('memoEditor').dataset.id = ''; return; }
-  // 입력 중에는 서버 갱신이 편집 내용을 덮어쓰지 않게 한다
-  if (!memoEditing()) { $('mmTitle').value = n.title || ''; $('mmBody').value = n.text || ''; $('mmState').textContent = ''; }
-  $('memoEditor').dataset.id = n.id;
-  $('mmRels').innerHTML = relChips(n.id, 'No links yet — select a line and press → Task or → Event');
-}
-async function saveMemo(id) {
-  const n = notes.find((x) => x.id === id); if (!n) return;
-  n.title = $('mmTitle').value; n.text = $('mmBody').value; // 로컬 선반영(목록 미리보기)
-  $('mmState').textContent = 'Saving…';
-  try {
-    const r = await post('/api/note', { action: 'update', id, title: n.title, text: n.text });
-    if (r.ok) { const j = await r.json(); dataVersion = j.version || dataVersion; $('mmState').textContent = 'Saved'; }
-    else { $('mmState').textContent = 'Save failed'; showErr('Failed to save the note'); }
-  } catch { $('mmState').textContent = 'Save failed'; showErr('Failed to save the note'); }
-  renderMemos();
-}
-function memoInput() {
-  const id = $('memoEditor').dataset.id; if (!id) return;
-  $('mmState').textContent = 'Typing…';
-  clearTimeout(memoSaveTimer);
-  memoSaveTimer = setTimeout(() => saveMemo(id), 700);
-}
-$('mmTitle').addEventListener('input', memoInput);
-$('mmBody').addEventListener('input', memoInput);
-$('addMemoBtn').onclick = async () => {
-  let r; try { r = await post('/api/note', { action: 'add' }); } catch { showErr('Failed to add a note'); return; }
-  if (!r.ok) { showErr('Failed to add a note'); return; }
-  const j = await r.json(); memoSel = j.id;
-  await refreshData();
-  $('mmTitle').focus();
+/* ---- Work: 처음엔 비어 있다. PRD를 보고 에이전트가 화면을 만든다 ---- */
+function renderWork() { $('workEmpty').hidden = !!$('workArea').children.length; }
+$('workPrd').onclick = () => showTab('prd');
+$('workBuild').onclick = () => {
+  const b = $('workBuild'); b.disabled = true; const orig = b.textContent; b.textContent = 'Asking…';
+  const api = (path) => `http://${agentHost}${path}`;
+  const prompt = `[Work] Build the Work tab of this ANA from its PRD.
+Read the PRD GET ${api('/api/prd')} and the code in this folder (dashboard.html, dashboard-api.js, server.js). If the PRD does not yet say what the work is — what people handle, what they need to see and do — ask me first, and write what we agree into the PRD before building.
+Build it into #workArea in dashboard.html (sub-tabs with <nav class="subtabs" data-sub="work"> and SUBTABS.work if there is more than one kind of work), with the data and API routes it needs in dashboard-api.js, matching the look of the rest of the app. Keep PRD, Knowledge, Requests, Evolve and Update as they are.
+Verify with the tests and a look at the page. Then update the PRD so it says what Work now has (POST ${api('/api/prd')} {"md":"…","note":"Built Work","source":"agent"}) and tell me what you built.`;
+  post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
+    .catch(() => showErr('Request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
 };
-function removeMemo(id) {
-  if (memoSel === id) memoSel = null;
-  const t = (notes.find((n) => n.id === id) || {}).title || 'untitled note';
-  confirmDelete(`Note "${t}"`).then((ok) => {
-    if (!ok) return;
-    post('/api/note', { action: 'remove', id }).then((r) => { if (!r.ok) showErr('Failed to delete the note'); refreshData(); }).catch(() => showErr('Failed to delete the note'));
-  });
-}
-// 빈 메모 자동 정리(진화 #3): 편집기 이탈·탭 전환·다른 메모 선택 시 제목과 내용이 모두 빈 메모를 지운다.
-// 편집기에 떠 있는 메모는 저장 debounce(700ms)가 아직 안 돈 로컬 입력값 기준으로 판정한다.
-function cleanupEmptyMemos(exceptId) {
-  const editorId = $('memoEditor').dataset.id;
-  for (const n of [...notes]) {
-    if (n.id === exceptId) continue;
-    const title = n.id === editorId ? $('mmTitle').value : (n.title || '');
-    const text = n.id === editorId ? $('mmBody').value : (n.text || '');
-    if (title.trim() || text.trim()) continue;
-    if (n.id === editorId) clearTimeout(memoSaveTimer); // 삭제할 빈 메모의 저장 예약 취소
-    removeMemo(n.id);
-  }
-}
-// 메모 → 할일/일정: 선택한 텍스트(없으면 커서가 있는 줄, 그것도 비면 메모 제목)를 제목으로 쓴다
-function memoPick() {
-  const ta = $('mmBody'), v = ta.value;
-  let t = v.slice(ta.selectionStart, ta.selectionEnd).trim();
-  if (!t && document.activeElement === ta) {
-    const a = v.lastIndexOf('\n', ta.selectionStart - 1) + 1, b = v.indexOf('\n', ta.selectionStart);
-    t = v.slice(a, b < 0 ? v.length : b).trim();
-  }
-  return (t || $('mmTitle').value.trim() || '').split('\n')[0].replace(/^[-*•\d.)\s]+/, '').slice(0, 200);
-}
-let memoPickCache = '';
-['mmToTask', 'mmToEvent'].forEach((k) => $(k).addEventListener('pointerdown', () => { memoPickCache = memoPick(); }));   // 버튼 누르면 선택이 풀리므로 미리 읽어 둔다
-$('mmToTask').onclick = () => { const id = $('memoEditor').dataset.id; if (id) openTodoFrom(id, memoPickCache || memoPick()); memoPickCache = ''; };
-$('mmToEvent').onclick = () => { const id = $('memoEditor').dataset.id; if (id) openEventFrom(id, memoPickCache || memoPick()); memoPickCache = ''; };
-$('mmLink').onclick = () => { const id = $('memoEditor').dataset.id; if (id) openLinkModal(id); };
-$('mmDel').onclick = () => { const id = $('memoEditor').dataset.id; if (id) removeMemo(id); };
-$('memoEditor').addEventListener('focusout', (e) => {
-  if ($('memoEditor').contains(e.relatedTarget)) return; // 편집기 내부 포커스 이동은 이탈이 아님
-  setTimeout(() => { if (!memoEditing()) cleanupEmptyMemos(); }, 0);
-});
-$('memoList').addEventListener('click', (e) => {
-  const del = e.target.closest('[data-del]');
-  if (del) { removeMemo(del.dataset.del); return; }
-  const el = e.target.closest('.memo-item'); if (el) { cleanupEmptyMemos(el.dataset.id); memoSel = el.dataset.id; renderMemos(); }
-});
-$('memoList').addEventListener('keydown', (e) => {
-  if (e.key !== 'Enter' && e.key !== ' ') return;
-  const el = e.target.closest('.memo-item'); if (!el) return; e.preventDefault(); cleanupEmptyMemos(el.dataset.id); memoSel = el.dataset.id; renderMemos();
-});
 
 /* ---- 요청 (에이전트 → 사용자) ----
    에이전트가 이 시스템을 더 잘 운용하려고 사용자에게 부탁하는 것. 답은 채팅으로 에이전트에게 전달된다. */
@@ -2022,7 +1537,7 @@ $('reqList').addEventListener('keydown', (e) => {
 $('reqAsk').onclick = () => {
   const b = $('reqAsk'); b.disabled = true; const orig = b.textContent; b.textContent = 'Asking…';
   const h = agentHost;
-  const prompt = `[Requests] Look at how the work is going — tasks, notes, calendar, their links and our recent conversation — and register what you need FROM ME: a step you should not take on your own (deleting or overwriting things, spending money, sending messages to other people, changing settings) as kind approval, a choice between options as decision, access you need me to grant as access, actions only I can do as action, and information you are missing as info. Data changes to the board still go through the diff → approve flow (POST /api/agent). Do not register changes to the app itself — those are Evolve proposals. Write every request for a person who does not know how this app works inside: fill \"why\" (what's going on — the situation, in the words of the work: names, tasks, dates), \"ask\" (exactly what you need from them), \"effect\" (what changes once it's done) and \"ifNot\" (what happens if they say no or wait). Keep words like graph, schema, API, diff out of them.
+  const prompt = `[Requests] Look at how the work is going — the PRD (GET http://${h}/api/prd), the work data and our recent conversation — and register what you need FROM ME: a step you should not take on your own (deleting or overwriting things, spending money, sending messages to other people, changing settings) as kind approval, a choice between options as decision, access you need me to grant as access, actions only I can do as action, and information you are missing as info. Data changes to the board still go through the diff → approve flow (POST /api/agent). Do not register changes to the app itself — those are Evolve proposals. Write every request for a person who does not know how this app works inside: fill \"why\" (what's going on — the situation, in the words of the work: names, tasks, dates), \"ask\" (exactly what you need from them), \"effect\" (what changes once it's done) and \"ifNot\" (what happens if they say no or wait). Keep words like graph, schema, API, diff out of them.
 Register: curl -s -X POST http://${h}/api/requests -H 'content-type: application/json' -d '{"requests":[{"kind":"decision","title":"Short question","why":"What is going on","ask":"What you need from me","effect":"What changes once it is settled","ifNot":"What happens if it waits","options":["A","B"],"ref":"<optional task/event/note id>"}]}' (kind is approval|decision|access|action|info; options only for decisions).
 Where the flow breaks: GET http://${h}/api/stats (graph.gaps) · links: GET http://${h}/api/graph/schema · open requests: GET http://${h}/api/requests.`;
   post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
@@ -2086,7 +1601,7 @@ async function evoAct(id, action, title, desc) {
   if (action === 'do') {
     // 왜 이 제안인지와 밖의 사례도 함께 넘긴다 — 만드는 쪽이 같은 근거를 보고 만들게
     const ctx = `${p.because ? ` Seen: ${p.because}` : ''}${p.outcome ? ` What should change for people: ${p.outcome}` : ''}${p.how ? ` How (suggested): ${p.how}` : ''}${(p.sources || []).length ? ` Seen elsewhere: ${p.sources.map((x) => `${x.title || x.url} <${x.url}>${x.note ? ' (' + x.note + ')' : ''}`).join('; ')}.` : ''}`;
-    const text = `[Evolve] Implement/apply proposal #${id} "${title}"${desc ? ' — ' + desc : ''}.${ctx} Changes to notes, tasks and events go through the APIs (a diff via POST /api/agent {text, diff, why, effect} — why = what's going on, effect = what the change does, in plain words; links via /api/link). When it's done, if what the app does changed, update the PRD: GET http://${agentHost}/api/prd, then POST /api/prd {"md":"…","note":"what changed","source":"agent"}. Tell me when it's done.`;
+    const text = `[Evolve] Implement/apply proposal #${id} "${title}"${desc ? ' — ' + desc : ''}.${ctx} Changes to the work data go through the APIs (a diff via POST /api/agent {text, diff, why, effect} — why = what's going on, effect = what the change does, in plain words; links via /api/link). When it's done, if what the app does changed, update the PRD: GET http://${agentHost}/api/prd, then POST /api/prd {"md":"…","note":"what changed","source":"agent"}. Tell me when it's done.`;
     openChat();
     post('/api/chat', { text, force: true }).then((x) => { if (!x.ok) x.json().then((e) => showErr(e.error || 'Failed to send the request (agent not connected?)')).catch(() => {}); })
       .catch(() => showErr('Failed to send the request'));
@@ -2098,7 +1613,8 @@ function askEvolveAgent(b) {
   const api = (path) => `http://${agentHost}${path}`;
   const prompt = `[Evolve] Look at how the work is going here, then propose what to do now and how ANA could evolve.
 Read:
-- The work: notes, tasks, events and their links GET ${api('/api/state')}, where the flow breaks GET ${api('/api/stats')}, usage GET ${api('/api/activity')}.
+- What this ANA is for: the PRD GET ${api('/api/prd')}.
+- The work: its data GET ${api('/api/state')}, where the flow breaks GET ${api('/api/stats')}, usage GET ${api('/api/activity')}.
 - Open proposals GET ${api('/api/evolve')} and our recent conversation.
 Write in the words of the work: names of clients and people, tasks, dates, amounts — not about the app. For example: "The workshop day (Oct 9) has passed but its three prep tasks are still open".
 Propose two kinds of change:
@@ -2116,11 +1632,10 @@ $('evoAnalyze').onclick = () => askEvolveAgent($('evoAnalyze'));
 
 
 /* ---- 하위 탭: 한 화면에 한 갈래만 ----
-   PRD(지금 · 이력), Work(업무별 화면 — base: Tasks · Calendar · Notes), Knowledge(온톨로지 · 그래프), Requests · Evolve · Update(대기 · 진행 · 완료).
-   [data-subsec]는 그 갈래의 내용. Work의 하위 탭은 화면(view) 자체를 바꾼다. */
+   PRD(지금 · 이력), Knowledge(온톨로지 · 그래프), Requests · Evolve · Update(대기 · 진행 · 완료). Work는 처음엔 하위 탭이 없다(PRD에 맞춰 생긴다).
+   [data-subsec]는 그 갈래의 내용. */
 const STATUS_TABS = [['wait', 'Waiting'], ['doing', 'In progress'], ['done', 'Done']];
 var SUBTABS = {
-  work: [['todo', 'Tasks'], ['schedule', 'Calendar'], ['memo', 'Notes']],
   requests: STATUS_TABS,
   evolve: STATUS_TABS,
   prd: [['current', 'Current'], ['history', 'History']],
@@ -2129,8 +1644,8 @@ var SUBTABS = {
 };
 var subSel = {}; try { subSel = JSON.parse(localStorage.getItem('ana-subtabs') || '{}') || {}; } catch {}
 var subCounts = {};
-function subList(v) { return SUBTABS[v]; }
-function curSub(v) { if (!SUBTABS) return ''; return subList(v).some(([k]) => k === subSel[v]) ? subSel[v] : subList(v)[0][0]; }   // var·함수 선언: 부팅 중 먼저 불려도 안전
+function subList(v) { return (SUBTABS && SUBTABS[v]) || []; }   // 하위 탭이 없는 탭(처음의 Work)은 빈 목록
+function curSub(v) { const l = subList(v); if (!l.length) return ''; return l.some(([k]) => k === subSel[v]) ? subSel[v] : l[0][0]; }   // var·함수 선언: 부팅 중 먼저 불려도 안전
 function renderSubtabs(v) {
   if (!SUBTABS) return;
   const cur = curSub(v), c = subCounts[v] || {};
@@ -2147,7 +1662,7 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('.subtabs button[data-k]'); if (!b) return;
   const v = b.closest('.subtabs').dataset.sub; openSub(v, b.dataset.k);
   logEvent('tab.view', `${v}.${b.dataset.k}`);
-  if (v === 'work') showTab(b.dataset.k); else if (RENDER_SUB[v]) RENDER_SUB[v]();
+  if (RENDER_SUB[v]) RENDER_SUB[v]();
 });
 Object.keys(SUBTABS).forEach(renderSubtabs);
 
@@ -2158,7 +1673,7 @@ async function refreshPrd() {
   try { prdCache = await getJSON('/api/prd'); } catch { return; }
   renderPrd();
 }
-const prdWho = (x) => (x.source === 'agent' ? 'the agent' : !x.by || x.by === 'ana' ? 'you' : displayName(x.by));
+const prdWho = (x) => (x.source === 'agent' ? 'the agent' : x.source === 'sample' ? 'the sample' : !x.by || x.by === 'ana' ? 'you' : displayName(x.by));
 const prdLine = (x) => `v${x.v} · ${escapeHtml(fmtWhen(x.at))} · by ${escapeHtml(prdWho(x))}${x.note ? ` · ${escapeHtml(x.note)}` : ''}`;
 function renderPrd() {
   const c = prdCache.current, editing = !$('prdForm').hidden;
@@ -2199,7 +1714,8 @@ $('prdAsk').onclick = () => {
   const api = (path) => `http://${agentHost}${path}`;
   const prompt = `[PRD] ${prdCache.current ? `Update this ANA's PRD (now version ${prdCache.current.v}) so it matches what the app does today.` : "Write this ANA's PRD — what this app is and does."}
 Read: the code in this folder (dashboard.html, dashboard-api.js, server.js, features.json, CHANGELOG.md), the work data GET ${api('/api/state')}, finished Evolve proposals GET ${api('/api/evolve')}, the current PRD GET ${api('/api/prd')}, and our recent conversation.
-Write it in markdown for a person who uses the app, not for a developer: # title, then ## Purpose (who it is for and what problem it solves), ## Users, ## Features (what people can do, one line each), ## Screens (each tab and what it shows), ## Data (what is kept and how items link), ## Agent (what the agent does on its own and what it asks for), ## Not yet (known gaps). Keep what a person wrote by hand unless it is no longer true.
+If the PRD is still the sample or leaves out what the work is, ask me a few short questions first (what this ANA is for, who uses it, what the work is made of) and write in what I answer.
+Write it in markdown for a person who uses the app, not for a developer, keeping the sections of the current one: # title, ## Purpose, ## Users, ## Work (what people handle, see and do — the Work tab is built from this), ## Knowledge, ## Agent, ## What is here now (each tab and what it shows — only what really exists), ## Not yet. Keep what a person wrote by hand unless it is no longer true.
 Save it as a new version: write the markdown to prd.md, then: node -e 'process.stdout.write(JSON.stringify({md: require("fs").readFileSync("prd.md", "utf8"), note: process.argv[1], source: "agent"}))' "What changed in one line" | curl -s -X POST "${api('/api/prd')}" -H 'content-type: application/json' --data-binary @-`;
   post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
     .catch(() => showErr('Request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
@@ -2263,9 +1779,9 @@ $('kAsk').onclick = () => {
   const b = $('kAsk'); b.disabled = true; const orig = b.textContent; b.textContent = 'Asking…';
   const api = (path) => `http://${agentHost}${path}`;
   const prompt = `[Knowledge] Read my work and add what it is about to this ANA's knowledge — the kinds of things and how they relate (ontology), and the actual things and facts (graph).
-Read: notes, tasks and events GET ${api('/api/state')}, the knowledge so far GET ${api('/api/knowledge')}.
+Read: what this ANA is for GET ${api('/api/prd')}, the work data GET ${api('/api/state')} (and any data the Work screens keep), the knowledge so far GET ${api('/api/knowledge')}.
 Ontology: "classes" are kinds of things the work is about (Client, Person, Project, Place…), with "parent" for a sub-kind; "relations" say how they connect, with "domain" → "range" classes (works_for: Person → Client). Reuse what is there; add only what is missing.
-Graph: "entities" are the actual things (Acme, a Client) with "items" = ids of the notes / tasks / events that mention them; "facts" connect two entities with a relation ({"from":"acme","rel":"client_of","to":"our_team","items":["…"]}). Only what the items actually say — nothing invented.
+Graph: "entities" are the actual things (Acme, a Client) with "items" = ids of the work items that mention them; "facts" connect two entities with a relation ({"from":"acme","rel":"client_of","to":"our_team","items":["…"]}). Only what the items actually say — nothing invented.
 ids are short and stable (letters, digits, _ - . :); labels are the words people use.
 Save: write the JSON to knowledge.json, then: curl -s -X POST "${api('/api/knowledge')}" -H 'content-type: application/json' --data-binary @knowledge.json
    knowledge.json = {"classes":[{"id":"Client","label":"Client","desc":"…","parent":""}],"relations":[{"id":"client_of","label":"client of","domain":"Client","range":"Team"}],"entities":[{"id":"acme","label":"Acme","class":"Client","items":["<note/task/event id>"]}],"facts":[{"from":"acme","rel":"client_of","to":"our_team","items":["<id>"]}]}
@@ -2407,9 +1923,6 @@ function avatarHtml(email, cls) {
   return `<span class="av ${cls || ''}">${av ? `<img src="/uploads/${encodeURIComponent(av)}" alt="">` : escapeHtml(initial(name))}</span>`;
 }
 const displayName = (email) => (userMap[email] && userMap[email].name) || (email ? email.split('@')[0] : 'ANA');
-// 항목 하단에 붙는 작성자 배지 — 작성자가 없는 과거 항목은 표시하지 않는다.
-const byBadge = (email) => (email ? `<span class="by">${avatarHtml(email)}${escapeHtml(displayName(email))}</span>` : '');
-const isMine = (rec) => !rec || !rec.by || rec.by === me.email;
 
 async function loadMe() {
   try {
@@ -2428,7 +1941,6 @@ async function loadMe() {
   $('menuLogout').disabled = !logoutUrl;
   $('menuLogoutHint').hidden = !!logoutUrl;
   $('menuLogoutHint').textContent = signedIn ? 'Set ANA_LOGOUT_URL to enable' : 'Single-user mode — no sign-in';
-  renderTodos(); renderMemos(); renderUpcoming();
 }
 /* 아바타 클릭 → 드롭다운 메뉴(Edit My Info / Settings) */
 function openMyInfo() {
@@ -2521,11 +2033,10 @@ $('meLogout').onclick = () => { if (logoutUrl) location.href = logoutUrl; };
 $('menuLogout').onclick = () => { if (!logoutUrl) return; $('meMenu').hidden = true; location.href = logoutUrl; };
 
 /* ================= 탭 전환 ================= */
-// 위 탭: PRD · Work · Knowledge · Requests · Evolve · Update. Work는 하위 탭(Tasks · Calendar · Notes)마다 화면이 따로다
+// 위 탭: PRD · Work · Knowledge · Requests · Evolve · Update
 const TABS = ['prd', 'work', 'knowledge', 'requests', 'evolve', 'update'];
-const WORK_VIEWS = new Set(['todo', 'schedule', 'memo']);
-const VIEWS = ['prd', ...WORK_VIEWS, 'knowledge', 'requests', 'evolve', 'update'];
-let lastTab = 'work';
+const VIEWS = TABS;
+let lastTab = 'prd';   // 처음엔 PRD — 이 ANA가 무엇을 할지부터
 try { const t = localStorage.getItem('ana-tab'); if (TABS.includes(t)) lastTab = t; } catch {}
 // 사용 기록: 화면 안에서만 일어나는 일(탭 열기 등)을 서버에 남긴다 — 종류와 대상 id만. 같은 탭을 1분 안에 다시 열면 한 번으로
 const logSeen = new Map();
@@ -2534,25 +2045,22 @@ function logEvent(action, target) {
   if (action === 'tab.view' && now - (logSeen.get(k) || 0) < 60000) return;
   logSeen.set(k, now); post('/api/activity', { action, target: String(target) }).catch(() => {});
 }
-const REFRESH_TAB = { knowledge: () => refreshKnowledge(), requests: () => refreshRequests(), evolve: () => refreshEvolve(), prd: () => refreshPrd(), update: () => refreshUpdates() };
+const REFRESH_TAB = { work: () => renderWork(), knowledge: () => refreshKnowledge(), requests: () => refreshRequests(), evolve: () => refreshEvolve(), prd: () => refreshPrd(), update: () => refreshUpdates() };
 // 탭 선택은 click()이 아니라 이 함수로 — 클릭 처리 중인 버튼에 다시 click()을 부르면 브라우저가 무시한다
 function selectTab(b) {
   if (!b) b = document.querySelector('.topnav .tab[data-view="work"]');
-  const tab = b.dataset.view, view = tab === 'work' ? curSub('work') : tab;
-  if ($('memoView').classList.contains('on') && view !== 'memo') cleanupEmptyMemos(); // 메모 화면을 떠나면 빈 메모 정리(진화 #3)
+  const tab = b.dataset.view, view = tab;
   document.querySelectorAll('.topnav .tab').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
   VIEWS.forEach((v) => $(v + 'View').classList.toggle('on', view === v));
   syncBottomNav(tab);
   lastTab = tab;
-  logEvent('tab.view', tab === 'work' ? `work.${view}` : tab);
+  logEvent('tab.view', tab);
   revealTab(b);
   try { localStorage.setItem('ana-tab', lastTab); } catch {}
   renderSubtabs(tab);
   if (REFRESH_TAB[tab]) REFRESH_TAB[tab]();
 }
-// 어느 화면으로든: Work의 화면(todo · schedule · memo)이면 그 하위 탭을 고르고 Work로
 function showTab(v) {
-  if (WORK_VIEWS.has(v)) { if (curSub('work') !== v || !$(v + 'View').classList.contains('on')) { openSub('work', v); selectTab(document.querySelector('.topnav .tab[data-view="work"]')); } return; }
   const b = document.querySelector(`.topnav .tab[data-view="${v}"]`); if (b && !b.classList.contains('on')) selectTab(b);
 }
 document.querySelectorAll('.topnav .tab').forEach((b) => { b.onclick = () => selectTab(b); });
@@ -2590,58 +2098,6 @@ $('scrim').onclick = () => {
 };
 document.querySelectorAll('[data-close]').forEach((b) => b.onclick = closeModal);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalCur) closeModal(); });
-// from: 새 항목이 나온 곳(메모·할일). 저장할 때 서버가 SPAWNED / SCHEDULED_AS 관계를 함께 만든다.
-let tFromId = '', eFromId = '';
-function setFrom(el, id) {
-  const n = id ? nodeOf(id) : null;
-  el.hidden = !n; el.textContent = n ? `${n.kind === 'Note' ? 'From note' : 'For task'}: ${n.title}` : '';
-}
-function openTodoFrom(fromId, title) {
-  tFromId = fromId || ''; setFrom($('tFrom'), tFromId);
-  $('tTitle').value = title || ''; $('tDue').value = weekLater(); openModal('todoModal');
-}
-function openEventFrom(fromId, title) {
-  eFromId = fromId || ''; setFrom($('eFrom'), eFromId);
-  const n = fromId ? nodeOf(fromId) : null;
-  $('eTitle').value = title || (n && n.kind === 'Task' ? n.title : '');
-  $('eDate').value = (n && n.kind === 'Task' && n.x.due) || selDate || today(); $('eTime').value = '';
-  openModal('eventModal');
-}
-$('addTodoBtn').onclick = () => openTodoFrom('');
-$('addEventBtn').onclick = () => openEventFrom('');
-$('tSave').onclick = async () => {
-  const title = $('tTitle').value.trim(); if (!title) { $('tTitle').focus(); return; }
-  const body = { title }; if ($('tDue').value) body.due = $('tDue').value; if (tFromId) body.from = tFromId;
-  const r = await post('/api/todo', body);
-  if (r.ok) { closeModal(); refreshData(); } else { const e = await r.json().catch(() => ({})); showErr(e.error || 'Failed to add the task'); }
-};
-$('eSave').onclick = async () => {
-  const title = $('eTitle').value.trim(); const date = $('eDate').value;
-  if (!title) { $('eTitle').focus(); return; } if (!date) { $('eDate').focus(); return; }
-  const body = { action: 'add', title, date }; if ($('eTime').value) body.time = $('eTime').value; if (eFromId) body.from = eFromId;
-  const r = await post('/api/event', body);
-  if (r.ok) { closeModal(); selDate = date; const d = date.split('-'); calY = +d[0]; calM = +d[1] - 1; refreshData(); } else { const e = await r.json().catch(() => ({})); showErr(e.error || 'Failed to add the event'); }
-};
-
-/* ---- 참조 연결 모달 (REFERS_TO) ---- */
-let linkSrc = '';
-function renderLinkList() {
-  const q = $('lkQ').value.trim().toLowerCase();
-  const linked = new Set(relsOf(linkSrc).map((r) => r.o.id));
-  const all = [...items.map((x) => x.id), ...events.map((x) => x.id), ...notes.map((x) => x.id)]
-    .filter((id) => id !== linkSrc && !linked.has(id)).map(nodeOf).filter(Boolean)
-    .filter((n) => !q || n.label.toLowerCase().includes(q)).slice(0, 60);
-  $('lkList').innerHTML = all.map((n) => `<button class="lk-item k-${n.kind}" role="option" data-to="${escapeHtml(n.id)}">
-    <span class="rk">${n.kind}</span><span class="lt">${escapeHtml(n.label)}</span></button>`).join('')
-    || '<div class="empty" style="padding:18px 0">Nothing to link</div>';
-}
-function openLinkModal(src) { linkSrc = src; $('lkQ').value = ''; renderLinkList(); openModal('linkModal'); }
-$('lkQ').addEventListener('input', renderLinkList);
-$('lkList').addEventListener('click', async (e) => {
-  const b = e.target.closest('[data-to]'); if (!b) return;
-  const r = await post('/api/link', { action: 'add', from: linkSrc, to: b.dataset.to, type: 'REFERS_TO' });
-  if (r.ok) { closeModal(); refreshData(); } else showErr((await r.json().catch(() => ({}))).error || 'Failed to link');
-});
 
 /* ================= 채팅 접기/펼치기 + 폭 조절 ================= */
 (() => {
@@ -3659,7 +3115,7 @@ function connect() {
     }
   };
 }
-initCal(); connect();
+connect();
 refreshData();
 refreshEvolve();
 refreshRequests();
@@ -4018,8 +3474,6 @@ function pageLocation() {
   const tab = document.querySelector('.topnav .tab.on'), view = document.querySelector('.view.on');
   const parts = [`${(tab && tab.textContent.replace(/\d+$/, '').trim()) || '?'} tab`];
   if (drawEl && drawEl.classList.contains('modal')) { const h = drawEl.querySelector('h3'); parts.push(`popup "${(h ? h.textContent : drawEl.getAttribute('aria-label') || drawEl.id).trim()}" open on top`); }
-  if (view && view.id === 'scheduleView') parts.push(`calendar ${MONTHS[calM]} ${calY}, selected day ${selDate}`);
-  if (view && view.id === 'memoView') { const n = notes.find((x) => x.id === memoSel); if (n) parts.push(`open note "${noteTitle(n)}" (${n.id})`); }
   if (view) {
     const max = view.scrollHeight - view.clientHeight;
     parts.push(max > 0 ? `scrolled ${Math.round(view.scrollTop)}px of ${max}px (${Math.round((view.scrollTop / max) * 100)}%)` : 'no scroll');
@@ -4081,13 +3535,8 @@ $('drawDone').onclick = async () => {
 
 const SHOT_MAX_SIDE = 1600, SHOT_MAX_BYTES = 900 * 1024;
 const CAP = [
-  ['.item', 'Task', (el) => el.querySelector('.title')?.textContent],
-  ['.kpi', 'KPI', (el) => el.textContent],
-  ['.up-item', 'Event', (el) => el.textContent],
-  ['.ev-item', 'Event', (el) => el.textContent],                 // 날짜 선택 후 나오는 시간 일정
   ['.req-card', 'Request', (el) => el.querySelector('.req-t')?.textContent || el.textContent],
   ['.evo-card', 'Proposal', (el) => el.querySelector('.evo-t')?.textContent || el.textContent],
-  ['.memo-item', 'Note', (el) => el.querySelector('.mt')?.textContent || el.textContent],
   ['.upd-card', 'Update', (el) => el.querySelector('.evo-t')?.textContent || el.textContent],
   ['.prd-ver', 'PRD version', (el) => el.querySelector('.evo-t')?.textContent || el.textContent],
   ['#prdBody', 'PRD', (el) => (el.textContent || '').trim().slice(0, 120)],
