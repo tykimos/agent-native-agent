@@ -490,6 +490,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .starters { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0 0 18px; }
 .starters button { padding: 8px 14px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--text); }
 .starters button:hover { border-color: var(--acc, var(--blue)); }
+.talk-step { max-width: 560px; margin: 14px auto 0; padding: 10px 14px; border-radius: 12px; background: var(--acc-weak, var(--blue-weak)); color: var(--text-sub); font-size: 12.5px; line-height: 1.55; } .talk-step b { color: var(--text); }
 .work-more { margin-top: 14px; font-size: 12.5px; color: var(--text-weak); } .work-more button { font-size: 12.5px; color: var(--text-sub); text-decoration: underline; text-underline-offset: 2px; }
 .md-img { max-width: 100%; border-radius: 10px; border: 1px solid var(--line); background: #fff; margin: 4px 0; }
 .sketch-layer { position: fixed; inset: 0; z-index: 120; background: rgba(15, 17, 21, .55); display: flex; flex-direction: column; padding: 14px; gap: 8px; } .sketch-layer[hidden] { display: none; }
@@ -1157,6 +1158,7 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
       <h2>Work is empty</h2>
       <p>The screens for your work go here — the lists, boards and forms this ANA needs. Tell ANA in the chat what your work is (or sketch a screen and send it); it builds them with you and keeps the <b>PRD</b> up to date.</p>
       <div class="work-acts"><button class="ib-btn" data-sketch>Sketch a screen</button><button class="ok" data-talk>Talk to ANA</button></div>
+      <div class="talk-step"><i>Talk to ANA</i> starts the PRD conversation — ANA asks what you want to make, and the screens come from what you agree.</div>
       <div class="work-more"><button id="workBuild">Build from the PRD as it is</button> · <button id="workPrd">Open the PRD</button></div>
     </div>
   </div></section>
@@ -1222,6 +1224,7 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
           <button data-starter="I organize events. I need venues, guests, a budget and a checklist per event.">Planning events</button>
         </div>
         <div class="work-acts"><button class="ib-btn" data-sketch>Sketch a screen</button><button class="ok" data-talk>Talk to ANA</button></div>
+        <div class="talk-step"><b>Step 1 · Shape the PRD together.</b> Press <i>Talk to ANA</i> and ANA starts the conversation — it asks what product you want to make, then one short question at a time. The PRD is written as you go; nothing is built until you agree.</div>
       </div>
     </div>
     <div data-subsec="history">
@@ -1829,14 +1832,27 @@ $('skSend').onclick = () => {
 };
 window.addEventListener('resize', () => { if (!$('sketchLayer').hidden) skResize(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('sketchLayer').hidden) closeSketch(); });
-// 어디서든: [data-sketch] 손그림판, [data-talk] 채팅 열기, [data-starter] 예시 문장을 입력창에
+// Talk to ANA: PRD를 함께 정하는 대화를 연다 — 누르면 바로 에이전트에게 시작 지시가 가고, 에이전트가 먼저 묻는다
+function talkToAna(b) {
+  if (b) { b.disabled = true; setTimeout(() => { b.disabled = false; }, 4000); }
+  const ko = /^ko\b/i.test(navigator.language || '');
+  const api = (path) => `http://${agentHost}${path}`;
+  const prompt = `[PRD] Let's shape this ANA's PRD together — this is the step where we talk it through before anything is built.
+${prdCache.current ? `The PRD is at version ${prdCache.current.v} (GET ${api('/api/prd')}). Start by saying in one line what it says now, then ask what I want to change or add.` : `There is no PRD yet. Start by greeting me in one short line and asking: ${ko ? '"어떤 프로덕트를 만들고 싶으세요?"' : '"What product do you want to make?"'}`}
+Then lead the conversation: one short question at a time — who it is for, what work it handles (the things people deal with and how they flow), what they need to see and do, what you may do on your own. Offer two or three concrete options when I seem unsure. If I send a sketch, read it and ask about it.
+${ko ? 'Talk with me in Korean (the PRD itself may stay in English if I prefer).' : 'Talk in the language I answer in.'} Keep each message short.
+When we have enough for a first version, show me a short summary and, once I agree, save the PRD with the sections of prd-template.md (POST ${api('/api/prd')} {"md":"…","note":"…","source":"agent"}) and build the first Work screen, as CLAUDE.md says. Do not build anything before that.`;
+  openChat();
+  post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Could not reach the agent — choose a session at the top of the chat')).catch(() => {}); })
+    .catch(() => showErr('Could not reach the agent'));
+}
+// 어디서든: [data-sketch] 손그림판, [data-talk] PRD 대화 시작, [data-starter] 예시 문장을 입력창에
 document.addEventListener('click', (e) => {
   if (e.target.closest('[data-sketch]')) { openSketch(); return; }
+  const talk = e.target.closest('[data-talk]');
+  if (talk) { talkToAna(talk); return; }
   const st = e.target.closest('[data-starter]');
-  if (st || e.target.closest('[data-talk]')) {
-    if (st) { $('input').value = st.dataset.starter; autoGrow(); }
-    openChat(); setTimeout(() => $('input').focus(), 80);
-  }
+  if (st) { $('input').value = st.dataset.starter; autoGrow(); openChat(); setTimeout(() => $('input').focus(), 80); }
 });
 
 /* ---- Knowledge: 온톨로지(종류 · 관계)와 그래프(개체 · 사실) ----
@@ -3037,7 +3053,7 @@ function instructionInfo(raw) {
     const pm = /^Implement\/apply proposal #(\d+) "([^"]*)"/.exec(body);
     summary = pm ? `Asked the agent to do proposal #${pm[1]} · ${pm[2]}` : 'Asked the agent how the work and ANA could evolve';
     view = 'evolve'; sub = pm ? 'doing' : 'wait';
-  } else if (m[1] === 'PRD') { summary = /^Update/.test(body) ? 'Asked the agent to update the PRD' : 'Asked the agent to write the PRD'; view = 'prd'; sub = 'current'; }
+  } else if (m[1] === 'PRD') { summary = /^Let's shape/.test(body) ? 'Started shaping the PRD together' : /^Update/.test(body) ? 'Asked the agent to update the PRD' : 'Asked the agent to write the PRD'; view = 'prd'; sub = 'current'; }
   else if (m[1] === 'Knowledge') { summary = 'Asked the agent to add to the knowledge from your work'; view = 'knowledge'; sub = 'graph'; }
   else if (m[1] === 'Update') { const t = (/^Bring "([^"]+)"/.exec(body) || [])[1]; summary = `Asked the agent to bring in ${t ? `“${t}”` : 'an update'} from upstream`; view = 'update'; sub = 'doing'; }
   else { summary = 'Asked the agent what it needs from you'; sub = 'wait'; }

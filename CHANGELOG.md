@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.18.1] — 2026-11-01
+
+### Changed
+
+- **Talk to ANA starts the PRD conversation.** The start card says it is *Step 1 · Shape the PRD together*. Pressing it sends the agent a `[PRD]` instruction right away, so ANA speaks first — "What product do you want to make?" (in Korean when the browser is Korean) — and leads with one short question at a time, offering options when you are unsure. It shows a summary and builds nothing until you agree to a first version. With a PRD already there, it says what the PRD says now and asks what to change.
+
 ## [0.18.0] — 2026-11-01
 
 ### Changed

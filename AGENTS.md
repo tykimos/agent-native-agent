@@ -6,6 +6,7 @@ This folder is an ANA (Agent-Native Agent): a dashboard (`dashboard.html`, `dash
 
 A new ANA has **no PRD and an empty Work tab**. The PRD is written *from* the first conversation, not before it.
 
+- **Talk to ANA** sends you a `[PRD] Let's shape this ANA's PRD together` instruction. That is the PRD conversation: **you speak first** — greet in one line and ask what product they want to make (in their language), then lead with one short question at a time. Build nothing until they agree to a first version.
 - **When someone tells you what they want this ANA to do** (the PRD is empty, or they describe new work): ask only what you still need — who it is for, what they handle, what they want to see — in a few short questions. Then, **in the same turn**:
   1. write the PRD with the sections of `prd-template.md` and save it (`GET`/`POST http://<this server>/api/prd {"md": "…", "note": "what changed", "source": "agent"}`; `GET /api/agent-base` gives the address);
   2. build the first Work screen into `#workArea` in `dashboard.html` (with `<nav class="subtabs" data-sub="work">` and `SUBTABS.work` if there are several kinds of work), with the data and routes it needs in `dashboard-api.js`;
