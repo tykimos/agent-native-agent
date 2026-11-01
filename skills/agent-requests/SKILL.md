@@ -1,49 +1,28 @@
 ---
 name: agent-requests
-description: Port ANA's Inbox / Roadmap / admin Inbox — Evolve (the agent looks at the app's features, data and usage log and proposes how the app should evolve, then builds the approved ones), Approvals (what the agent needs the user's OK for — pending data-change diffs plus approval / decision / access requests) and Requests (work only the user can do, and missing information). Use when the user says "Requests 탭", "에이전트가 요청", "사용자에게 요청", "Evolve", "진화 제안", "개선 제안 탭", or when ana-update reports agent-requests / agent-evolve missing.
+description: Port ANA's Requests, Evolve and PRD tabs — Requests (what the agent needs from the user — pending data-change diffs, approval / decision / access requests, work only the user can do, missing information), Evolve (the agent looks at the work and the usage log and proposes what to do now and how the app should change, then builds the approved ones) and PRD (what this ANA is and does — the agent writes it, people edit it, every version is kept). Every card speaks plainly (why / ask / effect / ifNot). Also triggers on "PRD", "요구사항 문서". Use when the user says "Requests 탭", "에이전트가 요청", "사용자에게 요청", "Evolve", "진화 제안", "개선 제안 탭", or when ana-update reports agent-requests / agent-evolve missing.
 ---
 
 # agent-requests — the agent talks first
 
-Where they live now (see app-shell): the member's **Workspace › Inbox** gathers requests, approvals (incl. data changes) and this workspace's suggestions; the admin's **System › Roadmap** gathers requirements, system proposals and upstream updates as one line per item (Request → Proposal → Building → Checked); **System › Inbox** is the admin inbox. The table below names the item types as they were first built as separate tabs.
+Three tabs (see app-shell):
 
 | Tab | 한국어 | What |
 |---|---|---|
-| Evolve | 진화 제안 | the agent proposes how the app should evolve, from its features, data and usage log (`/api/activity`) |
-| Approvals | 승인 요청 | what the agent needs your OK for before it goes on: pending diffs (`/api/approve`) + requests of kind `approval`, `decision`, `access` |
-| Requests | 작업 요청 | work only you can do (`action`) and information it lacks (`info`) |
+| Requests | 요청 | what the agent needs from you: pending diffs (`/api/approve`) + requests of kind `approval`, `decision`, `access`, `action` (work only you can do), `info` (information it lacks) |
+| Evolve | 진화 | what to do now and how the app should change, from the work and the usage log (`/api/activity`) |
+| PRD | PRD | what this ANA is and does — the agent writes it, people edit it, every version is kept |
 
 | Channel | Direction | Example |
 |---|---|---|
-| **Evolve** | agent → the app | "Add a due-date filter to Tasks" (the agent proposes; the user approves; the agent implements) |
 | **Requests** | agent → the user | "Which calendar should I sync?", "Grant access to the shared drive", "Confirm the budget" |
-
-## Admin and member
-
-Roles: `admin` decides the System, `member` works in workspaces (`roleOf(req)`; `ANA_ADMINS`; everyone is admin when the list is empty, when there's no identity header, or for local calls without identity). Server-side gates return `403 {needsAdmin:true}` for: system Evolve `do|ignore|reopen`, `update-act do|ignore|reopen`, risky permission modes, workspace delete. The page turns that into `askAdmin({type:'approval', title, action:{kind,…}})`. The admin approves it in **System › Admin**, and `runAdminAction` runs the action as the admin before the approval is recorded. Admin inbox: `admin.json` next to `evolve.json`, `GET /api/admin/inbox`, `POST /api/admin/requests`, `POST /api/admin/act`. `syncCheckRequests` opens one work request per check at risk and closes it when the check recovers. Evolve proposals carry `scope: system|workspace` (+`ws`); `escalate` copies a workspace proposal to the system (`fromId`/`escalatedTo`). Workspace proposals render in Workspace › Inbox › Evolve, system proposals in System › Inbox › Evolve.
-
-## Requirements (user → system)
-
-**Loop with Evolve:** a requirement judged *Not reflected* or *Partly* gets **Propose this** (`POST /api/requirements {action:'propose', id}`). It registers an Evolve proposal `Requirement #id: …` with `reqId` and the analysis's next step and reason; only one proposal stays open per requirement. When that proposal is marked done (`/api/evolve-act done`), the requirement gets `recheck {proposalId}` and its analysis is marked stale. The card says *Proposal #N is done — check again*, and re-analyzing clears it. The agent can also link a proposal it registers with `reqId` in `POST /api/evolve`.
-
-**Requirements** (members: *Request a feature* in Inbox; admin: Roadmap) run the other direction from Requests: the **user** writes what they want this ANA to do, and the agent reports how far the system already does it.
-
-- **Store:** `requirements.json` holds one list for the whole ANA, not per workspace: `{items:[{id, title, detail, by, at, analysis}], jobs:[…]}`. `POST /api/requirements {action: add|update|remove}` edits it. Editing the title or details marks the analysis `stale` ("Changed since — analyze again").
-- **Analyze:**
-  1. `POST /api/requirements/analyze {ids?}` starts a job for all requirements, or one card's *Analyze this*. One job runs at a time.
-  2. The page sends the agent a `[Requirements]` instruction with the curls. The agent reads `GET /api/requirements/input?job=`, which includes this ANA's folder, `features.json` and `CHANGELOG.md`, and is told to check the real code, dashboard, APIs and data and change nothing.
-  3. It reports `POST /api/requirements/progress {job, progress, step}`, then posts `POST /api/requirements/result {job, summary, results:[{id, status: reflected|partial|missing, how, why, evidence[], next}]}`. Results for unknown ids or with another status are dropped. `/fail` and `/cancel` end a job.
-- **Screen:**
-  - An input card on top, then the Analyze button with a one-line tally, then a progress or last-analysis card.
-  - A filter: All · Reflected · Partly · Missing · Unchecked, with counts.
-  - Cards with a status badge and the analysis: *How it is reflected* (or *Current state*), *Why not (yet)*, *Evidence*, *Next step*.
-  - Each card has Analyze again, Discuss (adds a context chip), Edit and Delete.
+| **Evolve** | agent → the work and the app | "Close the three prep tasks of the workshop that passed", "When an event passes, ask how it went and tidy its tasks in one go" |
 
 ## Status lists
 
-The lists show **Open / Done** (`TWO_KEYS`; `bucketList` adds `open` = waiting + in progress and `closed` = done + failed + cancelled); each card keeps its own state and actions, from the five underlying states **Waiting · In progress · Done · Failed · Cancelled**, with a count on each (`ST_BUCKETS`, `BUCKET_OF`, `renderStSeg`). The pick is remembered per tab in `localStorage ana-collab-filter`. Waiting and In progress list oldest first; Done and Cancelled list newest first, with the time.
+The lists are split by sub-tab into **Waiting · In progress · Done** (`STATUS_TABS`, `BUCKET_OF`, `bucketList`; Done also holds failed and cancelled). Each card keeps its own state and actions. Waiting and In progress list oldest first; Done and Cancelled list newest first, with the time.
 
-| Tab | Waiting | In progress | Done | Failed | Cancelled |
+| List | Waiting | In progress | Done | Failed | Cancelled |
 |---|---|---|---|---|---|
 | Evolve | `new` | `doing` | `done` | `failed` | `dismissed` |
 | Approvals / Requests | `open` | `answered` (the agent has your answer) | `done` | `failed` | `dismissed` |
@@ -53,35 +32,43 @@ Card actions follow the list:
 - **Evolve:** Waiting has Discuss / Do it / Ignore. In progress has Discuss / Mark done / **Failed** / Cancel. Done has Reopen. Failed has Discuss / Try again. Cancelled has Restore. `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen, reason?}`; the agent reports a failure with `fail` + `reason`, and every action stamps `updatedAt`.
 - **Requests:** in progress (answered) cards get **Failed**. `POST /api/request-act` accepts `fail` + optional `reason` (the reply box text), and the agent is notified.
 - **Failed data change:** if applying the diff throws, the proposal is kept as `failed` with a short `failReason` (absolute paths shortened to file names) instead of silently going back to pending. *Try again* re-approves it; Reject cancels it.
-- **Data changes:** `GET /api/proposals` returns every diff proposal of the workspace (last 100). Approve and reject stamp `decidedAt`.
+- **Data changes:** `GET /api/proposals` returns every diff proposal (last 100). Approve and reject stamp `decidedAt`.
 - **Badges** count Waiting only.
 
 ## Requests
 
-- **Kinds:** `approval` (Approval), `decision` (Decision), `access` (Access) → **Approvals** tab. `action` (To do), `info` (Needs info) → **Requests** tab (`APPROVAL_KINDS` splits them; `renderReqBox(prefix, list)` renders each box). Each card has a badge, title, why it's needed, optional `options` (buttons that send that answer), and actions.
-- **Approvals also shows pending data changes:** diff proposals (`proposals` map, status `pending`) rendered with `propCard` → Approve / Reject call `/api/approve`. `renderApprovals()` re-runs on the `proposal` SSE event. The Approvals badge = pending diffs + open approval-kind requests.
-- **Evolve starts from insights, in the words of the work.** Both Evolve instructions (`askEvolveAgent`) read the work and the knowledge, then (1) write **insights** — what is actually happening, with client and people names, tasks and dates, the work items it is about, and what someone needs to decide — and (2) **proposals that follow from them** (`"insight": n`): what to do now (workspace) and features (system) named by what people get, at three horizons (tidy / improve / reimagine, at least one reimagine), with outside examples found on the web (`sources`, only pages actually opened). Ontology, graph, class, API words stay out of titles, insights, `because` and `outcome`; they go only in `how` (collapsed on the card as *How it would work*).
-  - API: `POST /api/evolve {insights:[{scope, title, detail, items, decide}], proposals:[{insight, scope, horizon, type, title, because, outcome, how, sources}]}` → insights get ids and proposals an `insightId`. `POST /api/insight-act {id, action: dismiss|restore}`.
-  - UI: insight cards (`insCardsHtml`) sit above the proposals in Workspace › Inbox › Evolve and System › Inbox › Evolve, with chips to the work items and "↓ n proposals from this"; proposal cards show *From insight*, *Seen*, *Changes*, *Seen elsewhere*, *How it would work*. Starting a proposal passes all of it to the agent; escalation keeps it.
-- **Asking the agent:** every Inbox tab in both scopes has *Ask the agent*, which sends a prompt with the exact curl. Workspace: [Approvals] / [Requests] ask what the agent needs from the member (`/api/requests`), [Evolve] proposes for the workspace. System: [Approvals] / [Requests] starting "For the whole system" ask what it needs from the admin (`/api/admin/requests`, with checks, updates, ontology, usage and open admin items as context; `askAdminAgent`), [Evolve] proposes for the system. The instruction card opens the matching tab.
+- **Kinds:** `approval` (Approval), `decision` (Decision), `access` (Access), `action` (To do), `info` (Needs info), shown as a badge on one list (`renderRequestsAll`). Each card has a badge, title, the plain fields, optional `options` (buttons that send that answer), and actions.
+- **Requests also shows data changes** above the requests: diff proposals (`proposals` map) rendered with `propCard` → Approve / Reject call `/api/approve`. `renderApprovals()` re-runs on the `proposal` SSE event. The Requests badge = pending diffs + open requests.
+- **Every card speaks plainly.** Requests (`/api/requests`), data changes (`/api/agent`) and Evolve proposals carry the same plain fields: `why` (what's going on), `ask` (what is asked), `effect` (what it changes), `ifNot` (if not). Cards show them as one block (`plainHtml`), falling back to `desc`. A data change without them gets a sentence from the diff (`diffEffect`, `diffRows` with item names). Every agent instruction asks for these fields in the words of the work — no graph, schema, API or diff words.
+- **Asking the agent:** Requests, Evolve and PRD each have *Ask the agent*, which sends a prompt with the exact curl: [Requests] asks what the agent needs from the user (`/api/requests`), [Evolve] asks for proposals, [PRD] asks it to write or update the PRD. The instruction card in chat opens the matching tab.
 - **API:** `POST /api/requests` registers requests (the agent calls it). Duplicates are ignored, the kind is validated, and about 100 are kept. `POST /api/request-act {id, action: answer|done|dismiss|reopen, answer?}` is what the user does.
 - **Delivery to the agent:** an **answer** is also sent to the agent as a chat message (`reqAnswer` → `/api/chat`). **done / dismiss** are queued as a notification (`[ANA-NOTIFY …]`, "do not reply") and delivered when the agent's input is idle. Everything is audited with human-readable names (`nameOf`).
-- **UI:** `#inboxView` holds `#apprDiffs`, `#apprList`, `#reqList` (Needs you), `#evoList` (Suggestions) and `#toAdmin` (Sent by you: admin requests + my feature requests, `renderToAdmin`); `renderInboxSeg` sums the Open/Done counts; `reqCard`, `refreshRequests`, `reqAct`, `reqAnswer`. Both feed the Inbox badge. Closed ones are folded under "Closed (N)" in each tab.
-- **Agent instructions:** add to the ANA's CLAUDE.md/AGENTS.md when to file a request: the agent is blocked, or would run the system better with the user's input, access, or a decision. Include the exact curl, and say to keep titles short and actionable.
+- **UI:** `#requestsView` holds `#apprDiffs` and `#reqList`; `reqCard`, `refreshRequests`, `renderRequestsAll`, `reqAct`, `reqAnswer`.
+- **Agent instructions:** add to the ANA's CLAUDE.md/AGENTS.md when to file a request: the agent is blocked, or would run things better with the user's input, access, or a decision. Include the exact curl, and say to keep titles short and actionable.
 
 ## Evolve
 
-- `POST /api/evolve` (the agent files proposals, `scope: system|workspace`), `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen|escalate}`, `refreshEvolve`, `askEvolveAgent(scope)` (`#evoAnalyze` in Inbox for the workspace, `#sysEvoAnalyze` in Roadmap for the system); both render with `evoCardsHtml` — workspace proposals in Workspace › Inbox › Evolve (`#evoList`), system ones in System › Inbox › Evolve (`#sevoList`); the Roadmap (`renderRoadmap`: `reqState`, `updState`) only follows requirements and updates) which asks the agent to review the app and propose. **do** sends "[Evolve] Implement/apply proposal #id …" to the agent.
+- **In the words of the work.** The instruction (`askEvolveAgent`) has the agent read the work (`/api/state`, where the flow breaks in `/api/stats`, usage in `/api/activity`, open proposals) and propose two kinds of change: the work now (close, reschedule, follow up, decide, ask someone) and the app (named by what people get, not by mechanism). Proposals spread over three horizons — **tidy** (fix what is off), **improve** (a better way of doing this work), **reimagine** (a new way of working), at least one reimagine — with outside examples found on the web (`sources`, only pages actually opened). API, schema and file words stay out of titles, `because` and `outcome`; they go only in `how` (collapsed on the card as *How it would work*).
+- **API:** `POST /api/evolve {proposals:[{horizon, type, title, because, outcome, how, sources}]}` (`horizon` must be tidy|improve|reimagine; only http(s) links are kept in `sources`), `GET /api/evolve`, `POST /api/evolve-act`.
+- **UI:** `#evolveView`; `refreshEvolve`, `renderEvolve`, `evoCardsHtml` (`#evoList`), `evoAct`. Cards show the horizon, *What's going on* (`because`), *What it changes* (`outcome`), *Seen elsewhere* and *How it would work*. **Do it** sends "[Evolve] Implement/apply proposal #id …" with all of it to the agent and opens the chat; the instruction also tells it to update the PRD if what the app does changed.
+
+## PRD
+
+- **What:** the product requirements of this ANA in markdown — purpose, users, features, screens, data, what the agent does, what is not done yet. Written for a person who uses the app.
+- **Who writes it:** *Ask the agent* sends a `[PRD]` instruction: read the code (`dashboard.html`, `dashboard-api.js`, `server.js`, `features.json`, `CHANGELOG.md`), the data, finished Evolve proposals and the current PRD, then save a new version. *Edit* lets a person change it (a markdown textarea and a "what changed" note). Evolve and Update instructions tell the agent to update it when what the app does changes.
+- **Versions:** every save is a new version `{v, md, note, source: agent|person, by, at}` in `prd.json` (last 50 kept); saving the same text is not a new version. *History* lists earlier versions, each viewable and restorable (restore = a new version with the old text; nothing is lost).
+- **API:** `GET /api/prd` → `{current, history}`; `POST /api/prd {md, note, source}`; `POST /api/prd {action:'restore', v}`. Large text is fine (up to 200 000 chars); post it with `--data-binary @-` from a file.
+- **UI:** `#prdView` with sub-tabs Current · History; `refreshPrd`, `renderPrd` (markdown through `mdHtml`), `#prdForm`, `#prdHist`.
 
 ## Porting
 
 1. Copy the route blocks and the storage (`REQUESTS_FILE` next to the evolve file) into the extraApi module, and wire `REQUESTS_FILE` in `server.js`.
-2. Copy the views, CSS (`.req-*`, `.evo-*`, `.ib-*`, `.rm-*`), and JS functions above. Put Inbox under Workspace and Roadmap / admin Inbox under System if app-shell is present.
+2. Copy the views, CSS (`.req-*`, `.evo-*`, `.ib-*`, `.pl-*`, `.prd-*`), and JS functions above.
 3. Update the agent's instruction file with the request/evolve contract and curl examples.
-4. Port tests C15 (requests) from upstream `test.cjs`.
+4. Port tests C15 (requests) and C7 (evolve) from upstream `test.cjs`, and the plain-fields and PRD tests from `lite.test.cjs`.
 
 ## Verify
 
-- `curl` a `decision` request → the card shows the Decision badge → answer → the agent receives the answer in chat. Mark another done → the agent gets one notification. The badge count goes down.
+- `curl` a `decision` request with why/ask/effect → the card shows the Decision badge and the plain block → answer → the agent receives the answer in chat. Mark another done → the agent gets one notification. The badge count goes down.
 - Duplicate registration is ignored. An invalid kind returns 400.
-- Evolve: file a proposal → Do → the chat shows the implement instruction sent.
+- Evolve: file a proposal with a horizon and sources → the card shows them → Do it → the chat shows the implement instruction sent.

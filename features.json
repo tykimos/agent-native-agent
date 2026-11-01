@@ -44,17 +44,6 @@
       ]
     },
     {
-      "id": "multi-account",
-      "title": "A different Claude account per tmux session",
-      "skill": "chat-window",
-      "summary": "Sessions may run Claude Code with their own CLAUDE_CONFIG_DIR. The chat log, usage limits, today's tokens, login expiry and the login-file check follow each session's config folder (process env → tmux session env → ~/.claude; macOS keychain name per folder). docs/multi-account.md.",
-      "anchors": [
-        "async function claudeConfig",
-        "function claudeConfigOf",
-        "Claude Code-credentials"
-      ]
-    },
-    {
       "id": "chat-delivery",
       "title": "Reliable send state",
       "skill": "chat-window",
@@ -109,7 +98,7 @@
       "id": "chat-permissions",
       "title": "Permission mode picker (Claude Code + Codex)",
       "skill": "chat-window",
-      "summary": "Model sheet › Permissions shows the agent's current permission mode and switches it. Claude Code: reads the status line and presses Shift+Tab until the wanted mode shows (manual · accept edits · plan · auto · bypass). Codex: /permissions menu (Ask for approval · Approve for me · Full Access) with its extra confirmation. Modes without prompts ask first; System › Safety uses the live mode. A shield icon in the composer shows the mode at a glance (red with \"!\" when it never asks) and opens a permissions-only sheet.",
+      "summary": "Model sheet › Permissions shows the agent's current permission mode and switches it. Claude Code: reads the status line and presses Shift+Tab until the wanted mode shows (manual · accept edits · plan · auto · bypass). Codex: /permissions menu (Ask for approval · Approve for me · Full Access) with its extra confirmation. Modes without prompts ask first; A shield icon in the composer shows the mode at a glance (red with \"!\" when it never asks) and opens a permissions-only sheet.",
       "copy": [
         "permission-mode.js"
       ],
@@ -190,127 +179,32 @@
       ]
     },
     {
-      "id": "work-graph",
-      "title": "Work graph — notes, tasks, events and their links (NodeRel)",
-      "skill": "work-and-knowledge",
-      "summary": "Graph › Work: the Work graph — SPAWNED / SCHEDULED_AS / REFERS_TO + derived DUE_ON / ON from the Work ontology (work-ontology.js), indexed with the knowledge graph in NodeRel (graph-index.js → graph-index.sqlite). New link kinds are a lens (stored, shown as new). Relation chips on items, the flow chart, 'where the flow breaks', links by kind.",
-      "copy": [
-        "graph-index.js || graph.js",
-        "work-ontology.js || work-schema.js"
-      ],
-      "npm": [
-        "@tykimos/noderel"
-      ],
-      "anchors": [
-        "graph-index.js || graph.js",
-        "/api/graph",
-        "/api/link",
-        "function relChips",
-        "function gotoNode",
-        "graphView || linksView || relationsView",
-        "function drawWorkGraph || function drawRelGraph"
-      ],
-      "formerly": [
-        "relations"
-      ]
-    },
-    {
-      "id": "knowledge-analysis",
-      "title": "Graph › Knowledge › Analyze — the agent finds entities and facts in the work",
-      "skill": "work-and-knowledge",
-      "summary": "Graph › Knowledge › Analyze: pick notes / tasks / events (and a focus), the agent reads them via /api/analysis/input, reports progress, and posts an ontology (classes with parents, relation types with domain → range) and a knowledge graph (entities with classes, facts with relations, each citing source items). Shown as two views — Ontology and Knowledge graph (force layout, tap an entity for its facts and sources). Results must fit the ontology (entity classes and fact relations exist, facts respect domain → range with sub-classes); misfits are dropped and listed as issues. The ontology accumulates per workspace and seeds the next analysis. The latest knowledge graph is indexed in NodeRel (entities kg:<id>, facts typed by relation, MENTIONED_IN to source items) for /api/graph/neighbors · trace · schema. Exports OWL/Turtle (/api/analysis/ttl) and opens in OntoAir through a 24-hour token link (/api/analysis/shared/<token>/<name>.ttl, CORS).",
-      "anchors": [
-        "/api/analysis/start",
-        "/api/analysis/result",
-        "function cleanAnalysis",
-        "anaModal",
-        "function renderAnalysis",
-        "function drawKG",
-        "function mergeIntoKg",
-        "function analysisTurtle",
-        "/api/analysis/share",
-        "function openTtlInOntoAir",
-        "KG_PREFIX"
-      ],
-      "formerly": [
-        "relations-analysis"
-      ]
-    },
-    {
-      "id": "app-areas",
-      "title": "Workspace / System scopes",
-      "skill": "app-shell",
-      "summary": "Two scopes: Workspace (members: Tasks · Calendar · Notes · Knowledge · Files · Inbox) and System (admin: Inbox · Roadmap · Health, dark header band). On phones a bottom menu per scope (Work · Knowledge · Files · Inbox · System / Inbox · Roadmap · Health · Workspace); the top tab strip shows only for Tasks · Calendar · Notes. Badges: Inbox = what waits on you in this workspace; System = admin inbox + roadmap items to start + checks at risk.",
-      "anchors": [
-        "bottomnav",
-        "modeseg",
-        "function setAppMode",
-        "function applyArea",
-        "function selectTab",
-        "data-sysbadge",
-        "data-inboxbadge",
-        "const AREAS = ['ws', 'sys']",
-        "function syncBottomNav",
-        "data-go=\"ws:inbox\"",
-        "var SUBTABS",
-        "function renderSubtabs"
-      ]
-    },
-    {
-      "id": "workspaces",
-      "title": "Workspaces",
-      "skill": "app-shell",
-      "summary": "Workspace combo in the header: switch, add, rename, delete, reorder; state isolated per workspace.",
-      "anchors": [
-        "wsCombo",
-        "/api/workspaces",
-        "function switchWorkspace",
-        "function saveWsOrder"
-      ]
-    },
-    {
       "id": "agent-requests",
-      "title": "Approvals & Requests (agent → user)",
+      "title": "Requests (agent → user)",
       "skill": "agent-requests",
-      "summary": "Inbox › Approvals: what the agent needs your OK for — pending data-change diffs, analysis results to add to the knowledge graph, plus approval / decision / access requests. Inbox › Action requests: work only you can do (action) and missing information (info). Answer, mark done or dismiss. Lists filter Open · Done. System › Inbox has the same two tabs for the admin (POST /api/admin/requests); every tab has Ask the agent.",
+      "summary": "Requests tab: everything the agent needs from you in one list — pending data-change diffs plus approval / decision / access requests, work only you can do (action) and missing information (info). Sub-tabs Waiting · In progress · Done. Every card says in plain words what's going on, what is asked, what it changes and what happens if not (why / ask / effect / ifNot). Answer, mark done or dismiss; Ask the agent has it fill the list.",
       "anchors": [
         "/api/requests",
         "/api/request-act",
-        "inboxView",
-        "function renderInboxSeg",
+        "requestsView",
         "function refreshRequests",
-        "function renderReqBox",
-        "function renderApprovals",
-        "APPROVAL_KINDS",
+        "function renderRequestsAll",
         "function reqCard",
         "/api/proposals",
-        "function renderRequestsAll",
-        "ST_BUCKETS",
-        "data-stseg"
-      ]
-    },
-    {
-      "id": "agent-requirements",
-      "title": "Requirements (user → system) with reflection analysis",
-      "skill": "agent-requests",
-      "summary": "System › Roadmap › Requirements: the user writes what they want this ANA to do. Analyze has the agent check each requirement against the actual code, dashboard, APIs and data, and report its status (Reflected · Partly · Not reflected), how it is reflected, why not (not built yet, conflicts, needs info, out of scope, blocked), evidence and the next step. Progress bar while running; filter by status; editing a requirement marks its analysis as stale.",
-      "anchors": [
-        "/api/requirements/analyze",
-        "/api/requirements/result",
-        "REQUIREMENTS_FILE",
-        "roadmapView",
-        "function renderRequirements",
-        "function analyzeRequirements"
+        "function plainHtml",
+        "STATUS_TABS",
+        "function bucketList"
       ]
     },
     {
       "id": "agent-evolve",
       "title": "Evolve (agent → app proposals)",
       "skill": "agent-requests",
-      "summary": "Inbox › Evolve in both scopes: the agent looks at the app's features, its data and the usage log (/api/activity) and proposes how the system (System › Inbox › Evolve, the admin starts them) or this workspace (Workspace › Inbox › Evolve) should evolve; then the agent implements.",
+      "summary": "Evolve tab (Waiting · In progress · Done): the agent looks at the work (notes, tasks, events, where the flow breaks) and the usage log (/api/activity), and proposes what to do now and how ANA should change — at three horizons (tidy · improve · reimagine), with the reason, what changes for people and what others do (links). Do it hands the proposal to the agent, which updates the PRD when what the app does changed.",
       "anchors": [
         "/api/evolve",
         "/api/evolve-act",
+        "evolveView",
         "function askEvolveAgent",
         "function refreshEvolve",
         "function renderEvolve",
@@ -318,92 +212,48 @@
       ]
     },
     {
-      "id": "system-trust",
-      "title": "Trustworthiness · Safety · Security checks",
-      "skill": "trust-checks",
-      "summary": "System tabs computed from real state by /api/trust: agent running, structured log, tool failure rate, interruptions, plan usage (Trustworthiness); permission-bypass flags, risky commands the agent ran, approval gate (Safety); bind address, sign-in, CSRF, token handling, credential file mode, secrets saved in notes/tasks (Security). Risk count badges System. Shown in System › Health with one sub-tab each — Trustworthiness · Safety · Security · Usage — risk → review → info, OK checks folded.",
+      "id": "app-tabs",
+      "title": "Tabs: Work · Requests · Evolve · PRD · Update",
+      "skill": "app-shell",
+      "summary": "One workspace. Five top tabs (a bottom menu on phones): Work, with a sub-tab per kind of work (base: Tasks · Calendar · Notes); Requests, Evolve and Update, each with Waiting · In progress · Done; PRD with Current · History. Badges count what is waiting.",
       "anchors": [
-        "/api/trust",
-        "function collectTrust",
-        "RISKY_CMDS",
-        "SECRET_PATTERNS",
-        "function refreshTrust",
-        "healthView",
-        "data-subsec=\"reliability\"",
-        "data-subsec=\"security\""
+        "function selectTab",
+        "function showTab",
+        "var SUBTABS",
+        "function renderSubtabs",
+        "STATUS_TABS",
+        "data-sub=\"work\"",
+        "function syncBottomNav",
+        "bottomnav",
+        "data-reqbadge"
+      ]
+    },
+    {
+      "id": "prd",
+      "title": "PRD (what this ANA is and does)",
+      "skill": "agent-requests",
+      "summary": "PRD tab: the product requirements of this ANA in markdown — purpose, users, features, screens, data, what the agent does. Ask the agent has it write or update the PRD from the code, data and finished proposals; Edit lets a person change it. Every save is a new version (agent or person, with a note); History lists earlier versions, each viewable and restorable. Evolve and Update tell the agent to update the PRD when what the app does changes.",
+      "anchors": [
+        "/api/prd",
+        "PRD_FILE",
+        "function addPrdVersion",
+        "prdView",
+        "function renderPrd",
+        "function refreshPrd"
       ]
     },
     {
       "id": "system-update",
       "title": "Update tab (check upstream, port with the agent)",
       "skill": "ana-update",
-      "summary": "System › Update: Check for updates fetches agent-native-agent into .ana/upstream and runs ana-diff.mjs against this ANA. Each missing or partial feature, newer module and shared-runtime difference becomes an item (Waiting · In progress · Done · Failed · Cancelled). Update sends the agent a porting instruction with the skill, missing anchors and the upstream path; the agent reports done/fail via /api/update-act. Cancelled items stay hidden from later checks.",
+      "summary": "Update tab (Waiting · In progress · Done): Check for updates fetches agent-native-agent into .ana/upstream and runs ana-diff.mjs against this ANA. Each missing or partial feature, newer module and shared-runtime difference becomes an item. Bring it in sends the agent a porting instruction with the skill, missing anchors and the upstream path; the agent reports done/fail via /api/update-act. Skipped items stay hidden from later checks.",
       "anchors": [
         "/api/update/check",
         "/api/update-act",
         "function runUpdateCheck",
-        "function updState",
         "function renderUpdates",
-        "UPDATES_FILE"
-      ]
-    },
-    {
-      "id": "offline-edition",
-      "title": "Offline edition (no LLM) and Windows package",
-      "skill": "ana-update",
-      "summary": "ANA_OFFLINE=1 serves the page with data-offline (agent screens hidden), stops tmux polling and answers 503 on agent/internet routes. scripts/package-offline.mjs builds a portable Windows x64 zip (Node 24 LTS + app + node_modules + start.bat, ANA_OPEN=1).",
-      "anchors": [
-        "const OFFLINE_BLOCKED",
-        "html[data-offline]",
-        "OFFLINE_VIEWS",
-        "ANA_OPEN"
-      ]
-    },
-    {
-      "id": "admin-roles",
-      "title": "Admins and members — System › Admin inbox, Evolve scopes",
-      "skill": "agent-requests",
-      "summary": "Roles (ANA_ADMINS; single-user = admin). Server gates system actions (system Evolve start/cancel, Update, risky permission modes, workspace delete) with needsAdmin; the page turns them into admin approval requests, executed on approval. System › Admin lists approvals and action requests from members, the agent and system checks (risk → work request). Evolve proposals are system or workspace scoped; workspace ones can be escalated.",
-      "anchors": [
-        "function roleOf",
-        "/api/admin/inbox",
-        "function syncCheckRequests",
-        "function renderAdmin",
-        "function askAdmin",
-        "function runAdminAction",
-        "action === 'escalate'"
-      ]
-    },
-    {
-      "id": "ontology",
-      "title": "Work and Knowledge ontologies (classes, relations, rules) and knowledge graphs",
-      "skill": "work-and-knowledge",
-      "summary": "One ontology for the ANA in two layers: the Work layer (work-ontology.js — what the work process needs to run: classes and relations, explicit or derived; read-only at runtime, changes with the code; graph.js reads its vocabulary from it) and the Knowledge layer (.ana/ontology.json — the work's concepts, curated by the admin in System › Ontology; broken references to concepts that disappeared are reported as issues). One knowledge graph per workspace (kg.json). The ontology is a lens, not a gate: what doesn't fit is kept and marked (fit/why computed on read by kgLens); new or undeclared concepts go to the admin as tidying requests (ontology.add); results are added when a member approves (/api/analysis/apply). Rules (the third part of an ontology) on read: sub-class types, inverse / symmetric / transitive, chain rules (if a path of 1–3 relations, reverse steps allowed, then a relation) → inferred facts with rule and because; limit rules mark facts that break them; Work compute rules (DUE_ON/ON) read-only. Never stored; exported as OWL (subPropertyOf, propertyChainAxiom, maxCardinality). Graph › Work shows the work graph (new link kinds are a lens: stored, shown as new); Graph › Knowledge shows the knowledge graph with Analyze and the latest analysis; the ontology is one page (System › Ontology), with Work · Knowledge tabs (Classes · Relations · Rules inside), read-only for members from Graph › Ontology. Sub-types on work items (POST /api/subtype) and promotion evidence (GET /api/ontology/evidence). /api/kg/ttl exports TBox + ABox.",
-      "anchors": [
-        "const WORK_ONTOLOGY",
-        "function ontologyIssues",
-        "function ontoRuleTable",
-        "owl:propertyChainAxiom",
-        "function mergeIntoKg",
-        "function kgLens",
-        "/api/analysis/apply",
-        "function renderOntology",
-        "function renderKgApprovals",
-        "/api/kg/ttl"
-      ],
-      "formerly": [
-        "system-ontology"
-      ]
-    },
-    {
-      "id": "health-tests",
-      "title": "Health › Tests",
-      "skill": "trust-checks",
-      "summary": "Runs the ANA's own tests (package.json scripts.test, node commands only, minimal env, admin only), keeps the last 10 runs with per-suite pass/fail, failing test names and output (tests.json), and counts a failed run on the Health badge.",
-      "anchors": [
-        "function runTests",
-        "/api/tests/run",
-        "function renderTests"
+        "UPDATES_FILE",
+        "updateView"
       ]
     }
   ]

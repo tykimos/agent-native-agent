@@ -16,7 +16,6 @@ const crypto = require('node:crypto');
 const os = require('node:os');
 const fsp = require('node:fs/promises');
 const { execFile } = require('node:child_process');
-const { AsyncLocalStorage } = require('node:async_hooks');
 const relgraph = require('./graph-index.js');   // NodeRel 색인 — 워크 그래프와 지식그래프를 한 색인에
 const codexSettings = require('./codex-settings.js');
 const permissionMode = require('./permission-mode.js');
@@ -24,27 +23,14 @@ const { createAgentLog } = require('./agent-log.js');
 
 function createDashboardApi(core, opts) {
   const { ROOT } = opts;
-  // 시스템 › Files: 기본은 전용 폴더(올리기 가능), 채팅 첨부는 읽기 전용, 저장소 전체는 따로 골라야 보이고 .ana/.git에는 못 쓴다
-  const fileApi = require('./file-browser.js').createFileBrowser({
-    // 워크스페이스마다 자기 files 폴더(기본 워크스페이스는 .ana/files). ANA_FILES_ROOT를 주면 그 폴더 하나(오프라인 패키지)
-    files: { dir: opts.FILES_ROOT || (() => path.join(path.dirname(dataFileOf(curWs())), 'files')), label: 'Files', write: true, mkdir: true },
-    chat: { dir: opts.UPLOAD_DIR || path.join(ROOT, '.ana', 'uploads'), label: 'From chat', write: false, mkdir: true },
-    project: { dir: ROOT, label: path.basename(ROOT), write: true, deny: ['.ana', '.git'] },
-  }, core, { onUpload: (req, root, size) => audit(actor(req), 'files.upload', `${root} ${size}`), allow: (req, root) => root !== 'project' || isAdmin(req) });   // 프로젝트 폴더는 관리자만
   const DATA_FILE = opts.DATA_FILE || path.join(ROOT, 'data', 'work-graph.json');   // 기본 워크스페이스의 워크 그래프
   const PROPOSALS_FILE = opts.PROPOSALS_FILE || path.join(ROOT, 'data', 'proposals.json');
   const EVOLVE_FILE = opts.EVOLVE_FILE || path.join(ROOT, 'data', 'evolve.json');
   const REQUESTS_FILE = opts.REQUESTS_FILE || path.join(path.dirname(EVOLVE_FILE), 'requests.json');
-  // 시스템 › Update — 업스트림(agent-native-agent)과 기능 단위 비교 결과와 그 처리 상태
+  // PRD — 이 ANA가 무엇을 하는 앱인지. 에이전트가 쓰고 사람이 고친다. 판마다 이력으로 남는다
+  const PRD_FILE = opts.PRD_FILE || path.join(path.dirname(EVOLVE_FILE), 'prd.json');
+  // Update — 업스트림(agent-native-agent)과 기능 단위로 비교한 결과와 그 처리 상태
   const UPDATES_FILE = opts.UPDATES_FILE || path.join(path.dirname(EVOLVE_FILE), 'updates.json');
-  // 협업 › Requirements — 사용자의 요청사항과 그 반영 분석(워크스페이스가 아니라 이 ANA 자체에 대한 것이라 하나의 목록)
-  const REQUIREMENTS_FILE = opts.REQUIREMENTS_FILE || path.join(path.dirname(EVOLVE_FILE), 'requirements.json');
-  // 관리자 함(System › Admin): 실무자·에이전트·점검이 관리자에게 올리는 승인요청(approval)·실행 요청(work)
-  const ADMIN_FILE = opts.ADMIN_FILE || path.join(path.dirname(EVOLVE_FILE), 'admin.json');
-  // System › Health › Tests: 이 ANA의 테스트(package.json scripts.test)를 돌린 기록(최근 10번)
-  const TESTS_FILE = opts.TESTS_FILE || path.join(path.dirname(EVOLVE_FILE), 'tests.json');
-  // 지식 온톨로지(System — 모든 워크스페이스가 공유, 관리자). 워크 온톨로지는 코드(work-ontology.js)
-  const ONTOLOGY_FILE = opts.ONTOLOGY_FILE || path.join(path.dirname(EVOLVE_FILE), 'knowledge-ontology.json');
   const UPSTREAM_DIR = opts.UPSTREAM_DIR || path.join(path.dirname(EVOLVE_FILE), 'upstream');
   const UPSTREAM_URL = opts.UPSTREAM_URL || 'https://github.com/tykimos/agent-native-agent';
   const UPDATE_TARGET = opts.UPDATE_TARGET || ROOT;   // 비교할 ANA 폴더(기본: 이 ANA). 시험·호스트용으로 바꿀 수 있다
@@ -78,20 +64,6 @@ function createDashboardApi(core, opts) {
   }
   // 신원이 없는 호출(단일 사용자 모드, 로컬 에이전트·스크립트)은 'ana'로 기록한다.
   const actor = (req) => who(req) || 'ana';
-
-  // ---------- 역할: 관리자(시스템) · 실무자(워크스페이스) ----------
-  // ANA_ADMINS=이메일,… 에 든 사람만 관리자. 목록이 비었거나 신원 헤더를 안 쓰는 설치(단일 사용자),
-  // 신원 없이 들어온 로컬 호출(이 컴퓨터의 사용자·에이전트)은 관리자로 본다 — 예전 설치가 그대로 동작하게.
-  // 역할은 사람을 다스린다: 이 컴퓨터의 에이전트는 셸 권한이 있어 어차피 무엇이든 할 수 있다.
-  const ADMINS = String(opts.ADMINS || '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
-  function roleOf(req) {
-    const id = who(req);
-    if (!ID_HEADER || !id || !ADMINS.length) return 'admin';
-    return ADMINS.includes(id) ? 'admin' : 'member';
-  }
-  const isAdmin = (req) => roleOf(req) === 'admin';
-  // 관리자 전용 동작을 실무자가 부르면: 403 + needsAdmin — 화면은 관리자 승인요청으로 돌린다
-  const needAdmin = (res, what) => (sendJson(res, 403, { error: `${what} needs the admin's approval`, needsAdmin: true, what }), true);
 
   function loadUsers() {
     const u = readJsonStrict(USERS_FILE, () => ({ users: {} }));
@@ -136,36 +108,14 @@ function createDashboardApi(core, opts) {
     return clean || 'file';
   };
 
-  // ---- 워크스페이스 ----
-  // 워크스페이스마다 상태 파일이 따로 있다. 기본 워크스페이스는 기존 DATA_FILE을 그대로 쓴다(기존 데이터 보존),
-  // 나머지는 DATA_FILE 옆 workspaces/<id>/work-graph.json. 요청 범위는 x-ana-workspace 헤더(또는 ?ws=)로 정하고,
-  // 헤더 없는 호출(에이전트 curl·공유 페이지)은 UI에서 마지막으로 고른 active 워크스페이스를 따른다.
-  // 채팅·제안 원장·진화·사용자·감사 로그는 에이전트가 하나이므로 워크스페이스 간에 공유된다.
+  // ---- 워크스페이스: 하나 ----
+  // 이 판은 워크스페이스가 하나다. 예전 판에서 받은 기록의 ws 값(default)은 그대로 둔다.
   const DEFAULT_WS = 'default';
-  const DEFAULT_WS_NAME = 'Base Workspace';
-  const WS_FILE = opts.WORKSPACES_FILE || path.join(path.dirname(DATA_FILE), 'workspaces.json');
-  const WS_DIR = path.join(path.dirname(WS_FILE), 'workspaces');
-  const MAX_WS = 50;
-  function loadWorkspaces() {
-    let w; try { w = readJsonStrict(WS_FILE, () => null); } catch { w = null; }
-    if (!w || typeof w !== 'object' || !Array.isArray(w.workspaces)) w = { active: DEFAULT_WS, workspaces: [] };
-    w.workspaces = w.workspaces.filter((x) => x && typeof x.id === 'string' && /^[\w-]{1,40}$/.test(x.id));
-    if (!w.workspaces.some((x) => x.id === DEFAULT_WS)) w.workspaces.unshift({ id: DEFAULT_WS, name: DEFAULT_WS_NAME, at: '' });
-    // 예전 기본 이름('기본 워크스페이스')으로 저장된 경우 새 기본 이름으로 맞춘다(사용자가 바꾼 이름은 유지)
-    const def = w.workspaces.find((x) => x.id === DEFAULT_WS);
-    if (def.name === '기본 워크스페이스' || !def.name) def.name = DEFAULT_WS_NAME;
-    if (!w.workspaces.some((x) => x.id === w.active)) w.active = DEFAULT_WS;
-    return w;
-  }
-  const saveWorkspaces = (w) => writeJsonAtomic(WS_FILE, w);
-  const wsExists = (id) => loadWorkspaces().workspaces.some((x) => x.id === id);
-  const wsStore = new AsyncLocalStorage();
-  const curWs = () => wsStore.getStore() || loadWorkspaces().active;
-  const dataFileOf = (ws) => (ws === DEFAULT_WS ? DATA_FILE : path.join(WS_DIR, ws, 'work-graph.json'));
-  // 0.11: 데이터 파일 이름을 개념에 맞췄다 — state.json → work-graph.json, kg.json → knowledge-graph.json,
-  // ontology.json → knowledge-ontology.json, graph.sqlite → graph-index.sqlite(캐시라 옛 것은 지운다).
+  const curWs = () => DEFAULT_WS;
+  const dataFileOf = () => DATA_FILE;
+  // 0.11: 데이터 파일 이름을 개념에 맞췄다 — state.json → work-graph.json, graph.sqlite → graph-index.sqlite(캐시라 옛 것은 지운다).
   // 옛 이름만 있으면 사본(<옛 이름>.pre-0.11)을 남기고 새 이름으로 옮긴다. 새 이름이 이미 있으면 건드리지 않는다.
-  // DATA_FILE·ONTOLOGY_FILE을 직접 지정한 배포는 그 이름을 그대로 쓴다(이름이 새 기본값일 때만 옮긴다).
+  // DATA_FILE을 직접 지정한 배포는 그 이름을 그대로 쓴다(이름이 새 기본값일 때만 옮긴다).
   (function migrateDataNames() {
     const fs = require('node:fs');
     const move = (from, to) => {
@@ -176,18 +126,9 @@ function createDashboardApi(core, opts) {
       } catch (e) { console.error(`[ana] could not rename ${from}: ${e.message}`); }
     };
     const dropCache = (dir) => { for (const x of ['graph.sqlite', 'graph.sqlite-wal', 'graph.sqlite-shm']) try { fs.rmSync(path.join(dir, x), { force: true }); } catch {} };
-    const dirs = [];
     if (path.basename(DATA_FILE) === 'work-graph.json') { move(path.join(path.dirname(DATA_FILE), 'state.json'), DATA_FILE); }
-    dirs.push(path.dirname(DATA_FILE));
-    try { for (const d of fs.readdirSync(WS_DIR, { withFileTypes: true })) if (d.isDirectory()) { const w = path.join(WS_DIR, d.name); move(path.join(w, 'state.json'), path.join(w, 'work-graph.json')); dirs.push(w); } } catch {}
-    for (const d of dirs) { move(path.join(d, 'kg.json'), path.join(d, 'knowledge-graph.json')); dropCache(d); }
-    if (path.basename(ONTOLOGY_FILE) === 'knowledge-ontology.json') move(path.join(path.dirname(ONTOLOGY_FILE), 'ontology.json'), ONTOLOGY_FILE);
+    dropCache(path.dirname(DATA_FILE));
   })();
-  function resolveWs(req, url) {
-    const want = String((req.headers || {})['x-ana-workspace'] || (url && url.searchParams.get('ws')) || '').trim();
-    return want && wsExists(want) ? want : loadWorkspaces().active;
-  }
-  const cleanWsName = (v) => String(v || '').replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
 
   // ---- 상태 파일 (원자적 + shape 검증) ----
   function loadData(ws) {
@@ -208,17 +149,13 @@ function createDashboardApi(core, opts) {
     if (typeof s.version !== 'number' || !Number.isFinite(s.version)) s.version = 1;
     return s;
   }
+  const clip = (v, n) => String(v == null ? '' : v).slice(0, n);
   const newId = (p) => p + Date.now().toString(36) + crypto.randomBytes(2).toString('hex');
-  const CLIENT_EVENTS = { 'tab.view': /^[a-z]{2,20}(\.[a-z]{2,20})?$/, 'ontoair.open': /^\d{1,6}$/, 'ttl.download': /^\d{1,6}$/ };
+  const CLIENT_EVENTS = { 'tab.view': /^[a-z]{2,20}(\.[a-z]{2,20})?$/ };
   const isExample = (x) => /^[nae]-ex-/.test(String((x && x.id) || ''));   // seed.js의 예제 id
   const saveData = (s, ws) => { relgraph.pruneLinks(s); writeJsonAtomic(dataFileOf(ws || curWs()), s); };
-  // NodeRel 색인 — 워크 그래프(work-graph.json)와 지식그래프(knowledge-graph.json)에서 파생(워크스페이스마다 graph-index.sqlite)
-  // 지식그래프 = 그 워크스페이스에 쌓인 개체·사실(분석 결과를 승인해 더한 것). 아래 함수들은 요청 때만 불린다.
-  const graph = relgraph.createGraph({ loadData, dataFileOf, loadKg: (ws) => {
-    const kg = loadKgStore(ws); if (!kg.entities.length) return null;
-    const ont = systemOntology(), lens = kgLens(kg, ont);
-    return { job: 'kg', ontology: ont, graph: { entities: kg.entities, facts: [...kg.facts, ...lens.inferred] } };
-  } });
+  // NodeRel 색인 — 워크 그래프(work-graph.json)에서 파생(graph-index.sqlite). 아래 함수들은 요청 때만 불린다.
+  const graph = relgraph.createGraph({ loadData, dataFileOf });
 
   function loadProposals() {
     const s = readJsonStrict(PROPOSALS_FILE, () => ({ proposals: [] }));
@@ -248,6 +185,26 @@ function createDashboardApi(core, opts) {
   // {id, kind, title, desc, options[], ref, ws, status: open|answered|done|dismissed, answer, at, closedAt}
   // approval·decision·access → 협업 › Approvals, action·info → 협업 › Requests
   const REQ_KINDS = ['info', 'decision', 'action', 'access', 'approval'];
+  // ---- 진화 제안: 거리·근거·밖의 사례 ----
+  const EVO_HORIZONS = ['tidy', 'improve', 'reimagine'];
+  function evoInsight(x) {
+    const out = {};
+    if (EVO_HORIZONS.includes(x.horizon)) out.horizon = x.horizon;
+    if (x.because) out.because = clip(x.because, 600);      // 본 것: 일과 지식에서 본 문제(도메인 말)
+    if (x.outcome) out.outcome = clip(x.outcome, 600);      // 바뀌는 것: 사람에게 무엇이 달라지나
+    if (x.how) out.how = clip(x.how, 1500);                  // 어떻게: 기술 설명(온톨로지·동작·API) — 화면에서는 접혀 있다
+    const src = (Array.isArray(x.sources) ? x.sources : []).map((s0) => (typeof s0 === 'string' ? { url: s0 } : s0 || {}))
+      .filter((s0) => /^https?:\/\/[^\s]{3,500}$/.test(String(s0.url || ''))).slice(0, 5)
+      .map((s0) => ({ url: String(s0.url), title: clip(s0.title || '', 120), note: clip(s0.note || '', 300) }));
+    if (src.length) out.sources = src;
+    return out;
+  }
+  // 받은함 항목의 사람 말 칸 — 무슨 일인지(why) · 무엇을 해 달라는지(ask) · 무엇이 달라지는지(effect) · 안 하면(ifNot)
+  function plainFields(x) {
+    const out = {};
+    for (const [k, n] of [['why', 600], ['ask', 300], ['effect', 600], ['ifNot', 300]]) if (x && x[k]) out[k] = clip(x[k], n);
+    return out;
+  }
   function loadUpdates() {
     const u = readJsonStrict(UPDATES_FILE, () => ({ next: 1, items: [], lastCheck: null }));
     if (!u || typeof u !== 'object' || !Array.isArray(u.items)) return { next: 1, items: [], lastCheck: null };
@@ -297,361 +254,20 @@ function createDashboardApi(core, opts) {
     saveUpdates(u);
     return u;
   }
-
-  // ---- 시스템 › Relations › 분석: 에이전트가 메모·할일·일정에서 온톨로지(개념·관계 종류)와 지식그래프(개체·사실)를 뽑는다 ----
-  // 작업은 워크스페이스마다 analysis.json에 최근 10개. 에이전트는 /api/analysis/input으로 원문을 받고 progress·result로 보고한다.
-  const analysisFileOf = (ws) => path.join(path.dirname(dataFileOf(ws)), 'analysis.json');
-  function loadAnalysis(ws) {
-    const a = readJsonStrict(analysisFileOf(ws), () => ({ next: 1, jobs: [] }));
-    return a && Array.isArray(a.jobs) ? a : { next: 1, jobs: [] };
+  // ---- PRD: 판(version)마다 통째로 남긴다. 마지막 판이 지금 것 ----
+  const PRD_MAX = 200000, PRD_KEEP = 50;
+  function loadPrd() {
+    const d = readJsonStrict(PRD_FILE, () => ({ next: 1, versions: [] }));
+    return d && Array.isArray(d.versions) ? d : { next: 1, versions: [] };
   }
-  const saveAnalysis = (ws, a) => { a.version = (a.version || 1) + 1; writeJsonAtomic(analysisFileOf(ws), a); };
-  const ANALYSIS_KINDS = { notes: 'Note', tasks: 'Task', events: 'Event' };
-  const clip = (v, n) => String(v == null ? '' : v).slice(0, n);
-  // 결과 검증·정리 — 크기 상한, id 참조, 그리고 온톨로지 틀(클래스·관계 종류의 domain → range)을 지키는지.
-  // base는 이 워크스페이스에 쌓인 온톨로지 — 에이전트가 거기 있는 id를 다시 써도 알아본다.
-  // 틀을 어긴 사실은 버리고, 클래스를 모르는 개체는 클래스만 비운다. 둘 다 issues로 돌려준다.
-  function cleanAnalysis(body, itemIds, base) {
-    const o = body.ontology || {}, g = body.graph || {}, issues = [];
-    const issue = (kind, msg) => { if (issues.length < 60) issues.push({ kind, msg: clip(msg, 300) }); };
-    const classes = (Array.isArray(o.classes) ? o.classes : []).slice(0, 80).map((c) => ({ id: clip(c.id || c.label, 60), label: clip(c.label || c.id, 80), desc: clip(c.desc, 300), parent: c.parent ? clip(c.parent, 60) : '' })).filter((c) => c.id);
-    const relations = (Array.isArray(o.relations) ? o.relations : []).slice(0, 80).map((r) => ({ id: clip(r.id || r.label, 60), label: clip(r.label || r.id, 80), domain: clip(r.domain, 60), range: clip(r.range, 60), desc: clip(r.desc, 300) })).filter((r) => r.id);
-    const bc = new Map(((base && base.classes) || []).map((c) => [c.id, c])), br = new Map(((base && base.relations) || []).map((r) => [r.id, r]));
-    const cls = new Map([...bc, ...classes.map((c) => [c.id, c])]), rels = new Map([...br, ...relations.map((r) => [r.id, r])]);
-    for (const c of classes) if (c.parent && !cls.has(c.parent)) { issue('class', `Class "${c.id}": unknown parent "${c.parent}" — cleared`); c.parent = ''; }
-    for (const r of relations) for (const end of ['domain', 'range']) if (r[end] && !cls.has(r[end])) { issue('relation', `Relation "${r.id}": unknown ${end} class "${r[end]}" — cleared (any class allowed)`); r[end] = ''; }
-    // a가 b이거나 b의 하위 클래스인가(부모 사슬, 순환 방지)
-    const isA = (a, b) => { for (let k = a, n = 0; k && n < 50; k = (cls.get(k) || {}).parent, n++) if (k === b) return true; return false; };
-    const entities = (Array.isArray(g.entities) ? g.entities : []).slice(0, 400).map((e) => ({ id: clip(e.id || e.label, 80), label: clip(e.label || e.id, 120), class: clip(e.class, 60),
-      sources: (Array.isArray(e.sources) ? e.sources : []).map(String).filter((x) => itemIds.has(x)).slice(0, 20) })).filter((e) => e.id);
-    // 온톨로지는 관문이 아니라 렌즈: 틀에 없는 개념·방향이 어긋난 사실도 남기고(지식그래프에서 '아직 틀에 없음'으로 보인다) 알리기만 한다.
-    // 버리는 것은 구조가 깨진 것뿐 — 없는 개체를 가리키는 사실, 관계가 비어 있는 사실.
-    for (const e of entities) if (e.class && !cls.has(e.class)) issue('entity', `Entity "${e.id}": class "${e.class}" is not in the ontology yet — kept, and proposed to the admin`);
-    const ent = new Map(entities.map((e) => [e.id, e]));
-    const facts = [];
-    for (const f0 of (Array.isArray(g.facts) ? g.facts : []).slice(0, 1200)) {
-      const f = { from: clip(f0.from, 80), rel: clip(f0.rel, 60), to: clip(f0.to, 80), sources: (Array.isArray(f0.sources) ? f0.sources : []).map(String).filter((x) => itemIds.has(x)).slice(0, 20) };
-      const tag = `${f.from} —${f.rel}→ ${f.to}`;
-      if (!ent.has(f.from) || !ent.has(f.to)) { issue('fact', `Fact ${tag}: unknown entity — dropped`); continue; }
-      if (!f.rel) { issue('fact', `Fact ${tag}: no relation — dropped`); continue; }
-      const r = rels.get(f.rel);
-      if (!r) { issue('fact', `Fact ${tag}: relation "${f.rel}" is not in the ontology yet — kept, and proposed to the admin`); facts.push(f); continue; }
-      const fc = ent.get(f.from).class, tc = ent.get(f.to).class;
-      if (r.domain && fc && cls.has(fc) && !isA(fc, r.domain)) issue('fact', `Fact ${tag}: "${f.rel}" is meant to go from ${r.domain}, but ${f.from} is a ${fc} — kept, marked as not fitting`);
-      else if (r.range && tc && cls.has(tc) && !isA(tc, r.range)) issue('fact', `Fact ${tag}: "${f.rel}" is meant to go to ${r.range}, but ${f.to} is a ${tc} — kept, marked as not fitting`);
-      facts.push(f);
-    }
-    // 이번 결과가 쓴 기존 온톨로지 항목(클래스는 부모 사슬까지)을 붙여, 이 작업만 봐도 틀이 온전하게
-    const own = new Set(classes.map((c) => c.id)), ownR = new Set(relations.map((r) => r.id));
-    const need = (id) => { for (let k = id, n = 0; k && n < 50 && !own.has(k) && bc.has(k); k = bc.get(k).parent, n++) { own.add(k); classes.push({ ...bc.get(k), inherited: true }); } };
-    for (const f of facts) if (!ownR.has(f.rel) && br.has(f.rel)) { ownR.add(f.rel); relations.push({ ...br.get(f.rel), inherited: true }); }
-    for (const e of entities) need(e.class);
-    for (const r of relations) { need(r.domain); need(r.range); }
-    for (const c of [...classes]) need(c.parent);
-    return { ontology: { classes, relations }, graph: { entities, facts }, summary: clip(body.summary, 1000), issues };
+  function addPrdVersion(md, note, source, by) {
+    const d = loadPrd(), cur = d.versions[d.versions.length - 1];
+    if (cur && cur.md === md) return { d, v: cur, unchanged: true };
+    const v = { v: d.next++, md, note: clip(note, 300), source: source === 'agent' ? 'agent' : 'person', by, at: new Date().toISOString() };
+    d.versions.push(v); while (d.versions.length > PRD_KEEP) d.versions.shift();
+    d.version = (d.version || 1) + 1; writeJsonAtomic(PRD_FILE, d);
+    return { d, v };
   }
-
-  // ---- 시스템 온톨로지 · 워크스페이스 지식그래프 ----
-  // 온톨로지는 두 층: 워크 층(work-ontology.js — 워크 종류, 코드와 함께 바뀜)과 지식 층(.ana/ontology.json — 지식 종류, 관리자).
-  // 사실(지식그래프)은 워크스페이스마다. 온톨로지는 관문이 아니라 렌즈다(kgLens).
-  const WORK_ONTOLOGY = (() => {
-    const A = require('./work-ontology.js'), one = (xs) => (xs && xs.length === 1 ? xs[0] : '');
-    return {
-      classes: A.classes.map((c) => ({ id: c.id, label: c.label || c.id, desc: c.desc || '', parent: c.parent || '', source: 'work' })),
-      relations: A.relations.map((r) => ({ id: r.id, label: r.label || r.id, desc: r.desc || '', domain: one(r.from), range: one(r.to), from: r.from, to: r.to,
-        made: r.made, ...(r.field ? { field: r.field } : {}), source: 'work' })),
-      // 워크 규칙: 앱이 필드에서 계산하는 연결(DUE_ON ← Task.due …) — 읽기 전용
-      rules: A.relations.filter((r) => r.made === 'derived').map((r) => ({ id: r.id, label: `${r.id} from ${r.field}`, kind: 'compute', then: r.id, field: r.field, desc: r.desc, source: 'work' })),
-    };
-  })();
-  const isWorkConcept = (kind, id) => WORK_ONTOLOGY[kind].some((c) => c.id === id);
-  const CONCEPT_ID = /^[A-Za-z][\w-]{0,59}$/;
-  function loadOntology() {
-    const o = readJsonStrict(ONTOLOGY_FILE, () => null);
-    return o && Array.isArray(o.classes) ? { version: o.version || 1, classes: o.classes, relations: Array.isArray(o.relations) ? o.relations : [], rules: Array.isArray(o.rules) ? o.rules : [] } : { version: 1, classes: [], relations: [], rules: [] };
-  }
-  const saveOntology = (o) => { o.version = (o.version || 1) + 1; writeJsonAtomic(ONTOLOGY_FILE, o); };
-  // 끊긴 참조: 기능이 빠져 워크 종류가 사라졌거나, 지워진 개념을 가리키는 지식 종류 — 막지 않고 관리자에게 보여 준다
-  function ontologyIssues(all) {
-    const cls = new Set(all.classes.map((c) => c.id)), rels = new Set(all.relations.map((r) => r.id)), out = [];
-    for (const c of all.classes) if (c.parent && !cls.has(c.parent)) out.push({ kind: 'class', id: c.id, msg: `Class ${c.id}: its parent ${c.parent} is no longer in the ontology` });
-    for (const r of all.relations) {
-      for (const end of ['domain', 'range']) if (r[end] && !cls.has(r[end])) out.push({ kind: 'relation', id: r.id, msg: `Relation ${r.id}: its ${end === 'domain' ? 'From' : 'To'} class ${r[end]} is no longer in the ontology` });
-      if (r.inverse && !rels.has(r.inverse)) out.push({ kind: 'relation', id: r.id, msg: `Relation ${r.id}: its inverse ${r.inverse} is no longer in the ontology` });
-    }
-    for (const x of all.rules || []) if (x.source !== 'work')
-      for (const id of [...(x.if || []).map((st) => String(st).replace(/^\^/, '')), x.then, x.rel].filter(Boolean)) if (!rels.has(id)) out.push({ kind: 'rule', id: x.id, msg: `Rule ${x.label || x.id}: relation ${id} is no longer in the ontology` });
-    return out;
-  }
-  function systemOntology() {
-    const o = loadOntology();
-    const knowledge = { classes: o.classes.filter((c) => !isWorkConcept('classes', c.id)).map((c) => ({ ...c, source: 'knowledge' })),
-      relations: o.relations.filter((r) => !isWorkConcept('relations', r.id)).map((r) => ({ ...r, source: 'knowledge' })) };
-    const all = { version: o.version || 1, classes: [...WORK_ONTOLOGY.classes, ...knowledge.classes], relations: [...WORK_ONTOLOGY.relations, ...knowledge.relations],
-      rules: [...WORK_ONTOLOGY.rules, ...(o.rules || []).map((x) => ({ ...x, source: 'knowledge' }))] };
-    return { ...all, issues: ontologyIssues(all) };
-  }
-  const kgFileOf = (ws) => path.join(path.dirname(dataFileOf(ws)), 'knowledge-graph.json');   // 이 워크스페이스의 지식그래프
-  function loadKgStore(ws) {
-    const k = readJsonStrict(kgFileOf(ws), () => ({ entities: [], facts: [] }));
-    return k && Array.isArray(k.entities) ? { ...k, facts: Array.isArray(k.facts) ? k.facts : [] } : { entities: [], facts: [] };
-  }
-  const saveKgStore = (ws, k) => { k.version = (k.version || 1) + 1; writeJsonAtomic(kgFileOf(ws), k); };
-  // 분석 결과(graph)를 지식그래프에 모두 더한다 — 온톨로지에 맞는지는 읽을 때 kgLens가 본다.
-  // 개체는 id로, 사실은 from·rel·to로 합치고 근거(sources)를 모은다.
-  function mergeIntoKg(ws, graph, jobId) {
-    const kg = loadKgStore(ws), now = new Date().toISOString();
-    const byId = new Map(kg.entities.map((e) => [e.id, e])), addSrc = (x, src) => { x.sources = [...new Set([...(x.sources || []), ...(src || [])])].slice(0, 30); };
-    let added = 0, addedF = 0;
-    for (const e of graph.entities || []) {
-      const cur = byId.get(e.id);
-      if (cur) { addSrc(cur, e.sources); if (!cur.class && e.class) cur.class = e.class; continue; }
-      const ne = { id: e.id, label: e.label || e.id, class: e.class || '', sources: (e.sources || []).slice(0, 30), job: jobId, at: now };
-      kg.entities.push(ne); byId.set(ne.id, ne); added++;
-    }
-    const fkey = (f) => `${f.from}\u0000${f.rel}\u0000${f.to}`, facts = new Map(kg.facts.map((f) => [fkey(f), f]));
-    for (const f of graph.facts || []) {
-      if (!byId.has(f.from) || !byId.has(f.to) || !f.rel) continue;      // 구조가 깨진 것만 건너뛴다
-      const cur = facts.get(fkey(f));
-      if (cur) { addSrc(cur, f.sources); continue; }
-      const nf = { from: f.from, rel: f.rel, to: f.to, sources: (f.sources || []).slice(0, 30), job: jobId, at: now };
-      kg.facts.push(nf); facts.set(fkey(nf), nf); addedF++;
-    }
-    if (added || addedF) saveKgStore(ws, kg);
-    return { added: { entities: added, facts: addedF } };
-  }
-  // 온톨로지라는 렌즈로 지식그래프 읽기: 맞는지(fit)는 저장하지 않고 읽을 때 계산한다 — 관리자가 개념을 더하면 바로 '맞음'이 된다.
-  // 그리고 규칙 추론: 상위 클래스(types), 역관계(inverse), 대칭(symmetric), 전이(transitive). 추론한 사실은 inferred + 근거(because).
-  function kgLens(kg, ont) {
-    const cls = new Map(ont.classes.map((c) => [c.id, c])), rels = new Map(ont.relations.map((r) => [r.id, r]));
-    const ancestors = (c) => { const out = []; for (let k = c, n = 0; k && cls.has(k) && n < 50; k = cls.get(k).parent, n++) out.push(k); return out; };
-    const isA = (a, b) => ancestors(a).includes(b);
-    const ents = kg.entities.map((e) => ({ ...e, types: e.class ? ancestors(e.class) : [], fit: !e.class || cls.has(e.class), why: e.class && !cls.has(e.class) ? `class ${e.class} is not in the ontology yet` : '' }));
-    const byId = new Map(ents.map((e) => [e.id, e]));
-    const facts = kg.facts.map((f) => {
-      const r = rels.get(f.rel), a = byId.get(f.from), b = byId.get(f.to);
-      let why = '';
-      if (!r) why = `relation ${f.rel} is not in the ontology yet`;
-      else if (r.domain && a && a.class && cls.has(a.class) && !isA(a.class, r.domain)) why = `${f.rel} is meant to go from ${r.domain}`;
-      else if (r.range && b && b.class && cls.has(b.class) && !isA(b.class, r.range)) why = `${f.rel} is meant to go to ${r.range}`;
-      return { ...f, fit: !why, why };
-    });
-    const key = (f) => `${f.from}\u0000${f.rel}\u0000${f.to}`, have = new Set(facts.map(key)), inferred = [];
-    const add = (f, rule, because, label) => { const k = key(f); if (have.has(k) || f.from === f.to || inferred.length >= 2000) return false; have.add(k); inferred.push({ ...f, inferred: true, rule, ...(label ? { ruleLabel: label } : {}), because }); return true; };
-    // 규칙을 모두 '연쇄'로 바꿔 한 엔진에서 돌린다: steps = [{rel, back}] (back = 반대 방향으로 걷기), then = 결론 관계
-    //  역관계 r⇄s: [^r]→s, [^s]→r · 대칭 r: [^r]→r · 전이 r: [r, r]→r · 일반 연쇄 규칙: if [..] → then
-    const chains = [];
-    for (const r of ont.relations) {
-      if (r.inverse && rels.has(r.inverse)) { chains.push({ rule: 'inverse', steps: [{ rel: r.id, back: true }], then: r.inverse }); chains.push({ rule: 'inverse', steps: [{ rel: r.inverse, back: true }], then: r.id }); }
-      if (r.symmetric) chains.push({ rule: 'symmetric', steps: [{ rel: r.id, back: true }], then: r.id });
-      if (r.transitive) chains.push({ rule: 'transitive', steps: [{ rel: r.id }, { rel: r.id }], then: r.id });
-    }
-    for (const x of ont.rules || []) if (x.kind === 'chain' && rels.has(x.then) && (x.if || []).every((st) => rels.has(String(st).replace(/^\^/, ''))))
-      chains.push({ rule: `rule:${x.id}`, label: x.label || x.id, steps: x.if.map((st) => ({ rel: String(st).replace(/^\^/, ''), back: String(st).startsWith('^') })), then: x.then });
-    // 고정점: 더 늘지 않을 때까지(라운드·개수 한도 안에서). 매 라운드 저장된 사실 + 추론된 사실 위에서
-    for (let round = 0; round < 8 && inferred.length < 2000; round++) {
-      const all = [...facts, ...inferred], out = new Map(), inn = new Map();
-      for (const f of all) { (out.get(f.from + '\u0000' + f.rel) || out.set(f.from + '\u0000' + f.rel, []).get(f.from + '\u0000' + f.rel)).push(f); (inn.get(f.to + '\u0000' + f.rel) || inn.set(f.to + '\u0000' + f.rel, []).get(f.to + '\u0000' + f.rel)).push(f); }
-      const walk = (node, st) => (st.back ? (inn.get(node + '\u0000' + st.rel) || []).map((f) => [f.from, f]) : (out.get(node + '\u0000' + st.rel) || []).map((f) => [f.to, f]));
-      let grew = false;
-      for (const c of chains) {
-        const first = c.steps[0];
-        let paths = all.filter((f) => f.rel === first.rel).map((f) => (first.back ? { start: f.to, cur: f.from, by: [f] } : { start: f.from, cur: f.to, by: [f] }));
-        for (const st of c.steps.slice(1)) paths = paths.flatMap((pth) => walk(pth.cur, st).map(([n, f]) => ({ start: pth.start, cur: n, by: [...pth.by, f] }))).slice(0, 5000);
-        for (const pth of paths) if (add({ from: pth.start, rel: c.then, to: pth.cur }, c.rule, pth.by.map(key), c.label)) grew = true;
-      }
-      if (!grew) break;
-    }
-    // 개수 제한 규칙(검사): 한 개체에 그 관계가 max보다 많으면 그 사실들을 '안 맞음'으로 표시(렌즈 — 지우지 않는다)
-    for (const x of ont.rules || []) if (x.kind === 'limit' && rels.has(x.rel) && x.max >= 1) {
-      const groups = new Map();
-      for (const f of facts) if (f.rel === x.rel) { const k = x.per === 'to' ? f.to : f.from; (groups.get(k) || groups.set(k, []).get(k)).push(f); }
-      for (const g of groups.values()) if (g.length > x.max) for (const f of g) if (f.fit) { f.fit = false; f.why = `rule ${x.label || x.id}: at most ${x.max} ${x.rel} per ${x.per === 'to' ? 'To' : 'From'}`; f.rule = `rule:${x.id}`; }
-    }
-    return { entities: ents, facts, inferred, notFitting: { entities: ents.filter((e) => !e.fit).length, facts: facts.filter((f) => !f.fit).length } };
-  }
-
-  // 온톨로지 개념이 지식그래프에서 쓰이는 곳(지우기 전에 확인)
-  function conceptUse(kind, id) {
-    let n = 0;
-    for (const w of loadWorkspaces().workspaces) {
-      const kg = loadKgStore(w.id);
-      n += kind === 'class' ? kg.entities.filter((e) => e.class === id).length : kg.facts.filter((f) => f.rel === id).length;
-    }
-    return n;
-  }
-
-  // OWL/Turtle로 내보내기(OntoAir 등 외부 뷰어용). 온톨로지 = TBox(owl:Class·ObjectProperty), 지식그래프 = ABox(개체·사실)
-  function analysisTurtle(j, ws, name) {
-    // '#'는 전각 '＃'로 — 줄 단위로 주석을 걷어 내는 단순한 파서(OntoAir 포함)가 문자열 속 #에서 줄을 자르지 않게
-    const lit = (v) => '"' + String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r?\n/g, '\\n').replace(/#/g, '＃') + '"';
-    const names = new Map(), used = new Set();
-    const local = (ns, id) => {
-      const k = ns + '\u0000' + id; if (names.has(k)) return names.get(k);
-      let n = String(id).normalize('NFC').replace(/[^\p{L}\p{N}_-]+/gu, '_').replace(/^[-_]+|[-_]+$/g, '') || 'x';
-      if (!/^[\p{L}_]/u.test(n)) n = '_' + n;
-      let u = n, i = 2; while (used.has(ns + u)) u = `${n}_${i++}`;
-      used.add(ns + u); names.set(k, `${ns}:${u}`); return `${ns}:${u}`;
-    };
-    const o = j.ontology || { classes: [], relations: [] }, g = j.graph || { entities: [], facts: [] };
-    const baseIri = `https://ana.local/${encodeURIComponent(ws)}/${name || `analysis-${j.id}`}`;
-    const out = ['@prefix owl: <http://www.w3.org/2002/07/owl#> .', '@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .',
-      '@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .', `@prefix ana: <${baseIri}/ontology#> .`, `@prefix kg: <${baseIri}/kg#> .`, '',
-      `ana:Ontology rdf:type owl:Ontology ;\n    rdfs:label ${lit(`ANA analysis ${j.id} (${ws})`)}${j.summary ? ` ;\n    rdfs:comment ${lit(j.summary)}` : ''} .`, '', '# Classes'];
-    for (const c of o.classes) out.push(`${local('ana', c.id)} rdf:type owl:Class ;\n    rdfs:label ${lit(c.label || c.id)}${c.desc ? ` ;\n    rdfs:comment ${lit(c.desc)}` : ''}${c.parent ? ` ;\n    rdfs:subClassOf ${local('ana', c.parent)}` : ''} .`);
-    out.push('', '# Relation types');
-    for (const r of o.relations) out.push(`${local('ana', r.id)} rdf:type owl:ObjectProperty ;\n    rdfs:label ${lit(r.label || r.id)}${r.desc ? ` ;\n    rdfs:comment ${lit(r.desc)}` : ''}${r.domain ? ` ;\n    rdfs:domain ${local('ana', r.domain)}` : ''}${r.range ? ` ;\n    rdfs:range ${local('ana', r.range)}` : ''}${r.inverse ? ` ;\n    owl:inverseOf ${local('ana', r.inverse)}` : ''}${r.symmetric ? ` ;\n    rdf:type owl:SymmetricProperty` : ''}${r.transitive ? ` ;\n    rdf:type owl:TransitiveProperty` : ''} .`);
-    // 규칙: 한 단계 연쇄 = rdfs:subPropertyOf(반대 방향이면 owl:inverseOf), 여러 단계 = owl:propertyChainAxiom, 개수 제한 = owl:maxQualifiedCardinality 제약
-    const rulesOut = [];
-    for (const x of (o.rules || []).filter((r) => r.source !== 'work')) {
-      const stepT = (st) => (String(st).startsWith('^') ? `[ owl:inverseOf ${local('ana', String(st).slice(1))} ]` : local('ana', st));
-      if (x.kind === 'chain' && (x.if || []).length === 1) rulesOut.push(String(x.if[0]).startsWith('^') ? `${local('ana', x.then)} owl:inverseOf ${local('ana', String(x.if[0]).slice(1))} .` : `${local('ana', x.if[0])} rdfs:subPropertyOf ${local('ana', x.then)} .`);
-      else if (x.kind === 'chain') rulesOut.push(`${local('ana', x.then)} owl:propertyChainAxiom ( ${x.if.map(stepT).join(' ')} ) .`);
-      else if (x.kind === 'limit') { const r = (o.relations || []).find((y) => y.id === x.rel) || {}, on = x.per === 'to' ? `[ owl:inverseOf ${local('ana', x.rel)} ]` : local('ana', x.rel), cls = x.per === 'to' ? r.range : r.domain;
-        rulesOut.push(`${cls ? local('ana', cls) : 'owl:Thing'} rdfs:subClassOf [ rdf:type owl:Restriction ; owl:onProperty ${on} ; owl:maxCardinality "${x.max}"^^<http://www.w3.org/2001/XMLSchema#nonNegativeInteger> ] .`); }
-    }
-    if (rulesOut.length) out.push('', '# Rules', ...rulesOut);
-    out.push('', '# Entities and facts');
-    const factsOf = new Map(); for (const f of g.facts) { if (!factsOf.has(f.from)) factsOf.set(f.from, []); factsOf.get(f.from).push(f); }
-    for (const e of g.entities) {
-      const lines = [`rdf:type ${e.class ? local('ana', e.class) : 'owl:NamedIndividual'}`, `rdfs:label ${lit(e.label || e.id)}`];
-      for (const f of factsOf.get(e.id) || []) lines.push(`${local('ana', f.rel)} ${local('kg', f.to)}`);
-      out.push(`${local('kg', e.id)} ${lines.join(' ;\n    ')} .`);
-    }
-    return out.join('\n') + '\n';
-  }
-  const SHARE_TTL_MS = 24 * 3600 * 1000;
-  // 공유 토큰으로 작업 찾기 — 공개 경로라 ws가 없으므로 모든 워크스페이스를 본다
-  function findShared(token) {
-    if (!/^[0-9a-f]{40}$/.test(token)) return null;
-    for (const w of loadWorkspaces().workspaces) {
-      const j = loadAnalysis(w.id).jobs.find((x) => x.share && x.share.token === token);
-      if (j) return Date.parse(j.share.exp) > Date.now() && j.status === 'done' ? { ws: w.id, job: j } : null;
-    }
-    return null;
-  }
-
-  // ---- 진화 제안: 거리·근거·밖의 사례 ----
-  const EVO_HORIZONS = ['tidy', 'improve', 'reimagine'];
-  function evoInsight(x) {
-    const out = {};
-    if (EVO_HORIZONS.includes(x.horizon)) out.horizon = x.horizon;
-    if (x.because) out.because = clip(x.because, 600);      // 본 것: 일과 지식에서 본 문제(도메인 말)
-    if (x.outcome) out.outcome = clip(x.outcome, 600);      // 바뀌는 것: 사람에게 무엇이 달라지나
-    if (x.how) out.how = clip(x.how, 1500);                  // 어떻게: 기술 설명(온톨로지·동작·API) — 화면에서는 접혀 있다
-    if (Number.isInteger(x.insightId)) out.insightId = x.insightId;
-    const src = (Array.isArray(x.sources) ? x.sources : []).map((s0) => (typeof s0 === 'string' ? { url: s0 } : s0 || {}))
-      .filter((s0) => /^https?:\/\/[^\s]{3,500}$/.test(String(s0.url || ''))).slice(0, 5)
-      .map((s0) => ({ url: String(s0.url), title: clip(s0.title || '', 120), note: clip(s0.note || '', 300) }));
-    if (src.length) out.sources = src;
-    return out;
-  }
-  // ---- 관리자 함 저장소 ----
-  // item: {id, type: approval|work, title, desc, ref, ws, action?, from:{kind: member|agent|check, by}, status: open|doing|done|failed|rejected|cancelled, at, updatedAt, decidedBy?, note?}
-  function loadAdmin() {
-    const a = readJsonStrict(ADMIN_FILE, () => ({ next: 1, items: [] }));
-    return a && Array.isArray(a.items) ? a : { next: 1, items: [] };
-  }
-  const saveAdmin = (a) => { a.version = (a.version || 1) + 1; while (a.items.length > 200) { const i = a.items.findIndex((x) => !['open', 'doing'].includes(x.status)); a.items.splice(i < 0 ? 0 : i, 1); } writeJsonAtomic(ADMIN_FILE, a); };
-  // 같은 대상(ref)이나 같은 제목의 열린 요청이 있으면 새로 만들지 않는다
-  function addAdminItem(x, from, ws) {
-    if (!x || typeof x !== 'object' || typeof x.title !== 'string' || !x.title.trim()) return { error: 'title required' };
-    if (!['approval', 'work'].includes(x.type)) return { error: 'type must be approval|work' };
-    const a = loadAdmin(), title = x.title.trim().slice(0, 200), ref = typeof x.ref === 'string' ? x.ref.slice(0, 80) : '';
-    const open = a.items.find((y) => ['open', 'doing'].includes(y.status) && y.type === x.type && (ref ? y.ref === ref : y.title === title));
-    if (open) return { item: open, existing: true };
-    const action = x.action && typeof x.action === 'object' && ADMIN_ACTIONS[x.action.kind] ? ADMIN_ACTIONS[x.action.kind](x.action) : null;
-    const now = new Date().toISOString();
-    const item = { id: a.next++, type: x.type, title, desc: String(x.desc || '').slice(0, 2000), ref, ws: ws || '', ...(action ? { action } : {}), from, status: 'open', at: now, updatedAt: now };
-    a.items.push(item); saveAdmin(a);
-    return { item };
-  }
-  // 승인되면 관리자 화면이 실행할 수 있는 동작(정해 둔 것만, 값은 다시 검증)
-  const ADMIN_ACTIONS = {
-    'evolve.do': (a) => (Number.isInteger(a.id) ? { kind: 'evolve.do', id: a.id } : null),
-    'evolve.ignore': (a) => (Number.isInteger(a.id) ? { kind: 'evolve.ignore', id: a.id } : null),
-    'update.do': (a) => (typeof a.id === 'string' || Number.isInteger(a.id) ? { kind: 'update.do', id: a.id } : null),
-    'permission': (a) => (/^[a-z]{2,20}$/.test(String(a.mode || '')) ? { kind: 'permission', mode: a.mode } : null),
-    'ontology.add': (a) => (['class', 'relation'].includes(a.what) && a.item && CONCEPT_ID.test(String(a.item.id || '')) ? { kind: 'ontology.add', what: a.what,
-      item: { id: String(a.item.id), label: clip(a.item.label || a.item.id, 80), desc: clip(a.item.desc, 300), ...(a.what === 'class' ? { parent: clip(a.item.parent, 60) } : { domain: clip(a.item.domain, 60), range: clip(a.item.range, 60) }) } } : null),
-    'ontology.add-many': (a) => {   // 분석 하나가 새로 쓴 말들 — 한 번에 정리
-      const items = (Array.isArray(a.items) ? a.items : []).slice(0, 60).map((x) => ADMIN_ACTIONS['ontology.add'](x || {})).filter(Boolean).map(({ what, item }) => ({ what, item }));
-      return items.length ? { kind: 'ontology.add-many', items } : null;
-    },
-    'workspace.remove': (a) => (/^[\w-]{1,40}$/.test(String(a.id || '')) ? { kind: 'workspace.remove', id: a.id } : null),
-  };
-  // 점검(Trustworthiness·Safety·Security)이 risk면 관리자 실행 요청을 하나 연다. 해결되면 자동으로 닫는다.
-  function syncCheckRequests(t, broadcast) {
-    const a = loadAdmin(); let changed = false; const risky = new Set(), now = new Date().toISOString();
-    for (const sec of ['reliability', 'safety', 'security']) for (const c of ((t[sec] || {}).checks || [])) if (c.status === 'risk') risky.add(`check:${c.id}`);
-    for (const sec of ['reliability', 'safety', 'security']) for (const c of ((t[sec] || {}).checks || [])) {
-      const ref = `check:${c.id}`;
-      if (c.status !== 'risk' || a.items.some((y) => y.ref === ref && ['open', 'doing'].includes(y.status))) continue;
-      a.items.push({ id: a.next++, type: 'work', title: `Fix: ${c.label}`.slice(0, 200), desc: [c.value, c.detail].filter(Boolean).join(' — ').slice(0, 2000), ref, ws: '',
-        from: { kind: 'check', by: 'ana' }, status: 'open', at: now, updatedAt: now });
-      changed = true;
-    }
-    for (const y of a.items) if (y.from && y.from.kind === 'check' && ['open', 'doing'].includes(y.status) && !risky.has(y.ref)) {
-      y.status = 'done'; y.note = 'Resolved — the check is no longer at risk'; y.updatedAt = now; y.decidedBy = 'ana'; y.decidedAt = now; changed = true;
-    }
-    if (changed) { saveAdmin(a); try { broadcast({ kind: 'admin' }); } catch {} }
-  }
-
-
-  // ---- System › Health › Tests ----
-  // package.json의 scripts.test를 '&&'로 나눠 차례로 돌린다. 'node …'는 이 서버의 Node로(npm이 PATH에 없어도 되게),
-  // 환경은 최소한만 넘긴다(서버의 PORT·ANA_* 설정이 테스트에 새지 않게). 결과는 node:test 요약과 test.cjs의 '결과:' 줄에서 센다.
-  const loadTests = () => { const t = readJsonStrict(TESTS_FILE, () => ({ next: 1, runs: [] })); return t && Array.isArray(t.runs) ? t : { next: 1, runs: [] }; };
-  const saveTests = (t) => { while (t.runs.length > 10) t.runs.shift(); writeJsonAtomic(TESTS_FILE, t); };
-  function testSteps() {
-    let pkg; try { pkg = JSON.parse(require('node:fs').readFileSync(path.join(ROOT, 'package.json'), 'utf8')); } catch { return null; }
-    const cmd = pkg && pkg.scripts && pkg.scripts.test; if (!cmd || /no test specified/.test(cmd)) return null;
-    const steps = cmd.split('&&').map((x) => x.trim().split(/\s+/)).filter((a) => a.length);
-    if (!steps.every((a) => a[0] === 'node' && a.slice(1).every((x) => /^[\w.\/-]+$/.test(x)))) return null;   // node <파일·옵션>만 — 셸을 거치지 않는다
-    if (!steps.every((a) => a.slice(1).filter((x) => !x.startsWith('-')).every((f) => require('node:fs').existsSync(path.join(ROOT, f))))) return null;
-    return { cmd, steps: steps.map((a) => a.slice(1)) };
-  }
-  function parseTestOutput(out) {
-    const n = (re) => { const m = re.exec(out); return m ? Number(m[1]) : null; };
-    const custom = /결과: (\d+) passed, (\d+) failed/.exec(out);
-    const pass = custom ? Number(custom[1]) : n(/ℹ pass (\d+)/), fail = custom ? Number(custom[2]) : n(/ℹ fail (\d+)/);
-    const failures = [...out.matchAll(/^\s*(?:✗|✖) (.+)$/gm)].map((m) => m[1].replace(/\s*\(\d+(\.\d+)?ms\)$/, '').trim()).filter((x) => x && !/^failing tests:?$/.test(x));
-    return { pass: pass ?? 0, fail: fail ?? (failures.length ? failures.length : 0), failures: [...new Set(failures)].slice(0, 50) };
-  }
-  let testChild = null;
-  function runTests(by, broadcast) {
-    const plan = testSteps(); if (!plan) return { error: 'This ANA has no runnable tests (package.json scripts.test with node commands)' };
-    const t = loadTests();
-    if (t.runs.some((r) => r.status === 'running') && testChild) return { error: 'Tests are already running' };
-    for (const r of t.runs) if (r.status === 'running') { r.status = 'error'; r.note = 'Interrupted (server restarted)'; }
-    const run = { id: t.next++, status: 'running', by, at: new Date().toISOString(), cmd: plan.cmd, suites: [], pass: 0, fail: 0, log: '' };
-    t.runs.push(run); saveTests(t); broadcast({ kind: 'tests' });
-    const env = { PATH: process.env.PATH || '/usr/bin:/bin', HOME: process.env.HOME || os.homedir(), LANG: process.env.LANG || 'C.UTF-8', TMPDIR: process.env.TMPDIR || os.tmpdir() };
-    (async () => {
-      for (const args of plan.steps) {
-        const started = Date.now();
-        const out = await new Promise((resolve) => {
-          let buf = '';
-          const c = testChild = require('node:child_process').spawn(process.execPath, args, { cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] });
-          const kill = setTimeout(() => { buf += '\n[ANA] Timed out after 10 minutes\n'; try { c.kill('SIGKILL'); } catch {} }, 10 * 60 * 1000);
-          c.stdout.on('data', (d) => { buf += d; }); c.stderr.on('data', (d) => { buf += d; });
-          c.on('close', (code) => { clearTimeout(kill); resolve({ buf, code }); });
-          c.on('error', (e) => { clearTimeout(kill); resolve({ buf: buf + String(e.message), code: -1 }); });
-        });
-        const r = parseTestOutput(out.buf);
-        const cur = loadTests(), me = cur.runs.find((x) => x.id === run.id); if (!me) return;
-        me.suites.push({ name: args.filter((x) => !x.startsWith('-')).join(' ') || 'node', ms: Date.now() - started, code: out.code, ...r });
-        me.pass += r.pass; me.fail += r.fail + (out.code !== 0 && !r.fail ? 1 : 0);
-        me.log = (me.log + `$ node ${args.join(' ')}\n${out.buf}\n`).slice(-60000);
-        saveTests(cur); broadcast({ kind: 'tests' });
-      }
-      const cur = loadTests(), me = cur.runs.find((x) => x.id === run.id); if (!me) return;
-      me.status = me.fail ? 'failed' : 'passed'; me.doneAt = new Date().toISOString(); testChild = null;
-      saveTests(cur); broadcast({ kind: 'tests' }); audit(by, `tests.${me.status}`, `${me.pass} passed, ${me.fail} failed`);
-    })().catch(() => { testChild = null; });
-    return { run };
-  }
-
   function loadRequests() {
     const s = readJsonStrict(REQUESTS_FILE, () => ({ next: 1, requests: [] }));
     if (!s || typeof s !== 'object' || !Array.isArray(s.requests)) return { next: 1, requests: [] };
@@ -742,15 +358,10 @@ function createDashboardApi(core, opts) {
   // ---- 사용량/로그인 세션 (1시간 캐시) ----
   // 오늘 토큰 사용량: ~/.claude/projects/**/*.jsonl 중 오늘 수정된 파일만 스캔.
   // 로그인 만료: macOS keychain(Claude Code-credentials) → ~/.claude/.credentials.json 폴백. 토큰 값은 절대 노출하지 않는다.
-  // 세션마다 계정이 다를 수 있다(CLAUDE_CONFIG_DIR — docs/multi-account.md). 그래서 사용량·로그인은 '설정 폴더'별로 읽고 캐시한다.
   const DEFAULT_CLAUDE = { dir: path.join(os.homedir(), '.claude'), explicit: false };
   const cfgKey = (c) => `${c.dir}|${c.explicit ? 1 : 0}`;
   const usageCache = new Map();   // cfgKey → {at, data}
-  async function claudeConfigOf(target) {
-    if (!target) return DEFAULT_CLAUDE;
-    const r = await agentLog.resolve(target).catch(() => ({}));
-    return r && r.configDir ? { dir: r.configDir, explicit: !!r.configExplicit } : DEFAULT_CLAUDE;
-  }
+  async function claudeConfigOf() { return DEFAULT_CLAUDE; }   // 한 계정(~/.claude). 세션마다 다른 계정은 ANA Pro
   // Claude Code 로그인 정보(macOS keychain → <설정 폴더>/.credentials.json). 토큰은 서버 밖으로 내보내지 않는다.
   // 키체인 항목 이름은 Claude Code와 같게: CLAUDE_CONFIG_DIR이 있으면 'Claude Code-credentials-<sha256(폴더) 앞 8자>'
   async function readOauth(cfg = DEFAULT_CLAUDE) {
@@ -764,100 +375,6 @@ function createDashboardApi(core, opts) {
     if (!raw) raw = await fsp.readFile(path.join(cfg.dir, '.credentials.json'), 'utf8').catch(() => '');
     try { return (JSON.parse(raw) || {}).claudeAiOauth || null; } catch { return null; }
   }
-  // ---- 시스템 › Trustworthiness · Safety · Security ----
-  // 실제 상태에서 계산한 점검 목록. status: ok | info | warn | risk. 비밀값은 값이 아니라 '어디에 있는지'만 알린다.
-  const RISKY_CMDS = [
-    [/\brm\s+-[a-z]*r[a-z]*f|\brm\s+-[a-z]*f[a-z]*r/i, 'Recursive force delete (rm -rf)'],
-    [/\bgit\s+reset\s+--hard\b/i, 'Discards uncommitted work (git reset --hard)'],
-    [/\bgit\s+push\b[^\n]*\s(--force\b|-f\b)/i, 'Force push'],
-    [/\bgit\s+clean\s+-[a-z]*f/i, 'Deletes untracked files (git clean -f)'],
-    [/\bkillall\b|\bpkill\s+-9\b|\bkill\s+-9\b/i, 'Kills processes by name / forcefully'],
-    [/\bsudo\b/i, 'Runs as administrator (sudo)'],
-    [/\bchmod\s+-R\s+777\b|\bchmod\s+777\b/i, 'Opens file permissions to everyone'],
-    [/\b(curl|wget)\b[^|\n]*\|\s*(sudo\s+)?(ba|z)?sh\b/i, 'Pipes a download into a shell'],
-    [/\bdrop\s+(table|database)\b/i, 'Drops a database table'],
-    [/\bdd\s+if=|\bmkfs\b|\bdiskutil\s+erase/i, 'Writes or erases a disk'],
-  ];
-  const SECRET_PATTERNS = [/sk-ant-[A-Za-z0-9_-]{10,}/, /\bsk-[A-Za-z0-9]{32,}/, /\bAKIA[0-9A-Z]{16}\b/, /\bgh[pousr]_[A-Za-z0-9]{30,}/, /\bxox[abp]-[A-Za-z0-9-]{10,}/, /-----BEGIN [A-Z ]*PRIVATE KEY-----/, /\b(password|passwd|비밀번호)\s*[:=]\s*\S{4,}/i];
-  async function collectTrust(ctx) {
-    const rel = [], safe = [], sec = [];
-    const alive = (await ctx.hasSession().catch(() => false)) && (await ctx.agentAlive().catch(() => false));
-    const where = await agentLog.resolve(ctx.target).catch(() => ({}));
-    let log = null; try { log = await agentLog.read(ctx.target, 0, 400); } catch {}
-    const agentName = where.kind === 'codex' ? 'Codex' : where.kind === 'claude' ? 'Claude Code' : 'Agent';
-    // Trustworthiness
-    rel.push(alive ? { id: 'agent', status: 'ok', label: 'Agent is running', value: `${agentName}${log && log.modelName ? ' · ' + log.modelName : ''} in ${ctx.target}` }
-      : { id: 'agent', status: 'risk', label: 'Agent is not running', value: ctx.target, detail: 'Start the coding agent in its tmux session — chat and approvals wait until it is back.' });
-    rel.push(log && log.available ? { id: 'log', status: 'ok', label: 'Chat comes from the agent\'s own log', value: where.kind === 'codex' ? 'Codex rollout' : 'Claude Code transcript', detail: 'Replies and tool results are recorded exactly, not scraped from the screen.' }
-      : { id: 'log', status: 'warn', label: 'Chat is mirrored from the screen', detail: 'This agent has no structured log, so long replies can be cut or garbled.' });
-    const tools = (log && log.items || []).filter((x) => x.kind === 'tools').flatMap((x) => x.tools).filter((t) => t.done);
-    if (tools.length) {
-      const bad = tools.filter((t) => t.isError).length, pct = Math.round((bad / tools.length) * 100);
-      rel.push({ id: 'tools', status: pct >= 30 ? 'risk' : pct >= 10 ? 'warn' : 'ok', label: 'Tool calls that failed', value: `${bad} of ${tools.length} recent (${pct}%)`,
-        detail: pct >= 10 ? 'Frequent failures usually mean a wrong path, a missing tool, or a broken environment — worth a look.' : 'Within the normal range.' });
-    }
-    const intr = (log && log.items || []).filter((x) => x.kind === 'event' && x.text === 'Interrupted').length;
-    if (intr) rel.push({ id: 'interrupts', status: intr >= 5 ? 'warn' : 'info', label: 'Interrupted turns', value: `${intr} recently`, detail: 'Stopped by you or by an error before finishing.' });
-    const lim = where.kind === 'codex' ? log && log.limits : (limitsCache.get(cfgKey(where.configDir ? { dir: where.configDir, explicit: !!where.configExplicit } : DEFAULT_CLAUDE)) || {}).data;
-    for (const [k, name] of [['fiveHour', '5-hour limit'], ['week', 'Weekly limit']]) {
-      const v = lim && lim.available && lim[k]; if (!v) continue;
-      rel.push({ id: `limit-${k}`, status: v.percent >= 95 ? 'risk' : v.percent >= 80 ? 'warn' : 'ok', label: `Plan usage · ${name}`, value: `${v.percent}% used`, detail: v.percent >= 80 ? 'The agent may stop mid-task when the limit is reached.' : '' });
-    }
-    const pend = loadProposals().proposals.filter((x) => x.status === 'pending').length;
-    const openAsk = loadRequests().requests.filter((x) => x.status === 'open').length;
-    rel.push({ id: 'waiting', status: pend + openAsk ? 'info' : 'ok', label: 'Waiting on you', value: `${pend} approval${pend === 1 ? '' : 's'} · ${openAsk} request${openAsk === 1 ? '' : 's'}`, detail: pend + openAsk ? 'See Inbox.' : 'Nothing pending.' });
-    // Safety
-    const start = where.start || '';
-    // 지금 권한 모드(Claude: 상태줄, Codex: turn_context). 못 읽으면 시작 옵션으로 짐작한다
-    let mode = '', modeLabel = '';
-    if (where.kind === 'claude') { let sc = ''; try { sc = await ctx.ch.captureScreen(); } catch {} mode = permissionMode.claudeModeOf(sc); modeLabel = (permissionMode.CLAUDE_MODES.find((m) => m.id === mode) || {}).label || ''; }
-    else if (where.kind === 'codex') { const ov = permOverride.get(ctx.target); mode = (ov && (!log || (log.permRev || 0) <= ov.rev) ? ov.mode : permissionMode.codexModeOf(log && log.permTc)) || await codexDefaultMode(start); modeLabel = (permissionMode.CODEX_MODES.find((m) => m.id === mode) || {}).label || ''; }
-    const bypassFlag = /--dangerously-skip-permissions|--dangerously-bypass-approvals-and-sandbox|--yolo\b/.test(start);
-    const unguarded = mode ? (mode === 'bypass' || mode === 'full') : bypassFlag;
-    safe.push(unguarded ? { id: 'perm', status: 'warn', label: 'The agent runs commands without asking', value: modeLabel || (start.match(/--dangerously-[\w-]+|--yolo/) || [''])[0], detail: 'Permission prompts are off, so nothing stops a destructive command. Switch the mode from the model pill in the chat (Permissions), or keep an eye on the list below.' }
-      : mode ? { id: 'perm', status: 'ok', label: 'The agent asks before risky actions', value: modeLabel, detail: bypassFlag ? 'Started with permission prompts off, but the current mode asks.' : '' }
-      : { id: 'perm', status: start ? 'ok' : 'info', label: start ? 'The agent asks before risky actions' : 'Permission mode unknown', value: start ? 'permission prompts on' : '', detail: start ? '' : 'Could not read the current mode.' });
-    const risky = [];
-    for (const t of tools.concat((log && log.items || []).filter((x) => x.kind === 'tools').flatMap((x) => x.tools).filter((t) => !t.done))) {
-      const c = t.cmd || (t.name === 'Bash' ? t.arg : ''); if (!c) continue;
-      const hit = RISKY_CMDS.find(([re]) => re.test(c)); if (!hit) continue;
-      // 명령이 길어도 위험한 부분이 보이게 — 걸린 곳 앞뒤만 잘라 보여 준다
-      const m = hit[0].exec(c), i = m ? m.index : 0, from = Math.max(0, i - 30);
-      risky.push({ what: hit[1], cmd: `${from ? '…' : ''}${c.slice(from, i + 90).replace(/\s+/g, ' ').trim()}${i + 90 < c.length ? '…' : ''}` });
-    }
-    safe.push(risky.length ? { id: 'risky', status: 'warn', label: 'Risky commands the agent ran recently', value: `${risky.length}`, items: risky.slice(-8).reverse().map((r) => `${r.what} — ${r.cmd}`) }
-      : { id: 'risky', status: 'ok', label: 'No risky commands recently', value: `${tools.length} commands checked`, detail: 'Looks for rm -rf, reset --hard, force push, killall, sudo, curl | sh, DROP TABLE, disk writes.' });
-    safe.push({ id: 'gate', status: 'ok', label: 'Data changes go through approval', value: `${pend} waiting`, detail: 'The agent proposes a diff; nothing changes on the board until you approve it in Inbox › Approvals.' });
-    // Security
-    const bind = String(opts.BIND || '127.0.0.1');
-    const loop = /^(127\.|::1$|localhost$)/.test(bind);
-    sec.push(loop ? { id: 'bind', status: 'ok', label: 'Only this computer can reach the server', value: `${bind}:${opts.PORT || ''}`.replace(/:$/, ''), detail: 'Remote access goes through your gateway or tunnel.' }
-      : { id: 'bind', status: 'risk', label: 'The server listens on the network', value: bind, detail: 'Anyone on this network can reach it. Bind to 127.0.0.1 and use a signed-in gateway.' });
-    sec.push(ID_HEADER ? { id: 'signin', status: 'ok', label: 'People sign in through the gateway', value: `identity header: ${ID_HEADER}` }
-      : { id: 'signin', status: loop ? 'info' : 'risk', label: 'No sign-in (single-user mode)', detail: 'Whoever can open the dashboard can drive the agent. Fine on your own computer; put a signed-in gateway in front for remote use.' });
-    sec.push({ id: 'csrf', status: 'ok', label: 'Requests from other sites are blocked', value: 'origin + content-type check on every write' });
-    sec.push({ id: 'token', status: 'ok', label: 'Your AI login stays on the server', detail: 'Usage limits are read with your local login; the token is never sent to the browser.' });
-    try {
-      const cf = path.join(where.configDir || DEFAULT_CLAUDE.dir, '.credentials.json');
-      const st = await fsp.stat(cf);
-      if (st.mode & 0o077) sec.push({ id: 'credfile', status: 'warn', label: 'Claude login file is readable by other users', value: `${cf.replace(os.homedir(), '~')} (${(st.mode & 0o777).toString(8)})`, detail: 'Run: chmod 600 ~/.claude/.credentials.json' });
-    } catch {}
-    if (/--remote-control\b/.test(start)) sec.push({ id: 'remote', status: 'info', label: 'Remote control is on', detail: 'This agent session can also be driven from your claude.ai account.' });
-    const found = [];
-    try {
-      const s = loadData(curWs());
-      const scan = (kind, title, text) => { if (SECRET_PATTERNS.some((re) => re.test(String(text || '')))) found.push(`${kind}: ${String(title || '').slice(0, 60) || '(untitled)'}`); };
-      (s.notes || []).forEach((n) => scan('Note', n.title || String(n.text || '').split('\n')[0], `${n.title || ''}\n${n.text || ''}`));
-      (s.items || []).forEach((t) => scan('Task', t.title || t.text, `${t.title || ''} ${t.text || ''}`));
-      (s.events || []).forEach((e) => scan('Event', e.title, e.title));
-    } catch {}
-    sec.push(found.length ? { id: 'secrets', status: 'warn', label: 'Possible secrets saved in your data', value: `${found.length}`, detail: 'API keys or passwords in notes are sent to the agent and kept in history. Move them to a password manager.', items: found.slice(0, 8) }
-      : { id: 'secrets', status: 'ok', label: 'No secrets found in notes, tasks or events', detail: 'Checks for API keys, tokens, private keys and "password:" lines.' });
-    const count = (list) => ({ risk: list.filter((x) => x.status === 'risk').length, warn: list.filter((x) => x.status === 'warn').length });
-    return { at: Date.now(), target: ctx.target, reliability: { checks: rel, ...count(rel) }, safety: { checks: safe, ...count(safe) }, security: { checks: sec, ...count(sec) } };
-  }
-
-  // 요금제 한도(5시간·주간) — Claude Code의 /usage와 같은 곳(api.anthropic.com/api/oauth/usage)에서 읽는다. 1분 캐시.
   const limitsCache = new Map();   // cfgKey → {at, data}
   async function collectLimits(cfg = DEFAULT_CLAUDE) {
     const oa = await readOauth(cfg);
@@ -912,101 +429,17 @@ function createDashboardApi(core, opts) {
   }
 
   // ---- 라우트 ----
-  // 모든 라우트를 요청의 워크스페이스 범위 안에서 실행한다(await를 건너도 범위가 유지되도록 AsyncLocalStorage).
-  const extraApi = (req, res, url, ctx) => wsStore.run(resolveWs(req, url), () => routes(req, res, url, ctx));
-  const OFFLINE = !!opts.OFFLINE;
-  // 오프라인에서 거절하는 라우트: 인터넷(사용량 조회·업데이트 확인)이나 에이전트(설정·분석 지시)가 있어야 하는 것
-  const OFFLINE_BLOCKED = ['/api/limits', '/api/update/check', '/api/update-act', '/api/agent-setting', '/api/agent-models', '/api/agent-permission',
-    '/api/analysis/start', '/api/analysis/share', '/api/requirements/analyze', '/api/agentlog'];
-  // 요구사항(협업 › Requirements) — 진화 제안과 이어지므로(제안 완료 → 다시 확인) 라우트 밖에서도 읽고 쓴다
-  const loadRequirements = () => { const r = readJsonStrict(REQUIREMENTS_FILE, () => ({ next: 1, items: [], jobNext: 1, jobs: [] })); return r && Array.isArray(r.items) ? r : { next: 1, items: [], jobNext: 1, jobs: [] }; };
-  const saveRequirements = (r, broadcast) => { r.version = (r.version || 1) + 1; writeJsonAtomic(REQUIREMENTS_FILE, r); broadcast({ kind: 'requirements', version: r.version }); };
+  const extraApi = (req, res, url, ctx) => routes(req, res, url, ctx);
   async function routes(req, res, url, ctx) {
     const p = url.pathname;
-    if (OFFLINE) {
-      // 페이지에 오프라인 표시를 심어 보낸다 — JS가 돌기 전부터 에이전트 화면이 숨겨지게
-      if ((p === '/' || p === '/dashboard.html') && (req.method === 'GET' || req.method === 'HEAD')) {
-        const html = Buffer.from(require('node:fs').readFileSync(path.join(__dirname, 'dashboard.html'), 'utf8').replace('<html', '<html data-offline="1"'));
-        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'content-length': html.length, 'cache-control': 'no-store' });
-        return res.end(req.method === 'HEAD' ? undefined : html), true;
-      }
-      if (OFFLINE_BLOCKED.some((x) => p === x || p.startsWith(x + '/')))
-        return sendJson(res, 503, { error: 'Offline mode — this needs an AI agent or the internet' }), true;
-    }
-    if (await fileApi(req, res, url)) return true;
     const { commit, broadcast, csrfOk, jsonBody } = ctx;
-
-    // ---- 워크스페이스 목록/추가/선택/이름 변경/삭제/순서 변경 ----
-    if (p === '/api/workspaces' && req.method === 'GET') {
-      const w = loadWorkspaces();
-      return sendJson(res, 200, { active: w.active, current: curWs(), workspaces: w.workspaces }), true;
-    }
-    if (p === '/api/workspaces' && req.method === 'POST') {
-      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
-      const body = await jsonBody(req, res); if (!body) return true;
-      const w = loadWorkspaces();
-      const me = actor(req);
-      let target;
-      if (body.action === 'add') {
-        const name = cleanWsName(body.name);
-        if (!name) return sendJson(res, 400, { error: 'name required' }), true;
-        if (w.workspaces.length >= MAX_WS) return sendJson(res, 413, { error: `too many workspaces (>${MAX_WS})` }), true;
-        if (w.workspaces.some((x) => x.name === name)) return sendJson(res, 409, { error: 'A workspace with that name already exists' }), true;
-        target = { id: newId('w'), name, by: me, at: new Date().toISOString() };
-        w.workspaces.push(target);
-        w.active = target.id;                    // 만든 워크스페이스로 바로 전환
-        audit(me, 'workspace.add', name);
-      } else if (body.action === 'select') {
-        target = w.workspaces.find((x) => x.id === body.id);
-        if (!target) return sendJson(res, 404, { error: 'not found' }), true;
-        w.active = target.id;
-      } else if (body.action === 'rename') {
-        target = w.workspaces.find((x) => x.id === body.id);
-        if (!target) return sendJson(res, 404, { error: 'not found' }), true;
-        const name = cleanWsName(body.name);
-        if (!name) return sendJson(res, 400, { error: 'name required' }), true;
-        if (w.workspaces.some((x) => x.id !== target.id && x.name === name)) return sendJson(res, 409, { error: 'A workspace with that name already exists' }), true;
-        audit(me, 'workspace.rename', name, target.name);
-        target.name = name;
-      } else if (body.action === 'remove') {
-        // 기본 워크스페이스는 지울 수 없다(기본 워크 그래프 파일의 주인). 나머지는 목록에서 빼고,
-        // 데이터 폴더는 바로 지우지 않고 workspaces/.deleted/로 옮겨 둔다(실수 복구용).
-        if (body.id === DEFAULT_WS) return sendJson(res, 400, { error: 'The base workspace cannot be deleted' }), true;
-        if (!isAdmin(req)) return needAdmin(res, 'Deleting a workspace');
-        target = w.workspaces.find((x) => x.id === body.id);
-        if (!target) return sendJson(res, 404, { error: 'not found' }), true;
-        const dir = path.join(WS_DIR, target.id);
-        graph.close(target.id);   // graph-index.sqlite 핸들을 닫고 폴더를 옮긴다
-        const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
-        try {
-          await fsp.mkdir(path.join(WS_DIR, '.deleted'), { recursive: true });
-          await fsp.rename(dir, path.join(WS_DIR, '.deleted', `${target.id}-${stamp}`));
-        } catch (e) { if (e.code !== 'ENOENT') return sendJson(res, 500, { error: `Delete failed: ${e.message}` }), true; }
-        w.workspaces = w.workspaces.filter((x) => x.id !== target.id);
-        if (w.active === target.id) w.active = DEFAULT_WS;
-        audit(me, 'workspace.remove', target.name);
-      } else if (body.action === 'reorder') {
-        // ids = 원하는 순서. 모르는 id는 무시하고, 빠진 워크스페이스는 기존 순서대로 뒤에 붙인다(누락 방지).
-        if (!Array.isArray(body.ids)) return sendJson(res, 400, { error: 'ids must be an array' }), true;
-        const byId = new Map(w.workspaces.map((x) => [x.id, x]));
-        const seen = new Set();
-        const next = [];
-        for (const id of body.ids) if (byId.has(id) && !seen.has(id)) { seen.add(id); next.push(byId.get(id)); }
-        for (const x of w.workspaces) if (!seen.has(x.id)) next.push(x);
-        w.workspaces = next;
-        target = null;
-      } else return sendJson(res, 400, { error: 'action must be add|select|rename|remove|reorder' }), true;
-      saveWorkspaces(w);
-      broadcast({ kind: 'workspaces', active: w.active });
-      return sendJson(res, 200, { ok: true, active: w.active, workspace: target, workspaces: w.workspaces }), true;
-    }
 
     // ---- 내 계정 ----
     if (p === '/api/me' && req.method === 'GET') {
       const email = who(req);
       if (email) touchUser(email);
       return sendJson(res, 200, {
-        signedIn: !!email, role: roleOf(req),
+        signedIn: !!email,
         // 단일 사용자 모드에서도 로컬 프로필('ana' 키)을 돌려준다 — 이름·아바타 저장이 동작하도록.
         // email은 항상 'ana': 콘텐츠가 by:'ana'로 기록되므로 클라이언트 isMine()이 일치해야
         // 수정/삭제 버튼이 프로필 저장 전에도 보인다.
@@ -1103,22 +536,6 @@ function createDashboardApi(core, opts) {
         },
         graph: g4,
       }), true;
-    }
-
-    if (p === '/api/tests' && req.method === 'GET') {
-      const t = loadTests(), plan = testSteps(), last = t.runs[t.runs.length - 1] || null;
-      return sendJson(res, 200, { available: !!plan, command: plan ? plan.cmd : '', last, runs: t.runs.slice().reverse().map(({ log, ...r }) => r) }), true;
-    }
-    if (p === '/api/tests/run' && req.method === 'POST') {
-      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
-      if (!isAdmin(req)) return needAdmin(res, 'Running the tests');
-      const r = runTests(actor(req), broadcast);
-      if (r.error) return sendJson(res, 409, { error: r.error }), true;
-      return sendJson(res, 200, { ok: true, run: r.run }), true;
-    }
-    if (p === '/api/trust' && req.method === 'GET') {
-      try { const t = await collectTrust(ctx); syncCheckRequests(t, broadcast); return sendJson(res, 200, t), true; }
-      catch (e) { return sendJson(res, 500, { error: 'Checks failed', detail: e.message }), true; }
     }
 
     if (p === '/api/limits' && req.method === 'GET') {
@@ -1279,7 +696,7 @@ function createDashboardApi(core, opts) {
       if (!text && !hasDiff(body.diff)) return sendJson(res, 400, { error: 'text or diff required' }), true;
       if (hasDiff(body.diff)) {
         const ps = loadProposals();
-        const pr = { id: nextPid(ps), text: text || 'Change proposal', diff: body.diff, status: 'pending', ws: curWs(), at: new Date().toISOString() };
+        const pr = { id: nextPid(ps), text: text || 'Change proposal', diff: body.diff, ...plainFields(body), status: 'pending', ws: curWs(), at: new Date().toISOString() };
         ps.proposals.push(pr); saveProposals(ps);
         const entry = commit({ role: 'proposal', text: pr.text, src: 'api', pid: pr.id });
         broadcast({ kind: 'commit', messages: [entry] });
@@ -1302,7 +719,6 @@ function createDashboardApi(core, opts) {
       audit(actor(req), `approval.${body.decision}`, `#${pr.id}`);
       if (body.decision === 'approve') {
         // 제안이 만들어진 워크스페이스가 그새 삭제됐으면 적용하지 않는다(빈 폴더가 되살아나지 않게)
-        if (!wsExists(pr.ws || DEFAULT_WS)) return sendJson(res, 409, { error: 'The workspace for this proposal was deleted' }), true;
         // 상태를 먼저 마킹·저장(부분 실패 시 이중 적용 방지 — QA/BE-M8), 그다음 적용
         pr.status = 'applying'; saveProposals(ps);
         let result;
@@ -1415,26 +831,6 @@ function createDashboardApi(core, opts) {
 
     // 워크 항목의 하위 종류 — {id, type}. Ticket ⊂ Task처럼 지식 종류가 워크 종류의 하위 종류일 때 그 항목에 붙인다.
     // 앱은 그대로 Task로 다루고, 지식 쪽은 Ticket으로 읽는다(코드 수정 없는 확장). type ''이면 뗀다.
-    if (p === '/api/subtype' && req.method === 'POST') {
-      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
-      const body = await jsonBody(req, res); if (!body) return true;
-      let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
-      const id = String(body.id || ''), kind = relgraph.kindOf(s, id), it = [...s.items, ...s.events, ...s.notes].find((x) => x.id === id);
-      if (!it || !kind) return sendJson(res, 404, { error: 'not found' }), true;
-      const t = String(body.type || '');
-      if (t) {
-        const cls = new Map(systemOntology().classes.map((c) => [c.id, c]));
-        let k = t, ok = false;
-        for (let n = 0; k && cls.has(k) && n < 50; k = cls.get(k).parent, n++) if (cls.get(k).parent === kind) { ok = true; break; }
-        if (!ok || cls.get(t).source === 'work') return sendJson(res, 400, { error: `${t} is not a kind of ${kind} in the ontology` }), true;
-        it.subtype = t;
-      } else delete it.subtype;
-      audit(actor(req), 'item.subtype', `${id} ${t || '(none)'}`);
-      s.version = (s.version || 1) + 1; saveData(s); broadcast({ kind: 'data', version: s.version });
-      return sendJson(res, 200, { ok: true, version: s.version }), true;
-    }
-
-    // 할일 삭제 — {id}
     if (p === '/api/todo-remove' && req.method === 'POST') {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
       const body = await jsonBody(req, res); if (!body) return true;
@@ -1524,7 +920,6 @@ function createDashboardApi(core, opts) {
       const where = await agentLog.resolve(ctx.target);
       const modes = where.kind === 'claude' ? permissionMode.CLAUDE_MODES : where.kind === 'codex' ? permissionMode.CODEX_MODES : [];
       if (!modes.some((m) => m.id === body.mode)) return sendJson(res, 400, { error: `mode must be ${modes.map((m) => m.id).join('|') || '(no agent)'}` }), true;
-      if (modes.find((m) => m.id === body.mode).risky && !isAdmin(req)) return needAdmin(res, `Switching the agent to "${modes.find((m) => m.id === body.mode).label}"`);
       const out = await ctx.enqueue(async () => {
         try {
           const r2 = where.kind === 'claude' ? await permissionMode.changeClaude(ctx, body.mode, where.start) : await permissionMode.changeCodex(ctx, body.mode);
@@ -1617,7 +1012,7 @@ function createDashboardApi(core, opts) {
         openTitles.add(title);
         const r2 = { id: rq.next++, kind: x.kind || 'info', title, desc: String(x.desc || '').slice(0, 2000),
           options: (Array.isArray(x.options) ? x.options : []).map((o) => String(o).trim().slice(0, 80)).filter(Boolean).slice(0, 6),
-          ref: typeof x.ref === 'string' ? x.ref.slice(0, 60) : '', ws: x.workspace === false ? '' : ws,
+          ref: typeof x.ref === 'string' ? x.ref.slice(0, 60) : '', ws: x.workspace === false ? '' : ws, ...plainFields(x),
           status: 'open', answer: '', at: new Date().toISOString() };
         rq.requests.push(r2); added.push(r2);
       }
@@ -1660,7 +1055,12 @@ function createDashboardApi(core, opts) {
       return sendJson(res, 200, { ok: true, status: r2.status, version: rq.version, notified }), true;
     }
 
-    // 업데이트(시스템 › Update)
+    // 에이전트에게 보내는 지시문의 주소. 브라우저 주소(예: 로그인 게이트웨이 뒤의 base.anahub.io)는 에이전트의 curl이
+    // 통과하지 못하므로, 같은 컴퓨터에서 도는 에이전트가 바로 닿는 이 서버의 로컬 주소를 알려 준다.
+    if (p === '/api/agent-base' && req.method === 'GET') {
+      const b = String(opts.BIND || '127.0.0.1'), host = b === '0.0.0.0' || b === '::' ? '127.0.0.1' : b.includes(':') ? `[${b}]` : b;
+      return sendJson(res, 200, { host: opts.PORT ? `${host}:${opts.PORT}` : '' }), true;
+    }
     if (p === '/api/updates' && req.method === 'GET') return sendJson(res, 200, { ...loadUpdates(), checking: updateChecking, upstreamDir: UPSTREAM_DIR }), true;
     if (p === '/api/update/check' && req.method === 'POST') {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
@@ -1676,7 +1076,6 @@ function createDashboardApi(core, opts) {
       if (!['do', 'done', 'fail', 'ignore', 'reopen'].includes(body.action)) return sendJson(res, 400, { error: 'action must be do|done|fail|ignore|reopen' }), true;
       const u = loadUpdates(); const it = u.items.find((x) => x.id === body.id);
       if (!it) return sendJson(res, 404, { error: 'not found' }), true;
-      if (['do', 'ignore', 'reopen'].includes(body.action) && !isAdmin(req)) return needAdmin(res, `Updating "${it.title}"`);
       it.status = { do: 'doing', done: 'done', fail: 'failed', ignore: 'dismissed', reopen: 'new' }[body.action];
       it.updatedAt = new Date().toISOString();
       it.failReason = body.action === 'fail' ? String(body.reason || '').trim().slice(0, 1000) : '';
@@ -1685,375 +1084,28 @@ function createDashboardApi(core, opts) {
       return sendJson(res, 200, { ok: true, status: it.status, item: it, upstreamDir: UPSTREAM_DIR }), true;
     }
 
-    // ---- 요구사항(Requirements): 사용자가 적고, 에이전트가 반영 여부·방법·안 된 이유를 분석 ----
-    if (p.startsWith('/api/requirements')) {
-      const save = (r) => saveRequirements(r, broadcast);
-      const rq = loadRequirements(); rq.jobs = rq.jobs || []; rq.jobNext = rq.jobNext || 1;
-      const now = new Date().toISOString(), cut = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
-      const jobOf = (id) => rq.jobs.find((j) => j.id === Number(id));
-      if (p === '/api/requirements' && req.method === 'GET') return sendJson(res, 200, { items: rq.items, job: rq.jobs[rq.jobs.length - 1] || null }), true;
-      if (p === '/api/requirements/input' && req.method === 'GET') {
-        const j = jobOf(url.searchParams.get('job')); if (!j) return sendJson(res, 404, { error: 'no such analysis' }), true;
-        return sendJson(res, 200, { job: j.id, root: ROOT, features: path.join(ROOT, 'features.json'), changelog: path.join(ROOT, 'CHANGELOG.md'),
-          requirements: rq.items.filter((x) => j.ids.includes(x.id)).map(({ id, title, detail, at, analysis }) => ({ id, title, detail, at, previous: analysis ? { status: analysis.status, at: analysis.at } : null })) }), true;
-      }
-      if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' }), true;
+    // PRD — GET: 지금 판 + 이력 / POST {md, note, source}: 새 판 / POST {action:'restore', v}: 옛 판을 새 판으로
+    if (p === '/api/prd' && req.method === 'GET') {
+      const d = loadPrd();
+      return sendJson(res, 200, { current: d.versions[d.versions.length - 1] || null, history: d.versions.slice(0, -1).reverse(), version: d.version || 1 }), true;
+    }
+    if (p === '/api/prd' && req.method === 'POST') {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
-      const body = await jsonBody(req, res, 2 * 1024 * 1024); if (!body) return true;
-      if (p === '/api/requirements') {
-        if (body.action === 'add') {
-          const title = cut(body.title, 200); if (!title) return sendJson(res, 400, { error: 'title required' }), true;
-          const it = { id: rq.next++, title, detail: cut(body.detail, 4000), by: actor(req), at: now, updatedAt: now, analysis: null };
-          rq.items.push(it); save(rq); audit(actor(req), 'requirement.add', title.slice(0, 80)); return sendJson(res, 200, { ok: true, item: it }), true;
-        }
-        const it = rq.items.find((x) => x.id === Number(body.id)); if (!it) return sendJson(res, 404, { error: 'not found' }), true;
-        if (body.action === 'update') {
-          const title = cut(body.title ?? it.title, 200); if (!title) return sendJson(res, 400, { error: 'title required' }), true;
-          const changed = title !== it.title || cut(body.detail ?? it.detail, 4000) !== it.detail;
-          it.title = title; it.detail = cut(body.detail ?? it.detail, 4000); it.updatedAt = now;
-          if (changed && it.analysis) it.analysis.stale = true;      // 내용이 바뀌면 이전 분석은 '다시 분석 필요'
-          save(rq); audit(actor(req), 'requirement.update', `#${it.id}`); return sendJson(res, 200, { ok: true, item: it }), true;
-        }
-        if (body.action === 'remove') { rq.items = rq.items.filter((x) => x !== it); save(rq); audit(actor(req), 'requirement.remove', it.title.slice(0, 80)); return sendJson(res, 200, { ok: true }), true; }
-        // 반영 안 됨·일부 반영을 진화 제안으로 — 분석의 '다음 단계'를 그대로 옮기고 요구사항 번호를 단다.
-        // 그 제안이 완료되면(evolve-act done) 이 요구사항은 '다시 확인 필요'가 된다: 요구사항 → 제안 → 승인 → 재확인
-        if (body.action === 'propose') {
-          const a = it.analysis;
-          if (!a || !['missing', 'partial'].includes(a.status)) return sendJson(res, 409, { error: 'Only a requirement that is not (fully) reflected can become a proposal' }), true;
-          const ev = loadEvolve();
-          const open = ev.proposals.find((x) => x.reqId === it.id && ['new', 'doing'].includes(x.status));
-          if (open) return sendJson(res, 200, { ok: true, proposal: open, existing: true }), true;
-          const desc = [a.next && `Next step: ${a.next}`, a.why && `Why not yet: ${a.why}`, it.detail && `Requirement: ${it.detail}`].filter(Boolean).join('\n');
-          const pr = { id: ev.next++, type: a.status === 'missing' ? 'add' : 'improve', title: `Requirement #${it.id}: ${it.title}`.slice(0, 200), desc: desc.slice(0, 1000),
-            status: 'new', at: now, reqId: it.id, by: actor(req), scope: 'system' };
-          ev.proposals.push(pr); if (ev.proposals.length > 50) ev.proposals = ev.proposals.slice(-50);
-          ev.version = (ev.version || 1) + 1; saveEvolve(ev); broadcast({ kind: 'evolve', version: ev.version });
-          it.proposalId = pr.id; it.recheck = null; save(rq);
-          audit(actor(req), 'requirement.propose', `#${it.id} → proposal #${pr.id}`);
-          return sendJson(res, 200, { ok: true, proposal: pr }), true;
-        }
-        return sendJson(res, 400, { error: 'action must be add|update|remove|propose' }), true;
+      const body = await jsonBody(req, res, PRD_MAX + 8192); if (!body) return true;
+      let md = body.md, note = body.note, source = body.source;
+      if (body.action === 'restore') {
+        const old = loadPrd().versions.find((x) => x.v === body.v);
+        if (!old) return sendJson(res, 404, { error: 'no such version' }), true;
+        md = old.md; note = `Restored version ${old.v}`; source = 'person';
       }
-      if (p === '/api/requirements/analyze') {
-        if (rq.jobs.some((j) => j.status === 'running')) return sendJson(res, 409, { error: 'An analysis is already running — wait for it or cancel it' }), true;
-        const ids = (Array.isArray(body.ids) && body.ids.length ? body.ids.map(Number) : rq.items.map((x) => x.id)).filter((id) => rq.items.some((x) => x.id === id));
-        if (!ids.length) return sendJson(res, 400, { error: 'Add a requirement first' }), true;
-        const j = { id: rq.jobNext++, status: 'running', progress: 0, step: 'Waiting for the agent', ids, at: now, updatedAt: now };
-        rq.jobs.push(j); while (rq.jobs.length > 10) rq.jobs.shift(); save(rq); audit(actor(req), 'requirement.analyze', `${ids.length} requirements`);
-        return sendJson(res, 200, { ok: true, job: j }), true;
-      }
-      const j = jobOf(body.job); if (!j) return sendJson(res, 404, { error: 'no such analysis' }), true;
-      if (j.status !== 'running') return sendJson(res, 409, { error: `analysis is ${j.status}` }), true;
-      if (p === '/api/requirements/progress') {
-        const pct = Number(body.progress); if (Number.isFinite(pct)) j.progress = Math.max(j.progress, Math.min(99, Math.round(pct)));
-        if (body.step) j.step = cut(body.step, 200); j.updatedAt = now; save(rq); return sendJson(res, 200, { ok: true }), true;
-      }
-      if (p === '/api/requirements/result') {
-        const STATUSES = ['reflected', 'partial', 'missing'];
-        const results = (Array.isArray(body.results) ? body.results : []).filter((r) => j.ids.includes(Number(r.id)) && STATUSES.includes(r.status));
-        if (!results.length) return sendJson(res, 400, { error: 'results[] with id and status (reflected|partial|missing) required' }), true;
-        for (const r of results) {
-          const it = rq.items.find((x) => x.id === Number(r.id)); if (!it) continue;
-          it.analysis = { status: r.status, how: cut(r.how, 3000), why: cut(r.why, 3000), next: cut(r.next, 1500),
-            evidence: (Array.isArray(r.evidence) ? r.evidence : []).map((e) => cut(e, 300)).filter(Boolean).slice(0, 20), at: now, job: j.id, stale: false };
-          it.recheck = null;                       // 다시 확인했다(제안 완료 뒤의 재확인 끝)
-        }
-        Object.assign(j, { status: 'done', progress: 100, step: 'Done', summary: cut(body.summary, 2000), analyzed: results.length, updatedAt: now, doneAt: now });
-        save(rq); audit(actor(req), 'requirement.analyzed', `${results.length} results`);
-        return sendJson(res, 200, { ok: true, analyzed: results.length, skipped: j.ids.length - results.length }), true;
-      }
-      if (p === '/api/requirements/fail' || p === '/api/requirements/cancel') {
-        j.status = p.endsWith('fail') ? 'failed' : 'cancelled'; j.step = j.status === 'failed' ? cut(body.reason || 'Failed', 300) : 'Cancelled'; j.updatedAt = now;
-        save(rq); return sendJson(res, 200, { ok: true }), true;
-      }
-      return sendJson(res, 404, { error: 'unknown requirements route' }), true;
+      if (typeof md !== 'string' || !md.trim()) return sendJson(res, 400, { error: 'md (markdown text) required' }), true;
+      if (md.length > PRD_MAX) return sendJson(res, 413, { error: `PRD too long (>${PRD_MAX} chars)` }), true;
+      const { d, v, unchanged } = addPrdVersion(md, note, source, actor(req));
+      if (!unchanged) { audit(actor(req), 'prd.save', `v${v.v}`, clip(v.note, 80)); broadcast({ kind: 'prd', version: d.version }); }
+      return sendJson(res, 200, { ok: true, v: v.v, unchanged: !!unchanged }), true;
     }
-
-    // ---- 관계 분석(온톨로지 · 지식그래프) ----
-    // 에이전트에게 보내는 지시문의 주소. 브라우저 주소(예: 로그인 게이트웨이 뒤의 base.anahub.io)는 에이전트의 curl이
-    // 통과하지 못하므로, 같은 컴퓨터에서 도는 에이전트가 바로 닿는 이 서버의 로컬 주소를 알려 준다.
-    if (p === '/api/agent-base' && req.method === 'GET') {
-      const b = String(opts.BIND || '127.0.0.1'), host = b === '0.0.0.0' || b === '::' ? '127.0.0.1' : b.includes(':') ? `[${b}]` : b;
-      return sendJson(res, 200, { host: opts.PORT ? `${host}:${opts.PORT}` : '' }), true;
-    }
-    // 공개 읽기: OntoAir 같은 외부 뷰어가 로그인 없이 가져가는 .ttl. 40자리 토큰 + 24시간 + 완료된 작업만.
-    // anahub 게이트웨이는 share-access(HEAD → 204)로 토큰을 확인한 뒤에만 이 경로를 통과시킨다.
-    const sm = /^\/api\/analysis\/shared\/([0-9a-f]{40})\/[\w.-]{1,80}\.ttl$/.exec(p);   // 끝 이름은 뷰어에 보이는 파일 이름
-    if ((sm || p === '/api/analysis/share-access') && (req.method === 'GET' || req.method === 'HEAD')) {
-      const hit = findShared(sm ? sm[1] : String(url.searchParams.get('t') || ''));
-      if (!sm) { res.writeHead(hit ? 204 : 404, { 'cache-control': 'no-store' }); return res.end(), true; }
-      if (!hit) return sendJson(res, 404, { error: 'link expired or unknown' }), true;
-      const body = Buffer.from(analysisTurtle(hit.job, hit.ws));
-      res.writeHead(200, { 'content-type': 'text/turtle; charset=utf-8', 'content-length': body.length, 'cache-control': 'no-store', 'access-control-allow-origin': '*', 'x-content-type-options': 'nosniff' });
-      return res.end(req.method === 'HEAD' ? undefined : body), true;
-    }
-    // ---- System › Ontology: 개념 틀(읽기는 누구나, 바꾸기는 관리자) ----
-    if (p === '/api/ontology' && req.method === 'GET') return sendJson(res, 200, systemOntology()), true;
-    // 승격 증거 — 지식·쓰임이 워크 종류(기능)로 올라갈 만한지. Evolve가 읽고 시스템 제안의 근거로 쓴다(직접 바꾸지 않는다).
-    //  newLinkTypes: 워크 종류에 없는 새 연결이 얼마나 쓰였나 · subtypes: 하위 종류가 붙은 워크 항목 수
-    //  knowledge: 지식 종류마다 개체 수와, 그 개체들이 어느 워크 종류에서 나왔는지(한 종류에 몰리면 그 종류의 필드·하위 종류 후보)
-    if (p === '/api/ontology/evidence' && req.method === 'GET') {
-      const ont = systemOntology(), workIds = new Set(ont.classes.filter((c) => c.source === 'work').map((c) => c.id));
-      const links = new Map(), subs = new Map(), know = new Map();
-      for (const w of loadWorkspaces().workspaces) {
-        let st; try { st = loadData(w.id); } catch { continue; }
-        for (const l of st.links || []) if (relgraph.isNewLinkType(l.type)) { const k = links.get(l.type) || { type: l.type, count: 0, workspaces: new Set() }; k.count++; k.workspaces.add(w.id); links.set(l.type, k); }
-        for (const x of [...st.items, ...st.events, ...st.notes]) if (x.subtype) { const kind = relgraph.kindOf(st, x.id), key = `${x.subtype}\u0000${kind}`; const k = subs.get(key) || { type: x.subtype, of: kind, count: 0 }; k.count++; subs.set(key, k); }
-        const kg = loadKgStore(w.id);
-        for (const e of kg.entities) {
-          if (!e.class || workIds.has(e.class)) continue;
-          const k = know.get(e.class) || { class: e.class, entities: 0, from: {} }; k.entities++;
-          for (const src of new Set((e.sources || []).map((id) => relgraph.kindOf(st, id)).filter(Boolean))) k.from[src] = (k.from[src] || 0) + 1;
-          know.set(e.class, k);
-        }
-      }
-      const knowledge = [...know.values()].map((k) => {
-        const [top, n] = Object.entries(k.from).sort((a, b) => b[1] - a[1])[0] || ['', 0];
-        return { ...k, mostlyFrom: top, share: k.entities ? Math.round((n / k.entities) * 100) / 100 : 0, candidate: k.entities >= 5 && n / k.entities >= 0.8 };
-      }).sort((a, b) => b.entities - a.entities);
-      return sendJson(res, 200, {
-        note: 'Evidence for growing the Work ontology (features) from use and from knowledge. Propose a system change (Evolve) when it is strong; nothing here changes the app by itself.',
-        newLinkTypes: [...links.values()].map((k) => ({ type: k.type, count: k.count, workspaces: [...k.workspaces] })).sort((a, b) => b.count - a.count),
-        subtypes: [...subs.values()].sort((a, b) => b.count - a.count),
-        knowledge,
-      }), true;
-    }
-    if (p === '/api/ontology' && req.method === 'POST') {
-      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
-      const body = await jsonBody(req, res); if (!body) return true;
-      if (!isAdmin(req)) return needAdmin(res, 'Changing the ontology');
-      const kind = { relation: 'relations', class: 'classes', rule: 'rules' }[body.kind] || null, it = body.item || {};
-      if (!kind || !['add', 'update', 'remove'].includes(body.action)) return sendJson(res, 400, { error: 'kind must be class|relation|rule, action add|update|remove' }), true;
-      if (!CONCEPT_ID.test(String(it.id || ''))) return sendJson(res, 400, { error: 'id: a letter, then letters, digits, _ or - (60 at most)' }), true;
-      if (kind !== 'rules' && isWorkConcept(kind, it.id)) return sendJson(res, 400, { error: `${it.id} is in the Work ontology — it comes from the app's code (work-ontology.js) and changes when the app changes` }), true;
-      const o = loadOntology(), all = systemOntology(), list = o[kind], cur = list.find((x) => x.id === it.id);
-      const clsIds = new Set(all.classes.map((c) => c.id));
-      if (body.action === 'remove') {
-        if (!cur) return sendJson(res, 404, { error: 'not found' }), true;
-        const used = kind === 'rules' ? 0 : conceptUse(kind === 'classes' ? 'class' : 'relation', it.id);
-        const child = kind === 'classes' ? (all.classes.some((c) => c.parent === it.id) || all.relations.some((r) => r.domain === it.id || r.range === it.id))
-          : kind === 'relations' && (all.rules || []).some((x) => x.source !== 'work' && [...(x.if || []).map((st) => String(st).replace(/^\^/, '')), x.then, x.rel].includes(it.id));
-        if (kind !== 'rules' && (used || child)) return sendJson(res, 409, { error: `${it.id} is still used${used ? ` by ${used} item${used === 1 ? '' : 's'} in knowledge graphs` : ''}${child ? ' by other concepts' : ''}` }), true;
-        o[kind] = list.filter((x) => x !== cur);
-      } else {
-        if (body.action === 'add' && (cur || all[kind].some((x) => x.id === it.id))) return sendJson(res, 200, { ok: true, existing: true, ontology: systemOntology() }), true;
-        if (body.action === 'update' && !cur) return sendJson(res, 404, { error: 'not found' }), true;
-        if (kind === 'rules') {
-          // 일반 규칙 — chain: if [관계 1~3개, ^는 반대 방향] → then 관계 · limit: 관계 rel이 From(또는 To) 하나에 max개까지
-          const kRels = new Set(all.relations.filter((r) => r.source !== 'work').map((r) => r.id)), STEP = /^\^?[A-Za-z][\w-]{0,59}$/;
-          const base = { id: it.id, label: clip(it.label || it.id, 80), desc: clip(it.desc, 300) };
-          let nx;
-          if (it.kind === 'chain') {
-            const steps = Array.isArray(it.if) ? it.if.map(String) : [];
-            if (steps.length < 1 || steps.length > 3 || !steps.every((st) => STEP.test(st))) return sendJson(res, 400, { error: 'a chain rule has 1 to 3 steps (a relation id, ^ in front for the reverse direction)' }), true;
-            const bad = [...steps.map((st) => st.replace(/^\^/, '')), String(it.then || '')].find((r) => !kRels.has(r));
-            if (bad !== undefined) return sendJson(res, 400, { error: `unknown Knowledge relation ${bad || '(then)'}` }), true;
-            if (steps.length === 1 && steps[0] === it.then) return sendJson(res, 400, { error: 'that rule says nothing new' }), true;
-            nx = { ...base, kind: 'chain', if: steps, then: String(it.then) };
-          } else if (it.kind === 'limit') {
-            const max = Number(it.max);
-            if (!kRels.has(String(it.rel || ''))) return sendJson(res, 400, { error: `unknown Knowledge relation ${it.rel || ''}` }), true;
-            if (!Number.isInteger(max) || max < 1 || max > 1000) return sendJson(res, 400, { error: 'max must be a whole number from 1 to 1000' }), true;
-            nx = { ...base, kind: 'limit', rel: String(it.rel), per: it.per === 'to' ? 'to' : 'from', max };
-          } else return sendJson(res, 400, { error: 'rule kind must be chain|limit' }), true;
-          if (cur) { for (const k of Object.keys(cur)) delete cur[k]; Object.assign(cur, nx); } else list.push(nx);
-          saveOntology(o); audit(actor(req), `ontology.${body.action}`, `rule ${it.id}`); broadcast({ kind: 'ontology' });
-          return sendJson(res, 200, { ok: true, ontology: systemOntology() }), true;
-        }
-        const next = kind === 'classes'
-          ? { id: it.id, label: clip(it.label || it.id, 80), desc: clip(it.desc, 300), parent: clip(it.parent, 60) }
-          : { id: it.id, label: clip(it.label || it.id, 80), desc: clip(it.desc, 300), domain: clip(it.domain, 60), range: clip(it.range, 60),
-              inverse: clip(it.inverse, 60), symmetric: it.symmetric === true, transitive: it.transitive === true };   // 규칙 추론에 쓰는 성질
-        if (next.inverse && !all.relations.some((x) => x.id === next.inverse) && next.inverse !== next.id) return sendJson(res, 400, { error: `unknown inverse relation ${next.inverse}` }), true;
-        if (next.parent && (!clsIds.has(next.parent) || next.parent === next.id)) return sendJson(res, 400, { error: `unknown parent class ${next.parent}` }), true;
-        for (const end of ['domain', 'range']) if (next[end] && !clsIds.has(next[end]) && !(kind === 'classes')) return sendJson(res, 400, { error: `unknown ${end} class ${next[end]}` }), true;
-        if (cur) Object.assign(cur, next); else list.push(next);
-      }
-      saveOntology(o); audit(actor(req), `ontology.${body.action}`, `${{ classes: 'class', relations: 'relation', rules: 'rule' }[kind]} ${it.id}`);
-      broadcast({ kind: 'ontology' });
-      return sendJson(res, 200, { ok: true, ontology: systemOntology() }), true;
-    }
-    // ---- Workspace › Knowledge › 지식그래프(이 워크스페이스에 쌓인 개체·사실) ----
-    if (p === '/api/kg' && req.method === 'GET') {
-      const kg = loadKgStore(curWs()), ont = systemOntology(), lens = kgLens(kg, ont);
-      return sendJson(res, 200, { ...lens, version: kg.version || 1, ontology: ont }), true;
-    }
-    if (p === '/api/kg/ttl' && req.method === 'GET') {
-      const ws = curWs(), kg = loadKgStore(ws);
-      const body = Buffer.from(analysisTurtle({ id: 'kg', ontology: systemOntology(), graph: kg, summary: `Knowledge graph of workspace ${ws}` }, ws, 'knowledge-graph'));
-      res.writeHead(200, { 'content-type': 'text/turtle; charset=utf-8', 'content-length': body.length, 'cache-control': 'no-store', 'content-disposition': `attachment; filename="ana-knowledge-graph-${ws}.ttl"` });
-      return res.end(body), true;
-    }
-    if (p === '/api/kg' && req.method === 'POST') {
-      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
-      const body = await jsonBody(req, res); if (!body) return true;
-      const ws = curWs(), kg = loadKgStore(ws);
-      if (body.action === 'remove-entity') {
-        const before = kg.entities.length; kg.entities = kg.entities.filter((e) => e.id !== body.id);
-        if (kg.entities.length === before) return sendJson(res, 404, { error: 'not found' }), true;
-        kg.facts = kg.facts.filter((f) => f.from !== body.id && f.to !== body.id);
-      } else if (body.action === 'remove-fact') {
-        const before = kg.facts.length; kg.facts = kg.facts.filter((f) => !(f.from === body.from && f.rel === body.rel && f.to === body.to));
-        if (kg.facts.length === before) return sendJson(res, 404, { error: 'not found' }), true;
-      } else return sendJson(res, 400, { error: 'action must be remove-entity|remove-fact' }), true;
-      saveKgStore(ws, kg); audit(actor(req), `kg.${body.action}`, String(body.id || `${body.from} ${body.rel} ${body.to}`).slice(0, 80)); broadcast({ kind: 'analysis' });
-      return sendJson(res, 200, { ok: true }), true;
-    }
-    if (p.startsWith('/api/analysis')) {
-      const ws = curWs(), a = loadAnalysis(ws);
-      const job = (id) => a.jobs.find((j) => j.id === Number(id));
-      const tell = () => broadcast({ kind: 'analysis', version: a.version });
-      if (p === '/api/analysis' && req.method === 'GET') { const kg = loadKgStore(ws); return sendJson(res, 200, { jobs: a.jobs, latest: a.jobs[a.jobs.length - 1] || null, ontology: systemOntology(), kg: { entities: kg.entities.length, facts: kg.facts.length } }), true; }
-      if (p === '/api/analysis/ttl' && req.method === 'GET') {
-        const j = job(url.searchParams.get('id')); if (!j || j.status !== 'done') return sendJson(res, 404, { error: 'no finished analysis' }), true;
-        const body = Buffer.from(analysisTurtle(j, ws));
-        res.writeHead(200, { 'content-type': 'text/turtle; charset=utf-8', 'content-length': body.length, 'cache-control': 'no-store', 'content-disposition': `attachment; filename="ana-analysis-${j.id}.ttl"` });
-        return res.end(body), true;
-      }
-      if (p === '/api/analysis/input' && req.method === 'GET') {
-        const j = job(url.searchParams.get('id')); if (!j) return sendJson(res, 404, { error: 'no such analysis' }), true;
-        const st = loadData(ws), want = new Set(j.itemIds);
-        const items = [
-          ...st.notes.filter((n) => want.has(n.id)).map((n) => ({ id: n.id, kind: 'Note', title: n.title || '', text: clip(n.text, 8000) })),
-          ...st.items.filter((t) => want.has(t.id)).map((t) => ({ id: t.id, kind: 'Task', title: t.title || t.text || '', due: t.due || '', done: !!t.done })),
-          ...st.events.filter((e) => want.has(e.id)).map((e) => ({ id: e.id, kind: 'Event', title: e.title || '', date: e.date || '', time: e.time || '', done: !!e.done })),
-        ];
-        return sendJson(res, 200, { id: j.id, focus: j.focus, items, links: (st.links || []).filter((l) => want.has(l.from) && want.has(l.to)),
-          ontology: { ...systemOntology(),
-            note: 'The shared ontology of this ANA — a guide, not a limit. Two layers: source "work" = the Work ontology, what the work process needs to run (its notes, tasks, events… — fixed by the code); source "knowledge" = the Knowledge ontology, what accumulates from doing the work (kept by the admin). Your entities and facts belong to the Knowledge layer. "rules" derive facts automatically when the graph is read (chains, inverse, symmetric, transitive) or mark facts that break a limit — do not state facts a rule already implies. Prefer these ids when they fit. When they do not, say what you actually found: add your own classes/relations (declare them in ontology.classes/relations). Nothing is dropped for not fitting; it is kept, shown as not fitting yet, and the admin is asked to add or adjust the concept.' },
-          rules: 'Use class ids for entity.class and relation ids for fact.rel — from the ontology or ones you declare. A fact should respect its relation\'s domain → range (sub-classes count); facts that do not are kept but marked as not fitting and listed under issues. Only facts pointing at missing entities are dropped.' }), true;
-      }
-      if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' }), true;
-      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
-      const body = await jsonBody(req, res, 4 * 1024 * 1024); if (!body) return true;
-      const now = new Date().toISOString();
-      if (p === '/api/analysis/start') {
-        if (a.jobs.some((j) => j.status === 'running')) return sendJson(res, 409, { error: 'An analysis is already running — wait for it or cancel it' }), true;
-        const kinds = (Array.isArray(body.kinds) ? body.kinds : []).filter((k) => ANALYSIS_KINDS[k]);
-        if (!kinds.length) return sendJson(res, 400, { error: 'Pick at least one of notes, tasks, events' }), true;
-        const st = loadData(ws), openOnly = body.openOnly === true;
-        const ids = [
-          ...(kinds.includes('notes') ? st.notes.map((n) => n.id) : []),
-          ...(kinds.includes('tasks') ? st.items.filter((t) => !openOnly || !t.done).map((t) => t.id) : []),
-          ...(kinds.includes('events') ? st.events.filter((e) => !openOnly || !e.done).map((e) => e.id) : []),
-        ];
-        if (!ids.length) return sendJson(res, 400, { error: 'Nothing to analyze in the chosen items' }), true;
-        const j = { id: a.next++, status: 'running', progress: 0, step: 'Waiting for the agent', kinds, openOnly, focus: clip(body.focus, 300), itemIds: ids,
-          counts: { notes: kinds.includes('notes') ? st.notes.length : 0, tasks: ids.filter((x) => st.items.some((t) => t.id === x)).length, events: ids.filter((x) => st.events.some((e) => e.id === x)).length }, at: now, updatedAt: now };
-        a.jobs.push(j); while (a.jobs.length > 10) a.jobs.shift();
-        saveAnalysis(ws, a); audit(actor(req), 'analysis.start', `#${j.id} ${ids.length} items`); tell();
-        return sendJson(res, 200, { ok: true, job: j }), true;
-      }
-      const j = job(body.id); if (!j) return sendJson(res, 404, { error: 'no such analysis' }), true;
-      // 외부 뷰어용 공개 링크(24시간). 이미 있고 6시간 넘게 남았으면 그대로 쓴다.
-      if (p === '/api/analysis/share') {
-        if (j.status !== 'done') return sendJson(res, 409, { error: 'Only a finished analysis can be opened elsewhere' }), true;
-        if (!j.share || Date.parse(j.share.exp) - Date.now() < 6 * 3600 * 1000) {
-          j.share = { token: crypto.randomBytes(20).toString('hex'), exp: new Date(Date.now() + SHARE_TTL_MS).toISOString() };
-          saveAnalysis(ws, a); audit(actor(req), 'analysis.share', `#${j.id}`);
-        }
-        return sendJson(res, 200, { ok: true, path: `/api/analysis/shared/${j.share.token}/ana-analysis-${j.id}.ttl`, exp: j.share.exp }), true;
-      }
-      if (p === '/api/analysis/progress') {
-        if (j.status !== 'running') return sendJson(res, 409, { error: `analysis is ${j.status}` }), true;
-        const pct = Number(body.progress);
-        if (Number.isFinite(pct)) j.progress = Math.max(j.progress, Math.min(99, Math.round(pct)));   // 완료(100)는 result가 정한다
-        if (body.step) j.step = clip(body.step, 200);
-        j.updatedAt = now; saveAnalysis(ws, a); tell(); return sendJson(res, 200, { ok: true }), true;
-      }
-      if (p === '/api/analysis/result') {
-        if (j.status !== 'running') return sendJson(res, 409, { error: `analysis is ${j.status}` }), true;
-        const sys = systemOntology();
-        const r2 = cleanAnalysis(body, new Set(j.itemIds), sys);
-        if (!r2.ontology.classes.length && !r2.graph.entities.length) return sendJson(res, 400, { error: 'result needs ontology.classes or graph.entities', issues: r2.issues }), true;
-        // 시스템 온톨로지에 없는 개념 → 관리자 승인요청(승인되면 개념이 추가되고, 그 개념을 쓰는 사실이 지식그래프에 들어간다)
-        const known = { classes: new Set(sys.classes.map((c) => c.id)), relations: new Set(sys.relations.map((x) => x.id)) };
-        const newConcepts = [];
-        // 결과가 선언 없이 쓴 클래스·관계도 개념 후보로(에이전트가 틀 밖에서 자유롭게 쓴 말을 관리자가 정리할 수 있게)
-        const declared = { classes: new Set(r2.ontology.classes.map((c) => c.id)), relations: new Set(r2.ontology.relations.map((x) => x.id)) };
-        for (const e of r2.graph.entities) if (e.class && !known.classes.has(e.class) && !declared.classes.has(e.class) && CONCEPT_ID.test(e.class)) { declared.classes.add(e.class); r2.ontology.classes.push({ id: e.class, label: e.class, desc: '', parent: '', undeclared: true }); }
-        for (const f of r2.graph.facts) if (!known.relations.has(f.rel) && !declared.relations.has(f.rel) && CONCEPT_ID.test(f.rel)) { declared.relations.add(f.rel); r2.ontology.relations.push({ id: f.rel, label: f.rel, desc: '', domain: '', range: '', undeclared: true }); }
-        // 새로 쓰인 말은 관리자에게 '정리 요청' 하나로 묶는다 — 일의 승인요청 사이에 개념마다 하나씩 끼지 않게(막지 않음: 이미 쓰이고 있다)
-        const fresh = [];
-        for (const [k, what] of [['classes', 'class'], ['relations', 'relation']]) for (const c of r2.ontology[k]) {
-          if (c.inherited || known[k].has(c.id) || !CONCEPT_ID.test(c.id)) continue;
-          fresh.push({ what, item: c });
-        }
-        if (fresh.length) {
-          const words = fresh.map((x) => x.item.label || x.item.id);
-          const r = addAdminItem({ type: 'approval', title: `Tidy up the ontology: ${fresh.length} new word${fresh.length === 1 ? '' : 's'} from analysis #${j.id}`, ref: `onto:analysis:${ws}:${j.id}`,
-            desc: `${words.slice(0, 12).join(', ')}${words.length > 12 ? ', …' : ''}\nAlready used in workspace ${ws}. Approving adds them to the Knowledge ontology for every workspace.`,
-            action: { kind: 'ontology.add-many', items: fresh } }, { kind: 'agent', by: 'ana' }, ws);
-          for (const x of fresh) newConcepts.push({ what: x.what, id: x.item.id, label: x.item.label || x.item.id, adminId: r.item ? r.item.id : null });
-        }
-        if (newConcepts.length) broadcast({ kind: 'admin' });
-        Object.assign(j, r2, { status: 'done', progress: 100, step: 'Done', updatedAt: now, doneAt: now, newConcepts, applied: false });
-        saveAnalysis(ws, a); audit(actor(req), 'analysis.done', `#${j.id} ${r2.ontology.classes.length} classes, ${r2.graph.entities.length} entities`); tell();
-        return sendJson(res, 200, { ok: true, classes: r2.ontology.classes.length, relations: r2.ontology.relations.length, entities: r2.graph.entities.length, facts: r2.graph.facts.length, issues: r2.issues,
-          newConcepts: newConcepts.map((c) => `${c.what} ${c.id}`), note: 'The user approves adding this to the workspace knowledge graph (Inbox › Approvals). Nothing that does not fit the ontology is lost: it is kept and shown as not fitting yet, and new concepts go to the admin to tidy up.' }), true;
-      }
-      // 분석 결과를 이 워크스페이스의 지식그래프에 더하기(실무자 승인) / 버리기
-      if (p === '/api/analysis/apply' || p === '/api/analysis/discard') {
-        if (j.status !== 'done' || j.applied || j.discarded) return sendJson(res, 409, { error: 'Only a finished analysis that is not added yet' }), true;
-        if (p.endsWith('discard')) { j.discarded = true; j.decidedAt = now; saveAnalysis(ws, a); audit(actor(req), 'analysis.discard', `#${j.id}`); tell(); return sendJson(res, 200, { ok: true }), true; }
-        const r = mergeIntoKg(ws, j.graph || {}, j.id);
-        Object.assign(j, { applied: true, decidedAt: now, appliedBy: actor(req), appliedCount: r.added });
-        saveAnalysis(ws, a); audit(actor(req), 'analysis.apply', `#${j.id} +${r.added.entities} entities +${r.added.facts} facts`); tell();
-        return sendJson(res, 200, { ok: true, added: r.added }), true;
-      }
-      if (p === '/api/analysis/fail' || p === '/api/analysis/cancel') {
-        if (j.status !== 'running') return sendJson(res, 409, { error: `analysis is ${j.status}` }), true;
-        j.status = p.endsWith('fail') ? 'failed' : 'cancelled'; j.step = j.status === 'failed' ? clip(body.reason || 'Failed', 300) : 'Cancelled'; j.updatedAt = now;
-        saveAnalysis(ws, a); tell(); return sendJson(res, 200, { ok: true }), true;
-      }
-      return sendJson(res, 404, { error: 'unknown analysis route' }), true;
-    }
-
-    // ---- 관리자 함 ----
-    //  GET  /api/admin/inbox            관리자: 전부 / 실무자: 내가 올린 것만(mine)
-    //  POST /api/admin/requests         {type: approval|work, title, desc?, ref?, action?{kind,…}} — 실무자·에이전트 누구나
-    //  POST /api/admin/act              {id, action: approve|reject|start|done|fail|cancel|reopen, note?} — 관리자만
-    if (p === '/api/admin/inbox' && req.method === 'GET') {
-      const a = loadAdmin(), me = actor(req), admin = isAdmin(req);
-      return sendJson(res, 200, { role: roleOf(req), me, items: admin ? a.items : a.items.filter((x) => x.from && x.from.by === me), version: a.version || 1 }), true;
-    }
-    if (p === '/api/admin/requests' && req.method === 'POST') {
-      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
-      const body = await jsonBody(req, res); if (!body) return true;
-      const r = addAdminItem(body, { kind: who(req) ? 'member' : 'agent', by: actor(req) }, curWs());
-      if (r.error) return sendJson(res, 400, { error: r.error }), true;
-      if (!r.existing) { audit(actor(req), `admin.${r.item.type}`, `#${r.item.id}`); broadcast({ kind: 'admin' }); }
-      return sendJson(res, 200, { ok: true, item: r.item, existing: !!r.existing }), true;
-    }
-    if (p === '/api/admin/act' && req.method === 'POST') {
-      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
-      const body = await jsonBody(req, res); if (!body) return true;
-      const a = loadAdmin(), it = a.items.find((x) => x.id === Number(body.id));
-      if (!it) return sendJson(res, 404, { error: 'not found' }), true;
-      // 실무자는 자기가 올린 것을 취소만 할 수 있다
-      if (!isAdmin(req) && !(body.action === 'cancel' && it.from && it.from.by === actor(req))) return needAdmin(res, 'This');
-      const NEXT = { approve: 'done', reject: 'rejected', start: 'doing', done: 'done', fail: 'failed', cancel: 'cancelled', reopen: 'open' };
-      if (!NEXT[body.action]) return sendJson(res, 400, { error: 'action must be approve|reject|start|done|fail|cancel|reopen' }), true;
-      if (it.type === 'approval' && ['start'].includes(body.action)) return sendJson(res, 400, { error: 'approvals are approved or rejected' }), true;
-      if (it.type === 'work' && ['approve', 'reject'].includes(body.action)) return sendJson(res, 400, { error: 'action requests are started, done, failed or cancelled' }), true;
-      const now = new Date().toISOString();
-      it.status = NEXT[body.action]; it.updatedAt = now;
-      it.note = body.action === 'reopen' ? '' : String(body.note || it.note || '').slice(0, 1000);
-      if (body.action !== 'start' && body.action !== 'reopen') { it.decidedBy = actor(req); it.decidedAt = now; }
-      saveAdmin(a); audit(actor(req), `admin.${body.action}`, `#${it.id}`); broadcast({ kind: 'admin' });
-      // 에이전트가 올린 것은 결과를 에이전트에게 알린다(승인된 동작의 실행은 관리자 화면이 맡는다)
-      if (it.from && it.from.kind === 'agent' && ['approve', 'reject', 'done', 'fail', 'cancel'].includes(body.action)) {
-        queueNotify('admin.decision', `Admin ${it.type} #${it.id} "${it.title.replace(/[\r\n]+/g, ' ')}" was ${it.status}${it.note ? ': ' + it.note.replace(/[\r\n]+/g, ' ') : ''}.`);
-        tryDeliver(ctx).catch(() => {});
-      }
-      return sendJson(res, 200, { ok: true, item: it }), true;
-    }
-
-    // 진화 제안 조회 — ?scope=system|workspace (workspace는 지금 워크스페이스 것만)
     if (p === '/api/evolve' && req.method === 'GET') {
-      const ev = loadEvolve(), sc = url.searchParams.get('scope'), ws = curWs();
-      if (!sc) return sendJson(res, 200, ev), true;
-      return sendJson(res, 200, { ...ev, proposals: ev.proposals.filter((x) => (x.scope || 'system') === sc && (sc === 'system' || x.ws === ws)) }), true;
+      return sendJson(res, 200, loadEvolve()), true;
     }
     // 데이터 변경 제안 전체(대기·적용 중·적용됨·거절됨) — 협업 › Approvals의 네 목록용. 이 워크스페이스, 최근 100개
     if (p === '/api/proposals' && req.method === 'GET') {
@@ -2067,7 +1119,6 @@ function createDashboardApi(core, opts) {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
       const body = await jsonBody(req, res); if (!body) return true;
       const incoming = Array.isArray(body.proposals) ? body.proposals : (body.title ? [body] : []);
-      const insIn = (Array.isArray(body.insights) ? body.insights : []).filter((x) => x && typeof x.title === 'string' && x.title.trim()).slice(0, 12);
       const valid = [];
       for (const x of incoming) {
         if (!x || typeof x !== 'object' || typeof x.title !== 'string' || !x.title.trim()) continue;
@@ -2075,87 +1126,40 @@ function createDashboardApi(core, opts) {
         if (x.horizon !== undefined && !EVO_HORIZONS.includes(x.horizon)) return sendJson(res, 400, { error: `horizon must be ${EVO_HORIZONS.join('|')}` }), true;
         valid.push(x);
       }
-      if (!valid.length && !insIn.length) return sendJson(res, 400, { error: 'proposals[] or insights[] with title required' }), true;
+      if (!valid.length) return sendJson(res, 400, { error: 'proposals[] with title required' }), true;
       const ev = loadEvolve();
-      // 인사이트: 일과 지식에서 본 것(제안보다 먼저). 같은 요청의 제안은 "insight": <이 배열의 번호>로 잇는다
-      if (!Array.isArray(ev.insights)) ev.insights = [];
-      ev.nextInsight = ev.nextInsight || 1;
-      const insIds = insIn.map((x) => {
-        const scope = x.scope === 'workspace' ? 'workspace' : 'system';
-        const it = { id: ev.nextInsight++, scope, ...(scope === 'workspace' ? { ws: curWs() } : {}), title: clip(x.title, 200), detail: clip(x.detail, 1000), decide: clip(x.decide, 400),
-          items: (Array.isArray(x.items) ? x.items : []).map(String).filter((id) => /^[\w:-]{1,80}$/.test(id)).slice(0, 12), status: 'new', at: new Date().toISOString() };
-        ev.insights.push(it); return it.id;
-      });
-      if (ev.insights.length > 60) ev.insights = ev.insights.slice(-60);
-      for (const x of valid) if (Number.isInteger(x.insight) && insIds[x.insight]) x.insightId = insIds[x.insight];
       const seen = new Set(ev.proposals.filter((p2) => !['done', 'dismissed', 'failed'].includes(p2.status)).map((p2) => (p2.title || '').trim()));
       const added = [];
       for (const x of valid) {
         const title = String(x.title).slice(0, 200);
         if (seen.has(title.trim())) continue; // dedup(coding-M6)
         seen.add(title.trim());
-        const scope = x.scope === 'workspace' ? 'workspace' : 'system';
-        const pr = { id: ev.next++, type: x.type || 'improve', title, desc: String(x.desc || '').slice(0, 1000), status: 'new', at: new Date().toISOString(),
-          scope, ...(scope === 'workspace' ? { ws: curWs() } : {}), ...evoInsight(x) };
-        if (Number.isInteger(x.reqId) && loadRequirements().items.some((r) => r.id === x.reqId)) pr.reqId = x.reqId;   // 어느 요구사항에서 나온 제안인지
+        const pr = { id: ev.next++, type: x.type || 'improve', title, desc: String(x.desc || '').slice(0, 1000), status: 'new', at: new Date().toISOString(), ...evoInsight(x) };
         ev.proposals.push(pr); added.push(pr);
       }
       if (ev.proposals.length > 50) ev.proposals = ev.proposals.slice(-50);
       ev.version = (ev.version || 1) + 1; saveEvolve(ev);
       broadcast({ kind: 'evolve', version: ev.version });
-      return sendJson(res, 200, { ok: true, ids: added.map((x) => x.id), added: added.length, insights: insIds, version: ev.version }), true;
+      return sendJson(res, 200, { ok: true, ids: added.map((x) => x.id), added: added.length, version: ev.version }), true;
     }
 
-    // 인사이트 치우기 — {id, action: dismiss|restore}
-    if (p === '/api/insight-act' && req.method === 'POST') {
-      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
-      const body = await jsonBody(req, res); if (!body) return true;
-      const ev = loadEvolve(), it = (ev.insights || []).find((x) => x.id === body.id);
-      if (!it) return sendJson(res, 404, { error: 'not found' }), true;
-      if (!['dismiss', 'restore'].includes(body.action)) return sendJson(res, 400, { error: 'action must be dismiss|restore' }), true;
-      it.status = body.action === 'dismiss' ? 'dismissed' : 'new'; it.updatedAt = new Date().toISOString();
-      ev.version = (ev.version || 1) + 1; saveEvolve(ev); broadcast({ kind: 'evolve', version: ev.version });
-      return sendJson(res, 200, { ok: true }), true;
-    }
-    // 진화 제안 처리: do → 수행요청 통지(pull큐) / done → 완료 / ignore → 제거
+    // 진화 제안 처리 — {id, action: do|done|fail|ignore|reopen}
     if (p === '/api/evolve-act' && req.method === 'POST') {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
       const body = await jsonBody(req, res); if (!body) return true;
-      if (!['do', 'done', 'fail', 'ignore', 'reopen', 'escalate'].includes(body.action)) return sendJson(res, 400, { error: 'action must be do|done|fail|ignore|reopen|escalate' }), true;
+      if (!['do', 'done', 'fail', 'ignore', 'reopen'].includes(body.action)) return sendJson(res, 400, { error: 'action must be do|done|fail|ignore|reopen' }), true;
       const ev = loadEvolve();
       const pr = ev.proposals.find((x) => x.id === body.id);
       if (!pr) return sendJson(res, 404, { error: 'not found' }), true;
-      const system = (pr.scope || 'system') === 'system';
-      // 시스템 진화를 시작·취소·되살리는 결정은 관리자만(완료·실패 보고는 실행한 쪽이 한다)
-      if (system && ['do', 'ignore', 'reopen'].includes(body.action) && !isAdmin(req)) return needAdmin(res, `Starting system proposal #${pr.id}`);
-      // 워크스페이스 제안을 시스템으로 올리기 — 새 기능이 있어야 할 때. 원래 제안은 그대로 두고 서로 잇는다
-      if (body.action === 'escalate') {
-        if (system) return sendJson(res, 400, { error: 'Already a system proposal' }), true;
-        if (pr.escalatedTo && ev.proposals.some((x) => x.id === pr.escalatedTo && !['done', 'dismissed', 'failed'].includes(x.status)))
-          return sendJson(res, 200, { ok: true, proposal: ev.proposals.find((x) => x.id === pr.escalatedTo), existing: true }), true;
-        const np = { id: ev.next++, type: pr.type, title: pr.title, desc: [pr.desc, `From workspace proposal #${pr.id} (${pr.ws}).`].filter(Boolean).join('\n').slice(0, 1000),
-          status: 'new', at: new Date().toISOString(), scope: 'system', fromId: pr.id, fromWs: pr.ws, ...(pr.reqId ? { reqId: pr.reqId } : {}), ...evoInsight(pr) };
-        ev.proposals.push(np); pr.escalatedTo = np.id; pr.updatedAt = np.at;
-        if (ev.proposals.length > 80) ev.proposals = ev.proposals.slice(-80);
-        ev.version = (ev.version || 1) + 1; saveEvolve(ev); broadcast({ kind: 'evolve', version: ev.version });
-        audit(actor(req), 'evolve.escalate', `#${pr.id} → #${np.id}`);
-        return sendJson(res, 200, { ok: true, proposal: np }), true;
-      }
       pr.status = { do: 'doing', done: 'done', fail: 'failed', ignore: 'dismissed', reopen: 'new' }[body.action];
       pr.failReason = body.action === 'fail' ? String(body.reason || '').trim().slice(0, 1000) : body.action === 'reopen' || body.action === 'do' ? '' : (pr.failReason || '');
       pr.updatedAt = new Date().toISOString();   // 협업 목록(대기·처리 중·완료·취소)에서 최근 것부터 보이게
       audit(actor(req), `evolve.${body.action}`, `#${pr.id}`);
       ev.version = (ev.version || 1) + 1; saveEvolve(ev);
       broadcast({ kind: 'evolve', version: ev.version });
-      // 요구사항에서 나온 제안이 끝나면 그 요구사항을 '다시 확인 필요'로 — 정말 반영됐는지 다시 분석하게
-      if (pr.reqId && body.action === 'done') {
-        const rq = loadRequirements(), it = rq.items.find((x) => x.id === pr.reqId);
-        if (it) { it.recheck = { proposalId: pr.id, at: pr.updatedAt }; if (it.analysis) it.analysis.stale = true; saveRequirements(rq, broadcast); }
-      }
       let notified;
       if (body.action === 'do') {
-        const scopeNote = system ? '' : ` This is a WORKSPACE proposal for workspace "${pr.ws}": change only that workspace's data through the APIs (diff via POST /api/agent, /api/link, notes/tasks/events routes, with ?ws=${pr.ws}) — do not change code; if it needs a new feature, escalate it with POST /api/evolve-act {"id":${pr.id},"action":"escalate"}.`;
-        const n = queueNotify('evolve.do', `Evolve proposal #${pr.id} requested — [${pr.type}] ${pr.title.replace(/[\r\n]+/g, ' ')}.${scopeNote} After applying, mark it done with POST /api/evolve-act {"id":${pr.id},"action":"done"}; if it can't be done, POST {"id":${pr.id},"action":"fail","reason":"why"}.`);
+        const n = queueNotify('evolve.do', `Evolve proposal #${pr.id} requested — [${pr.type}] ${pr.title.replace(/[\r\n]+/g, ' ')}. After applying, if what the app does changed, update the PRD (GET /api/prd, then POST /api/prd {"md":"…","note":"what changed","source":"agent"}), and mark it done with POST /api/evolve-act {"id":${pr.id},"action":"done"}; if it can't be done, POST {"id":${pr.id},"action":"fail","reason":"why"}.`);
         notified = await tryDeliver(ctx);
         return sendJson(res, 200, { ok: true, status: pr.status, version: ev.version, notified, notifyId: n.id }), true;
       }
@@ -2179,10 +1183,10 @@ function createDashboardApi(core, opts) {
   // 채널 코어가 '사람별 최근 세션'을 기억할 때 쓰는 키 — 신원이 없으면 빈 값(단일 사용자)
   const userKey = (req) => who(req);
   // 화면 버튼이 대신 보낸 지시문은 채팅이 아니라 그 일의 요청으로 기록한다(사용 기록이 실제 사용을 보여 주게)
-  const INSTR_ACTION = { Analyze: 'analysis.request', Evolve: 'evolve.request', Requirements: 'requirements.request', Update: 'update.request', Requests: 'requests.request', Approvals: 'approvals.request' };
+  const INSTR_ACTION = { Evolve: 'evolve.request', PRD: 'prd.request', Update: 'update.request', Requests: 'requests.request', Approvals: 'approvals.request' };
   const onChat = (req, text) => {
     const me = actor(req); touchUser(me);
-    const t = String(text), m = /^\[(Analyze|Evolve|Requirements|Update|Requests|Approvals|Request #\d+)\]\s*/.exec(t);
+    const t = String(text), m = /^\[(Evolve|Requests|Approvals|PRD|Update|Request #\d+)\]\s*/.exec(t);
     // 대화 원문은 에이전트 기록에 이미 있다 — 여기에는 앞 60자와 길이만
     if (!m) { const one = t.replace(/\s+/g, ' ').trim(); return audit(me, 'chat.send', one.length > 60 ? one.slice(0, 60) + '…' : one, `${t.length} chars`); }
     audit(me, m[1].startsWith('Request #') ? 'request.answer' : INSTR_ACTION[m[1]], `${m[1].startsWith('Request #') ? m[1].slice(8) + ' ' : ''}${t.slice(m[0].length).split('\n')[0]}`.replace(/\s+/g, ' ').slice(0, 80));
@@ -2192,7 +1196,6 @@ function createDashboardApi(core, opts) {
     extraApi, snapshotExtra, bootstrap, identify, onChat, userKey,
     // 테스트 export
     applyDiff, hasDiff, validateDiff, loadData, saveData, loadProposals, saveProposals, loadEvolve, saveEvolve, loadRequests, nextPid,
-    loadWorkspaces,
   };
 }
 

@@ -10,14 +10,14 @@ The user shouldn't have to type "the second task on the Tasks tab". They switch 
 ## UX spec
 
 ```
-[logo] [Workspace ▾]          ( ◉ Chip ) (✎) (⟳) (A)
+[logo] Work Requests Evolve PRD Update   ( ◉ Chip ) (✎) (⟳) (A)
                                           │    │    └ profile, always right-aligned
                                           │    └ rescan: register new on-screen elements as chip targets
                                           └ draw: only shown while Chip is on, placed BEFORE ⟳
 ```
 
 - **Chip toggle:** a switch. While on, chip-able items get a subtle affordance (outline on hover/tap target). Tapping an item adds a chip above the chat input: `[Task] Book the venue ✕`. Tapping it again removes the chip. Chips are sent as a `Context:` block (`- [Kind] text`), and the chat log view turns them back into chips on the user's bubble.
-- **Screen chip:** there's always one chip describing the view: workspace, tab, scroll position, viewport size.
+- **Screen chip:** there's always one chip describing the view: tab, scroll position, viewport size.
 - **✎ Draw (annotation):** covers the page with a canvas. The bar at the bottom has pen colors **red `#FF0000`, magenta `#FF00FF`, blue `#0000FF`**: pure hues the model recognizes reliably. Strokes are 5px color over a 9px white outline so they read on any background. Buttons: **Undo / Cancel / Add to chat**. Mostly used to circle things, like annotating a slide.
 - **Add to chat:**
   1. Captures the page (`modern-screenshot`, served locally at `/vendor/modern-screenshot.mjs`) and composites the strokes on top.
@@ -44,7 +44,7 @@ The user shouldn't have to type "the second task on the Tasks tab". They switch 
 2. Copy the header buttons (`#modeToggle`, `#drawBtn`, `#chipScanBtn`) into the target's header, before its profile button. Copy the CSS for `.mode-toggle`, `.chip*`, `.draw-layer`, `.draw-bar`, `.chip-new`.
 3. **Rewrite `CAP` for the target's own domain.** das-ana has disks/volumes, not tasks. List the target's unit elements (cards, rows, KPIs) with a kind and a short text getter. This is the only part that is not copy-paste.
 4. Copy the JS blocks listed above. `buildMessage()` must prepend the `Context:` block exactly as upstream, because the chat log view parses it back into chips.
-5. Mobile header spacing: the Chip switch, ✎, ⟳, and profile keep 8px gaps. Their group sits at the right (`margin-left: auto` on the toggle when there's no workspace combo).
+5. Mobile header spacing: the Chip switch, ✎, ⟳, and profile keep 8px gaps. Their group sits at the right (`margin-left: auto` on the toggle).
 
 ## Verify
 

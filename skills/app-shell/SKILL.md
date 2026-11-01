@@ -1,54 +1,55 @@
 ---
 name: app-shell
-description: Port ANA's app shell — the two scopes Workspace (members — Work · Knowledge · Files · Inbox) and System (admin — Inbox · Roadmap · Health, dark header band), the bottom menu per scope on phones, the desktop scope switch next to the logo, the workspace combo (switch, add, rename, delete, drag-reorder), Inbox and System badges, right-aligned profile, "New version available" reload pill, and per-scope remembered tabs. Use when the user says "하단 메뉴", "워크스페이스와 시스템", "Workspace System 나누기", "탭 구조", "워크스페이스 콤보", "모바일 네비게이션", "받은함", "로드맵", or when ana-update reports app-areas / workspaces missing.
+description: Port ANA's app shell — one workspace, five top tabs (Work with a sub-tab per kind of work, Requests · Evolve · Update with Waiting / In progress / Done, PRD with Current / History), the bottom menu on phones, sub-tabs, badges, right-aligned profile, "New version available" reload pill, and the remembered tab. Use when the user says "하단 메뉴", "탭 구조", "모바일 네비게이션", "워크 탭", "서브탭", or when ana-update reports app-tabs missing.
 ---
 
 # app-shell — where things live
 
-Two scopes, and the top of the screen always says which one you are in:
+One workspace, five tabs:
 
-- **Workspace** (members): **Work** (where work is done — the app's own tabs; base: Tasks · Calendar · Notes), **Graph** (the workspace's two graphs: *Work · Knowledge*; Analyze lives in Knowledge), **Files** (this workspace's folder), **Inbox** (everything waiting on you here — see agent-requests). The header shows the **workspace combo**.
-- **System** (admin only): **Inbox** (approvals and action requests for the admin), **Roadmap** (requirements → proposals → building → checked, plus upstream updates), **Ontology** (*Work · Knowledge*, each *Classes · Relations · Rules*), **Health** (all checks on one page plus usage — see trust-checks). The header turns into a dark band labelled SYSTEM.
-
-Members never see System: the server refuses admin actions anyway (see agent-requests › Admin and member); the shell just hides the scope.
+| Tab | Sub-tabs | What |
+|---|---|---|
+| **Work** | one per kind of work (base: Tasks · Calendar · Notes) | where work is done — the domain's own screens |
+| **Requests** | Waiting · In progress · Done | what the agent needs from you (see agent-requests) |
+| **Evolve** | Waiting · In progress · Done | proposals for the work and the app (see agent-requests) |
+| **PRD** | Current · History | what this ANA is and does (see agent-requests) |
+| **Update** | Waiting · In progress · Done | features from upstream not yet here (see ana-update) |
 
 ## UX spec
 
 ```
 Mobile (≤768px)                                        Desktop
-┌───────────────────────────────────┐                  [logo ANA] [Workspace•3|System•4]  Tasks Calendar Notes Knowledge Files Inbox   (Chip)(A)
-│[logo][Base Workspace ▾] (Chip)(A) │                  System:  dark band, [SYSTEM · Admin]  Inbox Roadmap Health
-│ Tasks  Calendar  Notes            │  ← only while in Work
+┌───────────────────────────────────┐                  [logo ANA]  Work  Requests•3  Evolve•1  PRD  Update•2     (Chip)(✎)(⟳)(A)
+│[logo]                  (Chip)(A)  │                  ─────────────────────────────────────────
+│ Tasks  Calendar  Notes            │  ← sub-tabs      Tasks  Calendar  Notes
 │ …                                  │
 │                        (chat FAB)  │  FAB sits above the bottom nav
 ├───────────────────────────────────┤
-│ Work  Knowledge  Files  Inbox•3  System•4 │  Workspace scope (System only for the admin)
-│ Inbox•2  Roadmap•1  Health  ‹ Workspace   │  System scope
+│ Work  Requests•3 Evolve•1 PRD Update│
 └───────────────────────────────────┘
 ```
 
-- The profile avatar is **always the rightmost** item in the header.
-- The **last tab per scope** is remembered (`localStorage ana-area`, `ana-area-tabs`). Jumping to a tab of the other scope (a request card's link, an instruction card's Open) switches scope automatically.
-- **One kind per page:** pages with several kinds use sub-tabs (`SUBTABS`, `renderSubtabs`, `openSub`, `curSub`; content in `[data-subsec]`, sub-tab-only buttons in `[data-for]`): Workspace Inbox *Approvals · Action requests · Evolve · Sent*, System Inbox *Approvals · Action requests · Evolve* (Evolve is always in the Inbox — deciding; the Roadmap only follows progress), Graph *Work · Knowledge*, Ontology *Work · Knowledge* (with a Classes · Relations · Rules pill switch inside), Roadmap *Requirements · Updates*, Ontology *Classes · Relations*, Health *Trustworthiness · Safety · Security · Tests · Usage*. Sub-tabs and `.toolbar` never wrap on phones (they scroll sideways).
-- Lists inside Inbox, Roadmap and the admin Inbox filter **Open / Done** only (open = waiting + in progress, done = done + failed + cancelled); each card still shows its own state and actions.
-- Views get bottom padding so the nav never covers content. The chat FAB moves up (`bottom: 74px + safe-area`).
+- The profile avatar is **always the rightmost** item in the header; on phones the top tab strip is hidden (the bottom menu does its job) and the Chip switch group sits at the right (`#modeToggle { margin-left: auto }`).
+- The **last tab** is remembered (`localStorage ana-tab`), and each tab's sub-tab too (`ana-subtabs`).
+- **Work sub-tabs switch screens:** each Work screen (`todoView`, `scheduleView`, `memoView`) carries the same `<nav class="subtabs" data-sub="work">`; picking one shows that screen. A domain ANA replaces them with its own kinds of work.
+- **Status sub-tabs** (Requests, Evolve, Update): Waiting · In progress · Done (`STATUS_TABS`). Done also holds failed and cancelled items; each card still shows its own state and actions. Waiting and In progress show a count.
+- Sub-tabs and `.toolbar` never wrap on phones (they scroll sideways). Views get bottom padding so the nav never covers content. The chat FAB moves up (`bottom: 74px + safe-area`).
+- **Badges** on Requests, Evolve and Update count what is waiting (`setBadge('data-reqbadge' | 'data-evobadge' | 'data-updbadge', n)`).
 - **New version pill:** when `/api/health.build` changes, "New version available — tap to reload" appears **under the header**. Its `onclick` must reload.
 
 ## Anchors / code (upstream `dashboard.html`)
 
-`.modeseg` buttons use **`data-area`** (`ws|sys`), not `data-mode` (the theme sets `data-mode` on `<html>`). Tabs carry `data-group="ws|sys"` (`AREAS`, `WORK_VIEWS`, `SYS_VIEWS`). Bottom-menu buttons carry `data-go="<area>:<view>"`, `data-nav` and `data-scope`; `syncBottomNav(view)` lights the current one; CSS shows only the buttons of the current scope (`body.sys-mode`). `body.in-work` hides the tab strip on phones outside Tasks · Calendar · Notes. Functions: `selectTab(b)` (the one place that switches views), `applyArea(mode)` (members can't enter `sys`), `setAppMode(mode, view)`, `updateSysBadge()` (`data-inboxbadge`, `data-sysbadge`, `data-admbadge`, `data-roadbadge`, `data-healthbadge`), `showTab(v)`, `usableTab(b)`. Workspaces: `#wsCombo`, `renderWorkspaces`, `switchWorkspace`, `saveWsOrder`, `/api/workspaces`.
+Top tabs and bottom-menu buttons carry `data-view` = `work | requests | evolve | prd | update`. `TABS`, `WORK_VIEWS`, `VIEWS` list them. Functions: `selectTab(b)` (the one place that switches tabs; for Work it shows `curSub('work')`), `showTab(v)` (any screen, including a Work screen → picks that sub-tab), `syncBottomNav(tab)`, `setBadge`. Sub-tabs: `SUBTABS`, `renderSubtabs` (renders every `.subtabs[data-sub=v]`, toggles `[data-subsec]`), `openSub`, `curSub`, `setSubCount`, `RENDER_SUB` (re-renders a status list when its sub-tab changes), `REFRESH_TAB` (loads a tab's data when it opens).
 
 ## Porting
 
-1. Decide the target's split with the user: which tabs are its Work (domain), and whether it has Knowledge / Files / Inbox. Everything that decides for every workspace goes under System. Add `data-group` to each tab and a bottom-menu button per destination.
-2. Copy the `.modeseg` block, the `.sys-label`, the `<nav class="bottomnav">` block, the CSS sections "영역" and "두 범위(Workspace · System)", and the JS block from `let appMode` through `setTimeout(() => setAppMode(appMode), 0)`. Replace the target's tab click handlers with `selectTab`.
-3. Views list: `selectTab` toggles `<view>View` sections by `data-view`. Make the list match the target's view ids.
-4. Never call `button.click()` inside a click handler to switch tabs (re-entrant clicks are dropped). Call `selectTab`.
+1. Decide the target's Work sub-tabs with the user (its own kinds of work). Put the Work `<nav class="subtabs" data-sub="work">` at the top of each Work screen and list them in `SUBTABS.work` and `WORK_VIEWS`.
+2. Copy the top tab strip, the `<nav class="bottomnav">` block, their CSS, and the JS block from `/* ================= 탭 전환` through the first `setTimeout(() => selectTab(…), 0)`, plus the sub-tab block. Replace the target's tab click handlers with `selectTab` / `showTab`.
+3. Never call `button.click()` inside a click handler to switch tabs (re-entrant clicks are dropped). Call `selectTab` or `showTab`.
 
-## Verify (390px and 1280px, as member and as admin)
+## Verify (390px and 1280px)
 
-- Member: bottom menu Work · Knowledge · Files · Inbox, no System; `setAppMode('sys')` stays in Workspace.
-- Admin: System appears; inside it the header is dark and the menu is Inbox · Roadmap · Health · Workspace.
-- On phones the top tab strip shows only in Work. No horizontal scroll.
-- Reload returns to the same scope and tab. A link into the other scope switches scope and tab.
-- Badges: Inbox = open requests + approvals + workspace suggestions; System = admin inbox + roadmap items to start + checks at risk.
+- Five tabs on desktop and in the bottom menu on phones; no horizontal scroll.
+- Work: each sub-tab opens its screen; a relation chip that points to an event opens Work › Calendar.
+- Requests / Evolve / Update: Waiting · In progress · Done each show their items; badges count Waiting.
+- Reload returns to the same tab and sub-tab. An instruction card's *Open* goes to its tab and sub-tab.

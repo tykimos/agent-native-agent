@@ -986,187 +986,6 @@ async function integration() {
       assert.ok(stats.graph.gaps.notesUnused.some((x) => x.id === n), '출처 관계가 없어진 메모는 미처리로 잡힌다');
     });
 
-    await ta('C16 관계 분석: 대상 선택→원문→진행률→결과(참조 검증)·동시 실행 막기·취소', async () => {
-      await post('/api/todo', { title: 'Call Acme about the quote' }); await post('/api/todo', { title: 'Book the Seoul venue' });
-      let r = await post('/api/analysis/start', { kinds: ['nope'] }); assert.equal(r.status, 400);
-      let j = await (await post('/api/analysis/start', { kinds: ['tasks'], focus: 'organizations' })).json();
-      const id = j.job.id; assert.equal(j.job.status, 'running'); assert.ok(j.job.itemIds.length >= 2);
-      r = await post('/api/analysis/start', { kinds: ['tasks'] }); assert.equal(r.status, 409, '한 번에 하나만');
-      const input = await (await fetch(`${api}/api/analysis/input?id=${id}`)).json();
-      assert.ok(input.items.some((x) => x.title === 'Call Acme about the quote'));
-      const src = input.items.find((x) => x.title === 'Call Acme about the quote').id;
-      await post('/api/analysis/progress', { id, progress: 150, step: 'Reading' });
-      let cur = (await (await fetch(`${api}/api/analysis`)).json()).latest; assert.equal(cur.progress, 99, '완료(100)는 결과가 정한다'); assert.equal(cur.step, 'Reading');
-      j = await (await post('/api/analysis/result', { id, summary: 's', ontology: { classes: [{ id: 'Org', label: 'Organization' }, { id: 'Sub', label: 'Sub', parent: 'Missing' }], relations: [{ id: 'client_of', label: 'client of', domain: 'Org', range: 'Org' }] },
-        graph: { entities: [{ id: 'acme', label: 'Acme', class: 'Org', sources: [src, 'not-an-item'] }, { id: 'us', label: 'Us', class: 'Org' }], facts: [{ from: 'acme', rel: 'client_of', to: 'us' }, { from: 'acme', rel: 'client_of', to: 'ghost' }] } })).json();
-      assert.deepEqual([j.classes, j.entities, j.facts], [2, 2, 1], '없는 개체를 가리키는 사실은 버린다');
-      cur = (await (await fetch(`${api}/api/analysis`)).json()).latest;
-      assert.equal(cur.status, 'done'); assert.equal(cur.progress, 100);
-      assert.deepEqual(cur.graph.entities[0].sources, [src], '없는 항목 id는 출처에서 뺀다');
-      assert.equal(cur.ontology.classes[1].parent, '', '없는 부모는 비운다');
-      r = await post('/api/analysis/result', { id, ontology: { classes: [{ id: 'X' }] } }); assert.equal(r.status, 409, '끝난 분석에는 다시 못 쓴다');
-      j = await (await post('/api/analysis/start', { kinds: ['tasks'] })).json();
-      await post('/api/analysis/cancel', { id: j.job.id });
-      assert.equal((await (await fetch(`${api}/api/analysis`)).json()).latest.status, 'cancelled');
-    });
-
-    await ta('C18 온톨로지는 시스템, 지식그래프는 워크스페이스: 틀은 렌즈(버리지 않고 표시) · 새 개념은 관리자에게 정리 요청 · 결과는 승인해야 지식그래프에 · 규칙 추론 · NodeRel · TTL', async () => {
-      // 시스템 온톨로지: 핵심(Note·Task·Event·Day, SPAWNED…)은 고정 + C16이 남긴 Org·client_of는 처음 읽을 때 옮겨 온다
-      let ont = await (await fetch(`${api}/api/ontology`)).json(), r0;
-      assert.ok(ont.classes.some((c) => c.id === 'Task' && c.source === 'work') && ont.relations.some((r) => r.id === 'SPAWNED' && r.source === 'work' && r.made === 'explicit'));
-      assert.deepEqual(ont.relations.find((r) => r.id === 'REFERS_TO').from, ['Note', 'Task', 'Event'], 'App 관계는 여러 클래스를 잇는다');
-      // C16 분석이 낸 새 개념(Org)은 시스템 온톨로지에 바로 들어가지 않고 관리자 승인요청이 됐다 → 승인(=추가)
-      // 분석 하나가 새로 쓴 말들은 관리자에게 '정리 요청' 하나로 묶인다
-      const words = (it) => ((it.action || {}).items || []).map((x) => x.item.id);
-      const orgReq = (await (await fetch(`${api}/api/admin/inbox`)).json()).items.find((x) => /^onto:analysis:/.test(x.ref) && words(x).includes('Org'));
-      assert.ok(orgReq && orgReq.action.kind === 'ontology.add-many' && /Tidy up the ontology/.test(orgReq.title), 'C16의 새 말 → 관리자 정리 요청 하나');
-      assert.ok(!ont.classes.some((c) => c.id === 'Org'));
-      await post('/api/ontology', { action: 'add', kind: 'class', item: orgReq.action.items.find((x) => x.item.id === 'Org').item });
-      r0 = await post('/api/ontology', { action: 'remove', kind: 'class', item: { id: 'Task' } });
-      assert.equal(r0.status, 400); assert.match((await r0.json()).error, /is in the Work ontology/, '워크 종류는 코드에서 — 편집 폼으로 못 바꾼다');
-      assert.equal((await (await post('/api/ontology', { action: 'add', kind: 'class', item: { id: 'Agent', label: 'Agent' } })).json()).ok, true);
-      assert.equal((await post('/api/ontology', { action: 'add', kind: 'relation', item: { id: 'works_for', domain: 'Agent', range: 'Nope' } })).status, 400, '없는 클래스를 가리키면 거절');
-      await post('/api/ontology', { action: 'add', kind: 'relation', item: { id: 'works_for', label: 'works for', domain: 'Agent', range: 'Org' } });
-      // 분석: 입력에 시스템 온톨로지
-      let j = await (await post('/api/analysis/start', { kinds: ['tasks'] })).json(); const id = j.job.id;
-      const input = await (await fetch(`${api}/api/analysis/input?id=${id}`)).json();
-      assert.ok(input.ontology.classes.some((c) => c.id === 'Agent') && input.rules);
-      const src = input.items.find((x) => x.title === 'Call Acme about the quote').id;
-      j = await (await post('/api/analysis/result', { id, summary: 'people', ontology: {
-        classes: [{ id: 'Person', label: 'Person', parent: 'Agent' }],
-        relations: [{ id: 'odd', label: 'odd', domain: 'Nope', range: 'Org' }] },
-        graph: { entities: [{ id: 'pat', label: '팻 김', class: 'Person', sources: [src] }, { id: 'acme', label: 'Acme "Co"', class: 'Org', sources: [src] }, { id: 'bob', label: 'Bob', class: 'Agent' }, { id: 'zed', label: 'Zed', class: 'Alien' }],
-          facts: [{ from: 'pat', rel: 'works_for', to: 'acme', sources: [src] }, { from: 'bob', rel: 'works_for', to: 'acme' }, { from: 'acme', rel: 'works_for', to: 'acme' }, { from: 'pat', rel: 'knows', to: 'acme' }] } })).json();
-      assert.equal(j.facts, 4, '틀은 렌즈: 모르는 관계·domain이 어긋난 사실도 버리지 않는다');
-      assert.match(j.issues.map((x) => x.msg).join('\n'), /"knows" is not in the ontology yet — kept/);
-      assert.match(j.issues.map((x) => x.msg).join('\n'), /meant to go from Agent.*kept, marked as not fitting/);
-      assert.deepEqual(j.newConcepts, ['class Person', 'class Alien', 'relation odd', 'relation knows'], '선언했든 그냥 썼든, 시스템에 없는 개념은 관리자에게');
-      const inbox = (await (await fetch(`${api}/api/admin/inbox`)).json()).items;
-      const req = inbox.find((x) => x.ref === `onto:analysis:default:${id}`);
-      assert.deepEqual(words(req).sort(), ['Alien', 'Person', 'knows', 'odd'], '한 분석의 새 말 넷이 요청 하나에');
-      const ap = { type: req.type, action: req.action.items.find((x) => x.item.id === 'Person') };
-      assert.ok(ap.type === 'approval' && ap.action.item.parent === 'Agent');
-      // 결과는 실무자가 승인해야 지식그래프에 — 승인 전에는 비어 있고 NodeRel에도 없다
-      assert.equal((await (await fetch(`${api}/api/kg`)).json()).entities.length, 0);
-      assert.equal((await fetch(`${api}/api/graph/neighbors?id=kg:acme`)).status, 404);
-      const ap2 = await (await post('/api/analysis/apply', { id })).json();
-      assert.deepEqual(ap2.added, { entities: 4, facts: 4 }, '모두 들어간다 — 기다리게 하지 않는다');
-      assert.equal((await post('/api/analysis/apply', { id })).status, 409, '두 번 더하지 않는다');
-      let kg = await (await fetch(`${api}/api/kg`)).json();
-      const ent = (x) => kg.entities.find((e) => e.id === x), fact = (a, r, b) => kg.facts.find((f) => f.from === a && f.rel === r && f.to === b);
-      assert.equal(ent('pat').fit, false, 'Person은 아직 온톨로지에 없다 — 들어가되 표시');
-      assert.equal(ent('zed').class, 'Alien'); assert.equal(ent('zed').fit, false);
-      assert.equal(fact('bob', 'works_for', 'acme').fit, true);
-      assert.match(fact('acme', 'works_for', 'acme').why, /meant to go from Agent/);
-      assert.match(fact('pat', 'knows', 'acme').why, /not in the ontology yet/);
-      assert.deepEqual(kg.notFitting, { entities: 2, facts: 2 });
-      // 관리자가 Person을 승인(=온톨로지에 추가)하면 다시 분석할 것 없이 바로 '맞음' — 맞는지는 읽을 때 계산
-      await post('/api/ontology', { action: 'add', kind: 'class', item: ap.action.item });
-      kg = await (await fetch(`${api}/api/kg`)).json();
-      assert.equal(ent('pat').fit, true); assert.deepEqual(ent('pat').types, ['Person', 'Agent'], '상위 클래스로도 타입');
-      assert.equal(fact('pat', 'works_for', 'acme').fit, true);
-      // 규칙 추론: 역관계(한쪽에만 적어도) · 대칭 · 전이. 추론한 것은 inferred + 규칙 + 근거, 저장하지 않는다
-      assert.equal((await post('/api/ontology', { action: 'add', kind: 'relation', item: { id: 'employs', inverse: 'nope' } })).status, 400, '없는 역관계');
-      await post('/api/ontology', { action: 'add', kind: 'relation', item: { id: 'employs', label: 'employs', domain: 'Org', range: 'Agent', inverse: 'works_for' } });
-      await post('/api/ontology', { action: 'add', kind: 'relation', item: { id: 'part_of', label: 'part of', domain: 'Org', range: 'Org', transitive: true } });
-      await post('/api/ontology', { action: 'add', kind: 'relation', item: { id: 'partners', label: 'partners with', symmetric: true } });
-      j = await (await post('/api/analysis/start', { kinds: ['tasks'] })).json();
-      await post('/api/analysis/result', { id: j.job.id, graph: { entities: ['o1', 'o2', 'o3', 'acme'].map((x) => ({ id: x, label: x, class: 'Org' })),
-        facts: [{ from: 'o1', rel: 'part_of', to: 'o2' }, { from: 'o2', rel: 'part_of', to: 'o3' }, { from: 'o1', rel: 'partners', to: 'acme' }] } });
-      await post('/api/analysis/apply', { id: j.job.id });
-      kg = await (await fetch(`${api}/api/kg`)).json();
-      const inf = (a, r, b) => kg.inferred.find((f) => f.from === a && f.rel === r && f.to === b);
-      assert.equal(inf('acme', 'employs', 'pat').rule, 'inverse');
-      assert.equal(inf('o1', 'part_of', 'o3').rule, 'transitive'); assert.equal(inf('o1', 'part_of', 'o3').because.length, 2);
-      assert.equal(inf('acme', 'partners', 'o1').rule, 'symmetric');
-      assert.ok(!kg.facts.some((f) => f.inferred), '추론은 사실 목록에 섞지 않는다');
-      const nbi = await (await fetch(`${api}/api/graph/neighbors?id=kg:o1`)).json();
-      assert.ok(nbi.links.some((l) => l.type === 'part_of' && l.other.id === 'kg:o3'), 'NodeRel에도 추론한 사실');
-      // NodeRel: 개체 kg:<id>, 사실, 근거 MENTIONED_IN
-      const nb = await (await fetch(`${api}/api/graph/neighbors?id=kg:pat`)).json();
-      assert.ok(nb.links.some((l) => l.type === 'works_for' && l.other.id === 'kg:acme') && nb.links.some((l) => l.type === 'MENTIONED_IN' && l.other.id === src));
-      const view = await (await fetch(`${api}/api/graph`)).json();
-      assert.ok(!view.links.some((l) => l.type === 'works_for' || l.type === 'MENTIONED_IN'), '흐름 그림에는 섞지 않는다');
-      const schema = await (await fetch(`${api}/api/graph/schema`)).json();
-      assert.equal(schema.vocabulary.works_for.from[0], 'Agent'); assert.ok(!schema.vocabulary.kg_SPAWNED, '핵심 관계는 두 번 적지 않는다');
-      // 지식그래프 TTL: TBox(시스템 온톨로지) + ABox(이 워크스페이스)
-      let r = await fetch(`${api}/api/kg/ttl`); const ttl = await r.text();
-      assert.match(r.headers.get('content-type'), /text\/turtle/);
-      assert.match(ttl, /ana:Person rdf:type owl:Class ;\n {4}rdfs:label "Person" ;\n {4}rdfs:subClassOf ana:Agent \./);
-      assert.match(ttl, /kg:pat rdf:type ana:Person ;\n {4}rdfs:label "팻 김" ;\n {4}ana:works_for kg:acme/);
-      assert.match(ttl, /rdfs:label "Acme \\"Co\\""/, '따옴표 이스케이프');
-      assert.match(ttl, /ana:employs rdf:type owl:ObjectProperty[^.]*owl:inverseOf ana:works_for/); assert.match(ttl, /ana:part_of [^.]*owl:TransitiveProperty/); assert.match(ttl, /ana:partners [^.]*owl:SymmetricProperty/);
-      // 분석 결과 TTL·공유 링크(OntoAir)는 그대로
-      r = await post('/api/analysis/share', { id }); const sh = await r.json(); assert.match(sh.path, /^\/api\/analysis\/shared\/[0-9a-f]{40}\/ana-analysis-\d+\.ttl$/);
-      r = await fetch(api + sh.path); assert.equal(r.status, 200); assert.equal(r.headers.get('access-control-allow-origin'), '*');
-      assert.equal((await fetch(`${api}/api/analysis/share-access?t=${sh.path.match(/([0-9a-f]{40})/)[1]}`, { method: 'HEAD' })).status, 204);
-      assert.equal((await fetch(`${api}/api/analysis/shared/${'0'.repeat(40)}/x.ttl`)).status, 404);
-      // 버리기, 지식그래프에서 지우기, 쓰이는 개념은 못 지운다
-      j = await (await post('/api/analysis/start', { kinds: ['tasks'] })).json();
-      await post('/api/analysis/result', { id: j.job.id, graph: { entities: [{ id: 'x1', label: 'X', class: 'Org' }] } });
-      assert.equal((await post('/api/analysis/discard', { id: j.job.id })).status, 200);
-      assert.equal((await post('/api/kg', { action: 'remove-fact', from: 'bob', rel: 'works_for', to: 'acme' })).status, 200);
-      assert.equal((await post('/api/ontology', { action: 'remove', kind: 'class', item: { id: 'Person' } })).status, 409, '지식그래프가 쓰는 개념');
-      assert.equal((await post('/api/kg', { action: 'remove-entity', id: 'pat' })).status, 200);
-      assert.equal((await post('/api/ontology', { action: 'remove', kind: 'class', item: { id: 'Person' } })).status, 200);
-      const ab = await (await fetch(`${api}/api/agent-base`)).json();
-      assert.equal(ab.host, `127.0.0.1:${new URL(api).port}`, '에이전트 지시문 주소는 서버의 로컬 주소');
-    });
-
-    await ta('C17 요구사항(Requirements): 추가·수정(분석 낡음 표시)·삭제, 분석 작업→결과(상태 검증)·한 번에 하나', async () => {
-      let r = await post('/api/requirements', { action: 'add', title: '' }); assert.equal(r.status, 400);
-      const a1 = (await (await post('/api/requirements', { action: 'add', title: 'Show overdue tasks first', detail: 'At the top of Tasks' })).json()).item;
-      const a2 = (await (await post('/api/requirements', { action: 'add', title: 'Export notes as PDF' })).json()).item;
-      let j = await (await post('/api/requirements/analyze', {})).json(); const job = j.job.id;
-      assert.deepEqual(j.job.ids.sort(), [a1.id, a2.id].sort());
-      r = await post('/api/requirements/analyze', {}); assert.equal(r.status, 409, '한 번에 하나만');
-      const input = await (await fetch(`${api}/api/requirements/input?job=${job}`)).json();
-      assert.equal(input.requirements.length, 2); assert.ok(input.root && input.features);
-      await post('/api/requirements/progress', { job, progress: 120, step: 'Checking #1' });
-      r = await post('/api/requirements/result', { job, results: [{ id: a1.id, status: 'maybe' }] }); assert.equal(r.status, 400, '상태는 reflected|partial|missing');
-      j = await (await post('/api/requirements/result', { job, summary: 'One is in, one is not.', results: [
-        { id: a1.id, status: 'partial', how: 'Tasks are sorted by due date', why: 'Overdue ones are not pinned', evidence: ['dashboard.html renderTodos'], next: 'Pin overdue tasks' },
-        { id: a2.id, status: 'missing', how: 'No export', why: 'Not built yet', next: 'Add an export button' },
-        { id: 9999, status: 'reflected' } ] })).json();
-      assert.deepEqual([j.analyzed, j.skipped], [2, 0]);
-      let list = await (await fetch(`${api}/api/requirements`)).json();
-      assert.equal(list.job.status, 'done'); assert.equal(list.job.summary, 'One is in, one is not.');
-      assert.equal(list.items.find((x) => x.id === a1.id).analysis.status, 'partial');
-      assert.deepEqual(list.items.find((x) => x.id === a1.id).analysis.evidence, ['dashboard.html renderTodos']);
-      await post('/api/requirements', { action: 'update', id: a1.id, title: 'Show overdue tasks first, in red' });
-      list = await (await fetch(`${api}/api/requirements`)).json();
-      assert.equal(list.items.find((x) => x.id === a1.id).analysis.stale, true, '내용이 바뀌면 다시 분석 필요');
-      j = await (await post('/api/requirements/analyze', { ids: [a1.id] })).json(); assert.deepEqual(j.job.ids, [a1.id]);
-      await post('/api/requirements/cancel', { job: j.job.id });
-      await post('/api/requirements', { action: 'remove', id: a2.id });
-      list = await (await fetch(`${api}/api/requirements`)).json();
-      assert.equal(list.items.length, 1); assert.equal(list.job.status, 'cancelled');
-    });
-
-    await ta('C19 요구사항 → 진화 제안 → 완료 → 다시 확인: 한 번에 제안, 열린 제안은 하나, 완료되면 재확인 표시, 재분석하면 풀림', async () => {
-      const it = (await (await post('/api/requirements', { action: 'add', title: 'Dark mode for charts', detail: 'All charts' })).json()).item;
-      let r = await post('/api/requirements', { action: 'propose', id: it.id }); assert.equal(r.status, 409, '분석 전에는 제안 불가');
-      let j = (await (await post('/api/requirements/analyze', { ids: [it.id] })).json()).job;
-      await post('/api/requirements/result', { job: j.id, results: [{ id: it.id, status: 'partial', how: 'Some charts', why: 'Gauges ignore the theme', next: 'Theme the gauges' }] });
-      const pr = (await (await post('/api/requirements', { action: 'propose', id: it.id })).json()).proposal;
-      assert.equal(pr.reqId, it.id); assert.equal(pr.type, 'improve'); assert.match(pr.title, new RegExp(`^Requirement #${it.id}: Dark mode`)); assert.match(pr.desc, /Next step: Theme the gauges/);
-      const again = await (await post('/api/requirements', { action: 'propose', id: it.id })).json();
-      assert.equal(again.existing, true); assert.equal(again.proposal.id, pr.id, '열린 제안은 하나');
-      let item = (await (await fetch(`${api}/api/requirements`)).json()).items.find((x) => x.id === it.id);
-      assert.equal(item.proposalId, pr.id); assert.ok(!item.recheck);
-      await post('/api/evolve-act', { id: pr.id, action: 'done' });
-      item = (await (await fetch(`${api}/api/requirements`)).json()).items.find((x) => x.id === it.id);
-      assert.deepEqual([item.recheck && item.recheck.proposalId, item.analysis.stale], [pr.id, true], '제안이 끝나면 다시 확인 필요');
-      j = (await (await post('/api/requirements/analyze', { ids: [it.id] })).json()).job;
-      await post('/api/requirements/result', { job: j.id, results: [{ id: it.id, status: 'reflected', how: 'All charts follow the theme' }] });
-      item = (await (await fetch(`${api}/api/requirements`)).json()).items.find((x) => x.id === it.id);
-      assert.equal(item.recheck, null); assert.equal(item.analysis.stale, false);
-      const ev = (await (await post('/api/evolve', { proposals: [{ title: 'From agent', reqId: it.id }, { title: 'Bad ref', reqId: 99999 }] })).json());
-      const all = (await (await fetch(`${api}/api/evolve`)).json()).proposals;
-      assert.equal(all.find((x) => x.title === 'From agent').reqId, it.id); assert.equal(all.find((x) => x.title === 'Bad ref').reqId, undefined);
-      assert.equal(ev.added, 2);
-    });
-
     await ta('C15 요청(Requests): 에이전트 등록·중복 방지·kind 검증, 답변→answered, 완료/보류/재개', async () => {
       let r = await post('/api/requests', { requests: [{ kind: 'decision', title: 'Pick one', options: ['A', 'B'] }, { kind: 'access', title: 'Share calendar' }] });
       let j = await r.json(); assert.equal(j.added, 2);
@@ -1229,12 +1048,12 @@ async function integration() {
 
     await ta('I16 사용 기록: 화면 버튼이 보낸 지시문은 chat.send가 아니라 그 일의 요청으로 기록', async () => {
       const send = (text) => fetch(`${api}/api/chat`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, force: true }) });
-      assert.equal((await send('[Analyze] Build an ontology and a knowledge graph from 3 items of this workspace.\n1) Read them: curl …')).status, 200);
+      assert.equal((await send('[Evolve] Look at how the work is going here, then propose what to do now.\nRead: curl …')).status, 200);
       assert.equal((await send('[Request #7] You asked: "Pick one"\nMy answer: B\nAct on it, then mark the request done')).status, 200);
       assert.equal((await send('just chatting')).status, 200);
       const act = (await (await fetch(`${api}/api/activity`)).json()); const list = act.activity || act;
-      const a = list.find((x) => x.action === 'analysis.request');
-      assert.ok(a && /from 3 items/.test(a.target), JSON.stringify(list.slice(0, 4)));
+      const a = list.find((x) => x.action === 'evolve.request');
+      assert.ok(a && /how the work is going/.test(a.target), JSON.stringify(list.slice(0, 4)));
       assert.ok(list.some((x) => x.action === 'request.answer' && /^#7 /.test(x.target)));
       assert.ok(list.some((x) => x.action === 'chat.send' && x.target === 'just chatting'));
       const long = 'x'.repeat(130);
@@ -1246,7 +1065,7 @@ async function integration() {
       assert.equal((await ev({ action: 'tab.view', target: '../etc' })).status, 400);
       assert.equal((await ev({ action: 'chat.send', target: 'fake' })).status, 400, '정해 둔 화면 이벤트만');
       assert.ok((await (await fetch(`${api}/api/activity`)).json()).activity.some((x) => x.action === 'tab.view' && x.target === 'relations'));
-      assert.ok(!list.some((x) => x.action === 'chat.send' && /^\[Analyze\]/.test(x.target)));
+      assert.ok(!list.some((x) => x.action === 'chat.send' && /^\[Evolve\]/.test(x.target)));
     });
   } finally {
     server.kill();

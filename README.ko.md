@@ -6,6 +6,8 @@
 
 ### 보면서 대화하는 것만으로 운영하는 앱을 만드세요.
 
+> **두 에디션.** **Agent-Native Agent**(이 저장소, AGPL)는 간소한 판입니다. 코딩 에이전트와의 채팅과 탭 다섯 — Work(할일·캘린더·메모와 그 연결), Requests, Evolve, PRD, Update가 있습니다. **Agent-Native Agent Pro**(상용)는 여기에 일에서 쌓이는 지식 층(분석, 지식그래프, 규칙이 있는 온톨로지), Graph 화면, 관리자·실무자 역할이 있는 System 범위와 Roadmap·Health, 여러 워크스페이스, 세션별 Claude 계정, 오프라인판을 더합니다. Pro 문의: [COMMERCIAL.ko.md](COMMERCIAL.ko.md).
+
 [![Stars](https://img.shields.io/github/stars/tykimos/agent-native-agent?style=for-the-badge&logo=github&color=CC785C)](https://github.com/tykimos/agent-native-agent/stargazers)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-1f6feb?style=for-the-badge)](LICENSE)
 [![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-CC785C?style=for-the-badge)](https://claude.com/claude-code)
@@ -88,10 +90,6 @@ PC에 WSL·Node·tmux를 설치하지 않고 브라우저에서 ANA를 실행합
 
 **[브라우저 시작 매뉴얼](docs/codespaces.ko.md)** — 환경 자동 설치 → Ports의 **ANA / 8809** 열기 → ANA 채팅에서 Claude 초기 설정. 포트는 **Private**으로 유지합니다. Codespaces 사용량은 Claude 이용료와 별도로 계산되며, Codespace가 중지되면 ANA도 멈춥니다.
 
-## 오프라인판 — LLM·인터넷 없이 (Windows)
-
-인터넷이나 AI 에이전트가 없는 PC에서 ANA를 쓰려면 `node scripts/package-offline.mjs`로 Windows x64용 포터블 zip을 만듭니다(Node 24 LTS 포함). 압축을 풀고 `start.bat`을 더블클릭하면 됩니다. 할일·일정·메모·관계·파일·요구사항을 쓸 수 있고, 에이전트 기능은 숨겨집니다. 설치 안내는 [docs/offline.ko.md](docs/offline.ko.md)에 있습니다.
-
 ## 빠른 시작 — 베이스 실행 (2분)
 
 **사전 요구사항:** Node ≥ 24, tmux, 그리고 코딩 에이전트 CLI(예: [Claude Code](https://claude.com/claude-code)). 런타임(`channel-core.js`)은 의존성이 없고, 베이스 앱은 [NodeRel](https://github.com/tykimos/NodeRel) 하나를 `npm install`로 GitHub에서 받습니다.
@@ -148,40 +146,22 @@ node server.js           # → http://localhost:8809
 
 ## base에 들어 있는 것
 
-![휴대폰에서 본 Workspace와 System](docs/assets/areas-mobile.webp)
+베이스는 메모, 할일, 일정을 코딩 에이전트와 함께 굴리는 운영 보드입니다. 워크스페이스는 하나이고, 탭은 다섯입니다(휴대폰에서는 아래 메뉴).
 
-베이스는 메모, 할일, 일정을 코딩 에이전트와 함께 굴리는 운영 보드입니다. **범위가 둘**이고, 화면 맨 위에 지금 어느 범위에 있는지 항상 보입니다.
+| 탭 | 하위 탭 | 내용 |
+|---|---|---|
+| **Work** | Tasks · Calendar · Notes | 내 업무 항목과 그 연결. 도메인 ANA는 자기 업무의 종류를 여기에 둡니다 |
+| **Requests** | Waiting · In progress · Done | 에이전트가 나에게 필요한 것: 에이전트가 제안한 데이터 변경(승인하기 전에는 아무것도 바뀌지 않음), 승인, 결정, 접근 권한, 나만 할 수 있는 일, 모자란 정보 |
+| **Evolve** | Waiting · In progress · Done | 지금 할 일과 ANA가 바뀔 방향을 세 거리로 — **tidy**(어긋난 것 정리), **improve**(이 일을 더 낫게), **reimagine**(새로운 일하는 방식). 본 것, 사람에게 달라지는 것, 다른 곳의 사례(링크)가 붙습니다. *Do it*을 누르면 에이전트가 맡습니다 |
+| **PRD** | Current · History | 이 ANA가 무엇을 하는 앱인지 — 목적, 사용자, 기능, 화면, 데이터. 에이전트가 코드와 데이터를 읽고 쓰며(*Ask the agent*) 사람이 고칠 수 있습니다. 저장할 때마다 새 판이 되고, 옛 판을 보거나 되돌릴 수 있습니다 |
+| **Update** | Waiting · In progress · Done | [agent-native-agent](https://github.com/tykimos/agent-native-agent)에 새로 나왔지만 여기에는 아직 없는 기능. *Check for updates*가 최신 업스트림과 기능 단위로 비교하고, *Bring it in*을 누르면 에이전트가 그 기능의 스킬로 옮겨 옵니다 |
 
-| 범위 | 누가 | 탭 | 용도 |
-|---|---|---|---|
-| **Workspace** (위에 워크스페이스 이름) | 실무자 | **Work**(할일·일정·메모) · **Graph** · **Files** · **Inbox** | 한 워크스페이스의 일과 데이터 |
-| **System** (위쪽이 어두운 띠) | 관리자 | **Inbox** · **Roadmap** · **Ontology** · **Health** | 모든 워크스페이스에 걸리는 결정 |
-
-휴대폰에서는 하단 메뉴가 범위에 맞게 바뀝니다. Workspace에서는 Work · Knowledge · Files · Inbox(관리자는 System 추가), System에서는 Inbox · Roadmap · Health · Workspace입니다. 데스크톱에서는 로고 옆 전환 버튼으로 바꿉니다.
-
-한 화면에는 한 가지만 보입니다. 여러 가지가 있는 화면은 하위 탭으로 나누고, 목록마다 *Open / Done*으로 거릅니다.
-
-- **Inbox(Workspace):** System › Inbox와 같은 말을 씁니다.
-  - *Approvals*: 데이터 변경, 지식그래프에 더할 분석 결과, 결정, 접근
-  - *Action requests*: 에이전트가 맡기는 일이나 묻는 정보
-  - *Evolve*: 이 워크스페이스의 일이 나아갈 방향(정리·개선·재구상)
-  - *Sent*: 관리자에게 보낸 요청, 내 기능 요청
-- **Graph:** *Work* · *Knowledge*. 이 워크스페이스의 두 그래프입니다.
-  - *Work*는 워크 그래프입니다. 메모·할일·일정이 어떻게 이어졌는지, 흐름이 끊긴 곳, 종류별 연결 개수를 봅니다. 사람이 새 연결 종류(`BLOCKS`)를 만들 수 있고, *(new)*로 표시됩니다.
-  - *Knowledge*는 지식그래프(업무를 하며 쌓이는 개체와 사실)입니다. *Analyze*와 최근 분석이 함께 있습니다.
-  - 각 탭의 *Ontology*는 그 층의 온톨로지를 엽니다(관리자: System › Ontology, 실무자: 읽기 전용).
-- **Files:** 이 워크스페이스의 폴더와 채팅 첨부(읽기 전용)
-- **Inbox(System):** *Approvals* · *Action requests*(실무자, 에이전트, 시스템 점검이 올린 것) · *Evolve*(시스템을 바꾸는 제안, 관리자가 시작)
-- **Roadmap:** *Requirements* · *Updates*(업스트림). 각 변경이 어디까지 왔는지 한 줄씩 단계(예: Request → Proposal → Building → Checked)와 다음 할 일로 보여 줍니다. Inbox에서 결정하고, Roadmap에서 진행을 봅니다.
-- **Ontology:** *Work* · *Knowledge*. 탭마다 *Classes* · *Relations* · *Rules*가 있습니다. **워크 온톨로지**는 업무 프로세스가 돌아가는 데 필요한 것입니다(base: Note, Task, Event, Day와 그 흐름). `work-ontology.js`에 선언하고 코드와 함께 바뀝니다. **지식 온톨로지**는 업무를 하며 쌓이는 것의 틀입니다. 관리자가 더하거나 분석이 제안한 것을 승인합니다. 지식 클래스가 워크 클래스의 하위 클래스(Ticket ⊂ Task)이면 워크 항목에 붙일 수 있습니다. **규칙**은 그래프를 읽을 때 사실을 끌어냅니다. 역관계·대칭·전이와 **연쇄** 규칙(*만약* x attends y, y part_of z *이면* x involved_in z)이 있고, **제한** 규칙은 어긴 사실을 표시합니다. 관문이 아니라 렌즈입니다. 틀에 안 맞는 것은 남기고 *아직 온톨로지에 없음*으로 표시합니다([워크와 지식](docs/work-and-knowledge.ko.md)).
-- **Health:** *Trustworthiness* · *Safety* · *Security*(위험한 것부터, 괜찮은 점검은 접어 둠) · *Tests*(이 ANA의 테스트를 돌리고 실패를 봄) · *Usage*(통계·활동)
-
-**진화 제안(Evolve)은 어디에?** 늘 **Inbox**에 있습니다. 이 워크스페이스에 대한 것은 Workspace › Inbox › *Evolve*(실무자가 시작), 시스템에 대한 것은 System › Inbox › *Evolve*(관리자가 시작)입니다. 카드와 버튼은 같고, 범위만 다릅니다. 에이전트는 업무와 지식을 읽고, 먼저 일의 말로 **인사이트**를 씁니다("워크숍 날이 지났는데 준비가 그대로 열려 있다"). 인사이트에는 관련 항목과 정해야 할 것이 붙습니다. 그다음 그 인사이트에서 나온 **제안**이 옵니다. 지금 할 일과, 사람이 얻는 것으로 이름 붙인 기능입니다. 제안은 세 가지 거리(**정리**·**개선**·**재구상**)로 나뉘고, 각각 *Seen*(본 것), *Changes*(바뀌는 것), *Seen elsewhere*(밖의 사례), 접혀 있는 *How it would work*(만드는 방법)가 붙습니다.
+Requests와 Evolve의 카드는 같은 질문에 사람 말로 답합니다 — **무슨 일인지(What's going on) · 무엇을 해 달라는지(What is asked) · 하면 무엇이 달라지는지(What it changes) · 안 하면(If not)**. Evolve 제안이나 업데이트로 앱이 하는 일이 바뀌면 에이전트가 PRD도 고칩니다.
 
 ### 채팅 — Claude 앱처럼
 
 - 화면을 긁지 않고 **에이전트 자신의 기록으로 그립니다.** Claude Code 기록(`~/.claude/projects/…`)이나 Codex 기록(`~/.codex/sessions/…`)을 씁니다. 그래서 내 말풍선, 마크다운 응답, 접히는 `Ran 3 commands ›` 묶음, 이미지 썸네일이 정확하게 나옵니다. 기록이 없는 에이전트는 화면 미러로 그립니다.
-- **세션 콤보:** tmux 세션(Claude Code 또는 Codex)을 고릅니다. 세션마다 대화가 따로 있고, 사람마다 마지막에 고른 세션을 기억합니다. 세션마다 **다른 Claude 계정**을 쓸 수도 있습니다(tmux 세션별 `CLAUDE_CONFIG_DIR`). 그러면 채팅과 사용량 표시가 그 계정을 따라갑니다. [docs/multi-account.ko.md](docs/multi-account.ko.md)를 보세요.
+- **세션 콤보:** tmux 세션(Claude Code 또는 Codex)을 고릅니다. 세션마다 대화가 따로 있고, 사람마다 마지막에 고른 세션을 기억합니다.
 - **입력창:** ＋ 파일 첨부, **모델 알약**(실제 모델명, 예: `Opus 5.5`, `GPT-6 Astra`), **5시간·주간 사용량 링**(누르면 %와 초기화 시각), 🎤 받아쓰기, 보내기·중지 버튼이 있습니다. 모델 알약을 누르면 모델과 추론 강도를 고르는 시트가 열립니다.
 - 입력창은 떠 있고 ↓ 버튼으로 맨 아래로 갑니다. 휴대폰 키보드 바로 위에 붙습니다.
 - **에이전트의 질문**(AskUserQuestion, 권한 메뉴)은 선택지 버튼이 있는 카드로 나오고, 서버가 클릭을 알맞은 키 입력으로 바꿔 보냅니다.
@@ -190,25 +170,9 @@ node server.js           # → http://localhost:8809
 
 오른쪽 위 **Chip**을 켜고 화면의 항목(할일, 카드, 지표)을 누르면, 다음 메시지에 컨텍스트 칩으로 붙습니다. ⟳는 새로 생긴 종류의 요소를 칩 대상으로 등록합니다. ✎를 누르면 보드 위에 캔버스가 깔립니다. 빨강·마젠타·파랑으로 짚고 싶은 곳에 동그라미를 치고 *Add to chat*을 누르면, 표시가 합성된 화면 캡처와 표시 아래 항목들의 칩이 함께 붙습니다. 캡처는 [modern-screenshot](https://github.com/qq15725/modern-screenshot)을 `/vendor/`에서 로컬로 제공해 씁니다.
 
-### 워크와 지식
+### 업무 사이의 연결
 
-**도메인**(영업, 저장장치 운영, 팀의 일 등)은 그 **업무(워크)**와 **지식**으로 이루어집니다.
-- **워크**는 업무 프로세스가 돌아가는 데 필요한 것입니다. 업무가 다루는 항목과 그 흐름이고, 프로세스와 함께 설계합니다.
-- **지식**은 그 업무를 하면서 쌓이는 것입니다. 일할수록 자랍니다.
-
-도메인 ANA는 앞의 것을 설계하고 뒤의 것이 자라게 합니다. 자란 지식이 다시 업무 방식을 바꾸기도 합니다(Evolve). base ANA의 도메인은 개인·팀의 일이고, 업무는 메모 → 할일 → 일정의 흐름입니다.
-
-층마다 **온톨로지**(종류, System에 하나)와 **그래프**(실제 것, 워크스페이스마다)가 짝입니다.
-
-| | **워크 층** | **지식 층** |
-|---|---|---|
-| **온톨로지** — 클래스, 관계, 규칙 | **워크 온톨로지** `work-ontology.js`(앱 코드) | **지식 온톨로지** `.ana/knowledge-ontology.json`(관리자) |
-| **그래프** | **워크 그래프** `work-graph.json`: 메모·할일·일정과 그 연결 | **지식그래프** `knowledge-graph.json`: 업무를 하며 쌓이는 개체와 사실 |
-| **앱에서** | **Graph › Work**(System의 **Ontology › Work**) | **Graph › Knowledge**: 그래프 · *Analyze* · 최근 분석(**Ontology › Knowledge**) |
-
-두 그래프는 워크스페이스마다 [NodeRel](https://github.com/tykimos/NodeRel) 색인 하나에 들어갑니다(`graph-index.js` → `graph-index.sqlite`, 파일이 바뀌면 다시 만듦). 그래서 에이전트가 메모에서 그 안의 사람까지 따라갈 수 있습니다.
-
-**워크 그래프.**
+메모, 할일, 일정은 서로 이어지고, [NodeRel](https://github.com/tykimos/NodeRel)로 색인됩니다(`graph-index.js` → `graph-index.sqlite`, 데이터가 바뀌면 다시 만듦). 그래서 에이전트가 연결을 따라갈 수 있습니다.
 
 ```
 Note ─SPAWNED──────▶ Task | Event     할일·일정이 나온 메모                (명시)
@@ -217,88 +181,25 @@ Note|Task|Event ─REFERS_TO─▶ Note|Task|Event   수동 참조              
 Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           due / date에서 계산          (규칙)
 ```
 
-화면에서 연결을 만드는 방법:
+종류는 `work-ontology.js`에 있습니다. 화면에서 연결을 만드는 방법:
 - 메모에서 한 줄을 고르고 **→ Task**나 **→ Event**를 누릅니다.
 - 할일의 캘린더 버튼으로 그 할일을 할 시간을 잡습니다.
 - **＋ Link**로 아무 두 항목이나 잇습니다.
 
-연결은 양쪽 끝에 칩으로 보이고, 누르면 그 항목으로 갑니다. 새 연결 종류(`BLOCKS`)도 남기고 *new*로 표시합니다. **Graph › Work**는 전체 흐름을 그리고 흐름이 끊긴 곳을 보여 줍니다: 아무것도 나오지 않은 메모, 마감일 없는 열린 할일, 시간을 잡지 않은 열린 할일.
-
-**지식그래프.** *Analyze*를 누르면 에이전트가 고른 워크 항목을 읽고 개체(Acme는 Client)와 사실(Acme `client_of` 우리 팀)을 제안합니다. 각각 근거 항목이 붙습니다.
-- **관문이 아니라 렌즈.** 온톨로지에 안 맞는 것도 버리지 않고 *아직 온톨로지에 없음*으로 표시하며, 관리자에게 더해 달라고 요청합니다.
-- **규칙.** 규칙(하위 클래스, 역관계·대칭·전이, **연쇄**, **제한**)이 그래프를 읽을 때마다 사실을 더 끌어내거나, 제한을 어긴 사실을 표시합니다.
-- **승인.** 결과는 실무자가 승인하면 그 워크스페이스의 지식그래프에 들어갑니다.
-- **내보내기.** [OntoAir](https://poc.aifactory.space/ontoair/)로 열거나 OWL Turtle로 내려받습니다. 규칙도 OWL 공리로 들어갑니다.
+연결은 양쪽 끝에 칩으로 보이고, 누르면 그 항목으로 갑니다. 새 연결 종류(`BLOCKS`)도 그대로 남깁니다.
 
 | 엔드포인트 | 용도 |
 |---|---|
-| `GET /api/state` → `graph.links` | 워크 그래프의 연결(NodeRel에서) |
+| `GET /api/state` → `graph.links` | 연결(NodeRel에서) |
 | `POST /api/todo {title, due?, from?}` · `POST /api/event {action:'add', …, from?}` | 만들면서 출처와 바로 연결(`from`이 메모면 `SPAWNED`, 할일이면 `SCHEDULED_AS`) |
-| `POST /api/link {action:'add'\|'remove', from, to, type}` | 연결 추가·삭제(워크 온톨로지의 연결은 방향을 지키고, 새 대문자_밑줄 종류는 남김) |
-| `GET /api/kg` · `GET /api/ontology` | 지식그래프(맞음 표시, 추론된 사실 포함) · 두 온톨로지(클래스, 관계, 규칙) |
-| `GET /api/graph/neighbors?id=` · `GET /api/graph/trace?id=&depth=&direction=&types=` | 이어진 것 / 닿는 모든 것, 두 그래프 모두 |
+| `POST /api/link {action:'add'\|'remove', from, to, type}` | 연결 추가·삭제 |
+| `GET /api/graph/neighbors?id=` · `GET /api/graph/trace?id=&depth=&direction=&types=` | 이어진 것 / 닿는 모든 것 |
 | `GET /api/graph/schema` | NodeRel의 AI용 스키마와 뜻. 에이전트에게 주세요 |
-| `GET /api/stats` → `graph` | 종류별 개수와 끊긴 곳 세 목록 |
+| `GET /api/stats` → `graph` | 종류별 개수와 흐름이 끊긴 곳(`gaps`) |
 
-→ 모델, 렌즈, 규칙과 추론, 분석 과정, 한·영 용어표, 내보내기: **[docs/work-and-knowledge.ko.md](docs/work-and-knowledge.ko.md)**
+### Requests, Evolve, PRD — API
 
-### Inbox — 에이전트가 나에게 필요한 것
-
-| 항목 | 누가 | 내용 |
-|---|---|---|
-| **Needs you** | 에이전트 → 나 | 나만 할 수 있는 일(`action`), 에이전트에게 없는 정보(`info`), 결정(선택지 버튼), 접근, 대기 중인 **데이터 변경**(에이전트가 diff를 제안하고, 승인하기 전에는 아무것도 바뀌지 않음) |
-| **Suggestions** | 에이전트 → 이 워크스페이스 | 이미 있는 기능으로 워크스페이스를 더 잘 쓰는 방법. *Do it*은 에이전트에게 맡기고(데이터만, 코드는 그대로), 새 기능이 필요하면 *Propose to the system*으로 Roadmap에 올립니다 |
-| **Sent by you** | 나 → 관리자 / 시스템 | *Ask the admin*으로 보낸 요청과 *Request a feature* 항목의 진행 |
-
-*Ask the agent*를 누르면 에이전트가 받은함을 채웁니다. 에이전트는 `POST /api/requests {requests:[{kind, title, desc?, options?, ref?}]}`로 등록합니다(`ref` = 링크로 보일 할일·일정·메모 id). 답을 보내면 채팅으로 바로 전달되고, *Resolved* / *Not now*는 알림으로 전달됩니다(`POST /api/request-act {id, action: answer|done|dismiss|reopen}`).
-
-### 관리자와 실무자
-
-워크스페이스는 **실무자**가 일하는 곳이고, **System**은 **관리자**가 정합니다.
-
-| | 실무자(Workspace) | 관리자(System) |
-|---|---|---|
-| 진화 제안 | **Inbox › Suggestions**: 이미 있는 기능으로 이 워크스페이스를 더 잘 쓰는 방법. 실무자가 직접 시작합니다 | **Roadmap**: 기능, 화면, API, 공용 온톨로지. 시작·취소는 관리자만 합니다 |
-| 승인요청 | 워크스페이스의 데이터 변경(Inbox) | 시스템 변경(**System › Inbox**) |
-| 작업요청 | 에이전트가 실무자에게 맡기는 일(Inbox) | 관리자만 할 수 있는 일: 권한 부여, 설치, 데이터 연결(**System › Inbox**) |
-| 요구사항 | *Request a feature* | **Roadmap**: 에이전트가 확인하고, 제안으로 만들고, 만든 뒤 다시 확인 |
-
-- **관리자 지정:** `ANA_ADMINS=이메일,…`로 정합니다. 다음 경우에는 모두 관리자입니다. 그래서 혼자 쓰는 설치는 예전과 같습니다.
-  - 목록이 비어 있을 때
-  - 신원 헤더를 쓰지 않는 설치(단일 사용자)
-  - 이 컴퓨터에서 신원 없이 들어온 호출(본인이나 에이전트)
-- **관리자 전용 동작(서버에서 확인):**
-  - 시스템 제안의 시작·취소·재시도
-  - Update 반영
-  - 묻지 않는 권한 모드(Bypass / Full Access)로 바꾸기
-  - 워크스페이스 삭제
-
-  실무자가 누르면 **System › Inbox**에 승인요청이 생기고, 관리자가 승인하면 그 동작이 관리자 권한으로 실행됩니다.
-- **관리자에게 요청하기:**
-  - 실무자는 Inbox의 *Ask the admin*으로 요청하고, *Sent by you*에서 결과를 봅니다.
-  - 에이전트는 `POST /api/admin/requests {type: work|approval, title, desc?}`로 요청합니다.
-  - 시스템 점검이 **risk**가 되면 작업요청이 저절로 생기고, 해결되면 저절로 닫힙니다.
-- **API:**
-  - `GET /api/admin/inbox`: 관리자는 전부, 실무자는 자기 것만 봅니다.
-  - `POST /api/admin/act {id, action: approve|reject|start|done|fail|cancel|reopen, note?}`
-  - `GET /api/me` → `role`
-  - `POST /api/evolve`는 `scope: system|workspace`를 받습니다.
-
-### System › Health — AI 신뢰성 · 안전 · 보안
-
-고정된 문구가 아니라 실제 상태로 계산한 점검입니다(`GET /api/trust`).
-
-- **Trustworthiness(신뢰성):** 에이전트가 돌고 있는지, 채팅을 자체 기록으로 읽는지, 도구 호출 실패율, 중단된 작업, 요금제 사용량, 나를 기다리는 것
-- **Safety(안전):**
-  - 에이전트가 권한 확인 없이 도는지(`--dangerously-skip-permissions`, `--dangerously-bypass-approvals-and-sandbox`)
-  - 실제로 실행한 위험 명령(rm -rf, reset --hard, 강제 push, killall, sudo, curl | sh, DROP TABLE, 디스크 쓰기)
-  - 데이터 변경이 승인을 거치는지
-- **Security(보안):**
-  - 누가 서버에 접근할 수 있는지(바인드 주소), 로그인 여부
-  - 다른 사이트 요청 차단
-  - AI 로그인 토큰을 서버에만 두는지
-  - 인증 파일 권한
-  - 메모·할일에 붙여 넣은 비밀값(값은 보여 주지 않고 *어디에* 있는지만 알림)
+*Ask the agent*를 누르면 에이전트가 목록을 채웁니다. 에이전트는 `POST /api/requests {requests:[{kind, title, why, ask, effect, ifNot, options?, ref?}]}`로 항목을 올리고(`ref` = 링크로 보일 할일·일정·메모 id), 데이터 변경은 `POST /api/agent {text, diff, why, effect}`로 올립니다. 내 답은 채팅으로 바로 에이전트에게 갑니다. *Resolved* / *Not now*도 알려 줍니다(`POST /api/request-act {id, action: answer|done|dismiss|reopen}`). Evolve 제안은 `POST /api/evolve`로 들어오고 `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen}`로 처리합니다. PRD는 `GET /api/prd`(지금 판 + 이력)와 `POST /api/prd {md, note, source}`(새 판) 또는 `{action:'restore', v}`입니다. 업데이트는 `GET /api/updates`, `POST /api/update/check`, `POST /api/update-act {id, action}`입니다.
 
 ### 여러 사람과 함께 쓰기 (선택)
 
@@ -310,25 +211,13 @@ ANA_LOGOUT_URL=/your-gateway/logout \
 node server.js
 ```
 
-헤더가 잡히면 항목에 작성자가 남고, 자기가 만든 것만 수정·삭제할 수 있으며, 개인별 통계와 활동 기록이 동작합니다. 지정하지 않으면(기본값) 전부 단일 사용자로 동작합니다.
+헤더가 잡히면 항목에 작성자가 남고, 자기가 만든 것만 수정·삭제할 수 있습니다. 지정하지 않으면(기본값) 전부 단일 사용자로 동작합니다.
 
 **사람별 코딩 에이전트 세션.** 채팅 상단의 세션 콤보로 tmux 세션을 고릅니다. 세션마다 대화 이력이 따로 있어서 바꾸면 채팅이 그 세션의 대화로 통째로 바뀝니다. 고른 세션은 **사람별로** 기억되어, 다음에 접속하면 각자 자기가 마지막에 쓴 세션이 선택됩니다. 목록에는 세션마다 누가 골랐는지(지금 보고 있으면 ●)가 표시됩니다. 에이전트가 `curl`로 응답을 올릴 때는 `x-ana-target: <세션>` 헤더로 자기 세션을 지정할 수 있습니다.
 
 > 이 헤더는 그대로 신뢰합니다. 따라서 앞단이 실제로 붙여줄 때만 의미가 있습니다. 서버는 루프백이나 그 프록시 뒤에 두세요. 이 옵션을 켠 채 `0.0.0.0`으로 열면 누구나 헤더를 위조해 남의 이름으로 쓸 수 있습니다.
 
 ---
-
-## 파일 탐색기
-
-**System → Files**에서 파일을 탐색하고 올리고 내려받습니다. 경로 버튼과 상위 폴더 버튼으로 이동하고, 업로드는 지금 보고 있는 폴더에 저장됩니다. 파일당 최대 25 MB이고 같은 이름의 파일은 덮어쓰지 않습니다. 폴더는 세 가지입니다.
-
-| 폴더 | 내용 | 올리기 |
-|---|---|---|
-| **Files** (기본) | 내 전용 폴더: `<데이터 폴더>/files`(`.ana/files`), 또는 `ANA_FILES_ROOT=/절대/경로` | 가능 |
-| **From chat** | 채팅에 첨부한 파일(`.ana/uploads`) | 읽기 전용 |
-| **Project files** | ANA 폴더 전체. *Show project files*를 켜야 보임 | 가능. 단 `.ana/`, `.git/` 안은 불가 |
-
-어느 폴더에서든 기준 폴더 밖으로 나가거나 심볼릭 링크를 따라갈 수 없습니다. 이 폴더들은 ANA 전체에 공통이며 Workspace 선택과 무관합니다.
 
 ## 기존 서비스에 ANA 붙이기 (아주 간단)
 
@@ -370,10 +259,8 @@ claude plugin install ana@agent-native-agent          # 이후: claude plugin up
 | [`ana-update`](skills/ana-update/SKILL.md) | 이미 쓰고 있는 ANA를 기능 단위로 최신화 |
 | [`chat-window`](skills/chat-window/SKILL.md) | Claude 앱 같은 채팅: 세션 콤보, 기록 기반 표시, 모델 시트, 사용량 링, 음성, 첨부, Codex |
 | [`context-chips`](skills/context-chips/SKILL.md) | 칩 모드, ✎ 화면 그리기, ⟳ 새 요소 등록 |
-| [`work-and-knowledge`](skills/work-and-knowledge/SKILL.md) | 워크와 지식: 두 온톨로지(클래스, 관계, 규칙), 워크 그래프(연결, 칩, Graph › Work), 지식그래프(Analyze, 규칙 추론), NodeRel 색인 |
-| [`app-shell`](skills/app-shell/SKILL.md) | Workspace / System 범위, 범위별 하단 메뉴, 워크스페이스 콤보 |
-| [`agent-requests`](skills/agent-requests/SKILL.md) | Inbox, Roadmap, 관리자 받은함: 요청·승인·제안·요구사항 |
-| [`trust-checks`](skills/trust-checks/SKILL.md) | 시스템: AI 신뢰성, 안전, 보안 점검 |
+| [`app-shell`](skills/app-shell/SKILL.md) | 다섯 탭(Work · Requests · Evolve · PRD · Update), 하위 탭, 휴대폰의 하단 메뉴 |
+| [`agent-requests`](skills/agent-requests/SKILL.md) | Requests, Evolve, PRD |
 
 ### 기존 ANA 업데이트
 
@@ -400,17 +287,17 @@ node skills/ana-update/scripts/ana-diff.mjs --target ~/ana/my-ana --record   # �
 ```
 channel-core.js     ★ ANA 런타임 전부 — tmux 주입 / capture-pane 미러 / 세션별 원장 (의존성 0)
 server.js             베이스 앱: channel-core + dashboard-api 마운트, dashboard.html 제공
-dashboard-api.js      베이스 API: 워크스페이스 · 할일 · 일정 · 메모 · 관계 · 진화 · 승인 · 요청 · 신뢰 점검
-dashboard.html        레퍼런스 UI: 세 영역, Claude 앱 같은 채팅, 칩 모드 + 그리기, 관계 칩
+dashboard-api.js      베이스 API: 할일 · 일정 · 메모 · 관계 · 요청 · 승인 · 진화 · PRD · 업데이트
+dashboard.html        레퍼런스 UI: Work · Requests · Evolve · PRD · Update, Claude 앱 같은 채팅, 칩 모드 + 그리기, 관계 칩
 agent-log.js          에이전트 자체 JSONL 기록으로 채팅 표시(Claude Code + Codex): 응답·도구·모델·한도
 codex-settings.js     Codex 모델·추론 강도 목록, Codex 자체 메뉴로 전환
-graph-index.js        워크 그래프와 지식그래프의 NodeRel 색인(워크스페이스마다 파생 graph-index.sqlite)
-work-ontology.js      워크 온톨로지 — 업무 프로세스에 필요한 것(클래스, 관계, 계산 규칙). graph-index.js가 읽는다
+graph-index.js        연결의 NodeRel 색인(파생 graph-index.sqlite)
+work-ontology.js      업무 항목과 연결의 종류(클래스, 관계, 계산 규칙). graph-index.js가 읽는다
 seed.js               첫 실행용 예제 흐름 두 개
 features.json         기능 목록: 기능별 앵커 + 담당 스킬 (ana-update가 비교 기준으로 사용)
 package.json          의존성: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot
 test.cjs              단위 + 통합 테스트(npm test), mock_agent.py = 테스트용 결정적 TUI
-skills/               install · ana · ana-update · chat-window · context-chips · work-and-knowledge · app-shell · agent-requests · trust-checks
+skills/               install · ana · ana-update · chat-window · context-chips · app-shell · agent-requests · cloud-setting
 .claude-plugin/       플러그인 + 마켓플레이스 매니페스트
 CHANGELOG.ko.md       버전별 변경 기록 (영문: CHANGELOG.md)
 ```

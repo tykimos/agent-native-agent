@@ -6,6 +6,8 @@
 
 ### Build apps you operate by watching and talking.
 
+> **Two editions.** **Agent-Native Agent** (this repository, AGPL) is the simple one: chat with your coding agent and five tabs — Work (tasks, calendar, notes and how they link), Requests, Evolve, PRD and Update. **Agent-Native Agent Pro** (commercial) adds a knowledge layer that grows from the work (analysis, knowledge graph, ontology with rules), the Graph view, a System scope with admin and member roles, Roadmap and Health, several workspaces, a Claude account per session and an offline edition. Ask about Pro: [COMMERCIAL.md](COMMERCIAL.md).
+
 [![Stars](https://img.shields.io/github/stars/tykimos/agent-native-agent?style=for-the-badge&logo=github&color=CC785C)](https://github.com/tykimos/agent-native-agent/stargazers)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-1f6feb?style=for-the-badge)](LICENSE)
 [![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-CC785C?style=for-the-badge)](https://claude.com/claude-code)
@@ -88,10 +90,6 @@ Run ANA in your browser without installing WSL, Node or tmux on your computer. B
 
 **[Browser quick-start guide](docs/codespaces.md)** — automatic setup → open **ANA / 8809** in Ports → complete Claude setup in ANA chat. Keep the port **Private**. Codespaces usage is billed separately from Claude; ANA stops when the codespace stops.
 
-## Offline edition — no LLM, no internet (Windows)
-
-Need ANA on a PC without internet or an AI agent? `node scripts/package-offline.mjs` builds a portable Windows x64 zip (Node 24 LTS included). Unzip it and double-click `start.bat`. You get tasks, calendar, notes, relations, files and requirements; agent features are hidden. Install guide: [docs/offline.md](docs/offline.md).
-
 ## Quickstart — run the base (2 min)
 
 **Prerequisites:** Node ≥ 24, tmux, and a coding-agent CLI (e.g. [Claude Code](https://claude.com/claude-code)). The runtime (`channel-core.js`) has zero dependencies; the base app has one, [NodeRel](https://github.com/tykimos/NodeRel), installed from GitHub with `npm install`.
@@ -148,36 +146,22 @@ Open **http://localhost:8809** and tap the chat button. The server needs **no la
 
 ## What's in the base
 
-![Workspace and System on a phone](docs/assets/areas-mobile.webp)
+The base is an operations board: notes, tasks and a calendar you run together with a coding agent. It has one workspace and five tabs (a bottom menu on phones):
 
-The base is an operations board: notes, tasks and a calendar you run together with a coding agent. It has **two scopes**, and the top of the screen always shows which one you are in:
+| Tab | Sub-tabs | What |
+|---|---|---|
+| **Work** | Tasks · Calendar · Notes | your work items and how they connect — a domain ANA puts its own kinds of work here |
+| **Requests** | Waiting · In progress · Done | what the agent needs from you: data changes it proposes (nothing changes until you approve), approvals, decisions, access, things only you can do, missing information |
+| **Evolve** | Waiting · In progress · Done | what to do now and how ANA could change, at three horizons — **tidy** (fix what is off), **improve** (a better way of doing this work), **reimagine** (a new way of working) — with what was seen, what changes for people and what others do (links). *Do it* hands it to the agent |
+| **PRD** | Current · History | what this ANA is and does — purpose, users, features, screens, data. The agent writes it from the code and data (*Ask the agent*) and you can edit it; every save is a new version you can view or restore |
+| **Update** | Waiting · In progress · Done | features that are new in [agent-native-agent](https://github.com/tykimos/agent-native-agent) and not yet here. *Check for updates* compares this ANA with the latest upstream feature by feature; *Bring it in* has the agent port one with its skill |
 
-| Scope | Who | Tabs | For |
-|---|---|---|---|
-| **Workspace** (name shown at the top) | members | **Work** (Tasks · Calendar · Notes) · **Graph** · **Files** · **Inbox** | the work and data of one workspace |
-| **System** (dark header band) | admin | **Inbox** · **Roadmap** · **Ontology** · **Health** | decisions that apply to every workspace |
-
-On phones the bottom menu follows the scope (Work · Graph · Files · Inbox, plus System for the admin; in System: Inbox · Roadmap · Ontology · Health · Workspace). On desktop a switch next to the logo changes scope.
-
-Each page shows one kind of thing at a time; pages with several kinds have sub-tabs, and each list filters *Open / Done*:
-
-- **Inbox (Workspace):** *Approvals* (data changes, analysis results to add to the knowledge graph, decisions, access) · *Action requests* (what the agent needs you to do or tell it) · *Evolve* (suggestions for running this workspace better) · *Sent* (what you asked the admin, your feature requests). The same words as System › Inbox.
-- **Graph:** *Work* · *Knowledge* — this workspace's two graphs.
-  - *Work* is the work graph: how notes, tasks and events connect, where the flow breaks, links by kind. People may make new kinds of links (`BLOCKS`); they show as *(new)*.
-  - *Knowledge* is the knowledge graph (entities and facts that accumulate from doing the work), with *Analyze* (the agent reads your work items) and the latest analysis (above the graph while it runs or waits for you).
-  - *Ontology* on each tab opens that layer's ontology (admin: System › Ontology; members: read-only).
-- **Files** is the workspace's own folder, plus chat attachments (read-only).
-- **Inbox (System):** *Approvals* · *Action requests* (from members, the agent and the system checks) · *Evolve* (proposals to change the system — the admin starts them).
-- **Roadmap:** *Requirements* · *Updates* (upstream) — where each change stands, one line per item with its stage (e.g. Request → Proposal → Building → Checked) and the next action. The Inbox is for deciding, the Roadmap for following progress.
-- **Ontology:** *Work* · *Knowledge*, each with *Classes* · *Relations* · *Rules*. The **Work ontology** is what the work process needs to run (base: Note, Task, Event, Day and how they flow), declared in `work-ontology.js` and changing with the code. The **Knowledge ontology** is what accumulates from doing the work; the admin adds to it or approves what analyses propose. A Knowledge class can be a kind of a Work class (Ticket ⊂ Task) and be put on a work item. **Rules** derive facts when the graph is read: inverse / symmetric / transitive, and **chain** rules (*if* x attends y, y part_of z *then* x involved_in z); **limit** rules mark facts that break them. It is a lens, not a gate: what doesn't fit is kept and marked *not in the ontology yet* ([Work and Knowledge](docs/work-and-knowledge.md)).
-- **Health:** *Trustworthiness* · *Safety* · *Security* (riskiest first, OK checks folded) · *Tests* (run this ANA's tests and see what failed) · *Usage* (stats and activity).
-
-**Where is Evolve?** Always in the **Inbox**: Workspace › Inbox › *Evolve* for this workspace (members start them), System › Inbox › *Evolve* for the system (the admin starts them). Same cards, same buttons — only the scope differs. The agent reads the work and the knowledge and first writes **insights** in the words of the work ("the workshop day has passed but its prep is still open"), with the items they are about and what needs deciding. Then come **proposals that follow from them** — what to do now, and features named by what people get — at three horizons (**tidy**, **improve**, **reimagine**), each with *Seen*, *Changes*, *Seen elsewhere* (outside examples with links) and, folded, *How it would work*.
+Every Requests and Evolve card answers the same questions in plain words — **What's going on · What is asked · What it changes · If not**. The agent updates the PRD when an Evolve proposal or an update changes what the app does.
 
 ### Chat — like the Claude app
 
 - **Rendered from the agent's own log**, not the screen: Claude Code's transcript (`~/.claude/projects/…`) or Codex's rollout (`~/.codex/sessions/…`). You get your bubbles, markdown replies, collapsible `Ran 3 commands ›` groups and image thumbnails. Agents without a log fall back to the screen mirror.
-- **Session combo:** pick the tmux session (Claude Code or Codex). Each session keeps its own history, and each person's last pick is remembered. Sessions can even use **different Claude accounts** (`CLAUDE_CONFIG_DIR` per tmux session); the chat and the usage rings then follow that account — see [docs/multi-account.md](docs/multi-account.md).
+- **Session combo:** pick the tmux session (Claude Code or Codex). Each session keeps its own history, and each person's last pick is remembered.
 - **Composer:** ＋ attach files · **model pill** (the real model, e.g. `Opus 5.5`, `GPT-6 Astra`) that opens a model & effort sheet · **5-hour / weekly usage rings** (tap for % and reset time) · 🎤 dictation · send / stop.
 - Floating input with a ↓ jump button. It sits right on top of the phone keyboard.
 - **Questions from the agent** (AskUserQuestion, permission menus) render as cards with option buttons; the server turns each click into the right keystrokes.
@@ -186,25 +170,9 @@ Each page shows one kind of thing at a time; pages with several kinds have sub-t
 
 Turn on **Chip** (top right) and tap anything (a task, a card, a KPI) to attach it to the next message as a context chip. ⟳ registers newly added kinds of elements. ✎ lays a canvas over the board: circle what you mean in red, magenta or blue and press *Add to chat*. The annotated screenshot is attached, with chips for the items under your marks. Screenshots use [modern-screenshot](https://github.com/qq15725/modern-screenshot), served locally from `/vendor/`.
 
-### Work and Knowledge
+### Links between your work
 
-A **domain** (sales, storage operations, a team's own work…) is its **work** and its **knowledge**:
-- **Work** is what the work process needs to run: the items it handles and how they flow. It is designed with the process.
-- **Knowledge** is what accumulates from doing that work. It grows as the work is done.
-
-An ANA for a domain designs the first and lets the second grow; what grows can in turn reshape the process (Evolve). Base ANA's domain is a person's or a team's own work: notes → tasks → events.
-
-Each layer is a pair of an **ontology** (the kinds, in the System) and a **graph** (the actual things, per workspace):
-
-| | **Work layer** | **Knowledge layer** |
-|---|---|---|
-| **Ontology** — classes, relations, rules | **Work ontology** `work-ontology.js` (the app's code) | **Knowledge ontology** `.ana/knowledge-ontology.json` (the admin) |
-| **Graph** | **Work graph** `work-graph.json` — notes, tasks, events and their links | **Knowledge graph** `knowledge-graph.json` — entities and facts that accumulate from the work |
-| **In the app** | **Graph › Work** (the System's **Ontology › Work**) | **Graph › Knowledge** — graph · *Analyze* · latest analysis (**Ontology › Knowledge**) |
-
-Both graphs are indexed in one [NodeRel](https://github.com/tykimos/NodeRel) index per workspace (`graph-index.js` → `graph-index.sqlite`, rebuilt whenever the files change), so the agent can walk from a note to the people in it.
-
-**Work graph.**
+Notes, tasks and events link to each other, indexed with [NodeRel](https://github.com/tykimos/NodeRel) (`graph-index.js` → `graph-index.sqlite`, rebuilt whenever the data changes) so the agent can follow them:
 
 ```
 Note ─SPAWNED──────▶ Task | Event     where a task or event came from      (explicit)
@@ -213,69 +181,25 @@ Note|Task|Event ─REFERS_TO─▶ Note|Task|Event   manual reference           
 Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           computed from due / date    (rule)
 ```
 
-To make links in the UI:
+The kinds come from `work-ontology.js`. To make links in the UI:
 - Select a line in a note and press **→ Task** or **→ Event**.
 - Press the calendar button on a task to block time for it.
 - **＋ Link** connects any two items.
 
-Links show as chips on both ends; click one to jump to that item. A new kind of link (`BLOCKS`) is kept and shown as *new*. **Graph › Work** draws the whole flow and lists where it breaks: notes nothing came from, open tasks without a due date, open tasks with no time scheduled.
-
-**Knowledge graph.** *Analyze* has the agent read the work items you pick and propose entities (Acme is a Client) and facts (Acme `client_of` Our team), each citing the items it came from.
-- **A lens, not a gate.** Nothing that doesn't fit the ontology is dropped; it is marked *not in the ontology yet* and the admin is asked to add it.
-- **Rules.** Rules (sub-class, inverse / symmetric / transitive, **chain**, **limit**) derive more facts, or mark the ones that break a limit, every time the graph is read.
-- **Approval.** A result enters the workspace's knowledge graph when a member approves it.
-- **Export.** Open the graph in [OntoAir](https://poc.aifactory.space/ontoair/) or download it as OWL Turtle; rules are included as OWL axioms.
+Links show as chips on both ends; click one to jump to that item. A new kind of link (`BLOCKS`) is kept as it is.
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /api/state` → `graph.links` | the Work graph's links (from NodeRel) |
+| `GET /api/state` → `graph.links` | the links (from NodeRel) |
 | `POST /api/todo {title, due?, from?}` · `POST /api/event {action:'add', …, from?}` | create and link to its source in one call (`from` = note → `SPAWNED`, task → `SCHEDULED_AS`) |
-| `POST /api/link {action:'add'\|'remove', from, to, type}` | add / remove a link (Work ontology links keep their direction; new UPPER_SNAKE kinds are kept) |
-| `GET /api/kg` · `GET /api/ontology` | the knowledge graph (with fit, inferred facts) · both ontologies (classes, relations, rules) |
-| `GET /api/graph/neighbors?id=` · `GET /api/graph/trace?id=&depth=&direction=&types=` | incident links / everything reachable, across both graphs |
+| `POST /api/link {action:'add'\|'remove', from, to, type}` | add / remove a link |
+| `GET /api/graph/neighbors?id=` · `GET /api/graph/trace?id=&depth=&direction=&types=` | incident links / everything reachable |
 | `GET /api/graph/schema` | NodeRel's AI-readable schema plus the meanings. Hand it to the agent |
-| `GET /api/stats` → `graph` | counts per kind and the three `gaps` lists |
+| `GET /api/stats` → `graph` | counts per kind and where the flow breaks (`gaps`) |
 
-→ Full write-up: the model, the lens, rules and reasoning, the analysis process, a glossary in Korean and English, export: **[docs/work-and-knowledge.md](docs/work-and-knowledge.md)**
+### Requests, Evolve and PRD — the API
 
-### Inbox — what the agent needs from you
-
-| Item | From | What |
-|---|---|---|
-| **Needs you** | agent → you | Work only you can do (`action`), information it is missing (`info`), decisions (option buttons), access, and pending **data changes** (the agent proposes a diff; nothing changes until you approve). |
-| **Suggestions** | agent → this workspace | Better ways to run the workspace with existing features. *Do it* hands it to the agent (data only, no code); *Propose to the system* lifts it to the Roadmap when it needs a new feature. |
-| **Sent by you** | you → admin / system | *Ask the admin* requests and *Request a feature* items, with their progress. |
-
-*Ask the agent* has it fill the inbox. The agent registers items with `POST /api/requests {requests:[{kind, title, desc?, options?, ref?}]}` (`ref` = a task/event/note id shown as a link). Your answer goes straight to the agent in chat. *Resolved* / *Not now* notify it (`POST /api/request-act {id, action: answer|done|dismiss|reopen}`).
-
-### Admins and members
-
-Workspaces are where **members** work; the **System** is decided by the **admin**.
-
-| | Member (Workspace) | Admin (System) |
-|---|---|---|
-| Proposals | **Inbox › Suggestions**: better ways to run this workspace with existing features. Members start these themselves | **Roadmap**: features, screens, APIs, the shared ontology. Only the admin starts or cancels them |
-| Approval requests | data changes in the workspace (Inbox) | system changes, in **System › Inbox** |
-| Action requests | what the agent needs from the member (Inbox) | what only the admin can do (access, installs, connecting data), in **System › Inbox** |
-| Requirements | *Request a feature* | **Roadmap**: checked by the agent, turned into proposals, re-checked when built |
-
-- **Who is admin:** `ANA_ADMINS=email,…`. If it's empty, if the ANA has no identity header (single user), or for calls with no identity from this machine (you or the agent on it), everyone is admin, so single-user installs work as before.
-- **Admin-only actions** (checked on the server): starting, cancelling or reopening a system proposal; bringing in an Update; switching the agent to a mode that never asks (Bypass / Full Access); deleting a workspace. When a member tries one, it becomes an approval request in **System › Inbox**. Approving it runs the action as the admin.
-- **Asking the admin:** members use *Ask the admin* in their Inbox and follow it under *Sent by you*. The agent uses `POST /api/admin/requests {type: work|approval, title, desc?}`. A system check at **risk** opens a work request by itself and closes it once the check is fine again.
-- **API:** `GET /api/admin/inbox` (an admin sees all; a member sees their own) and `POST /api/admin/act {id, action: approve|reject|start|done|fail|cancel|reopen, note?}`. `GET /api/me` → `role`. `POST /api/evolve` takes `scope: system|workspace`.
-
-### System › Health — Trustworthiness · Safety · Security
-
-Checks computed from real state (`GET /api/trust`), not static text:
-
-- **Trustworthiness:** is the agent running, is the chat read from its own log, the tool-call failure rate, interrupted turns, plan usage, what is waiting on you.
-- **Safety:** does the agent run with permission prompts off (`--dangerously-skip-permissions`, `--dangerously-bypass-approvals-and-sandbox`)? Which risky commands has it actually run (rm -rf, reset --hard, force push, killall, sudo, curl | sh, DROP TABLE, disk writes)? It also confirms data changes go through approval.
-- **Security:**
-  - who can reach the server (bind address) and whether people sign in
-  - cross-site request protection
-  - your AI login token stays on the server
-  - credential file permissions
-  - secrets pasted into notes or tasks (it reports *where*, never the value)
+*Ask the agent* has it fill the list. The agent registers items with `POST /api/requests {requests:[{kind, title, why, ask, effect, ifNot, options?, ref?}]}` (`ref` = a task/event/note id shown as a link) and data changes with `POST /api/agent {text, diff, why, effect}`. Your answer goes straight to the agent in chat. *Resolved* / *Not now* notify it (`POST /api/request-act {id, action: answer|done|dismiss|reopen}`). Evolve proposals come in through `POST /api/evolve` and are handled with `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen}`. The PRD is `GET /api/prd` (current + history) and `POST /api/prd {md, note, source}` (a new version) or `{action:'restore', v}`. Updates: `GET /api/updates`, `POST /api/update/check`, `POST /api/update-act {id, action}`.
 
 ### Sharing it with other people (optional)
 
@@ -287,7 +211,7 @@ ANA_LOGOUT_URL=/your-gateway/logout \
 node server.js
 ```
 
-With the header set, items carry an author, only the author can edit or delete their own, and the per-person stats and activity come alive. Unset (the default) everything runs as one local user.
+With the header set, items carry an author and only the author can edit or delete their own. Unset (the default) everything runs as one local user.
 
 **Coding-agent sessions per person.** The session combo at the top of the chat picks a tmux session. Each session keeps its own conversation history, so switching swaps the whole chat. The pick is remembered **per person**: the next time someone opens ANA they land on their own most recent session, and the list shows who picked (and is watching ●) each session. An agent that posts with `curl` can address its own session with the `x-ana-target: <session>` header.
 
@@ -335,10 +259,8 @@ claude plugin install ana@agent-native-agent          # later: claude plugin upd
 | [`ana-update`](skills/ana-update/SKILL.md) | bring an existing, customized ANA up to date, feature by feature |
 | [`chat-window`](skills/chat-window/SKILL.md) | the Claude-app chat: session combo, log-based rendering, model sheet, usage rings, voice, attachments, Codex |
 | [`context-chips`](skills/context-chips/SKILL.md) | Chip mode, ✎ draw-on-screen annotation, ⟳ register new elements |
-| [`work-and-knowledge`](skills/work-and-knowledge/SKILL.md) | Work and Knowledge: the two ontologies (classes, relations, rules), the Work graph (links, chips, Graph › Work), the knowledge graph (Analyze, rule reasoning), the NodeRel index |
-| [`app-shell`](skills/app-shell/SKILL.md) | Workspace / System scopes, bottom menu per scope, workspace combo |
-| [`agent-requests`](skills/agent-requests/SKILL.md) | Inbox, Roadmap, admin inbox: requests, approvals, proposals, requirements |
-| [`trust-checks`](skills/trust-checks/SKILL.md) | System: Trustworthiness, Safety, Security checks |
+| [`app-shell`](skills/app-shell/SKILL.md) | the five tabs (Work · Requests · Evolve · PRD · Update), sub-tabs, the bottom menu on phones |
+| [`agent-requests`](skills/agent-requests/SKILL.md) | Requests, Evolve and PRD |
 
 ### Updating an existing ANA
 
@@ -365,17 +287,17 @@ node skills/ana-update/scripts/ana-diff.mjs --target ~/ana/my-ana --record   # a
 ```
 channel-core.js     ★ the whole ANA runtime — tmux inject / capture-pane mirror / per-session ledgers (0 deps)
 server.js             base app: mounts channel-core + dashboard-api, serves dashboard.html
-dashboard-api.js      base API: workspaces · tasks · events · notes · links · evolve · approvals · requests · trust checks
-dashboard.html        reference UI: three areas, Claude-app chat, Chip mode + drawing, relation chips
+dashboard-api.js      base API: tasks · events · notes · links · requests · approvals · evolve · PRD · updates
+dashboard.html        reference UI: Work · Requests · Evolve · PRD · Update, Claude-app chat, Chip mode + drawing, relation chips
 agent-log.js          chat from the agent's own JSONL log (Claude Code + Codex): replies, tools, model, limits
 codex-settings.js     Codex model/effort catalog and switching through Codex's own menu
-graph-index.js        the NodeRel index of the Work graph and the knowledge graph (derived graph-index.sqlite per workspace)
-work-ontology.js      the Work ontology — what the work process needs to run (classes, relations, compute rules); graph-index.js reads it
+graph-index.js        the NodeRel index of the links (derived graph-index.sqlite)
+work-ontology.js      the kinds of work items and links (classes, relations, compute rules); graph-index.js reads it
 seed.js               two example flows for the first run
 features.json         feature manifest: anchors + skill per feature (used by ana-update)
 package.json          dependencies: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot
 test.cjs              unit + integration tests (npm test), mock_agent.py = deterministic TUI stand-in
-skills/               install · ana · ana-update · chat-window · context-chips · work-and-knowledge · app-shell · agent-requests · trust-checks
+skills/               install · ana · ana-update · chat-window · context-chips · app-shell · agent-requests · cloud-setting
 .claude-plugin/       plugin + marketplace manifest
 CHANGELOG.md          release notes per version (Korean: CHANGELOG.ko.md)
 ```
@@ -423,14 +345,3 @@ If ANA changes how you think about apps, **⭐ star the repo** so others can fin
 
 Free to use, modify, and self-host. If you run a modified version as a network service, AGPL §13 requires you to publish your source. Building something closed-source or hosted? A **[commercial license](COMMERCIAL.md)** is available.
 
-## File browser
-
-Open **System → Files** to browse, upload and download files. Breadcrumbs and the parent button navigate folders; uploads go into the current folder. The limit is 25 MB per file, and existing files are never overwritten. There are three folders:
-
-| Folder | What | Uploads |
-|---|---|---|
-| **Files** (default) | your own folder: `<data dir>/files` (`.ana/files`), or `ANA_FILES_ROOT=/absolute/path` | yes |
-| **From chat** | what you attached in the chat (`.ana/uploads`) | read-only |
-| **Project files** | the whole ANA folder, shown only after you tick *Show project files* | yes, except inside `.ana/` and `.git/` |
-
-Parent traversal and symbolic links are blocked in every folder. The folders are shared across the ANA’s Workspaces.

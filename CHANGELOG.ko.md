@@ -5,6 +5,36 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.15.0] — 2026-10-31
+
+**두 에디션 — 이 저장소는 간소한 Agent-Native Agent입니다.** 전체판은 **ANA Pro**(상용, [COMMERCIAL.ko.md](COMMERCIAL.ko.md) 참고)로 이어집니다. 이 저장소에는 한 사람이 코딩 에이전트와 일을 굴리는 데 필요한 것이 남습니다. 워크스페이스 하나에 탭 다섯: **Work** · **Requests** · **Evolve** · **PRD** · **Update**.
+
+### Removed (ANA Pro로 옮김)
+
+- 지식 층: 분석, 지식그래프, 규칙이 있는 온톨로지 편집, OntoAir·OWL 내보내기, 워크 항목의 하위 종류.
+- Graph 화면(워크 그래프·지식그래프).
+- System 범위: 관리자·실무자 역할, 관리자 받은함, Roadmap과 요구사항, Health(신뢰성·안전·보안·테스트·사용).
+- 여러 워크스페이스(ANA 하나에 하나), Files 탭, tmux 세션별 Claude 계정, 오프라인판.
+- Evolve 인사이트, *Ask the admin*과 *Request a feature*.
+
+이전 버전의 데이터는 그대로 둡니다. 빠진 기능만 쓰던 파일도 건드리지 않습니다.
+
+### Added
+
+- **PRD 탭(Current · History):** 이 ANA가 무엇을 하는 앱인지 — 목적, 사용자, 기능, 화면, 데이터, 에이전트가 하는 일. *Ask the agent*를 누르면 에이전트가 코드와 데이터를 읽고 PRD를 쓰거나 고치고, *Edit*로 직접 고칠 수 있습니다. 저장할 때마다 새 판이 되고(에이전트 또는 사람, 메모와 함께), 옛 판을 보거나 되돌릴 수 있습니다. Evolve와 Update는 앱이 하는 일이 바뀌면 PRD도 고치라고 에이전트에게 알립니다. API: `GET /api/prd`, `POST /api/prd {md, note, source}` 또는 `{action:'restore', v}`.
+
+### Changed
+
+- **탭 다섯.** **Work**는 업무 종류마다 하위 탭이 있습니다(base: Tasks · Calendar · Notes). **Requests**(데이터 변경, 승인, 결정, 접근, 나만 할 수 있는 일, 모자란 정보), **Evolve**, **Update**는 각각 *Waiting · In progress · Done*으로 나뉩니다. 휴대폰에서는 같은 다섯이 아래 메뉴입니다.
+- **Evolve는 목록 하나.** 지금 일을 어떻게 할지와 ANA가 어떻게 바뀌면 좋을지를 함께 다루고, 세 거리(tidy · improve · reimagine)로 본 것·사람에게 달라지는 것·바깥 사례를 붙입니다.
+- **Update는 따로 탭이 있습니다.** *Check for updates*가 최신 agent-native-agent와 기능 단위로 비교하고, *Bring it in*을 누르면 에이전트가 옮겨 옵니다.
+- **받은함의 모든 카드가 쉬운 말로 말합니다.** 항목마다 일의 말로 같은 질문에 답합니다. **What's going on**(무슨 일인지, `why`), **What is asked**(무엇을 해 달라는지, `ask`), **What it changes**(무엇이 달라지는지, `effect`), **If not**(안 하면, `ifNot`). 모든 [Approvals]·[Requests]·[Evolve] 지시문과 `POST /api/agent`가 같은 칸을 요구합니다.
+- **데이터 변경을 문장으로 보여 줍니다.** *Change "Book the venue": mark as done*, *Add task "Call Acme", due 2026-10-30*처럼 날것의 데이터가 보이지 않습니다.
+
+### Fixed
+
+- 프로필 사진 바꾸기가 다시 됩니다(올리기 도우미가 빠져 있었습니다).
+
 ## [0.14.0] — 2026-10-28
 
 ### Added

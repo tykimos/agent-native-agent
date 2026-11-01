@@ -5,6 +5,36 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.15.0] — 2026-10-31
+
+**Two editions — this one is the simple Agent-Native Agent.** The full version continues as **ANA Pro** (commercial; see [COMMERCIAL.md](COMMERCIAL.md)). This repository keeps what one person needs to run their work with a coding agent, in one workspace and five tabs: **Work** · **Requests** · **Evolve** · **PRD** · **Update**.
+
+### Removed (now in ANA Pro)
+
+- The knowledge layer: analysis, the knowledge graph, the ontology editor with rules, OntoAir / OWL export, sub-kinds on work items.
+- The Graph view (work graph and knowledge graph).
+- The System scope: admin and member roles, the admin inbox, Roadmap and requirements, Health (trustworthiness, safety, security, tests, usage).
+- Several workspaces (the ANA uses one), the Files tab, a Claude account per tmux session, the offline edition.
+- Evolve insights; *Ask the admin* and *Request a feature*.
+
+Data from earlier versions stays where it is; files only the removed features use are left untouched.
+
+### Added
+
+- **PRD tab (Current · History):** what this ANA is and does — purpose, users, features, screens, data, what the agent does. *Ask the agent* has it write or update the PRD from the code and data; *Edit* lets you change it. Every save is a new version (by the agent or by you, with a note), and earlier versions can be viewed and restored. Evolve and Update tell the agent to update the PRD when what the app does changes. API: `GET /api/prd`, `POST /api/prd {md, note, source}` or `{action:'restore', v}`.
+
+### Changed
+
+- **Five tabs.** **Work** has a sub-tab per kind of work (base: Tasks · Calendar · Notes). **Requests** (data changes, approvals, decisions, access, things only you can do, missing information), **Evolve** and **Update** each split into *Waiting · In progress · Done*. On phones the same five are the bottom menu.
+- **Evolve is one list.** Proposals cover both what to do with the work now and how ANA should change, at three horizons (tidy · improve · reimagine), with what was seen, what changes for people and outside examples.
+- **Update is a tab of its own:** *Check for updates* compares this ANA with the latest agent-native-agent feature by feature; *Bring it in* has the agent port one.
+- **Every Inbox card speaks plainly.** Each item answers the same questions in the words of the work: **What's going on** (`why`), **What is asked** (`ask`), **What it changes** (`effect`) and **If not** (`ifNot`). Agents are asked for these fields in every [Approvals], [Requests] and [Evolve] instruction and on `POST /api/agent`.
+- **Data changes read like sentences:** *Change "Book the venue": mark as done*, *Add task "Call Acme", due 2026-10-30* — no raw data.
+
+### Fixed
+
+- Changing the profile photo works again (the upload helper had gone missing).
+
 ## [0.14.0] — 2026-10-28
 
 ### Added
