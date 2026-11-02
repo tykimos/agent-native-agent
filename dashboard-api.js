@@ -31,6 +31,10 @@ function createDashboardApi(core, opts) {
   const PRD_FILE = opts.PRD_FILE || path.join(path.dirname(EVOLVE_FILE), 'prd.json');
   // Knowledge — 일에서 쌓이는 것: 온톨로지(종류 · 관계)와 그래프(개체 · 사실). 처음엔 비어 있고 에이전트가 채운다
   const KNOWLEDGE_FILE = opts.KNOWLEDGE_FILE || path.join(path.dirname(EVOLVE_FILE), 'knowledge.json');
+  // Knowledge › Documents — 사람이 올린 파일(명세서·가격표·매뉴얼…). 에이전트가 읽고 지식을 쌓는다
+  const DOCS_DIR = opts.DOCS_DIR || path.join(path.dirname(EVOLVE_FILE), 'documents');
+  const DOCS_FILE = path.join(DOCS_DIR, 'documents.json');
+  const DOC_MAX = opts.DOC_MAX || 25 * 1024 * 1024;
   // Update — 업스트림(agent-native-agent)과 기능 단위로 비교한 결과와 그 처리 상태
   const UPDATES_FILE = opts.UPDATES_FILE || path.join(path.dirname(EVOLVE_FILE), 'updates.json');
   const UPSTREAM_DIR = opts.UPSTREAM_DIR || path.join(path.dirname(EVOLVE_FILE), 'upstream');
@@ -286,6 +290,16 @@ function createDashboardApi(core, opts) {
     }
     return n;
   }
+  // ---- Knowledge › Documents: 파일은 DOCS_DIR/<id>-<이름>, 목록은 documents.json ----
+  function loadDocs() {
+    const d = readJsonStrict(DOCS_FILE, () => ({ next: 1, items: [] }));
+    return d && Array.isArray(d.items) ? d : { next: 1, items: [] };
+  }
+  const saveDocs = (d) => { d.version = (d.version || 1) + 1; writeJsonAtomic(DOCS_FILE, d); };
+  const docPath = (x) => path.join(DOCS_DIR, x.file);
+  // 화면 안에서 바로 열어도 안전한 종류만 inline(그림·PDF·글). 나머지(HTML·SVG 등)는 늘 내려받기로 — 같은 출처에서 스크립트가 돌지 않게
+  const DOC_INLINE = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.pdf': 'application/pdf',
+    '.txt': 'text/plain; charset=utf-8', '.md': 'text/plain; charset=utf-8', '.csv': 'text/plain; charset=utf-8', '.json': 'text/plain; charset=utf-8' };
   function loadRequests() {
     const s = readJsonStrict(REQUESTS_FILE, () => ({ next: 1, requests: [] }));
     if (!s || typeof s !== 'object' || !Array.isArray(s.requests)) return { next: 1, requests: [] };
@@ -1102,6 +1116,46 @@ function createDashboardApi(core, opts) {
       return sendJson(res, 200, { ok: true, status: it.status, item: it, upstreamDir: UPSTREAM_DIR }), true;
     }
 
+    // Knowledge › Documents — GET: 목록(에이전트가 읽을 절대 경로 포함) / POST {name, type, data(base64), note?}: 올리기
+    //   POST {action:'remove', id}: 지우기 / GET /api/documents/<id>/file: 내려받기(안전한 종류만 화면에서 열림)
+    if (p === '/api/documents' && req.method === 'GET') {
+      return sendJson(res, 200, { items: loadDocs().items.map((x) => ({ ...x, path: docPath(x) })).reverse(), max: DOC_MAX }), true;
+    }
+    if (p === '/api/documents' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res, Math.ceil(DOC_MAX * 4 / 3) + 8192); if (!body) return true;
+      const d = loadDocs();
+      if (body.action === 'remove') {
+        const x = d.items.find((y) => y.id === body.id); if (!x) return sendJson(res, 404, { error: 'not found' }), true;
+        d.items = d.items.filter((y) => y !== x); saveDocs(d);
+        await fsp.rm(docPath(x), { force: true }).catch(() => {});
+        audit(actor(req), 'document.remove', x.name.slice(0, 80)); broadcast({ kind: 'documents', version: d.version });
+        return sendJson(res, 200, { ok: true }), true;
+      }
+      const b64 = typeof body.data === 'string' ? body.data.replace(/^data:[^,]*,/, '') : '';
+      if (!b64) return sendJson(res, 400, { error: 'data required (base64)' }), true;
+      const buf = Buffer.from(b64, 'base64');
+      if (!buf.length) return sendJson(res, 400, { error: 'empty file' }), true;
+      if (buf.length > DOC_MAX) return sendJson(res, 413, { error: `file too large (over ${Math.round(DOC_MAX / 1048576)} MB)` }), true;
+      const name = clip(String(body.name || 'file').split(/[\\/]/).pop().replace(/[\r\n]+/g, ' ').trim() || 'file', 160);
+      const x = { id: `doc-${d.next++}`, name, file: '', size: buf.length, type: clip(body.type, 100), note: clip(body.note, 300), by: actor(req), at: new Date().toISOString() };
+      x.file = `${x.id}-${safeName(name)}`;
+      try { await fsp.mkdir(DOCS_DIR, { recursive: true }); await fsp.writeFile(docPath(x), buf); } catch (e) { return sendJson(res, 500, { error: `Save failed: ${e.message}` }), true; }
+      d.items.push(x); saveDocs(d);
+      audit(actor(req), 'document.add', `${(path.extname(name) || '?').toLowerCase()} ${buf.length}`);
+      broadcast({ kind: 'documents', version: d.version });
+      return sendJson(res, 200, { ok: true, item: { ...x, path: docPath(x) } }), true;
+    }
+    if (/^\/api\/documents\/[\w-]+\/file$/.test(p) && (req.method === 'GET' || req.method === 'HEAD')) {
+      const x = loadDocs().items.find((y) => y.id === p.split('/')[3]); if (!x) return sendJson(res, 404, { error: 'not found' }), true;
+      let st; try { st = await fsp.stat(docPath(x)); } catch { return sendJson(res, 404, { error: 'file missing' }), true; }
+      const inline = DOC_INLINE[path.extname(x.name).toLowerCase()];
+      res.writeHead(200, { 'content-type': inline || 'application/octet-stream', 'content-length': st.size, 'x-content-type-options': 'nosniff', 'cache-control': 'no-store',
+        'content-disposition': `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(x.name)}` });
+      if (req.method === 'HEAD') return res.end(), true;
+      require('node:fs').createReadStream(docPath(x)).pipe(res);
+      return true;
+    }
     // Knowledge — GET: 온톨로지와 그래프 / POST {classes?, relations?, entities?, facts?}: 더하기(같은 id는 고침)
     //   POST {action:'remove', kind: class|relation|entity|fact, id | from,rel,to}: 지우기(개체를 지우면 그 개체의 사실도)
     if (p === '/api/knowledge' && req.method === 'GET') return sendJson(res, 200, loadKnowledge()), true;

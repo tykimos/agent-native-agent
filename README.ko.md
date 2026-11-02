@@ -152,7 +152,7 @@ node server.js           # → http://localhost:8809
 |---|---|---|
 | **PRD** | Current · History | 이 ANA가 무엇을 하는 앱인지 — 목적, 사용자, 일, 손그림, 지식, 에이전트가 하는 일. **새 ANA에는 PRD가 없습니다. 이 탭에서 열리고, 대화로 시작합니다.** 채팅으로 무슨 일을 하는지 말하면(예시를 고르거나 화면을 그려 보내도 됨) 에이전트가 필요한 것만 묻고, 같은 대화에서 PRD를 쓰고 첫 Work 화면을 만듭니다. 언제든 고칠 수 있고, 저장할 때마다 새 판이 되어 옛 판을 보거나 되돌릴 수 있습니다 |
 | **Work** | — | 내 일을 위한 화면. **처음엔 비어 있고,** 대화하면서 에이전트가 만듭니다(일의 종류가 여럿이면 하위 탭과 함께) |
-| **Knowledge** | Ontology · Graph | 내 일이 무엇에 관한 것인지: 사물의 종류와 그 관계(온톨로지), 실제 사물과 그 사이의 사실 — 각각 나온 항목이 붙음(그래프). 처음엔 비어 있고, *Ask the agent*를 누르면 에이전트가 일을 읽고 채우며, 틀린 것은 지울 수 있습니다 |
+| **Knowledge** | Ontology · Graph · Documents | 내 일이 무엇에 관한 것인지: 사물의 종류와 그 관계(온톨로지), 실제 사물과 그 사이의 사실 — 각각 나온 항목이 붙음(그래프). 처음엔 비어 있고, *Ask the agent*를 누르면 에이전트가 일을 읽고 채우며, 틀린 것은 지울 수 있습니다. *Documents*에는 에이전트가 알아야 할 파일(명세서, 가격표, 매뉴얼 — 파일당 25MB까지)을 올립니다. 에이전트가 읽고, 사실의 근거로 그 문서를 가리킵니다 |
 | **Requests** | Waiting · In progress · Done | 에이전트가 나에게 필요한 것: 에이전트가 제안한 데이터 변경(승인하기 전에는 아무것도 바뀌지 않음), 승인, 결정, 접근 권한, 나만 할 수 있는 일, 모자란 정보 |
 | **Evolve** | Waiting · In progress · Done | 지금 할 일과 ANA가 바뀔 방향을 세 거리로 — **tidy**(어긋난 것 정리), **improve**(이 일을 더 낫게), **reimagine**(새로운 일하는 방식). 본 것, 사람에게 달라지는 것, 다른 곳의 사례(링크)가 붙습니다. *Do it*을 누르면 에이전트가 맡습니다 |
 | **Update** | Waiting · In progress · Done | [agent-native-agent](https://github.com/tykimos/agent-native-agent)에 새로 나왔지만 여기에는 아직 없는 기능. *Check for updates*가 최신 업스트림과 기능 단위로 비교하고, *Bring it in*을 누르면 에이전트가 그 기능의 스킬로 옮겨 옵니다 |
@@ -202,7 +202,7 @@ Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           due / date에서 계�
 
 ### Requests, Evolve, PRD — API
 
-*Ask the agent*를 누르면 에이전트가 목록을 채웁니다. 에이전트는 `POST /api/requests {requests:[{kind, title, why, ask, effect, ifNot, options?, ref?}]}`로 항목을 올리고(`ref` = 링크로 보일 할일·일정·메모 id), 데이터 변경은 `POST /api/agent {text, diff, why, effect}`로 올립니다. 내 답은 채팅으로 바로 에이전트에게 갑니다. *Resolved* / *Not now*도 알려 줍니다(`POST /api/request-act {id, action: answer|done|dismiss|reopen}`). Evolve 제안은 `POST /api/evolve`로 들어오고 `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen}`로 처리합니다. Knowledge는 `GET /api/knowledge`와 `POST /api/knowledge {classes?, relations?, entities?, facts?}`(같은 id는 고침) 또는 `{action:'remove', kind, id}`입니다. PRD는 `GET /api/prd`(지금 판 + 이력)와 `POST /api/prd {md, note, source}`(새 판) 또는 `{action:'restore', v}`입니다. 업데이트는 `GET /api/updates`, `POST /api/update/check`, `POST /api/update-act {id, action}`입니다.
+*Ask the agent*를 누르면 에이전트가 목록을 채웁니다. 에이전트는 `POST /api/requests {requests:[{kind, title, why, ask, effect, ifNot, options?, ref?}]}`로 항목을 올리고(`ref` = 링크로 보일 할일·일정·메모 id), 데이터 변경은 `POST /api/agent {text, diff, why, effect}`로 올립니다. 내 답은 채팅으로 바로 에이전트에게 갑니다. *Resolved* / *Not now*도 알려 줍니다(`POST /api/request-act {id, action: answer|done|dismiss|reopen}`). Evolve 제안은 `POST /api/evolve`로 들어오고 `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen}`로 처리합니다. 문서는 `GET /api/documents`, `POST /api/documents {name, type, data(base64), note?}` 또는 `{action:'remove', id}`, `GET /api/documents/<id>/file`입니다. Knowledge는 `GET /api/knowledge`와 `POST /api/knowledge {classes?, relations?, entities?, facts?}`(같은 id는 고침) 또는 `{action:'remove', kind, id}`입니다. PRD는 `GET /api/prd`(지금 판 + 이력)와 `POST /api/prd {md, note, source}`(새 판) 또는 `{action:'restore', v}`입니다. 업데이트는 `GET /api/updates`, `POST /api/update/check`, `POST /api/update-act {id, action}`입니다.
 
 ### 여러 사람과 함께 쓰기 (선택)
 

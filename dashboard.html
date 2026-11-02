@@ -520,6 +520,10 @@ body.sketching { overflow: hidden; }
 .k-rel { color: var(--acc, var(--blue)); font-weight: 700; } .k-dot { width: 10px; height: 10px; border-radius: 999px; flex: 0 0 auto; }
 .k-new { font-size: 10.5px; font-weight: 800; padding: 1px 7px; border-radius: 999px; background: var(--surface-2); color: var(--text-weak); }
 .k-del { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 8px; color: var(--text-weak); } .k-del:hover { background: var(--surface-2); color: var(--danger); }
+.doc-drop { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 14px 16px; margin-bottom: 12px; border: 1.5px dashed var(--line); border-radius: 14px; color: var(--text-sub); font-size: 13px; }
+.doc-drop.over { border-color: var(--acc, var(--blue)); background: var(--acc-weak, var(--blue-weak)); }
+.doc-drop .ok { height: 34px; padding: 0 14px; border-radius: 999px; font-weight: 700; background: var(--acc, var(--blue)); color: #fff; } .doc-status { margin-left: auto; font-weight: 700; color: var(--text); }
+.doc-ic { font-size: 20px; line-height: 1; flex: 0 0 auto; margin-top: 2px; } .doc-name { color: var(--text); text-decoration: none; } .doc-name:hover { text-decoration: underline; }
 .k-graph { padding: 8px; margin-bottom: 16px; } .k-graph[hidden], .k-list[hidden] { display: none; }
 .k-svg { width: 100%; height: auto; display: block; }
 .k-edge { stroke: var(--line); stroke-width: 1.5; } .k-elabel { font-size: 10px; fill: var(--text-weak); text-anchor: middle; }
@@ -1184,6 +1188,13 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
       <div class="card k-list" id="kFacts" hidden></div>
       <div class="empty" id="kGraphEmpty">The graph is empty — press [Ask the agent] to have it find the things and facts in your work</div>
     </div>
+    <div data-subsec="documents">
+      <div class="sub-lead">Files the agent should know about — specs, price lists, manuals, notes. It reads them when it adds to the knowledge, and points facts back to them.</div>
+      <div class="doc-drop" id="docDrop"><button class="ok" id="docAdd">Add files</button><span>or drop them here · up to 25 MB each</span><span class="doc-status" id="docStatus" role="status" aria-live="polite"></span>
+        <input id="docInput" type="file" multiple hidden></div>
+      <div class="card k-list" id="docList" hidden></div>
+      <div class="empty" id="docEmpty">No documents yet — add the files your work runs on</div>
+    </div>
   </div></section>
 
   <!-- Requests: 에이전트가 나에게 필요한 것 — 데이터 변경 · 승인 · 결정 · 접근 · 할 일 · 정보. 상태별(대기 · 진행 · 완료) -->
@@ -1688,7 +1699,7 @@ var SUBTABS = {
   requests: STATUS_TABS,
   evolve: STATUS_TABS,
   prd: [['current', 'Current'], ['history', 'History']],
-  knowledge: [['ontology', 'Ontology'], ['graph', 'Graph']],
+  knowledge: [['ontology', 'Ontology'], ['graph', 'Graph'], ['documents', 'Documents']],
   update: STATUS_TABS,
 };
 var subSel = {}; try { subSel = JSON.parse(localStorage.getItem('ana-subtabs') || '{}') || {}; } catch {}
@@ -1877,11 +1888,16 @@ const kLabel = (arr, id) => (arr.find((x) => x.id === id) || {}).label || id;
 const kNew = '<span class="k-new" title="Not in the ontology yet">new</span>';
 const kDel = (attrs) => `<button class="k-del" ${attrs} aria-label="Remove" title="Remove">✕</button>`;
 // 근거 항목(메모 · 할일 · 일정) 칩 — 누르면 그 항목으로
-const kItems = (ids) => (ids || []).map(nodeOf).filter(Boolean).map((n) => `<span class="rel k-${n.kind}" role="button" tabindex="0" data-go="${escapeHtml(n.id)}"><span class="rk">${n.kind}</span><span class="rt">${escapeHtml(n.label)}</span></span>`).join('');
+const kItems = (ids) => (ids || []).map((id) => {
+  const d = /^doc-\d+$/.test(id) && (docsCache.items || []).find((x) => x.id === id);
+  if (d) return `<a class="rel k-Doc" href="/api/documents/${encodeURIComponent(d.id)}/file" target="_blank" rel="noopener"><span class="rk">Doc</span><span class="rt">${escapeHtml(d.name)}</span></a>`;
+  const n = nodeOf(id); return n ? `<span class="rel k-${n.kind}" role="button" tabindex="0" data-go="${escapeHtml(n.id)}"><span class="rk">${n.kind}</span><span class="rt">${escapeHtml(n.label)}</span></span>` : '';
+}).join('');
 function renderKnowledge() {
   const k = kCache, cls = k.classes || [], rel = k.relations || [], ent = k.entities || [], facts = k.facts || [];
   const hasC = new Set(cls.map((c) => c.id)), hasR = new Set(rel.map((r) => r.id));
-  $('kSum').textContent = cls.length + rel.length + ent.length ? `${cls.length} kinds · ${rel.length} relations · ${ent.length} things · ${facts.length} facts` : '';
+  const nOf = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  $('kSum').textContent = cls.length + rel.length + ent.length ? [nOf(cls.length, 'kind', 'kinds'), nOf(rel.length, 'relation', 'relations'), nOf(ent.length, 'thing', 'things'), nOf(facts.length, 'fact', 'facts')].join(' · ') : '';
   setSubCount('knowledge', 'ontology', 0); setSubCount('knowledge', 'graph', 0);
   // 온톨로지
   $('kCls').innerHTML = cls.map((c) => `<div class="k-row"><div class="k-main"><span class="k-dot" style="background:${K_COLORS[cls.indexOf(c) % K_COLORS.length]}"></span><b class="k-t">${escapeHtml(c.label)}</b><code>${escapeHtml(c.id)}</code>${c.parent ? `<span class="k-sub">a kind of ${escapeHtml(kLabel(cls, c.parent))}</span>` : ''}${c.desc ? `<div class="k-desc">${escapeHtml(c.desc)}</div>` : ''}</div>${kDel(`data-kind="class" data-id="${escapeHtml(c.id)}"`)}</div>`).join('');
@@ -1911,7 +1927,7 @@ function kGraphSvg(ent, facts, cls, hasC) {
   return `<svg class="k-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Knowledge graph">${edges}${nodes}</svg><div class="k-legend">${legend}</div>`;
 }
 $('knowledgeView').addEventListener('click', async (e) => {
-  const b = e.target.closest('.k-del'); if (!b) return;
+  const b = e.target.closest('.k-del[data-kind]'); if (!b) return;   // 문서의 ✕(data-doc-del)는 문서 쪽이 맡는다
   const d = b.dataset, what = d.kind === 'fact' ? 'This fact' : `${d.kind === 'class' ? 'The kind' : d.kind === 'relation' ? 'The relation' : 'The thing'} "${d.id}"${d.kind === 'entity' ? ' and its facts' : ''}`;
   if (!(await confirmDelete(what))) return;
   const r = await post('/api/knowledge', { action: 'remove', kind: d.kind, id: d.id, from: d.from, rel: d.rel, to: d.to }).catch(() => null);
@@ -1922,9 +1938,9 @@ $('kAsk').onclick = () => {
   const b = $('kAsk'); b.disabled = true; const orig = b.textContent; b.textContent = 'Asking…';
   const api = (path) => `http://${agentHost}${path}`;
   const prompt = `[Knowledge] Read my work and add what it is about to this ANA's knowledge — the kinds of things and how they relate (ontology), and the actual things and facts (graph).
-Read: what this ANA is for GET ${api('/api/prd')}, the work data GET ${api('/api/state')} (and any data the Work screens keep), the knowledge so far GET ${api('/api/knowledge')}.
+Read: what this ANA is for GET ${api('/api/prd')}, the work data GET ${api('/api/state')} (and any data the Work screens keep), the documents people added GET ${api('/api/documents')} (open each file at its "path"; PDFs, spreadsheets and images too), the knowledge so far GET ${api('/api/knowledge')}.
 Ontology: "classes" are kinds of things the work is about (Client, Person, Project, Place…), with "parent" for a sub-kind; "relations" say how they connect, with "domain" → "range" classes (works_for: Person → Client). Reuse what is there; add only what is missing.
-Graph: "entities" are the actual things (Acme, a Client) with "items" = ids of the work items that mention them; "facts" connect two entities with a relation ({"from":"acme","rel":"client_of","to":"our_team","items":["…"]}). Only what the items actually say — nothing invented.
+Graph: "entities" are the actual things (Acme, a Client) with "items" = ids of the work items or documents (doc-N) that mention them; "facts" connect two entities with a relation ({"from":"acme","rel":"client_of","to":"our_team","items":["…"]}). Only what the items actually say — nothing invented.
 ids are short and stable (letters, digits, _ - . :); labels are the words people use.
 Save: write the JSON to knowledge.json, then: curl -s -X POST "${api('/api/knowledge')}" -H 'content-type: application/json' --data-binary @knowledge.json
    knowledge.json = {"classes":[{"id":"Client","label":"Client","desc":"…","parent":""}],"relations":[{"id":"client_of","label":"client of","domain":"Client","range":"Team"}],"entities":[{"id":"acme","label":"Acme","class":"Client","items":["<note/task/event id>"]}],"facts":[{"from":"acme","rel":"client_of","to":"our_team","items":["<id>"]}]}
@@ -1932,6 +1948,48 @@ Then tell me in two or three sentences what you added.`;
   post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
     .catch(() => showErr('Request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
 };
+
+/* ---- Knowledge › Documents: 사람이 올린 파일 ----
+   명세서 · 가격표 · 매뉴얼처럼 에이전트가 알아야 할 것. 에이전트는 목록의 경로로 파일을 읽고, 지식의 근거(items)로 문서 id를 쓴다. */
+let docsCache = { items: [], max: 25 * 1048576 };
+async function refreshDocs() {
+  try { docsCache = await getJSON('/api/documents'); } catch { return; }
+  renderDocs(); if ($('kFacts') && kCache) renderKnowledge();   // 사실의 근거 칩이 문서 이름을 보이게
+}
+const docIcon = (n) => { const e = (String(n).split('.').pop() || '').toLowerCase(); return /^(png|jpe?g|gif|webp|heic)$/.test(e) ? '🖼' : e === 'pdf' ? '📕' : /^(xlsx?|csv)$/.test(e) ? '📊' : /^(docx?|hwpx?|txt|md|rtf)$/.test(e) ? '📄' : /^(pptx?|key)$/.test(e) ? '📽' : '📎'; };
+function renderDocs() {
+  const list = docsCache.items || [];
+  $('docList').innerHTML = list.map((x) => `<div class="k-row doc-row" data-doc="${escapeHtml(x.id)}"><span class="doc-ic" aria-hidden="true">${docIcon(x.name)}</span>
+    <div class="k-main"><a class="k-t doc-name" href="/api/documents/${encodeURIComponent(x.id)}/file" target="_blank" rel="noopener">${escapeHtml(x.name)}</a>
+    <span class="k-sub">${fmtSize(x.size)} · ${escapeHtml(fmtWhen(x.at))}${x.by && x.by !== 'ana' ? ' · ' + escapeHtml(displayName(x.by)) : ''}</span>${x.note ? `<div class="k-desc">${escapeHtml(x.note)}</div>` : ''}</div>
+    ${kDel(`data-doc-del="${escapeHtml(x.id)}"`)}</div>`).join('');
+  $('docList').hidden = !list.length; $('docEmpty').style.display = list.length ? 'none' : 'block';
+  setSubCount('knowledge', 'documents', list.length);
+}
+async function uploadDocs(files) {
+  for (const f of Array.from(files || [])) {
+    if (f.size > (docsCache.max || 25 * 1048576)) { showErr(`${f.name}: ${fmtSize(f.size)} — over the ${Math.round((docsCache.max || 25 * 1048576) / 1048576)} MB limit`); continue; }
+    $('docStatus').textContent = `Uploading ${f.name}…`;
+    try {
+      const { ok, j } = await postWithProgress('/api/documents', { name: f.name, type: f.type || '', data: await readAsBase64(f) }, (pct) => { $('docStatus').textContent = `Uploading ${f.name} · ${pct}%`; });
+      if (!ok) showErr(`${f.name}: ${(j && j.error) || 'upload failed'}`);
+    } catch { showErr(`${f.name}: upload failed`); }
+  }
+  $('docStatus').textContent = ''; refreshDocs();
+}
+$('docAdd').onclick = () => $('docInput').click();
+$('docInput').onchange = () => { const fs = $('docInput').files; uploadDocs(fs).finally(() => { $('docInput').value = ''; }); };
+// 문서 칸에 파일을 끌어다 놓아도 올라간다(채팅 첨부로 가지 않게 여기서 멈춘다)
+['dragenter', 'dragover'].forEach((ev) => $('docDrop').addEventListener(ev, (e) => { if (!e.dataTransfer || ![...e.dataTransfer.types].includes('Files')) return; e.preventDefault(); e.stopPropagation(); $('docDrop').classList.add('over'); }));
+['dragleave', 'drop'].forEach((ev) => $('docDrop').addEventListener(ev, (e) => { $('docDrop').classList.remove('over'); if (ev === 'drop' && e.dataTransfer && e.dataTransfer.files.length) { e.preventDefault(); e.stopPropagation(); uploadDocs(e.dataTransfer.files); } }));
+$('docList').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-doc-del]'); if (!b) return;
+  const x = (docsCache.items || []).find((y) => y.id === b.dataset.docDel); if (!x) return;
+  if (!(await confirmDelete(`Document "${x.name}"`))) return;
+  const r = await post('/api/documents', { action: 'remove', id: x.id }).catch(() => null);
+  if (!r || !r.ok) { showErr('Could not remove it'); return; }
+  refreshDocs();
+});
 
 /* ---- Update: 업스트림(agent-native-agent)과 기능 단위로 비교 ----
    Check for updates가 업스트림을 받아 ana-diff.mjs로 비교하고, 없거나 덜 들어온 기능·새 모듈·공용 런타임 차이를 하나씩 올린다.
@@ -2188,7 +2246,7 @@ function logEvent(action, target) {
   if (action === 'tab.view' && now - (logSeen.get(k) || 0) < 60000) return;
   logSeen.set(k, now); post('/api/activity', { action, target: String(target) }).catch(() => {});
 }
-const REFRESH_TAB = { work: () => renderWork(), knowledge: () => refreshKnowledge(), requests: () => refreshRequests(), evolve: () => refreshEvolve(), prd: () => refreshPrd(), update: () => refreshUpdates() };
+const REFRESH_TAB = { work: () => renderWork(), knowledge: () => { refreshKnowledge(); refreshDocs(); }, requests: () => refreshRequests(), evolve: () => refreshEvolve(), prd: () => refreshPrd(), update: () => refreshUpdates() };
 // 탭 선택은 click()이 아니라 이 함수로 — 클릭 처리 중인 버튼에 다시 click()을 부르면 브라우저가 무시한다
 function selectTab(b) {
   if (!b) b = document.querySelector('.topnav .tab[data-view="work"]');
@@ -3248,6 +3306,7 @@ function connect() {
       case 'evolve': refreshEvolve(); break;
       case 'prd': if ($('prdView').classList.contains('on')) refreshPrd(); break;
       case 'knowledge': if ($('knowledgeView').classList.contains('on')) refreshKnowledge(); break;
+      case 'documents': if ($('knowledgeView').classList.contains('on')) refreshDocs(); break;
       case 'updates': refreshUpdates(); break;
       case 'requests': refreshRequests(); break;
     }
@@ -3691,6 +3750,7 @@ const CAP = [
   ['.upd-card', 'Update', (el) => el.querySelector('.evo-t')?.textContent || el.textContent],
   ['.prd-ver', 'PRD version', (el) => el.querySelector('.evo-t')?.textContent || el.textContent],
   ['#prdBody', 'PRD', (el) => (el.textContent || '').trim().slice(0, 120)],
+  ['.doc-row', 'Document', (el) => el.querySelector('.doc-name')?.textContent || el.textContent],
   ['.k-row', 'Knowledge', (el) => el.querySelector('.k-t')?.textContent || el.textContent],
   ['.k-node', 'Entity', (el) => el.textContent],
 ];

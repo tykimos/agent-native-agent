@@ -263,7 +263,7 @@
       "id": "knowledge",
       "title": "Knowledge (ontology and graph, filled by the agent)",
       "skill": "agent-requests",
-      "summary": "Knowledge tab: Ontology (kinds of things and the relations between them) and Graph (the actual things and the facts between them, each tied to the notes / tasks / events it came from). Starts empty; Ask the agent has it read the work and add to both (POST /api/knowledge, same id = update, same fact = one). Things outside the ontology are kept and marked new. People remove what is wrong (removing a thing removes its facts).",
+      "summary": "Knowledge tab (Ontology · Graph · Documents): Ontology (kinds of things and the relations between them) and Graph (the actual things and the facts between them, each tied to the notes / tasks / events it came from). Starts empty; Ask the agent has it read the work and add to both (POST /api/knowledge, same id = update, same fact = one). Things outside the ontology are kept and marked new. People remove what is wrong (removing a thing removes its facts).",
       "anchors": [
         "/api/knowledge",
         "KNOWLEDGE_FILE",
@@ -284,6 +284,20 @@
         "skCanvas",
         "data-sketch",
         "md-img"
+      ]
+    },
+    {
+      "id": "documents",
+      "title": "Knowledge › Documents (files the agent reads)",
+      "skill": "agent-requests",
+      "summary": "Knowledge › Documents: people add files (specs, price lists, manuals — up to 25 MB each, button or drag and drop). They are kept in .ana/documents; GET /api/documents lists them with the path the agent reads. Knowledge's Ask the agent reads them, and facts and things can cite a document (items: doc-N), shown as a Doc chip that opens the file. Images, PDF and text open in the browser; everything else (HTML, SVG…) is always a download.",
+      "anchors": [
+        "/api/documents",
+        "DOCS_DIR",
+        "DOC_INLINE",
+        "function uploadDocs",
+        "function renderDocs",
+        "docDrop"
       ]
     }
   ]

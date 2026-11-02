@@ -5,6 +5,12 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.19.0] — 2026-11-02
+
+### Added
+
+- **Knowledge › Documents.** 일에 쓰는 파일 — 명세서, 가격표, 매뉴얼, 메모 — 을 올리는 세 번째 하위 탭입니다(버튼이나 끌어다 놓기, 파일당 25MB까지). `.ana/documents`에 보관합니다. Knowledge의 *Ask the agent*가 이 파일들을 읽고, 사실과 사물이 근거 문서를 가리킵니다(누르면 파일이 열리는 *Doc* 칩). 그림·PDF·글은 브라우저에서 열리고, 나머지(HTML, SVG…)는 늘 내려받기로 받습니다. API: `GET /api/documents`, `POST /api/documents {name, type, data, note?}` 또는 `{action:'remove', id}`, `GET /api/documents/<id>/file`.
+
 ## [0.18.3] — 2026-11-01
 
 ### Fixed

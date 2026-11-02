@@ -138,3 +138,24 @@ test('Claude Code is recognized whether tmux shows "claude", "claude.exe" or a v
   assert.ok(!isClaudeCommand('0.46.0', 'exec codex --yolo'), 'a version-like name with a codex start command is not Claude');
   assert.ok(!isClaudeCommand('zsh', ''));
 });
+
+test('Knowledge › Documents: upload a file, list it with a path the agent can read, download it, remove it', async (t) => {
+  const { api, stop } = await startServer({});
+  t.after(stop);
+  const post = (p, b) => fetch(api + p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b) });
+  assert.deepEqual((await (await fetch(api + '/api/documents')).json()).items, [], 'none at first');
+  const text = '가격표\nBasic 100\nPro 300\n';
+  const up = await (await post('/api/documents', { name: '가격표 2026.txt', type: 'text/plain', data: Buffer.from(text).toString('base64'), note: 'Current prices' })).json();
+  assert.equal(up.item.id, 'doc-1'); assert.equal(up.item.size, Buffer.byteLength(text));
+  const list = (await (await fetch(api + '/api/documents')).json()).items;
+  assert.equal(list[0].name, '가격표 2026.txt'); assert.equal(require('node:fs').readFileSync(list[0].path, 'utf8'), text, 'the agent can read it at its path');
+  const dl = await fetch(api + '/api/documents/doc-1/file');
+  assert.equal(await dl.text(), text); assert.match(dl.headers.get('content-disposition'), /^inline/);
+  await post('/api/documents', { name: 'page.html', data: Buffer.from('<script>alert(1)</script>').toString('base64') });
+  const h = await fetch(api + '/api/documents/doc-2/file');
+  assert.match(h.headers.get('content-disposition'), /^attachment/, 'HTML is never opened in the page'); assert.equal(h.headers.get('content-type'), 'application/octet-stream');
+  assert.equal((await post('/api/documents', { name: 'x', data: '' })).status, 400);
+  assert.equal((await post('/api/documents', { action: 'remove', id: 'doc-1' })).status, 200);
+  assert.ok(!require('node:fs').existsSync(list[0].path), 'the file is gone');
+  assert.equal((await fetch(api + '/api/documents/doc-1/file')).status, 404);
+});

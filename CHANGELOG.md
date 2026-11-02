@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.19.0] — 2026-11-02
+
+### Added
+
+- **Knowledge › Documents.** A third sub-tab where people add the files the work runs on — specs, price lists, manuals, notes (button or drag and drop, up to 25 MB each). They are kept in `.ana/documents`. Knowledge's *Ask the agent* reads them, and facts and things can point back to a document (a *Doc* chip that opens the file). Images, PDF and text open in the browser; anything else (HTML, SVG…) always downloads. API: `GET /api/documents`, `POST /api/documents {name, type, data, note?}` or `{action:'remove', id}`, `GET /api/documents/<id>/file`.
+
 ## [0.18.3] — 2026-11-01
 
 ### Fixed

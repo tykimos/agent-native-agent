@@ -43,6 +43,7 @@ const apiOpts = {
   REQUESTS_FILE: env.REQUESTS_FILE || path.join(DATA_DIR, 'requests.json'),
   PRD_FILE: env.PRD_FILE || path.join(DATA_DIR, 'prd.json'),
   KNOWLEDGE_FILE: env.KNOWLEDGE_FILE || path.join(DATA_DIR, 'knowledge.json'),
+  DOCS_DIR: env.ANA_DOCS_DIR || path.join(DATA_DIR, 'documents'),
   UPDATES_FILE: env.UPDATES_FILE || path.join(DATA_DIR, 'updates.json'),
   UPSTREAM_DIR: env.ANA_UPSTREAM_DIR || path.join(DATA_DIR, 'upstream'),
   UPSTREAM_URL: env.ANA_UPSTREAM_URL || '',
