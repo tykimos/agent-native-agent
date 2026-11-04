@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.20.0] — 2026-11-04
+
+### Added
+
+- **Sketch: write and arrange in place.** Double-click anywhere on the sketch to write text right there (Enter adds it, Shift+Enter breaks the line, Esc cancels); double-click a text to change it. Texts and boxes can be picked — a text anywhere on it, a box by its edge so you can still draw inside — then dragged to move, resized from a corner handle (or the mouse wheel on text), recolored with the color buttons and removed with Delete. Undo steps back through moves, resizes and edits too. The Text tool uses the same in-place box instead of a browser prompt, and a plain click with the Box tool no longer leaves an empty box.
+
 ## [0.19.1] — 2026-11-04
 
 ### Fixed

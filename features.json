@@ -277,7 +277,7 @@
       "id": "sketch",
       "title": "Sketch a screen",
       "skill": "context-chips",
-      "summary": "A blank sketch pad (pen, box, text, eraser; black / red / blue; undo, clear) to draw a rough screen. Send to ANA attaches it to the chat as a PNG; the agent builds from it and keeps it in the PRD under Sketches (markdown images from /uploads/ are shown). Opened from the PRD, the start card and the empty Work tab.",
+      "summary": "A blank sketch pad (pen, box, text, eraser; black / red / blue; undo, clear) to draw a rough screen. Double-click writes text in place; texts and boxes (by their edge) can be picked, moved, resized from a corner (or the wheel on text), recolored and deleted. Send to ANA attaches it to the chat as a PNG; the agent builds from it and keeps it in the PRD under Sketches (markdown images from /uploads/ are shown). Opened from the PRD, the start card and the empty Work tab.",
       "anchors": [
         "sketchLayer",
         "function openSketch",
