@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.19.1] — 2026-11-04
+
+### Fixed
+
+- **The model chip shows the selected model from the start.** Before Claude Code's first reply there is no model in its log, so the chip under the chat box showed the process name — the Claude Code version (2.1.261). It now shows the model that will be used: the `--model` start option, then `.claude/settings.local.json`, `.claude/settings.json` and `~/.claude/settings.json`. After the first reply it follows the log as before.
+
 ## [0.19.0] — 2026-11-02
 
 ### Added

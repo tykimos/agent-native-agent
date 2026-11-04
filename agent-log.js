@@ -66,6 +66,18 @@ function modelName(id) {
   const m = /^claude-([a-z]+)-(\d+(?:-\d+)*?)(?:-\d{8})?$/.exec(String(id || ''));
   return m ? `${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2].replace(/-/g, '.')}` : String(id || '');
 }
+// 첫 응답 전(기록에 모델이 없을 때) 선택된 모델 — 시작 옵션 --model, 그다음 설정 파일(프로젝트 local → 프로젝트 → 사용자) 순서.
+// 'opus' 같은 별칭은 'Opus'로, 'claude-opus-5-5' 같은 id는 'Opus 5.5'로 보여 준다.
+function claudeSelectedModel(start, cwd, configDir = DEFAULT_CLAUDE_DIR) {
+  const pretty = (v) => { v = String(v || '').trim().replace(/\[1m\]$/i, ''); return /^[a-z]+$/i.test(v) ? v[0].toUpperCase() + v.slice(1).toLowerCase() : modelName(v); };
+  const flag = /(?:^|\s)--model(?:=|\s+)["']?([\w.\[\]-]+)/.exec(String(start || ''));
+  if (flag) return pretty(flag[1]);
+  const files = [cwd && path.join(cwd, '.claude', 'settings.local.json'), cwd && path.join(cwd, '.claude', 'settings.json'), path.join(configDir, 'settings.json')];
+  for (const f of files.filter(Boolean)) {
+    try { const m = JSON.parse(fs.readFileSync(f, 'utf8')).model; if (typeof m === 'string' && m.trim()) return pretty(m); } catch {}
+  }
+  return '';
+}
 // 'gpt-6-astra' → 'GPT-6 Astra', 'gpt-5.6-sol' → 'GPT-5.6 Sol'
 function codexModelName(id) {
   const m = /^gpt-([\d.]+)(?:-(.+))?$/i.exec(String(id || ''));
@@ -345,13 +357,14 @@ function createAgentLog({ socket = '' } = {}) {
   // since>0: 바뀐 항목만. before(위치): 그 앞의 limit개(위로 스크롤해 이전 대화). 둘 다 없으면 최근 limit개만 — 긴 세션도 바로 뜬다.
   async function read(target, since, limit = 40, before) {
     const r = await resolve(target);
-    if (!r.file) return { available: false };
+    const selected = r.kind === 'claude' ? claudeSelectedModel(r.start, r.cwd, r.configDir) : '';
+    if (!r.file) return { available: false, modelName: selected };
     const st = update(r.file, r.kind);
     // 아직 읽는 중이면 항목 대신 진행률만 — 일부만 읽은 상태로 '최근 40개'를 주면 틀린 대화가 보인다
     if (st.loading) return { available: true, loading: { done: st.loading.done - st.loading.from, total: st.loading.total - st.loading.from, ms: Date.now() - st.loading.startedAt },
       kind: st.kind, session: st.session, title: st.title, cwd: r.cwd, rev: 0, items: [] };
     const { items, page } = pageItems(st.items, since, limit, before);
-    return { available: true, kind: st.kind, session: st.session, title: st.title, model: st.model || '', modelName: st.kind === 'codex' ? codexModelName(st.model) : modelName(st.model), effort: st.effort || '', limits: st.limits || null, permTc: st.permTc || null, permRev: st.permRev || 0, cwd: r.cwd, rev: st.rev, reset: since > st.rev, ...page, items };
+    return { available: true, kind: st.kind, session: st.session, title: st.title, model: st.model || '', modelName: st.kind === 'codex' ? codexModelName(st.model) : (modelName(st.model) || selected), effort: st.effort || '', limits: st.limits || null, permTc: st.permTc || null, permRev: st.permRev || 0, cwd: r.cwd, rev: st.rev, reset: since > st.rev, ...page, items };
   }
   async function image(target, ref) {
     const r = await resolve(target);
@@ -377,4 +390,4 @@ function createAgentLog({ socket = '' } = {}) {
   return { read, image, resolve, prefetch, update, logs };
 }
 
-module.exports = { createAgentLog, isClaudeCommand, toolLabel, cleanUser, systemNotice, modelName, codexModelName, codexLimits, findCodexRollout, pageItems };
+module.exports = { createAgentLog, isClaudeCommand, toolLabel, cleanUser, systemNotice, modelName, claudeSelectedModel, codexModelName, codexLimits, findCodexRollout, pageItems };

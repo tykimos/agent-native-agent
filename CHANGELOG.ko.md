@@ -5,6 +5,12 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.19.1] — 2026-11-04
+
+### Fixed
+
+- **모델 칩이 처음부터 선택된 모델을 보여 줍니다.** Claude Code가 첫 응답을 하기 전에는 기록에 모델이 없어서, 입력창 아래 칩에 프로세스 이름인 Claude Code 버전(2.1.261)이 보였습니다. 이제 쓰일 모델을 보여 줍니다: 시작 옵션 `--model`, 그다음 `.claude/settings.local.json`, `.claude/settings.json`, `~/.claude/settings.json`. 첫 응답 뒤에는 전처럼 기록을 따릅니다.
+
 ## [0.19.0] — 2026-11-02
 
 ### Added

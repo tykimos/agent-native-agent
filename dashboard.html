@@ -2955,6 +2955,7 @@ async function pollLog() {
       swEnd(900);
     }
     if (logMode) { logMode = false; logModel = ''; renderStatus(); renderLimits(); switchStream(); }        // 기록이 없어졌다 → 원장으로 다시 그린다
+    if ((d.modelName || '') !== logServerModel) { logServerModel = logModel = d.modelName || ''; renderStatus(); }   // 첫 대화 전에도 선택된 모델을 보여 준다(버전 번호 대신)
     return next();
   }
   // 긴 대화를 처음 읽는 중 — 진행률(MB)을 보여 주며 짧게 다시 묻는다
