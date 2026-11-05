@@ -164,6 +164,71 @@ node server.js           # → http://localhost:8809
 
 Requests와 Evolve의 카드는 같은 질문에 사람 말로 답합니다 — **무슨 일인지(What's going on) · 무엇을 해 달라는지(What is asked) · 하면 무엇이 달라지는지(What it changes) · 안 하면(If not)**. Evolve 제안이나 업데이트로 앱이 하는 일이 바뀌면 에이전트가 PRD도 고칩니다.
 
+### 탭 둘러보기
+
+#### PRD
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/tabs/tab-prd-dark.webp" />
+  <img src="docs/assets/tabs/tab-prd-light.webp" alt="PRD tab" />
+</picture>
+
+**이 ANA가 무엇인지.** 새 ANA는 비어 있는 이 탭에서 시작합니다. 채팅으로 어떤 일인지 말하면 에이전트가 짧게 몇 가지 묻고 PRD(목적, 사용자, 업무, 지식, 에이전트가 할 일)를 쓴 뒤, 같은 턴에 첫 Work 화면까지 만듭니다. 언제든 직접 고칠 수 있고, 저장할 때마다 새 판이 *History*에 남아 열어 보거나 되돌릴 수 있습니다.
+
+#### Work
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/tabs/tab-work-dark.webp" />
+  <img src="docs/assets/tabs/tab-work-light.webp" alt="Work tab" />
+</picture>
+
+**실제 일하는 화면.** 에이전트가 만들기 전까지는 비어 있습니다. 이 예시는 위 PRD로 만든 2인 디자인 스튜디오의 견적 보드와 *Call this week* 목록입니다. 채팅으로 "3일 동안 답 없는 견적은 빨간색으로"처럼 말하면 쓰는 도중에 화면이 바뀝니다.
+
+#### Sketch a screen
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/tabs/tab-sketch-dark.webp" />
+  <img src="docs/assets/tabs/tab-sketch-light.webp" alt="Sketch pad" />
+</picture>
+
+**말 대신 그림으로.** *Sketch a screen*(PRD·Work 탭)을 누르면 펜, 상자, 글자, 지우개가 있는 그림판이 열립니다. 더블클릭하면 글을 쓰고, 글이나 상자 테두리를 끌면 옮기고, 모서리를 끌면 크기가 바뀝니다. *Send to ANA*를 누르면 그림이 채팅에 붙고, 에이전트가 그걸 보고 화면을 만들며 PRD의 *Sketches*에 남깁니다.
+
+#### Knowledge
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/tabs/tab-knowledge-dark.webp" />
+  <img src="docs/assets/tabs/tab-knowledge-light.webp" alt="Knowledge tab" />
+</picture>
+
+**일이 무엇에 관한 것인지.** *Ontology*에는 것의 종류(고객, 리드, 프로젝트 종류)와 그 관계가, *Graph*에는 실제 것들과 그 사이의 사실이 각각 나온 업무와 함께 쌓입니다. *Documents*에는 에이전트가 읽어야 할 파일(명세서, 가격표, 파일당 25MB까지)을 올립니다. *Ask the agent*를 누르면 에이전트가 업무를 읽고 채우며, 틀린 것은 사람이 지웁니다.
+
+#### Requests
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/tabs/tab-requests-dark.webp" />
+  <img src="docs/assets/tabs/tab-requests-light.webp" alt="Requests tab" />
+</picture>
+
+**에이전트가 사람에게 필요한 것.** 결정, 권한, 빠진 정보, 승인, 그리고 에이전트가 제안한 데이터 변경(승인 전에는 아무것도 바뀌지 않음)이 여기 옵니다. 카드마다 무슨 일인지, 무엇을 해 달라는지, 무엇이 달라지는지, 안 하면 어떻게 되는지가 적혀 있습니다. 선택지를 누르거나 답을 쓰면 바로 에이전트에게 갑니다.
+
+#### Evolve
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/tabs/tab-evolve-dark.webp" />
+  <img src="docs/assets/tabs/tab-evolve-light.webp" alt="Evolve tab" />
+</picture>
+
+**이 ANA가 어떻게 나아질 수 있는지.** 에이전트가 업무를 보고 세 거리로 제안합니다: **tidy**(어긋난 것 바로잡기), **improve**(이 일을 더 잘하는 방법), **reimagine**(다른 곳의 사례를 곁들인 새로운 일하는 방식). *Do it*을 누르면 에이전트가 앱과 PRD를 바꿉니다.
+
+#### Update
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/tabs/tab-update-dark.webp" />
+  <img src="docs/assets/tabs/tab-update-light.webp" alt="Update tab" />
+</picture>
+
+**업스트림의 새 기능.** *Check for updates*가 이 ANA를 최신 [agent-native-agent](https://github.com/tykimos/agent-native-agent)와 기능 단위로 비교합니다. *Bring it in*을 누르면 에이전트가 그 기능을 스킬에 따라 옮겨 오고, 내 화면과 데이터는 그대로 둡니다.
+
 ### 채팅 — Claude 앱처럼
 
 - 화면을 긁지 않고 **에이전트 자신의 기록으로 그립니다.** Claude Code 기록(`~/.claude/projects/…`)이나 Codex 기록(`~/.codex/sessions/…`)을 씁니다. 그래서 내 말풍선, 마크다운 응답, 접히는 `Ran 3 commands ›` 묶음, 이미지 썸네일이 정확하게 나옵니다. 기록이 없는 에이전트는 화면 미러로 그립니다.

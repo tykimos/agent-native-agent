@@ -164,6 +164,71 @@ The base starts **empty**: you tell ANA in the chat what your work is — in wor
 
 Every Requests and Evolve card answers the same questions in plain words — **What's going on · What is asked · What it changes · If not**. The agent updates the PRD when an Evolve proposal or an update changes what the app does.
 
+### A tour of the tabs
+
+#### PRD
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/tabs/tab-prd-dark.webp" />
+  <img src="docs/assets/tabs/tab-prd-light.webp" alt="PRD tab" />
+</picture>
+
+**What this ANA is.** A new ANA opens here, empty. You tell the agent in the chat what your work is; it asks a few short questions and writes the PRD (purpose, users, work, knowledge, what the agent may do), then builds the first Work screen in the same turn. Edit it yourself any time. Every save is a new version under *History* that you can open or restore.
+
+#### Work
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/tabs/tab-work-dark.webp" />
+  <img src="docs/assets/tabs/tab-work-light.webp" alt="Work tab" />
+</picture>
+
+**Your actual work.** There is nothing here until the agent builds it: in this example, a quotes board and a *Call this week* list for a two-person design studio, made from the PRD above. Ask for a change in the chat ("make quotes with no answer for 3 days red") and the screen changes while you use it.
+
+#### Sketch a screen
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/tabs/tab-sketch-dark.webp" />
+  <img src="docs/assets/tabs/tab-sketch-light.webp" alt="Sketch pad" />
+</picture>
+
+**Draw what you mean.** *Sketch a screen* (PRD and Work tabs) opens a pad with pen, box, text and eraser. Double-click to write; drag a text or a box edge to move it, a corner to resize. *Send to ANA* attaches the drawing to the chat. The agent builds from it and keeps it in the PRD under *Sketches*.
+
+#### Knowledge
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/tabs/tab-knowledge-dark.webp" />
+  <img src="docs/assets/tabs/tab-knowledge-light.webp" alt="Knowledge tab" />
+</picture>
+
+**What your work is about.** *Ontology* holds the kinds of things (Client, Lead, Project kind) and how they relate. *Graph* holds the actual things and the facts between them, each tied to the work it came from. *Documents* holds files the agent should read (specs, price lists, up to 25 MB each). *Ask the agent* has it read your work and fill these in; you remove what is wrong.
+
+#### Requests
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/tabs/tab-requests-dark.webp" />
+  <img src="docs/assets/tabs/tab-requests-light.webp" alt="Requests tab" />
+</picture>
+
+**What the agent needs from you.** Decisions, access, missing information, approvals, and data changes it proposes (nothing changes until you approve). Each card says what's going on, what is asked, what it changes and what happens if not. Pick an option or reply, and the answer goes straight to the agent.
+
+#### Evolve
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/tabs/tab-evolve-dark.webp" />
+  <img src="docs/assets/tabs/tab-evolve-light.webp" alt="Evolve tab" />
+</picture>
+
+**How this ANA could get better.** The agent looks at your work and proposes changes at three distances: **tidy** (fix what is off), **improve** (a better way to do this work), **reimagine** (a new way of working, with examples seen elsewhere). *Do it* hands the proposal to the agent, which changes the app and the PRD.
+
+#### Update
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/tabs/tab-update-dark.webp" />
+  <img src="docs/assets/tabs/tab-update-light.webp" alt="Update tab" />
+</picture>
+
+**New features from upstream.** *Check for updates* compares this ANA with the latest [agent-native-agent](https://github.com/tykimos/agent-native-agent) feature by feature. *Bring it in* has the agent port one into this ANA with its skill, keeping your own screens and data.
+
 ### Chat — like the Claude app
 
 - **Rendered from the agent's own log**, not the screen: Claude Code's transcript (`~/.claude/projects/…`) or Codex's rollout (`~/.codex/sessions/…`). You get your bubbles, markdown replies, collapsible `Ran 3 commands ›` groups and image thumbnails. Agents without a log fall back to the screen mirror.
