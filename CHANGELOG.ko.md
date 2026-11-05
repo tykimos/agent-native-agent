@@ -5,6 +5,14 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.20.1] — 2026-11-05
+
+### Fixed
+
+- **에이전트가 만든 그림이 채팅에 보입니다.** 에이전트가 자기 폴더나 스크래치패드의 파일(스크린샷, 보안문자 등)을 `![…](/절대/경로.png)`로 쓰면, 글자 대신 그림이 보입니다. `GET /api/agentfile?target=…&path=…`는 그 팬의 작업 폴더나 Claude 스크래치패드 안에 실제로 있는 png/jpg/gif/webp만 줍니다(밖으로 나가는 심볼릭 링크는 거절). `CLAUDE.md` / `AGENTS.md`에 그림을 보여 주는 방법을 적었습니다.
+- **PRD › History 카드.** 이전 판마다 제대로 된 카드입니다: 무엇이 바뀌었는지가 제목, 그 아래 판 · 시각 · 누가, 그리고 버튼 모양의 *Restore*.
+- **끝난 목록의 모양을 맞췄습니다.** Requests·Evolve·Update가 같은 상태 꼬리표(✓ Done, ✗ Failed, Not now / Ignored / Skipped)를 쓰고, 카드의 버튼이 모두 버튼으로 보입니다(Reopen·Restore·Try again이 맨 글자였습니다). 휴대폰에서는 번호·시각이 제목 아래로 내려가 긴 제목이 폭을 다 쓰고, Update의 종류 꼬리표에 색이 들어갔습니다.
+
 ## [0.20.0] — 2026-11-04
 
 ### Added

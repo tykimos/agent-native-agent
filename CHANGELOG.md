@@ -5,6 +5,14 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.20.1] — 2026-11-05
+
+### Fixed
+
+- **Pictures the agent makes show in the chat.** When the agent writes `![…](/absolute/path.png)` for a file in its folder or its scratchpad (a screenshot, a captcha), the chat now shows the picture instead of the raw text. `GET /api/agentfile?target=…&path=…` serves only png/jpg/gif/webp files that really are inside the pane's working folder or its Claude scratchpad (symlinks out are refused). `CLAUDE.md` / `AGENTS.md` tell the agent how to show a picture.
+- **PRD › History cards.** Each earlier version is a proper card: what changed as its title, version · time · who below, and a real *Restore* button.
+- **Done lists look the same everywhere.** Requests, Evolve and Update now share one status tag (✓ Done, ✗ Failed, Not now / Ignored / Skipped) and give every card button a button look (Reopen, Restore, Try again were bare text). On a phone the number and time move under the title so long titles keep their width, and Update's kind tag has a color.
+
 ## [0.20.0] — 2026-11-04
 
 ### Added

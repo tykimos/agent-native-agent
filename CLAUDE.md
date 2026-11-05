@@ -18,4 +18,5 @@ A new ANA has **no PRD and an empty Work tab**. The PRD is written *from* the fi
 
 - Don't patch `channel-core.js` — it is the shared runtime (see `skills/ana-update`).
 - Data changes to people's work go through a diff they approve (`POST /api/agent {text, diff, why, effect}`); things you need from them go to Requests (`POST /api/requests`). Write those in plain words: why, ask, effect, if not.
+- To show a picture in the chat (a screenshot, a captcha, a chart you made), write `![what it is](/absolute/path.png)` on its own line. The file must be a png/jpg/gif/webp inside this folder or your scratchpad — anywhere else it will not show.
 - Skills for each part are in `skills/`.

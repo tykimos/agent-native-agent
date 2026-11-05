@@ -477,7 +477,11 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 /* PRD: 지금 판(마크다운) · 편집 폼 · 이력 */
 .prd-md { padding: 18px 20px; font-size: 14.5px; line-height: 1.65; overflow-wrap: anywhere; }
 .prd-md h3 { font-size: 21px; margin: 0 0 .5em; } .prd-md h4 { font-size: 17px; margin: 1.3em 0 .4em; }   /* mdHtml: # → h3, ## → h4 */
-.prd-ver .prd-md { padding: 10px 0 0; } .prd-ver details summary { cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--text-sub); margin-top: 6px; }
+.prd-ver { padding: 13px 15px; margin-bottom: 9px; }
+.prd-ver .pv-note { font-size: 14.5px; font-weight: 800; overflow-wrap: anywhere; }
+.prd-ver .pv-meta { font-size: 12px; color: var(--text-sub); margin-top: 3px; }
+.prd-ver .prd-md { padding: 10px 0 0; } .prd-ver details summary { cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--text-sub); margin-top: 8px; }
+.prd-ver .evo-acts .restore { background: var(--surface-2); color: var(--text); box-shadow: var(--sh-card); }
 .prd-form { display: flex; flex-direction: column; gap: 10px; padding: 14px; margin-bottom: 12px; } .prd-form[hidden], .prd-md[hidden] { display: none; }
 .prd-form textarea, .prd-form input { width: 100%; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--text); font: 13.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 10px 12px; }
 .prd-form input { font-family: inherit; }
@@ -605,6 +609,21 @@ body.chat-loading #connPill .dot { background: transparent !important; box-shado
   .stseg button.on .n { background: none; color: var(--bg); }
 }
 .evo-when { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--text-weak); white-space: nowrap; }
+/* 카드 머리줄: 꼬리표·제목·번호를 첫 줄에 맞춘다(제목이 여러 줄이어도 꼬리표가 가운데로 떠 있지 않게).
+   좁은 화면에서는 번호·시각을 아래 줄로 내려 제목이 폭을 다 쓴다 */
+.evo-top { align-items: flex-start; } .evo-top > .evo-type, .evo-top > .evo-hz, .evo-top > .req-kind { margin-top: 1px; } .evo-top > .evo-when, .evo-top > .req-when { padding-top: 2px; }
+.evo-t, .req-t { line-height: 1.4; }
+@media (max-width: 520px) { .evo-top { flex-wrap: wrap; row-gap: 3px; } .evo-top > .evo-when, .evo-top > .req-when { order: 3; flex-basis: 100%; margin-left: 0; padding-top: 0; } }
+/* 카드 버튼 기본 모양 — 색을 따로 정하지 않은 버튼(Reopen·Restore·Try again·Failed)도 버튼으로 보이게 */
+.evo-acts button { background: var(--surface-2); color: var(--text); box-shadow: var(--sh-card); }
+.evo-acts .talk, .evo-acts .do, .evo-acts .done { box-shadow: none; }
+/* 끝난 카드의 상태 꼬리표(완료·실패·안 함) — 세 목록이 같은 모양 */
+.evo-acts .req-st { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; margin: 0 2px 0 0; border-radius: 999px; font-size: 12px; font-weight: 800; background: var(--surface-2); color: var(--text-sub); box-shadow: none; }
+.evo-acts .req-st.done { background: var(--success-bg); color: var(--success); }
+.evo-acts .req-st.failed { background: var(--danger-bg); color: var(--danger); }
+.upd-card .evo-type { background: var(--surface-2); color: var(--text-sub); } .upd-card .evo-type.k-missing { background: var(--blue-weak); color: var(--blue-700); }
+.upd-card .evo-type.k-outdated, .upd-card .evo-type.k-runtime { background: var(--warm-bg); color: var(--warm-fg); }
+.upd-note { margin-top: 6px; font-size: 12.5px; color: var(--text-sub); overflow-wrap: anywhere; }
 .evo-card.done .evo-t, .evo-card.dismissed .evo-t { color: var(--text-sub); }
 .prop.applied .state, .prop.rejected .state { display: block; }
 .prop.applied .state { color: var(--green); } .prop.rejected .state { color: var(--text-weak); }
@@ -1494,7 +1513,7 @@ function reqCard(r, closed) {
   const ans = r.answer ? `<div class="req-ans"><b>You:</b>${escapeHtml(r.answer)}</div>` : '';
   let body = '';
   if (closed) {
-    body = `${r.status === 'failed' && r.failReason ? `<div class="fail-why">✗ ${escapeHtml(r.failReason)}</div>` : ''}<div class="evo-acts"><span class="req-st ${r.status}">${r.status === 'done' ? '✓ Done' : r.status === 'failed' ? '✗ Failed' : 'Not now'}</span><button class="reopen">${r.status === 'failed' ? 'Try again' : 'Reopen'}</button></div>`;
+    body = `${r.status === 'failed' && r.failReason ? `<div class="fail-why">✗ ${escapeHtml(r.failReason)}</div>` : ''}<div class="evo-acts"><span class="req-st ${escapeHtml(r.status)}">${r.status === 'done' ? '✓ Done' : r.status === 'failed' ? '✗ Failed' : 'Not now'}</span><button class="reopen">${r.status === 'failed' ? 'Try again' : 'Reopen'}</button></div>`;
   } else if (r.status === 'answered') {
     body = `<div class="req-wait">Sent to the agent — it will act on your answer</div>
       <div class="evo-acts"><button class="done">Mark done</button><button class="fail">Failed</button><button class="talk">Discuss</button><button class="reopen">Answer again</button></div>`;
@@ -1618,9 +1637,9 @@ function evoCardsHtml(list) {
   const ACTS = {
     wait: '<button class="talk">Discuss</button><button class="do">Do it</button><button class="ignore">Ignore</button>',
     doing: '<button class="talk">Discuss</button><button class="done">Mark done</button><button class="fail">Failed</button><button class="ignore">Cancel</button>',
-    fail: '<button class="talk">Discuss</button><button class="reopen">Try again</button>',
-    done: '<button class="reopen">Reopen</button>',
-    cancel: '<button class="reopen">Restore</button>',
+    fail: '<span class="req-st failed">✗ Failed</span><button class="talk">Discuss</button><button class="reopen">Try again</button>',
+    done: '<span class="req-st done">✓ Done</span><button class="reopen">Reopen</button>',
+    cancel: '<span class="req-st dismissed">Ignored</span><button class="reopen">Restore</button>',
   };
   return list.map((p) => {
     const type = TYPES[p.type] || 'improve'; const id = Number(p.id) || 0;
@@ -1631,7 +1650,7 @@ function evoCardsHtml(list) {
       ${plainHtml({ why: p.because, effect: p.outcome, ifNot: p.ifNot })}
       ${(p.sources || []).length ? `<div class="evo-src"><b>Seen elsewhere</b><ul>${p.sources.map((x) => `<li><a href="${escapeHtml(x.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(x.title || x.url.replace(/^https?:\/\//, '').slice(0, 60))} ↗</a>${x.note ? ` — ${escapeHtml(x.note)}` : ''}</li>`).join('')}</ul></div>` : ''}
       ${p.how ? `<details class="evo-how"><summary>How it would work</summary><div>${escapeHtml(p.how)}</div></details>` : ''}
-      ${p.status === 'failed' ? `<div class="fail-why">✗ Failed${p.failReason ? ' — ' + escapeHtml(p.failReason) : ''}</div>` : ''}
+      ${p.status === 'failed' && p.failReason ? `<div class="fail-why">✗ ${escapeHtml(p.failReason)}</div>` : ''}
       <div class="evo-acts">${ACTS[pk]}</div>
     </div>`; }).join('');
 }
@@ -1745,7 +1764,8 @@ function renderPrd() {
   $('prdEmpty').style.display = c || editing ? 'none' : 'block';
   $('prdEdit').hidden = editing;
   const h = prdCache.history || [];
-  $('prdHist').innerHTML = h.map((x) => `<div class="card prd-ver" data-v="${x.v}"><div class="evo-top"><span class="evo-t">${prdLine(x)}</span></div>
+  $('prdHist').innerHTML = h.map((x) => `<div class="card prd-ver" data-v="${x.v}"><div class="pv-note">${escapeHtml(x.note || `Version ${x.v}`)}</div>
+    <div class="pv-meta">v${x.v} · ${escapeHtml(fmtWhen(x.at))} · by ${escapeHtml(prdWho(x))}</div>
     <details><summary>Show this version</summary><div class="prd-md md">${mdHtml(x.md)}</div></details>
     <div class="evo-acts"><button class="restore">Restore this version</button></div></div>`).join('');
   $('prdHistEmpty').style.display = h.length ? 'none' : 'block';
@@ -2121,13 +2141,13 @@ const UPD_KIND = { missing: 'New', partial: 'Partly here', outdated: 'Newer modu
 function updCardHtml(u) {
   const pk = BUCKET_OF.upd[u.status] || 'wait';
   const acts = { wait: '<button class="do">Bring it in</button><button class="ignore">Skip</button>', doing: '<button class="done">Mark done</button><button class="fail">Failed</button><button class="ignore">Cancel</button>',
-    done: '', fail: '<button class="do">Try again</button>', cancel: '<button class="reopen">Restore</button>' }[pk];
-  const st = { done: `✓ Done${u.note ? ' — ' + escapeHtml(u.note) : ''}`, fail: `✗ Failed${u.failReason ? ' — ' + escapeHtml(u.failReason) : ''}`, cancel: 'Skipped — later checks leave it out' }[pk];
+    done: '<span class="req-st done">✓ Done</span>', fail: '<span class="req-st failed">✗ Failed</span><button class="do">Try again</button>', cancel: '<span class="req-st dismissed">Skipped</span><button class="reopen">Restore</button>' }[pk];
+  const st = { done: u.note ? `<div class="upd-note">${escapeHtml(u.note)}</div>` : '', fail: u.failReason ? `<div class="fail-why">✗ ${escapeHtml(u.failReason)}</div>` : '', cancel: '<div class="upd-note">Later checks leave it out.</div>' }[pk];
   return `<div class="evo-card card upd-card ${escapeHtml(u.status)}" data-uid="${Number(u.id) || 0}"><div class="evo-top">
-    <span class="evo-type">${escapeHtml(UPD_KIND[u.kind] || u.kind || '')}</span><span class="evo-t">${escapeHtml(u.title)}</span><span class="evo-when">#${Number(u.id) || 0}${pk !== 'wait' && whenTxt(u) ? ' · ' + whenTxt(u) : ''}</span></div>
+    <span class="evo-type k-${escapeHtml(u.kind || '')}">${escapeHtml(UPD_KIND[u.kind] || u.kind || '')}</span><span class="evo-t">${escapeHtml(u.title)}</span><span class="evo-when">#${Number(u.id) || 0}${pk !== 'wait' && whenTxt(u) ? ' · ' + whenTxt(u) : ''}</span></div>
     ${u.summary ? `<div class="evo-d">${escapeHtml(u.summary)}</div>` : ''}
     ${(u.missing || []).length ? `<details class="evo-how"><summary>What is missing here</summary><div>${escapeHtml(u.missing.join(', '))}</div></details>` : ''}
-    ${st ? `<div class="${pk === 'fail' ? 'fail-why' : 'req-wait'}">${st}</div>` : ''}
+    ${st || ''}
     ${acts ? `<div class="evo-acts">${acts}</div>` : ''}</div>`;
 }
 function renderUpdates() {
@@ -3169,6 +3189,9 @@ function mdHtml(src) {
       .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
       .replace(/(^|[^*\w])\*([^*\n]+?)\*(?!\w)/g, '$1<em>$2</em>')
       .replace(/!\[([^\]\n]*)\]\((\/uploads\/[^\s)"<>]+)\)/g, '<img class="md-img" src="$2" alt="$1" loading="lazy">')   // 올린 그림(손그림 등)만
+      .replace(/!\[([^\]\n]*)\]\((\/[^\s)"<>]+?\.(?:png|jpe?g|gif|webp))\)/gi, (_, alt, f) => {     // 에이전트가 만든 그림 파일(스크래치패드·작업 폴더) — 서버가 그 범위만 준다
+        const src = `/api/agentfile?target=${encodeURIComponent((health && health.target) || '')}&path=${encodeURIComponent(f.replace(/&amp;/g, '&'))}`;
+        return `<a href="${src}" target="_blank" rel="noopener"><img class="md-img" src="${src}" alt="${alt}" loading="lazy"></a>`; })
       .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
       .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>');
     return t.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${escapeHtml(codes[i])}</code>`);
@@ -3867,7 +3890,7 @@ const CAP = [
   ['.req-card', 'Request', (el) => el.querySelector('.req-t')?.textContent || el.textContent],
   ['.evo-card', 'Proposal', (el) => el.querySelector('.evo-t')?.textContent || el.textContent],
   ['.upd-card', 'Update', (el) => el.querySelector('.evo-t')?.textContent || el.textContent],
-  ['.prd-ver', 'PRD version', (el) => el.querySelector('.evo-t')?.textContent || el.textContent],
+  ['.prd-ver', 'PRD version', (el) => el.querySelector('.pv-note')?.textContent || el.textContent],
   ['#prdBody', 'PRD', (el) => (el.textContent || '').trim().slice(0, 120)],
   ['.doc-row', 'Document', (el) => el.querySelector('.doc-name')?.textContent || el.textContent],
   ['.k-row', 'Knowledge', (el) => el.querySelector('.k-t')?.textContent || el.textContent],

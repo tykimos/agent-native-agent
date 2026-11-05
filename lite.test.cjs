@@ -172,3 +172,12 @@ test('before the first reply the chip shows the selected model, not the Claude C
   fs.mkdirSync(path.join(cwd, '.claude')); fs.writeFileSync(path.join(cwd, '.claude', 'settings.local.json'), JSON.stringify({ model: 'fable' }));
   assert.equal(claudeSelectedModel('claude', cwd, cfg), 'Fable', 'project setting wins over the user setting');
 });
+
+test('agent pictures: only images, only from the agent folder or its scratchpad', async (t) => {
+  const { api, stop } = await startServer({});
+  t.after(stop);
+  const get = (q) => fetch(`${api}/api/agentfile?${q}`).then((r) => r.status);
+  assert.equal(await get('target=x&path=relative.png'), 400, 'absolute path only');
+  assert.equal(await get(`target=x&path=${encodeURIComponent('/etc/passwd')}`), 403, 'images only');
+  assert.equal(await get(`target=no-such-pane&path=${encodeURIComponent('/tmp/a.png')}`), 404, 'unknown agent');
+});

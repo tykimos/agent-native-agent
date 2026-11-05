@@ -906,6 +906,28 @@ function createDashboardApi(core, opts) {
       return sendJson(res, 200, { ok: true, version: s.version, id: noteId }), true;
     }
 
+    // 에이전트가 답에 넣은 그림 파일 — ![…](/절대/경로.png). 그림 확장자만, 그 팬의 작업 폴더나 그 폴더의 Claude 스크래치패드
+    // (/tmp/claude-<uid>/<폴더>/…) 안에 실제로(realpath) 있는 것만 준다. 다른 곳의 파일은 403.
+    if (p === '/api/agentfile' && (req.method === 'GET' || req.method === 'HEAD')) {
+      const target = String(url.searchParams.get('target') || ''), want = String(url.searchParams.get('path') || '');
+      if (!/^[\w.:@%+-]{1,100}$/.test(target) || !path.isAbsolute(want)) return sendJson(res, 400, { error: 'target and absolute path required' }), true;
+      const type = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp' }[path.extname(want).toLowerCase()];
+      if (!type) return sendJson(res, 403, { error: 'images only' }), true;
+      const r = await agentLog.resolve(target).catch(() => null);
+      if (!r || !r.cwd) return sendJson(res, 404, { error: 'agent not found' }), true;
+      let abs; try { abs = await fsp.realpath(want); } catch { return sendJson(res, 404, { error: 'not found' }), true; }
+      const real = async (d) => { try { return await fsp.realpath(d); } catch { return null; } };
+      const slug = r.cwd.replace(/[^A-Za-z0-9]/g, '-'), uid = typeof process.getuid === 'function' ? process.getuid() : '';
+      const roots = (await Promise.all([r.cwd, path.join('/tmp', `claude-${uid}`, slug), path.join(os.tmpdir(), `claude-${uid}`, slug)].map(real))).filter(Boolean);
+      if (!roots.some((d) => abs.startsWith(d + path.sep))) return sendJson(res, 403, { error: 'forbidden' }), true;
+      let st; try { st = await fsp.stat(abs); } catch { return sendJson(res, 404, { error: 'not found' }), true; }
+      if (!st.isFile() || st.size > 25 * 1024 * 1024) return sendJson(res, 404, { error: 'not found' }), true;
+      res.writeHead(200, { 'content-type': type, 'content-length': st.size, 'cache-control': 'private, no-cache', 'x-content-type-options': 'nosniff' });
+      if (req.method === 'HEAD') return res.end(), true;
+      require('node:fs').createReadStream(abs).pipe(res);
+      return true;
+    }
+
     // 에이전트 대화 기록(Claude Code JSONL) — {available, title, rev, items}. 없으면 화면은 채널 원장으로 그린다.
     if ((p === '/api/agentlog' || p === '/api/agentlog/img') && req.method === 'GET') {
       const target = String(url.searchParams.get('target') || '');
