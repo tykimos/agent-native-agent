@@ -5,6 +5,13 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.20.2] — 2026-11-05
+
+### Changed
+
+- **비어 있는 Work 탭이 PRD에 따라 다음 할 일을 알려 줍니다.** PRD가 없으면 Work는 PRD에서 만들어진다고 말하고 버튼은 *Go to the PRD* 하나입니다 — 같은 시작 버튼을 두 곳에 두지 않습니다. PRD가 있으면 *Build the first screen from the PRD*, *Sketch a screen*, *Open the PRD*를 보여 주고, Work에서 *Talk to ANA*는 뺐습니다.
+- **README 스크린샷을 라이트·다크로 새로 찍었습니다.** 읽는 사람의 테마에 맞는 것을 보여 줍니다.
+
 ## [0.20.1] — 2026-11-05
 
 ### Fixed

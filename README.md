@@ -19,7 +19,10 @@
 
 <br/>
 
-![ANA — watch a dashboard, converse, the app evolves](docs/assets/dashboard-ana.webp)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/dashboard-ana-dark.webp" />
+  <img src="docs/assets/dashboard-ana-light.webp" alt="ANA — talk with the agent; it writes the PRD and builds the app" />
+</picture>
 
 </div>
 

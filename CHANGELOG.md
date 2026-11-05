@@ -5,6 +5,13 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.20.2] — 2026-11-05
+
+### Changed
+
+- **An empty Work tab says what to do next, depending on the PRD.** With no PRD yet it says Work is built from the PRD and has one button, *Go to the PRD* — the same start is no longer offered in two places. With a PRD it offers *Build the first screen from the PRD*, *Sketch a screen* and *Open the PRD*; *Talk to ANA* is gone from Work.
+- **New README screenshots, light and dark.** The README picks the one that matches the reader's theme.
+
 ## [0.20.1] — 2026-11-05
 
 ### Fixed

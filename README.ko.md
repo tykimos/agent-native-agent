@@ -19,7 +19,10 @@
 
 <br/>
 
-![ANA — 대시보드를 보며 대화하면 앱이 진화한다](docs/assets/dashboard-ana.webp)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/dashboard-ana-dark.webp" />
+  <img src="docs/assets/dashboard-ana-light.webp" alt="ANA — 에이전트와 대화하면 PRD를 쓰고 앱을 만든다" />
+</picture>
 
 </div>
 

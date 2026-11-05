@@ -1181,11 +1181,19 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
   <section class="view" id="workView" role="tabpanel"><div class="wrap">
     <div id="workArea"></div>
     <div class="card work-empty" id="workEmpty">
-      <h2>Work is empty</h2>
-      <p>The screens for your work go here — the lists, boards and forms this ANA needs. Tell ANA in the chat what your work is (or sketch a screen and send it); it builds them with you and keeps the <b>PRD</b> up to date.</p>
-      <div class="work-acts"><button class="ib-btn" data-sketch>Sketch a screen</button><button class="ok" data-talk>Talk to ANA</button></div>
-      <div class="talk-step"><i>Talk to ANA</i> starts the PRD conversation — ANA asks what you want to make, and the screens come from what you agree.</div>
-      <div class="work-more"><button id="workBuild">Build from the PRD as it is</button> · <button id="workPrd">Open the PRD</button></div>
+      <!-- PRD가 없을 때: Work는 PRD에서 나오므로 PRD로 보낸다(같은 시작 버튼을 두 곳에 두지 않는다) -->
+      <div data-wstate="noprd">
+        <h2>Start with the PRD</h2>
+        <p>Work holds the screens for your work — the lists, boards and forms this ANA needs. They are built from the <b>PRD</b>, and there is no PRD yet.</p>
+        <div class="work-acts"><button class="ok" id="workToPrd">Go to the PRD</button></div>
+      </div>
+      <!-- PRD가 있을 때: 그 PRD대로 첫 화면을 만든다 -->
+      <div data-wstate="prd" hidden>
+        <h2>Work is empty</h2>
+        <p>The PRD says what this ANA does. ANA can build the first screens from it now — or sketch the screen you have in mind and send it first.</p>
+        <div class="work-acts"><button class="ib-btn" data-sketch>Sketch a screen</button><button class="ok" id="workBuild">Build the first screen from the PRD</button></div>
+        <div class="work-more"><button id="workPrd">Open the PRD</button></div>
+      </div>
     </div>
   </div></section>
 
@@ -1482,8 +1490,15 @@ function nodeOf(id) {
 }
 
 /* ---- Work: 처음엔 비어 있다. PRD를 보고 에이전트가 화면을 만든다 ---- */
-function renderWork() { $('workEmpty').hidden = !!$('workArea').children.length; }
+function renderWork() {
+  $('workEmpty').hidden = !!$('workArea').children.length;
+  if (!prdLoaded) { refreshPrd(); return; }          // PRD가 있는지 알아야 어느 안내를 보일지 정한다 — 받으면 renderPrd가 다시 부른다
+  const has = !!prdCache.current;
+  $('workEmpty').querySelector('[data-wstate="noprd"]').hidden = has;
+  $('workEmpty').querySelector('[data-wstate="prd"]').hidden = !has;
+}
 $('workPrd').onclick = () => showTab('prd');
+$('workToPrd').onclick = () => showTab('prd');
 $('workBuild').onclick = () => {
   const b = $('workBuild'); b.disabled = true; const orig = b.textContent; b.textContent = 'Asking…';
   const api = (path) => `http://${agentHost}${path}`;
@@ -1748,11 +1763,11 @@ Object.keys(SUBTABS).forEach(renderSubtabs);
 
 /* ---- PRD: 이 ANA가 무엇을 하는 앱인지 ----
    에이전트가 코드·데이터·진화 기록을 읽고 쓰며(Ask the agent), 사람이 고친다(Edit). 저장할 때마다 새 판이 되고 옛 판은 History에 남는다. */
-let prdCache = { current: null, history: [] };
+let prdCache = { current: null, history: [] }, prdLoaded = false;
 var noPrd = false;   // PRD가 아직 없으면 입력창 안내가 '무엇을 할지 말해 주세요'(var: 부팅 중 renderStatus가 먼저 읽어도 안전)
 async function refreshPrd() {
   try { prdCache = await getJSON('/api/prd'); } catch { return; }
-  renderPrd();
+  prdLoaded = true; renderPrd(); renderWork();
 }
 const prdWho = (x) => (x.source === 'agent' ? 'the agent' : x.source === 'sample' ? 'the sample' : !x.by || x.by === 'ana' ? 'you' : displayName(x.by));
 const prdLine = (x) => `v${x.v} · ${escapeHtml(fmtWhen(x.at))} · by ${escapeHtml(prdWho(x))}${x.note ? ` · ${escapeHtml(x.note)}` : ''}`;
