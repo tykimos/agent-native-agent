@@ -13,7 +13,7 @@ ANA_DIR=${ANA_DIR:-$HOME/ana/base-ana}
 say() { printf '\033[36m[ana-install]\033[0m %s\n' "$*"; }
 die() { printf '\033[31m[ana-install]\033[0m %s\n' "$*" >&2; exit 1; }
 has() { command -v "$1" >/dev/null 2>&1; }
-node_ok() { has node && [ "$(node -p 'process.versions.node.split(".")[0]')" -ge 24 ]; }   # NodeRel 관계 그래프가 node:sqlite를 쓴다
+node_ok() { has node && [ "$(node -p 'process.versions.node.split(".")[0]')" -ge 24 ]; }   # package.json engines와 맞춘다
 SUDO=""; [ "$(id -u)" -ne 0 ] && has sudo && SUDO="sudo"
 
 case "$(uname -s)" in
@@ -83,8 +83,8 @@ elif [ ! -f "$ANA_DIR/server.js" ]; then
   mkdir -p "$(dirname "$ANA_DIR")"; git clone -q "$ANA_REPO" "$ANA_DIR"
 fi
 
-# 의존성(NodeRel — github:tykimos/NodeRel)
-if [ ! -d "$ANA_DIR/node_modules/@tykimos/noderel" ]; then
+# 의존성(modern-screenshot — 화면에 표시해 보내기)
+if [ ! -d "$ANA_DIR/node_modules/modern-screenshot" ]; then
   say "Installing npm dependencies"
   (cd "$ANA_DIR" && npm install --no-audit --no-fund --silent)
 fi

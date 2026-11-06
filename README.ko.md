@@ -95,7 +95,7 @@ PC에 WSL·Node·tmux를 설치하지 않고 브라우저에서 ANA를 실행합
 
 ## 빠른 시작 — 베이스 실행 (2분)
 
-**사전 요구사항:** Node ≥ 24, tmux, 그리고 코딩 에이전트 CLI(예: [Claude Code](https://claude.com/claude-code)). 런타임(`channel-core.js`)은 의존성이 없고, 베이스 앱은 [NodeRel](https://github.com/tykimos/NodeRel) 하나를 `npm install`로 GitHub에서 받습니다.
+**사전 요구사항:** Node ≥ 24, tmux, 그리고 코딩 에이전트 CLI(예: [Claude Code](https://claude.com/claude-code)). 런타임(`channel-core.js`)은 의존성이 없고, 베이스 앱은 [modern-screenshot](https://github.com/qq15725/modern-screenshot)(화면에 표시해 보내기) 하나를 `npm install`로 받습니다.
 
 ### `install` 스킬로 설치·실행 (권장)
 
@@ -155,7 +155,7 @@ node server.js           # → http://localhost:8809
 |---|---|---|
 | **PRD** | Current · History | 이 ANA가 무엇을 하는 앱인지 — 목적, 사용자, 일, 손그림, 지식, 에이전트가 하는 일. **새 ANA에는 PRD가 없습니다. 이 탭에서 열리고, 대화로 시작합니다.** 채팅으로 무슨 일을 하는지 말하면(예시를 고르거나 화면을 그려 보내도 됨) 에이전트가 필요한 것만 묻고, 같은 대화에서 PRD를 쓰고 첫 Work 화면을 만듭니다. 언제든 고칠 수 있고, 저장할 때마다 새 판이 되어 옛 판을 보거나 되돌릴 수 있습니다 |
 | **Work** | — | 내 일을 위한 화면. **처음엔 비어 있고,** 대화하면서 에이전트가 만듭니다(일의 종류가 여럿이면 하위 탭과 함께) |
-| **Knowledge** | Ontology · Graph · Documents | 내 일이 무엇에 관한 것인지: 사물의 종류와 그 관계(온톨로지), 실제 사물과 그 사이의 사실 — 각각 나온 항목이 붙음(그래프). 처음엔 비어 있고, *Ask the agent*를 누르면 에이전트가 일을 읽고 채우며, 틀린 것은 지울 수 있습니다. *Documents*에는 에이전트가 알아야 할 파일(명세서, 가격표, 매뉴얼 — 파일당 25MB까지)을 올립니다. 에이전트가 읽고, 사실의 근거로 그 문서를 가리킵니다 |
+| **Knowledge** | Ontology · Graph · Documents | 내 일과 그 일이 무엇에 관한 것인지를 한 곳에서: 업무 항목과 사물의 종류와 관계(온톨로지), 실제 항목·사물·사실 — 사물이 언급된 업무 항목과 이어짐(그래프). 지식은 처음엔 비어 있고, *Ask the agent*를 누르면 에이전트가 일을 읽고 채우며, 틀린 것은 지울 수 있습니다. *Documents*에는 에이전트가 알아야 할 파일(명세서, 가격표, 매뉴얼 — 파일당 25MB까지)을 올립니다. 에이전트가 읽고, 사실의 근거로 그 문서를 가리킵니다 |
 | **Requests** | Waiting · In progress · Done | 에이전트가 나에게 필요한 것: 에이전트가 제안한 데이터 변경(승인하기 전에는 아무것도 바뀌지 않음), 승인, 결정, 접근 권한, 나만 할 수 있는 일, 모자란 정보 |
 | **Evolve** | Waiting · In progress · Done | 지금 할 일과 ANA가 바뀔 방향을 세 거리로 — **tidy**(어긋난 것 정리), **improve**(이 일을 더 낫게), **reimagine**(새로운 일하는 방식). 본 것, 사람에게 달라지는 것, 다른 곳의 사례(링크)가 붙습니다. *Do it*을 누르면 에이전트가 맡습니다 |
 | **Update** | Waiting · In progress · Done | [agent-native-agent](https://github.com/tykimos/agent-native-agent)에 새로 나왔지만 여기에는 아직 없는 기능. *Check for updates*가 최신 업스트림과 기능 단위로 비교하고, *Bring it in*을 누르면 에이전트가 그 기능의 스킬로 옮겨 옵니다 |
@@ -200,7 +200,7 @@ Requests와 Evolve의 카드는 같은 질문에 사람 말로 답합니다 — 
   <img src="docs/assets/tabs/tab-knowledge-light.webp" alt="Knowledge tab" />
 </picture>
 
-**일이 무엇에 관한 것인지.** *Ontology*에는 것의 종류(고객, 리드, 프로젝트 종류)와 그 관계가, *Graph*에는 실제 것들과 그 사이의 사실이 각각 나온 업무와 함께 쌓입니다. *Documents*에는 에이전트가 읽어야 할 파일(명세서, 가격표, 파일당 25MB까지)을 올립니다. *Ask the agent*를 누르면 에이전트가 업무를 읽고 채우며, 틀린 것은 사람이 지웁니다.
+**내 일과 그 일이 무엇에 관한 것인지를 한 곳에서.** *Ontology*에는 앱이 저장하는 업무 항목의 종류(`work-ontology.js`)와 일이 다루는 것의 종류(고객, 리드, 프로젝트 종류), 그리고 그 관계가 보입니다. *Graph*는 업무 항목, 개체, 사실, 그리고 개체가 언급된 업무 항목을 잇는 점선을 한 그림에 그립니다. *Documents*에는 에이전트가 읽어야 할 파일(명세서, 가격표, 파일당 25MB까지)을 올립니다. *Ask the agent*를 누르면 에이전트가 업무를 읽고 채우며, 틀린 것은 사람이 지웁니다.
 
 #### Requests
 
@@ -241,32 +241,28 @@ Requests와 Evolve의 카드는 같은 질문에 사람 말로 답합니다 — 
 
 오른쪽 위 **Chip**을 켜고 화면의 항목(할일, 카드, 지표)을 누르면, 다음 메시지에 컨텍스트 칩으로 붙습니다. ⟳는 새로 생긴 종류의 요소를 칩 대상으로 등록합니다. ✎를 누르면 보드 위에 캔버스가 깔립니다. 빨강·마젠타·파랑으로 짚고 싶은 곳에 동그라미를 치고 *Add to chat*을 누르면, 표시가 합성된 화면 캡처와 표시 아래 항목들의 칩이 함께 붙습니다. 캡처는 [modern-screenshot](https://github.com/qq15725/modern-screenshot)을 `/vendor/`에서 로컬로 제공해 씁니다.
 
-### 업무 사이의 연결
+### 워크와 지식 — 한 그래프
 
-메모, 할일, 일정은 서로 이어지고, [NodeRel](https://github.com/tykimos/NodeRel)로 색인됩니다(`graph-index.js` → `graph-index.sqlite`, 데이터가 바뀌면 다시 만듦). 그래서 에이전트가 연결을 따라갈 수 있습니다.
+이 ANA가 가진 것은 모두 세 층으로 된 그래프 하나에 들어 있습니다. 읽을 때마다 파일에서 메모리로 계산합니다(`graph-index.js`, 데이터베이스도 의존성도 없음).
 
 ```
-Note ─SPAWNED──────▶ Task | Event     할일·일정이 나온 메모                (명시)
-Task ─SCHEDULED_AS─▶ Event            할일을 하려고 잡아 둔 시간            (명시)
-Note|Task|Event ─REFERS_TO─▶ Note|Task|Event   수동 참조                    (명시)
-Task ─DUE_ON─▶ Day,  Event ─ON─▶ Day           due / date에서 계산          (규칙)
+work       이 앱이 저장하는 업무 항목     work-graph.json(종류마다 배열 하나), 종류와 연결은 work-ontology.js에 선언
+knowledge  업무가 무엇에 관한 것인지      knowledge.json: 종류와 관계(온톨로지), 실제 것과 사실(그래프)
+mention    개체 ─MENTIONED_IN─▶ 업무 항목 | 문서       각 개체의 items에서
 ```
 
-종류는 `work-ontology.js`에 있습니다. 화면에서 연결을 만드는 방법:
-- 메모에서 한 줄을 고르고 **→ Task**나 **→ Event**를 누릅니다.
-- 할일의 캘린더 버튼으로 그 할일을 할 시간을 잡습니다.
-- **＋ Link**로 아무 두 항목이나 잇습니다.
-
-연결은 양쪽 끝에 칩으로 보이고, 누르면 그 항목으로 갑니다. 새 연결 종류(`BLOCKS`)도 그대로 남깁니다.
+- **업무 종류는 앱과 함께 늘어납니다.** base에는 메모, 할일, 일정이 선언되어 있습니다(`SPAWNED`, `SCHEDULED_AS`, `REFERS_TO`, 그리고 날짜에서 계산하는 `DUE_ON` / `ON`). 에이전트가 견적 같은 새 업무를 만들면 그 항목을 `work-graph.json`(`quotes: […]`)에 두고 `work-ontology.js`에 종류를 선언합니다. 다른 항목을 가리키는 필드는 연결이 됩니다: `{ id: 'QUOTE_FOR', from: ['Quote'], to: ['Lead'], made: 'derived', field: 'Quote.lead' }`. `work-ontology.js`를 고치면 서버를 다시 띄우지 않아도 반영됩니다.
+- **지식이 업무에 붙습니다.** 개체는 자기를 언급한 업무 항목과 문서를 갖고, 사실의 끝이 업무 항목일 수도 있습니다(`Acme —asked for→ 할일 a1`).
+- **Knowledge › Ontology**에는 두 층이 함께 보입니다. 위에 *Work kinds*와 *Work links*(`work-ontology.js`에서, 개수와 함께), 아래에 *Knowledge kinds*와 *Knowledge relations*. **Knowledge › Graph**는 업무 항목(네모), 개체(동그라미), 업무 연결, 사실, 언급(점선)을 한 그림에 그리고, *All · Work · Knowledge*로 걸러 볼 수 있습니다.
 
 | 엔드포인트 | 용도 |
 |---|---|
-| `GET /api/state` → `graph.links` | 연결(NodeRel에서) |
-| `POST /api/todo {title, due?, from?}` · `POST /api/event {action:'add', …, from?}` | 만들면서 출처와 바로 연결(`from`이 메모면 `SPAWNED`, 할일이면 `SCHEDULED_AS`) |
-| `POST /api/link {action:'add'\|'remove', from, to, type}` | 연결 추가·삭제 |
-| `GET /api/graph/neighbors?id=` · `GET /api/graph/trace?id=&depth=&direction=&types=` | 이어진 것 / 닿는 모든 것 |
-| `GET /api/graph/schema` | NodeRel의 AI용 스키마와 뜻. 에이전트에게 주세요 |
-| `GET /api/stats` → `graph` | 종류별 개수와 흐름이 끊긴 곳(`gaps`) |
+| `GET /api/knowledge` | 지식과 `work`: 업무 종류·연결·항목과 그 연결 |
+| `GET /api/graph/neighbors?id=` · `GET /api/graph/trace?id=&depth=&direction=&types=` | 한 노드에 이어진 것 / 닿는 모든 것, 워크와 지식을 가로질러(개체는 `kg:<id>`) |
+| `GET /api/graph/schema` | 층, 노드 종류, 연결 어휘와 뜻·개수. 에이전트에게 주세요 |
+| `POST /api/link {action:'add'\|'remove', from, to, type}` | 업무 항목 사이 연결 추가·삭제(새 `UPPER_SNAKE` 종류도 남기고 new로 보임) |
+| `POST /api/todo {title, due?, from?}` · `POST /api/event {action:'add', …, from?}` | 할일·일정을 만들면서 출처와 바로 연결 |
+| `GET /api/state` → `graph.links` · `GET /api/stats` → `graph` | 업무 연결 / 개수와 흐름이 끊긴 곳(`gaps`) |
 
 ### Requests, Evolve, PRD — API
 
@@ -362,12 +358,12 @@ dashboard-api.js      베이스 API: 할일 · 일정 · 메모 · 관계 · 지
 dashboard.html        레퍼런스 UI: PRD · Work · Knowledge · Requests · Evolve · Update, Claude 앱 같은 채팅, 칩 모드 + 그리기, 관계 칩
 agent-log.js          에이전트 자체 JSONL 기록으로 채팅 표시(Claude Code + Codex): 응답·도구·모델·한도
 codex-settings.js     Codex 모델·추론 강도 목록, Codex 자체 메뉴로 전환
-graph-index.js        연결의 NodeRel 색인(파생 graph-index.sqlite)
-work-ontology.js      업무 항목과 연결의 종류(클래스, 관계, 계산 규칙). graph-index.js가 읽는다
+graph-index.js        워크와 지식을 한 그래프로, 메모리에서 계산(trace · neighbors · schema)
+work-ontology.js      업무 항목과 연결의 종류(클래스, 관계, 계산되는 연결). 에이전트가 만든 종류를 더한다
 prd-template.md       에이전트가 첫 PRD를 쓸 때 따르는 절 구성
 CLAUDE.md · AGENTS.md 에이전트가 여기서 하는 일(대화로 시작, 한 번에 PRD와 첫 화면, PRD를 늘 맞게)
 features.json         기능 목록: 기능별 앵커 + 담당 스킬 (ana-update가 비교 기준으로 사용)
-package.json          의존성: @tykimos/noderel (github:tykimos/NodeRel), modern-screenshot
+package.json          의존성: modern-screenshot
 test.cjs              단위 + 통합 테스트(npm test), mock_agent.py = 테스트용 결정적 TUI
 skills/               install · ana · ana-update · chat-window · context-chips · app-shell · agent-requests · cloud-setting
 .claude-plugin/       플러그인 + 마켓플레이스 매니페스트

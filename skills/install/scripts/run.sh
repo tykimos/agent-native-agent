@@ -19,7 +19,7 @@ command -v tmux >/dev/null && command -v node >/dev/null || { echo "tmux/node mi
 [ -f "$ROOT/server.js" ] || { echo "server.js not found under $ROOT" >&2; exit 1; }
 # 예전 이름(<S>-server)으로 떠 있는 서버는 그대로 이어 쓴다
 alive "$S-server" && SRV="$S-server"
-[ -d "$ROOT/node_modules/@tykimos/noderel" ] || { say "Installing npm dependencies"; (cd "$ROOT" && npm install --no-audit --no-fund --silent); }
+[ -d "$ROOT/node_modules/modern-screenshot" ] || { say "Installing npm dependencies"; (cd "$ROOT" && npm install --no-audit --no-fund --silent); }
 
 # run.sh가 띄운 세션은 ANA_PORT를 기록해 둔다. 손으로 띄운 세션이면 서버 시작 로그(ANA → http://host:port)에서 읽는다.
 port_of() {

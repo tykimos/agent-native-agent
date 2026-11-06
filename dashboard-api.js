@@ -16,7 +16,7 @@ const crypto = require('node:crypto');
 const os = require('node:os');
 const fsp = require('node:fs/promises');
 const { execFile } = require('node:child_process');
-const relgraph = require('./graph-index.js');   // NodeRel 색인 — 워크 그래프와 지식그래프를 한 색인에
+const relgraph = require('./graph-index.js');   // 워크와 지식을 한 그래프로(메모리에서 계산, 의존성 없음)
 const codexSettings = require('./codex-settings.js');
 const permissionMode = require('./permission-mode.js');
 const { createAgentLog } = require('./agent-log.js');
@@ -118,7 +118,7 @@ function createDashboardApi(core, opts) {
   const DEFAULT_WS = 'default';
   const curWs = () => DEFAULT_WS;
   const dataFileOf = () => DATA_FILE;
-  // 0.11: 데이터 파일 이름을 개념에 맞췄다 — state.json → work-graph.json, graph.sqlite → graph-index.sqlite(캐시라 옛 것은 지운다).
+  // 0.11: 데이터 파일 이름을 개념에 맞췄다 — state.json → work-graph.json. 0.21: NodeRel 색인(graph.sqlite · graph-index.sqlite)은 없어졌다 — 캐시라 지운다.
   // 옛 이름만 있으면 사본(<옛 이름>.pre-0.11)을 남기고 새 이름으로 옮긴다. 새 이름이 이미 있으면 건드리지 않는다.
   // DATA_FILE을 직접 지정한 배포는 그 이름을 그대로 쓴다(이름이 새 기본값일 때만 옮긴다).
   (function migrateDataNames() {
@@ -130,7 +130,7 @@ function createDashboardApi(core, opts) {
         console.log(`[ana] renamed ${path.basename(from)} → ${path.basename(to)} in ${path.dirname(to)} (copy kept as ${path.basename(from)}.pre-0.11)`);
       } catch (e) { console.error(`[ana] could not rename ${from}: ${e.message}`); }
     };
-    const dropCache = (dir) => { for (const x of ['graph.sqlite', 'graph.sqlite-wal', 'graph.sqlite-shm']) try { fs.rmSync(path.join(dir, x), { force: true }); } catch {} };
+    const dropCache = (dir) => { for (const x of ['graph.sqlite', 'graph.sqlite-wal', 'graph.sqlite-shm', 'graph-index.sqlite', 'graph-index.sqlite-wal', 'graph-index.sqlite-shm']) try { fs.rmSync(path.join(dir, x), { force: true }); } catch {} };
     if (path.basename(DATA_FILE) === 'work-graph.json') { move(path.join(path.dirname(DATA_FILE), 'state.json'), DATA_FILE); }
     dropCache(path.dirname(DATA_FILE));
   })();
@@ -143,7 +143,8 @@ function createDashboardApi(core, opts) {
       throw new Error(`work graph file shape invalid (${file})`);
     if (!Array.isArray(s.events)) s.events = []; // 일정(달력) — 할일(items)과 별도
     if (!Array.isArray(s.notes)) s.notes = []; // 메모 — {id, title, text, updatedAt}
-    if (!Array.isArray(s.links)) s.links = []; // 명시적 관계 — {from, to, type, at, by} (graph.js 참고)
+    if (!Array.isArray(s.links)) s.links = []; // 명시적 관계 — {from, to, type, at, by} (graph-index.js 참고)
+    for (const l of relgraph.workLists()) if (!Array.isArray(s[l])) s[l] = [];   // work-ontology.js가 선언한 다른 업무 종류의 배열
     if (typeof s.version !== 'number' || !Number.isFinite(s.version)) s.version = 1;
     return s;
   }
@@ -152,8 +153,8 @@ function createDashboardApi(core, opts) {
   const CLIENT_EVENTS = { 'tab.view': /^[a-z]{2,20}(\.[a-z]{2,20})?$/ };
   const isExample = (x) => /^[nae]-ex-/.test(String((x && x.id) || ''));   // 예전 판(seed.js)이 넣은 예제 id
   const saveData = (s, ws) => { relgraph.pruneLinks(s); writeJsonAtomic(dataFileOf(ws || curWs()), s); };
-  // NodeRel 색인 — 워크 그래프(work-graph.json)에서 파생(graph-index.sqlite). 아래 함수들은 요청 때만 불린다.
-  const graph = relgraph.createGraph({ loadData, dataFileOf });
+  // 워크(work-graph.json)와 지식(knowledge.json)·문서를 한 그래프로 — 읽을 때마다 메모리에서 계산한다.
+  const graph = relgraph.createGraph({ loadData, loadKnowledge: () => loadKnowledge(), loadDocs: () => loadDocs() });
 
   function loadProposals() {
     const s = readJsonStrict(PROPOSALS_FILE, () => ({ proposals: [] }));
@@ -617,8 +618,8 @@ function createDashboardApi(core, opts) {
         proposals: ps.proposals.filter((x) => x.status === 'pending' && (x.ws || DEFAULT_WS) === ws).slice(-50) }), true;
     }
 
-    // ---- 관계 그래프(NodeRel) ----
-    // 읽기: 이웃·추적·AI 스키마. 쓰기는 /api/link 하나 — 원천(state.links)을 고치면 다음 읽기에서 인덱스가 다시 만들어진다.
+    // ---- 그래프(워크 + 지식) ----
+    // 읽기: 이웃·추적·AI 스키마. 쓰기는 업무 연결은 /api/link, 지식은 /api/knowledge — 원천을 고치면 다음 읽기에 그대로 보인다.
     if (p.startsWith('/api/graph') && req.method === 'GET') {
       const ws = curWs();
       try {
@@ -643,7 +644,7 @@ function createDashboardApi(core, opts) {
       const body = await jsonBody(req, res); if (!body) return true;
       let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
       const link = { from: body.from, to: body.to, type: body.type };
-      const nameOf = (id) => { const x = [...s.items, ...s.events, ...s.notes].find((y) => y.id === id); return x ? String(x.title || x.text || '(untitled)').split('\n')[0].slice(0, 30) : id; };
+      const nameOf = (id) => { const x = relgraph.workLists().flatMap((l) => s[l] || []).find((y) => y && y.id === id); return x ? String(x.title || x.text || '(untitled)').split('\n')[0].slice(0, 30) : id; };
       const label = () => `${link.type} ${nameOf(link.from)} → ${nameOf(link.to)}`;
       if (body.action === 'add') {
         const err = relgraph.addLink(s, link, actor(req));
@@ -1180,7 +1181,7 @@ function createDashboardApi(core, opts) {
     }
     // Knowledge — GET: 온톨로지와 그래프 / POST {classes?, relations?, entities?, facts?}: 더하기(같은 id는 고침)
     //   POST {action:'remove', kind: class|relation|entity|fact, id | from,rel,to}: 지우기(개체를 지우면 그 개체의 사실도)
-    if (p === '/api/knowledge' && req.method === 'GET') return sendJson(res, 200, loadKnowledge()), true;
+    if (p === '/api/knowledge' && req.method === 'GET') { let w = null; try { w = graph.workLayer(curWs()); } catch (e) { w = { error: e.message }; } return sendJson(res, 200, { ...loadKnowledge(), work: w }), true; }
     if (p === '/api/knowledge' && req.method === 'POST') {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
       const body = await jsonBody(req, res, 2 * 1024 * 1024); if (!body) return true;

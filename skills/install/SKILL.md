@@ -5,7 +5,7 @@ description: Install and run ANA (Agent-Native Agent) from scratch on macOS, Lin
 
 # install — ANA from zero to a running dashboard
 
-ANA needs three things at runtime: **Node ≥ 24**, **tmux**, and a **coding-agent CLI** (Claude Code by default). Its one npm dependency, [NodeRel](https://github.com/tykimos/NodeRel), is installed from GitHub by `install.sh` (and by `run.sh` if it is missing). This skill checks the machine, installs what's missing, and starts ANA.
+ANA needs three things at runtime: **Node ≥ 24**, **tmux**, and a **coding-agent CLI** (Claude Code by default). Its one npm dependency, [modern-screenshot](https://github.com/qq15725/modern-screenshot) (for marking up the screen), is installed by `install.sh` (and by `run.sh` if it is missing). This skill checks the machine, installs what's missing, and starts ANA.
 
 ```
 check-env.sh ──► install.sh ──► run.sh start ──► http://localhost:8809

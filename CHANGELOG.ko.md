@@ -5,6 +5,19 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.21.0] — 2026-11-06
+
+### 바뀜
+
+- **Knowledge에서 내 일과 그 일이 무엇에 관한 것인지를 한 곳에서 봅니다.** *Ontology*에는 위에 *Work kinds*와 *Work links*(앱이 저장하는 것, `work-ontology.js`에서, 개수와 함께), 아래에 *Knowledge kinds*와 *Knowledge relations*가 나옵니다. *Graph*는 업무 항목(네모)과 개체(동그라미)를 한 그림에 그립니다. 업무 항목 사이의 연결, 개체 사이의 사실, 그리고 개체가 언급된 업무 항목·문서를 잇는 점선이 함께 보입니다. 업무 항목은 왼쪽, 개체는 오른쪽에 놓이고, *All · Work · Knowledge*로 한 층만 볼 수 있습니다.
+- **NodeRel 없이 워크와 지식이 한 그래프입니다.** `graph-index.js`가 읽을 때마다 `work-graph.json`, `knowledge.json`, 문서에서 메모리로 그래프를 만듭니다. SQLite 색인도 의존성도 없습니다(`@tykimos/noderel` 제거, 예전 `graph-index.sqlite`는 시작할 때 지움). `/api/graph/trace`, `neighbors`, `schema`가 두 층을 가로지릅니다. 개체는 `kg:<id>`이고, `MENTIONED_IN`이 개체를 `items`의 업무 항목·문서와 잇고, 사실의 끝이 업무 항목일 수도 있습니다.
+- **새 업무 종류도 그래프에 들어옵니다.** 에이전트가 견적·리드 같은 새 업무를 만들면 그 항목을 `work-graph.json`에 종류마다 배열 하나로 두고 `work-ontology.js`에 종류를 선언합니다(`list`, `title`, 그리고 다른 항목을 가리키는 필드를 위한 `derived` 관계 — 예: `Quote.lead` → `QUOTE_FOR`). CLAUDE.md, AGENTS.md, *Build the first screen* 지시문에 적었습니다. `work-ontology.js`를 고치면 서버를 다시 띄우지 않아도 반영됩니다. `list`가 없는 예전 선언도 그대로 읽습니다.
+- `GET /api/knowledge`가 `work`도 돌려줍니다: 업무 종류·연결·항목과 그 연결.
+
+### 옮기기
+
+- `graph-index.js`와 `work-ontology.js`를 바꾸고(자기 종류는 남기고 각각 `list`, `title`을 더함), `dashboard.html`의 `renderKnowledge` / `kGraphSvg` / `#kFilter`와 Knowledge 마크업을 가져오고, `package.json`에서 `@tykimos/noderel`을 뺍니다. ANA Pro는 NodeRel을 그대로 씁니다.
+
 ## [0.20.2] — 2026-11-05
 
 ### Changed

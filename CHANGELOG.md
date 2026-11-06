@@ -5,6 +5,19 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.21.0] — 2026-11-06
+
+### Changed
+
+- **Knowledge shows your work and what it is about in one view.** *Ontology* lists *Work kinds* and *Work links* (what the app stores, from `work-ontology.js`, with counts) above *Knowledge kinds* and *Knowledge relations*. *Graph* draws work items (squares) and things (circles) together: links between work items, facts between things, and dashed lines where a thing is mentioned in a work item or document. Work items sit on the left and things on the right, and an *All · Work · Knowledge* filter shows one layer at a time.
+- **One graph for work and knowledge, without NodeRel.** `graph-index.js` now builds the graph in memory from `work-graph.json`, `knowledge.json` and the documents each time it is read. There is no SQLite index and no dependency (`@tykimos/noderel` is removed; the old `graph-index.sqlite` is deleted on start). `/api/graph/trace`, `neighbors` and `schema` now cross both layers: things are `kg:<id>`, `MENTIONED_IN` joins a thing to the work items and documents in its `items`, and a fact may end at a work item.
+- **New kinds of work join the graph.** When the agent builds a new kind of work (quotes, leads…), it keeps the items in `work-graph.json` as one array per kind and declares the kind in `work-ontology.js` (`list`, `title`, and a `derived` relation for a field that points at another item, e.g. `Quote.lead` → `QUOTE_FOR`). CLAUDE.md, AGENTS.md and *Build the first screen* say so. Edits to `work-ontology.js` are picked up without a restart. Older declarations without `list` still work.
+- `GET /api/knowledge` also returns `work`: the work kinds, links, items and their links.
+
+### Porting
+
+- Replace `graph-index.js` and `work-ontology.js` (keep your own kinds — add `list` and `title` to each), take `renderKnowledge` / `kGraphSvg` / `#kFilter` and the Knowledge markup from `dashboard.html`, and remove `@tykimos/noderel` from `package.json`. ANA Pro keeps NodeRel.
+
 ## [0.20.2] — 2026-11-05
 
 ### Changed
