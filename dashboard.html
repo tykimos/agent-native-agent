@@ -534,12 +534,8 @@ body.sketching { overflow: hidden; }
 .k-edge { stroke: var(--line); stroke-width: 1.5; } .k-elabel { font-size: 10px; fill: var(--text-weak); text-anchor: middle; }
 .k-node text { font-size: 11.5px; font-weight: 700; fill: var(--text); text-anchor: middle; } .k-node circle { stroke: var(--surface); stroke-width: 2; }
 .k-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 4px 8px 6px; font-size: 12px; color: var(--text-sub); }
-.k-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 999px; margin-right: 5px; vertical-align: 0; } .k-legend i.sq { border-radius: 2px; }
-.k-edge.w { stroke: var(--text-weak); opacity: .55; } .k-edge.f { stroke: var(--acc, var(--blue)); opacity: .7; } .k-edge.m { stroke: var(--text-weak); stroke-dasharray: 4 4; opacity: .6; }
+.k-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 999px; margin-right: 5px; vertical-align: 0; }
 .k-node rect { stroke: var(--surface); stroke-width: 2; } .k-node.dim { opacity: .35; }
-.k-layer { font-size: 10.5px; font-weight: 800; padding: 1px 7px; border-radius: 999px; background: var(--surface-2); color: var(--text-sub); }
-.k-filter { display: flex; gap: 6px; margin: 0 0 10px; } .k-filter button { min-height: 30px; padding: 3px 13px; border-radius: 999px; background: var(--surface-2); color: var(--text-sub); font-size: 13px; font-weight: 700; }
-.k-filter button.on { background: var(--text); color: var(--surface); }
 [data-subsec][hidden], .ib-btn[hidden], .toolbar [hidden] { display: none !important; }
 
 .icard { align-self: flex-end; max-width: min(92%, 560px); margin: 6px 0; padding: 8px 10px; border-radius: 12px; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line-2); font-size: 13px; }
@@ -1207,24 +1203,19 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
     <nav class="subtabs" data-sub="knowledge" role="tablist" aria-label="Knowledge"></nav>
     <div class="toolbar"><span class="cnt" id="kSum"></span><span class="sp"></span><button class="ib-btn" id="kAsk">Ask the agent</button></div>
     <div data-subsec="ontology">
-      <div class="sub-lead">Two layers. <b>Work</b> is what this app stores and how it links; it grows when the agent builds a new kind of work. <b>Knowledge</b> is what the work is about; the agent adds it from your work. They meet where a thing is mentioned in a work item, or a fact points at one.</div>
-      <div class="sec-head" id="kWClsHead" hidden><h2>Work kinds</h2><span class="cnt" id="kWClsCnt"></span></div>
-      <div class="card k-list" id="kWCls" hidden></div>
-      <div class="sec-head" id="kWRelHead" hidden><h2>Work links</h2><span class="cnt" id="kWRelCnt"></span></div>
-      <div class="card k-list" id="kWRel" hidden></div>
-      <div class="sec-head" id="kClsHead" hidden><h2>Knowledge kinds</h2><span class="cnt" id="kClsCnt"></span></div>
+      <div class="sub-lead">One graph holds everything here: the work items this app stores, the things your work is about, and the documents you added. <b>Kinds</b> say what can be in it; <b>relations</b> say how they connect. Both grow — when the agent builds a new kind of work, and when it adds what it learns from your work.</div>
+      <div class="sec-head" id="kClsHead" hidden><h2>Kinds</h2><span class="cnt" id="kClsCnt"></span></div>
       <div class="card k-list" id="kCls" hidden></div>
-      <div class="sec-head" id="kRelHead" hidden><h2>Knowledge relations</h2><span class="cnt" id="kRelCnt"></span></div>
+      <div class="sec-head" id="kRelHead" hidden><h2>Relations</h2><span class="cnt" id="kRelCnt"></span></div>
       <div class="card k-list" id="kRel" hidden></div>
       <div class="empty" id="kOntoEmpty">No knowledge yet — press [Ask the agent] to have it propose kinds and relations from your work</div>
     </div>
     <div data-subsec="graph">
-      <div class="sub-lead">Your work items and the things they are about, in one graph: links between work items, facts between things, and dashed lines where a thing is mentioned in a work item or document.</div>
-      <div class="k-filter" id="kFilter" role="group" aria-label="Show"><button data-layer="all">All</button><button data-layer="work">Work</button><button data-layer="knowledge">Knowledge</button></div>
+      <div class="sub-lead">Everything in one graph — items, things and documents, and every link between them.</div>
       <div class="card k-graph" id="kGraph" hidden></div>
-      <div class="sec-head" id="kFactHead" hidden><h2>Facts</h2><span class="cnt" id="kFactCnt"></span></div>
+      <div class="sec-head" id="kFactHead" hidden><h2>Links</h2><span class="cnt" id="kFactCnt"></span></div>
       <div class="card k-list" id="kFacts" hidden></div>
-      <div class="empty" id="kGraphEmpty">Nothing here yet — work items appear as the app stores them; press [Ask the agent] to have it find the things and facts in your work</div>
+      <div class="empty" id="kGraphEmpty">Nothing here yet — items appear as the app stores them; press [Ask the agent] to have it add the things your work is about and how they connect</div>
     </div>
     <div data-subsec="documents">
       <div class="sub-lead">Files the agent should know about — specs, price lists, manuals, notes. It reads them when it adds to the knowledge, and points facts back to them.</div>
@@ -2056,105 +2047,64 @@ const kItems = (ids) => (ids || []).map((id) => {
   if (d) return `<a class="rel k-Doc" href="/api/documents/${encodeURIComponent(d.id)}/file" target="_blank" rel="noopener"><span class="rk">Doc</span><span class="rt">${escapeHtml(d.name)}</span></a>`;
   const n = nodeOf(id) || (() => { const w = kItemOf(id); return w && { id, kind: w.kind, label: w.label }; })(); return n ? `<span class="rel k-${n.kind}" role="button" tabindex="0" data-go="${escapeHtml(n.id)}"><span class="rk">${n.kind}</span><span class="rt">${escapeHtml(n.label)}</span></span>` : '';
 }).join('');
-const W_COLORS = ['#64748B', '#0EA5E9', '#A855F7', '#14B8A6', '#F97316', '#6366F1', '#DB2777', '#65A30D'];
-let kLayer = (() => { try { return localStorage.getItem('ana-k-layer') || 'all'; } catch { return 'all'; } })();
-const kWork = () => kCache.work || { classes: [], relations: [], items: [], links: [] };
-// 업무 항목 이름(워크 층) — 지식의 근거 칩과 그래프가 같이 쓴다
-const kItemOf = (id) => (kWork().items || []).find((x) => x.id === id);
+const kG = () => (kCache.graph && !kCache.graph.error ? kCache.graph : { kinds: [], relations: [], nodes: [], edges: [] });
+// 그래프의 노드 하나(업무 항목 · 개체 · 문서) — 근거 칩과 그래프가 같이 쓴다
+const kItemOf = (id) => { const n = (kG().nodes || []).find((x) => x.id === id); return n && { kind: n.kind, label: n.title }; };
+const kColor = (kind) => { const i = (kG().kinds || []).findIndex((c) => c.id === kind); return i < 0 ? '#9CA3AF' : K_COLORS[i % K_COLORS.length]; };
 function renderKnowledge() {
-  const k = kCache, cls = k.classes || [], rel = k.relations || [], ent = k.entities || [], facts = k.facts || [];
-  const W = kWork(), wCls = (W.classes || []), wRel = W.relations || [], wItems = W.items || [], wLinks = W.links || [];
-  const hasC = new Set(cls.map((c) => c.id)), hasR = new Set(rel.map((r) => r.id));
+  const G = kG(), kinds = G.kinds || [], rels = G.relations || [], nodes = G.nodes || [], edges = G.edges || [];
   const nOf = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-  const mentions = ent.reduce((n, e) => n + (e.items || []).length, 0);
-  $('kSum').textContent = [`Work: ${nOf(wItems.length, 'item', 'items')} · ${nOf(wLinks.length, 'link', 'links')}`,
-    `Knowledge: ${nOf(ent.length, 'thing', 'things')} · ${nOf(facts.length, 'fact', 'facts')} · ${nOf(mentions, 'mention', 'mentions')}`].join('  —  ');
+  $('kSum').textContent = `${nOf(nodes.length, 'node', 'nodes')} · ${nOf(edges.length, 'link', 'links')}`;
   setSubCount('knowledge', 'ontology', 0); setSubCount('knowledge', 'graph', 0);
-  const allCls = [...wCls, ...cls], clsLabel = (id) => kLabel(allCls, id);
-  // 온톨로지 — 워크 층(work-ontology.js, 지울 수 없음)
-  $('kWCls').innerHTML = wCls.map((c, i) => `<div class="k-row"><div class="k-main"><span class="k-dot" style="border-radius:2px;background:${W_COLORS[i % W_COLORS.length]}"></span><b class="k-t">${escapeHtml(c.label)}</b><code>${escapeHtml(c.id)}</code><span class="k-layer">Work</span><span class="k-sub">${c.list ? `${nOf(c.count, 'item', 'items')} · work-graph.json → ${escapeHtml(c.list)}` : `${c.count} · computed`}</span>${c.desc ? `<div class="k-desc">${escapeHtml(c.desc)}</div>` : ''}</div></div>`).join('');
-  const ends = (l) => (l || []).map((x) => (x === '*' ? 'any item' : clsLabel(x))).join(' · ') || 'any item';
-  $('kWRel').innerHTML = wRel.map((r) => `<div class="k-row"><div class="k-main"><b class="k-t">${escapeHtml(r.label)}</b><code>${escapeHtml(r.id)}</code>${r.newType ? kNew : ''}<span class="k-sub">${escapeHtml(ends(r.from))} → ${escapeHtml(ends(r.to))}${r.made === 'derived' ? ` · from ${escapeHtml(r.field)}` : ''} · ${nOf(r.count, 'link', 'links')}</span>${r.desc ? `<div class="k-desc">${escapeHtml(r.desc)}</div>` : ''}</div></div>`).join('');
-  $('kWClsHead').hidden = $('kWCls').hidden = !wCls.length; $('kWClsCnt').textContent = wCls.length || '';
-  $('kWRelHead').hidden = $('kWRel').hidden = !wRel.length; $('kWRelCnt').textContent = wRel.length || '';
-  // 온톨로지 — 지식 층
-  $('kCls').innerHTML = cls.map((c) => `<div class="k-row"><div class="k-main"><span class="k-dot" style="background:${K_COLORS[cls.indexOf(c) % K_COLORS.length]}"></span><b class="k-t">${escapeHtml(c.label)}</b><code>${escapeHtml(c.id)}</code>${c.parent ? `<span class="k-sub">a kind of ${escapeHtml(clsLabel(c.parent))}</span>` : ''}<span class="k-sub">${nOf(ent.filter((e) => e.class === c.id).length, 'thing', 'things')}</span>${c.desc ? `<div class="k-desc">${escapeHtml(c.desc)}</div>` : ''}</div>${kDel(`data-kind="class" data-id="${escapeHtml(c.id)}"`)}</div>`).join('');
-  $('kRel').innerHTML = rel.map((r) => `<div class="k-row"><div class="k-main"><b class="k-t">${escapeHtml(r.label)}</b><code>${escapeHtml(r.id)}</code><span class="k-sub">${escapeHtml(r.domain ? clsLabel(r.domain) : 'anything')} → ${escapeHtml(r.range ? clsLabel(r.range) : 'anything')} · ${nOf(facts.filter((f) => f.rel === r.id).length, 'fact', 'facts')}</span>${r.desc ? `<div class="k-desc">${escapeHtml(r.desc)}</div>` : ''}</div>${kDel(`data-kind="relation" data-id="${escapeHtml(r.id)}"`)}</div>`).join('');
-  $('kClsHead').hidden = $('kCls').hidden = !cls.length; $('kClsCnt').textContent = cls.length || '';
-  $('kRelHead').hidden = $('kRel').hidden = !rel.length; $('kRelCnt').textContent = rel.length || '';
-  $('kOntoEmpty').style.display = cls.length || rel.length ? 'none' : 'block';
-  // 그래프 — 사실의 끝은 개체, 아니면 업무 항목
-  const entIds = new Set(ent.map((e) => e.id));
-  const name = (id) => (entIds.has(id) ? kLabel(ent, id) : (kItemOf(id) || {}).label || id);
-  $('kFacts').innerHTML = facts.map((f) => `<div class="k-row"><div class="k-main"><span class="k-t">${escapeHtml(name(f.from))} <span class="k-rel">${escapeHtml(hasR.has(f.rel) ? kLabel(rel, f.rel) : f.rel.replace(/_/g, ' '))}</span> ${escapeHtml(name(f.to))}</span>${hasR.has(f.rel) ? '' : kNew}${(f.items || []).length ? `<div class="rels">${kItems(f.items)}</div>` : ''}</div>${kDel(`data-kind="fact" data-from="${escapeHtml(f.from)}" data-rel="${escapeHtml(f.rel)}" data-to="${escapeHtml(f.to)}"`)}</div>`).join('');
-  $('kFactHead').hidden = $('kFacts').hidden = !facts.length; $('kFactCnt').textContent = facts.length || '';
-  $('kFilter').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.layer === kLayer));
-  const svg = kGraphSvg(kLayer);
+  const kindLabel = (id) => (id === '*' ? 'anything' : kLabel(kinds, id));
+  const ends = (l) => (l || []).map(kindLabel).join(' · ') || 'anything';
+  // 온톨로지 — 종류 하나, 관계 하나(선언한 곳은 작은 글씨로만)
+  $('kCls').innerHTML = kinds.map((c) => `<div class="k-row"><div class="k-main"><span class="k-dot" style="background:${kColor(c.id)}"></span><b class="k-t">${escapeHtml(c.label)}</b><code>${escapeHtml(c.id)}</code>${c.newType ? kNew : ''}${c.parent ? `<span class="k-sub">a kind of ${escapeHtml(kindLabel(c.parent))}</span>` : ''}<span class="k-sub">${nOf(c.count, 'node', 'nodes')} · ${escapeHtml(c.where)}</span>${c.desc ? `<div class="k-desc">${escapeHtml(c.desc)}</div>` : ''}</div>${c.removable ? kDel(`data-kind="class" data-id="${escapeHtml(c.id)}"`) : ''}</div>`).join('');
+  $('kRel').innerHTML = rels.map((r) => `<div class="k-row"><div class="k-main"><b class="k-t">${escapeHtml(r.label)}</b><code>${escapeHtml(r.id)}</code>${r.newType ? kNew : ''}<span class="k-sub">${r.from.length ? `${escapeHtml(ends(r.from))} → ${escapeHtml(ends(r.to))} · ` : ''}${r.made === 'derived' ? `from ${escapeHtml(r.field)} · ` : ''}${nOf(r.count, 'link', 'links')}</span>${r.desc ? `<div class="k-desc">${escapeHtml(r.desc)}</div>` : ''}</div>${r.removable ? kDel(`data-kind="relation" data-id="${escapeHtml(r.id)}"`) : ''}</div>`).join('');
+  $('kClsHead').hidden = $('kCls').hidden = !kinds.length; $('kClsCnt').textContent = kinds.length || '';
+  $('kRelHead').hidden = $('kRel').hidden = !rels.length; $('kRelCnt').textContent = rels.length || '';
+  $('kOntoEmpty').style.display = kinds.length || rels.length ? 'none' : 'block';
+  // 그래프 — 사람·에이전트가 만든 연결은 목록으로도(지울 수 있게). 필드·언급에서 계산한 것은 그림에만
+  const byId = new Map(nodes.map((n) => [n.id, n])), name = (id) => (byId.get(id) || {}).title || id;
+  const made = edges.filter((e) => e.made === 'explicit'), relLabel = (t) => kLabel(rels, t) || t.replace(/_/g, ' ');
+  $('kFacts').innerHTML = made.map((e) => `<div class="k-row"><div class="k-main"><span class="k-t">${escapeHtml(name(e.from))} <span class="k-rel">${escapeHtml(relLabel(e.type))}</span> ${escapeHtml(name(e.to))}</span>${e.newType ? kNew : ''}${(e.items || []).length ? `<div class="rels">${kItems(e.items)}</div>` : ''}</div>${e.fact ? kDel(`data-kind="fact" data-from="${escapeHtml(e.fact.from)}" data-rel="${escapeHtml(e.fact.rel)}" data-to="${escapeHtml(e.fact.to)}"`) : kDel(`data-kind="link" data-from="${escapeHtml(e.from)}" data-rel="${escapeHtml(e.type)}" data-to="${escapeHtml(e.to)}"`)}</div>`).join('');
+  $('kFactHead').hidden = $('kFacts').hidden = !made.length; $('kFactCnt').textContent = made.length || '';
+  const svg = kGraphSvg();
   $('kGraph').hidden = !svg; $('kGraph').innerHTML = svg;
   $('kGraphEmpty').style.display = svg ? 'none' : 'block';
 }
-// 원 위에 노드를 층·종류별로 모아 놓고 선으로 — 업무 항목은 네모, 개체는 동그라미, 언급은 점선
-function kGraphSvg(layer) {
-  const k = kCache, cls = k.classes || [], ent = k.entities || [], facts = k.facts || [], W = kWork(), wCls = W.classes || [];
-  const hasC = new Set(cls.map((c) => c.id)), docs = docsCache.items || [];
-  const showW = layer !== 'knowledge', showK = layer !== 'work';
-  const nodes = [];
-  if (showW) for (const x of W.items || []) nodes.push({ id: x.id, label: x.label || x.id, kind: x.kind, layer: 'work' });
-  if (showK) for (const e of ent) nodes.push({ id: 'kg:' + e.id, eid: e.id, label: e.label || e.id, kind: e.class || '', layer: 'knowledge' });
-  const has = new Set(nodes.map((n) => n.id));
-  if (showW && showK) for (const e of ent) for (const it of e.items || []) { const d = docs.find((x) => x.id === it); if (d && !has.has(d.id)) { has.add(d.id); nodes.push({ id: d.id, label: d.name, kind: 'Document', layer: 'document' }); } }
+// 힘 배치(결정적): 이어진 것은 당기고 모든 노드는 서로 밀어낸다. 노드는 종류마다 색, 모양은 하나
+function kGraphSvg() {
+  const G = kG(), nodes = (G.nodes || []).slice().sort((a, b) => String(a.kind).localeCompare(String(b.kind)) || String(a.title).localeCompare(String(b.title)));
   if (!nodes.length) return '';
-  const entIds = new Set(ent.map((e) => e.id)), end = (id) => (entIds.has(id) ? 'kg:' + id : id);
-  const edges = [];
-  if (showW) for (const l of W.links || []) edges.push({ a: l.from, b: l.to, t: l.type, c: 'w' });
-  if (showK) for (const f of facts) edges.push({ a: end(f.from), b: end(f.to), t: f.rel, c: 'f' });
-  if (showW && showK) for (const e of ent) for (const it of e.items || []) edges.push({ a: 'kg:' + e.id, b: it, t: '', c: 'm' });
-  const rank = { work: 0, document: 1, knowledge: 2 };
-  const order = nodes.sort((a, b) => rank[a.layer] - rank[b.layer] || String(a.kind).localeCompare(String(b.kind)) || String(a.label).localeCompare(String(b.label)));
-  // All: 두 열 — 왼쪽 업무 항목(이름은 왼쪽), 가운데 문서, 오른쪽 개체(이름은 오른쪽). 한 층만 볼 때는 원.
-  const cols = showW && showK, W0 = 760;
-  const colX = { work: 250, document: 380, knowledge: 510 }, STEP = 40;
-  const colN = (ly) => order.filter((n) => n.layer === ly).length;
-  const H = cols ? Math.max(260, 60 + Math.max(colN('work'), colN('knowledge'), colN('document')) * STEP) : Math.max(420, Math.min(820, 220 + order.length * 16));
-  const cx = W0 / 2, cy = H / 2, R = Math.min(W0, H) / 2 - 80;
-  const pos = new Map();
-  if (cols) for (const ly of ['work', 'document', 'knowledge']) { const list = order.filter((n) => n.layer === ly), top = (H - (list.length - 1) * STEP) / 2; list.forEach((n, i) => pos.set(n.id, [colX[ly], top + i * STEP])); }
-  else order.forEach((n, i) => { const a = (i / order.length) * Math.PI * 2 - Math.PI / 2; pos.set(n.id, order.length === 1 ? [cx, cy] : [cx + R * Math.cos(a), cy + R * Math.sin(a)]); });
-  const side = (n) => (!cols ? 'below' : n.layer === 'work' ? 'left' : n.layer === 'knowledge' ? 'right' : 'below');
-  const wIdx = (kind) => Math.max(0, wCls.findIndex((c) => c.id === kind));
-  const color = (n) => (n.layer === 'work' ? W_COLORS[wIdx(n.kind) % W_COLORS.length] : n.layer === 'document' ? '#94A3B8' : hasC.has(n.kind) ? K_COLORS[cls.findIndex((c) => c.id === n.kind) % K_COLORS.length] : '#9CA3AF');
-  const shown = edges.filter((e) => pos.has(e.a) && pos.has(e.b));
-  const lines = shown.map((e) => {
-    const [x1, y1] = pos.get(e.a), [x2, y2] = pos.get(e.b);
-    // 같은 열 안의 연결은 바깥쪽으로 휘게(겹친 직선이 되지 않게) — 업무는 가운데 쪽, 개체는 오른쪽 바깥
-    if (cols && x1 === x2) {
-      const bend = Math.min(120, 30 + Math.abs(y2 - y1) * 0.45), qx = x1 + bend, my = (y1 + y2) / 2;
-      return `<path class="k-edge ${e.c}" fill="none" d="M${x1},${y1} Q${qx},${my} ${x2},${y2}"/>${e.t ? `<text class="k-elabel" x="${x1 + bend / 2 + 4}" y="${my + 3}" style="text-anchor:start">${escapeHtml(e.t.replace(/_/g, ' '))}</text>` : ''}`;
+  const idx = new Map(nodes.map((n, i) => [n.id, i])), edges = (G.edges || []).filter((e) => idx.has(e.from) && idx.has(e.to));
+  const N = nodes.length, W0 = 760, H = Math.max(360, Math.min(760, 260 + N * 12)), K = Math.sqrt((W0 * H) / N) * 0.55;
+  const P = nodes.map((n, i) => { const a = (i / N) * Math.PI * 2; return [Math.cos(a) * 200, Math.sin(a) * 200]; });
+  for (let it = 0, t = 40; it < 400; it++, t *= 0.988) {
+    const D = P.map(() => [0, 0]);
+    for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
+      let dx = P[i][0] - P[j][0], dy = P[i][1] - P[j][1], d = Math.hypot(dx, dy) || 0.01; const f = (K * K) / d / d;
+      D[i][0] += dx * f; D[i][1] += dy * f; D[j][0] -= dx * f; D[j][1] -= dy * f;
     }
-    return `<line class="k-edge ${e.c}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>${e.t && shown.length <= 40 ? `<text class="k-elabel" x="${x1 + (x2 - x1) * 0.5}" y="${y1 + (y2 - y1) * 0.5 - 4}">${escapeHtml(e.t.replace(/_/g, ' '))}</text>` : ''}`;
-  }).join('');
-  const dots = order.map((n) => {
-    const [x, y] = pos.get(n.id), mark = n.layer === 'knowledge' ? `<circle cx="${x}" cy="${y}" r="9" fill="${color(n)}"/>` : `<rect x="${x - 8}" y="${y - 8}" width="16" height="16" rx="3" fill="${color(n)}"/>`;
-    const sd = side(n), tx = sd === 'left' ? `x="${x - 16}" y="${y + 4}" style="text-anchor:end"` : sd === 'right' ? `x="${x + 16}" y="${y + 4}" style="text-anchor:start"` : `x="${x}" y="${y + 24}"`;
-    return `<g class="k-node" data-nid="${escapeHtml(n.id)}"${n.eid ? ` data-eid="${escapeHtml(n.eid)}"` : ''}><title>${escapeHtml(n.label)} (${escapeHtml(n.kind || 'no kind')})</title>${mark}<text ${tx}>${escapeHtml(String(n.label).slice(0, sd === 'below' ? 22 : 30))}</text></g>`;
-  }).join('');
-  const seenK = [...new Set(order.map((n) => n.layer + '|' + n.kind))];
-  const legend = seenK.map((key) => { const [ly, kind] = key.split('|'), n = order.find((x) => x.layer === ly && x.kind === kind);
-    const lbl = ly === 'work' ? kLabel(wCls, kind) : ly === 'document' ? 'Document' : kind ? kLabel(cls, kind) : 'no kind';
-    return `<span><i class="${ly === 'knowledge' ? '' : 'sq'}" style="background:${color(n)}"></i>${escapeHtml(lbl)}${ly === 'knowledge' && kind && !hasC.has(kind) ? ' ' + kNew : ''}</span>`; }).join('')
-    + (showW && showK && shown.some((e) => e.c === 'm') ? '<span>┄ mentioned in</span>' : '');
-  return `<svg class="k-svg" viewBox="0 0 ${W0} ${H}" role="img" aria-label="Work and knowledge graph">${lines}${dots}</svg><div class="k-legend">${legend}</div>`;
+    for (const e of edges) { const i = idx.get(e.from), j = idx.get(e.to); const dx = P[i][0] - P[j][0], dy = P[i][1] - P[j][1], d = Math.hypot(dx, dy) || 0.01, f = d / K;
+      D[i][0] -= dx * f; D[i][1] -= dy * f; D[j][0] += dx * f; D[j][1] += dy * f; }
+    for (let i = 0; i < N; i++) { D[i][0] -= P[i][0] * 0.35; D[i][1] -= P[i][1] * 0.35; const d = Math.hypot(D[i][0], D[i][1]) || 1, m = Math.min(d, t); P[i][0] += (D[i][0] / d) * m; P[i][1] += (D[i][1] / d) * m; }
+  }
+  const xs = P.map((p) => p[0]), ys = P.map((p) => p[1]), mx = Math.min(...xs), Mx = Math.max(...xs), my = Math.min(...ys), My = Math.max(...ys);
+  const fit = (v, lo, hi, a, b) => (hi - lo < 1 ? (a + b) / 2 : a + ((v - lo) / (hi - lo)) * (b - a));
+  const pos = P.map(([x, y]) => [fit(x, mx, Mx, 90, W0 - 90), fit(y, my, My, 40, H - 50)]);
+  const lines = edges.map((e) => { const [x1, y1] = pos[idx.get(e.from)], [x2, y2] = pos[idx.get(e.to)];
+    return `<line class="k-edge" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>${edges.length <= 24 && e.type !== 'MENTIONED_IN' ? `<text class="k-elabel" x="${(x1 + x2) / 2}" y="${(y1 + y2) / 2 - 4}">${escapeHtml(e.type.toLowerCase().replace(/_/g, ' '))}</text>` : ''}`; }).join('');
+  const dots = nodes.map((n, i) => { const [x, y] = pos[i];
+    return `<g class="k-node" data-nid="${escapeHtml(n.id)}"><title>${escapeHtml(n.title)} (${escapeHtml(n.kind)})</title><circle cx="${x}" cy="${y}" r="9" fill="${kColor(n.kind)}"/><text x="${x}" y="${y + 24}">${escapeHtml(String(n.title).slice(0, 22))}</text></g>`; }).join('');
+  const legend = [...new Set(nodes.map((n) => n.kind))].map((kind) => `<span><i style="background:${kColor(kind)}"></i>${escapeHtml(kLabel(G.kinds || [], kind))}</span>`).join('');
+  return `<svg class="k-svg" viewBox="0 0 ${W0} ${H}" role="img" aria-label="Graph">${lines}${dots}</svg><div class="k-legend">${legend}</div>`;
 }
-$('kFilter').addEventListener('click', (e) => {
-  const b = e.target.closest('button[data-layer]'); if (!b) return;
-  kLayer = b.dataset.layer; try { localStorage.setItem('ana-k-layer', kLayer); } catch {}
-  renderKnowledge();
-});
 $('knowledgeView').addEventListener('click', async (e) => {
   const b = e.target.closest('.k-del[data-kind]'); if (!b) return;   // 문서의 ✕(data-doc-del)는 문서 쪽이 맡는다
-  const d = b.dataset, what = d.kind === 'fact' ? 'This fact' : `${d.kind === 'class' ? 'The kind' : d.kind === 'relation' ? 'The relation' : 'The thing'} "${d.id}"${d.kind === 'entity' ? ' and its facts' : ''}`;
+  const d = b.dataset, what = d.kind === 'fact' || d.kind === 'link' ? 'This link' : `${d.kind === 'class' ? 'The kind' : d.kind === 'relation' ? 'The relation' : 'The thing'} "${d.id}"${d.kind === 'entity' ? ' and its facts' : ''}`;
   if (!(await confirmDelete(what))) return;
-  const r = await post('/api/knowledge', { action: 'remove', kind: d.kind, id: d.id, from: d.from, rel: d.rel, to: d.to }).catch(() => null);
+  const r = await (d.kind === 'link' ? post('/api/link', { action: 'remove', from: d.from, to: d.to, type: d.rel }) : post('/api/knowledge', { action: 'remove', kind: d.kind, id: d.id, from: d.from, rel: d.rel, to: d.to })).catch(() => null);
   if (!r || !r.ok) { showErr('Could not remove it'); return; }
   refreshKnowledge();
 });
@@ -3526,7 +3476,7 @@ function connect() {
       case 'status': if ('dialog' in d && health) health.dialog = d.dialog; sessionAlive = d.session; busy = d.busy; $('typTx').textContent = d.spin || 'Working…'; if (d.resync !== undefined) screenResync = !!d.resync; renderStatus(); updateEmpty(); reconcile(); break;
       case 'draft': renderDraft(d.draft); break;
       case 'proposal': proposals.set(d.proposal.id, d.proposal); refreshPropCards(); renderApprovals(); break;
-      case 'data': if (d.version !== dataVersion) refreshData(); if ($('knowledgeView').classList.contains('on')) refreshKnowledge(); break;   // 워크 층도 Knowledge에 보인다
+      case 'data': if (d.version !== dataVersion) refreshData(); if ($('knowledgeView').classList.contains('on')) refreshKnowledge(); break;   // 업무 항목도 Knowledge 그래프에 보인다
       // 다이얼로그 열림/닫힘은 스트림으로 즉시 반영(health 폴은 백그라운드 탭에서 멈춘다)
       case 'dialog': if (health) health.dialog = !!d.dialog; if (!dialogBusy) { dialogInfo = d.dialog; renderStatus(); } break;
       // 같은 사람이 다른 탭·기기에서 세션을 바꿨다 → 이 탭도 따라간다

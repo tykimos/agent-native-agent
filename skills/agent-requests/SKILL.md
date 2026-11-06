@@ -12,7 +12,7 @@ Four tabs (see app-shell):
 | Requests | 요청 | what the agent needs from you: pending diffs (`/api/approve`) + requests of kind `approval`, `decision`, `access`, `action` (work only you can do), `info` (information it lacks) |
 | Evolve | 진화 | what to do now and how the app should change, from the work and the usage log (`/api/activity`) |
 | PRD | PRD | what this ANA is and does — the agent writes it, people edit it, every version is kept |
-| Knowledge | 지식 | what the work is about: work and knowledge in one view: an ontology (work kinds from `work-ontology.js` + knowledge kinds and relations) and a graph (work items and links + things and facts, joined by mentions) — the knowledge starts empty and the agent fills it |
+| Knowledge | 지식 | one graph of everything here (NodeRel): an ontology (one list of kinds, one list of relations) and a graph (work items, things, documents and every link) — the things start empty and the agent fills them |
 
 | Channel | Direction | Example |
 |---|---|---|
@@ -63,13 +63,13 @@ Card actions follow the list:
 
 ## Knowledge
 
-- **What:** *Ontology* — `classes` (kinds of things the work is about, with `parent` for a sub-kind) and `relations` (`domain` → `range`). *Graph* — `entities` (actual things with a `class` and the `items` — work item or document ids — that mention them) and `facts` (`from` —`rel`→ `to`, with `items`; an end may be a work item id). Stored in `knowledge.json`. The work layer comes from `graph-index.js` (`workLayer`): the kinds and links declared in `work-ontology.js` and the items in `work-graph.json`. `GET /api/knowledge` returns both (`work`).
+- **What:** *Ontology* — `classes` (kinds of things the work is about, with `parent` for a sub-kind) and `relations` (`domain` → `range`). *Graph* — `entities` (actual things with a `class` and the `items` — work item or document ids — that mention them) and `facts` (`from` —`rel`→ `to`, with `items`; an end may be a work item id). Stored in `knowledge.json`. `graph-index.js` puts them in one graph with the work items (`work-graph.json`, kinds in `work-ontology.js`) and documents, indexed with NodeRel (`graph-index.sqlite`, rebuilt when a source changes). It is not split into layers: `GET /api/knowledge` also returns `graph` (`ontology(ws)`) — one list of kinds, one list of relations (with counts and where each is declared; only ones from `knowledge.json` are `removable`), and the nodes and edges.
 - **Starts empty.** *Ask the agent* sends a `[Knowledge]` instruction: read the work (`/api/state`) and the knowledge so far, reuse what is there, add only what the items actually say, then `POST /api/knowledge`.
 - **A lens, not a gate.** Things and facts whose kind or relation is not in the ontology are kept and marked *new*.
 - **People remove what is wrong** (✕ on each row; removing a thing removes its facts).
 - **API:** `GET /api/knowledge`; `POST /api/knowledge {classes?, relations?, entities?, facts?}` (same id = update, same from/rel/to = one fact; nothing valid → 400); `POST /api/knowledge {action:'remove', kind: class|relation|entity|fact, id | from,rel,to}`.
 - **Documents** (third sub-tab): people add files (button or drop, 25 MB each) → `.ana/documents/<id>-<name>`, list in `documents.json`. `GET /api/documents` (with `path` for the agent), `POST /api/documents {name, type, data, note?}` / `{action:'remove', id}`, `GET /api/documents/<id>/file` (images, PDF, text inline; anything else — HTML, SVG… — always `attachment` with `nosniff`). Facts and things cite them as `items: ["doc-N"]`, shown as a Doc chip.
-- **UI:** `#knowledgeView` with sub-tabs Ontology · Graph · Documents; `refreshKnowledge`, `renderKnowledge`, `kGraphSvg` (work items as squares and things as circles on one circle grouped by layer and kind; work links, facts, and dashed mentions; an All · Work · Knowledge filter; a legend), item chips that jump to the work item. Analysis jobs, rule inference, approvals and OWL export are ANA Pro.
+- **UI:** `#knowledgeView` with sub-tabs Ontology · Graph · Documents; `refreshKnowledge`, `renderKnowledge`, `kGraphSvg` (every node in one force layout, coloured by kind; every link; a legend) and a *Links* list of the links people and the agent made (✕ removes a fact via `/api/knowledge` or a work link via `/api/link`), item chips that jump to the work item. Analysis jobs, rule inference, approvals and OWL export are ANA Pro.
 
 ## Porting
 

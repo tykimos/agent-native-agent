@@ -5,6 +5,19 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.22.0] — 2026-11-06
+
+### 바뀜
+
+- **NodeRel을 다시 쓰고, 그래프는 워크와 지식으로 나누지 않은 하나입니다.** `graph-index.js`가 `work-graph.json`, `knowledge.json`, 문서에서 그래프 하나를 만들어 다시 NodeRel에 색인합니다(`@tykimos/noderel`, `.ana/graph-index.sqlite`, 원천이 바뀌면 다시 만듦). 노드와 연결에 층이 없습니다. `/api/graph/trace`, `neighbors`, `schema`, `/api/stats`가 모든 것에 대해 NodeRel로 동작합니다.
+- **Knowledge › Ontology는 종류 한 목록, 관계 한 목록입니다.** 각각 개수와 선언된 곳(`work-graph.json → notes`, `knowledge.json`, 날짜에서 계산)을 보입니다. `knowledge.json`에서 온 종류와 관계만 ✕가 있습니다.
+- **Knowledge › Graph는 그래프 하나를 그립니다.** 모든 항목·개체·문서를 한 힘 배치로, 종류마다 색을 달리해 놓고, 연결은 한 모양입니다. *All · Work · Knowledge* 필터와 두 열 배치는 없앴습니다. *Links*에는 사람과 에이전트가 만든 연결(사실과 업무 연결)이 나오고 ✕로 어느 쪽이든 지웁니다.
+- `GET /api/knowledge`는 `work` 대신 `graph`(종류, 관계, 노드, 연결)를 돌려줍니다. `GET /api/graph/schema`는 노드 종류 한 목록과 어휘 하나를, 연결 종류마다 `editWith`와 NodeRel이 관찰한 모양과 함께 줍니다.
+
+### 이식
+
+- `graph-index.js`, `dashboard.html`의 Knowledge 마크업과 `renderKnowledge` / `kGraphSvg`, `dashboard-api.js`의 `/api/knowledge` GET과 `createGraph({…, dataFileOf})`를 가져오고, `package.json`에 `@tykimos/noderel`을 다시 넣으세요. `work-ontology.js`는 0.21.0과 같습니다.
+
 ## [0.21.0] — 2026-11-06
 
 ### 바뀜

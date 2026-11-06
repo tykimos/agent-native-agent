@@ -479,9 +479,11 @@ t('D11 Codex dialog: selected option stays a button; footer is not an option des
   assert.equal(wrapped.options[1].desc, '');
 });
 
-// ---- 그래프: 워크 + 지식(graph-index.js, 의존성 없음) ----
+// ---- 그래프: 업무 항목 · 지식 · 문서를 한 그래프로(graph-index.js, NodeRel) ----
 {
   const rg = require('./graph-index.js');
+  const gdir = () => fs.mkdtempSync(path.join(os.tmpdir(), 'ana-graph-'));
+  const gFile = () => { const f = path.join(gdir(), 'work-graph.json'); return () => f; };
   const st = () => ({ items: [{ id: 'a1', title: 'T', due: '2026-10-01', done: false }, { id: 'a2', title: 'T2', done: false }],
     events: [{ id: 'e1', title: 'E', date: '2026-10-01', time: '10:00' }], notes: [{ id: 'n1', title: '', text: 'first line\nsecond' }], links: [] });
   t('G1 build: 날짜 필드에서 Day 노드·DUE_ON/ON, 같은 날은 Day 하나, 제목 없는 메모는 첫 줄', () => {
@@ -507,33 +509,39 @@ t('D11 Codex dialog: selected option stays a button; footer is not an option des
     s.items = s.items.filter((x) => x.id !== 'a1'); rg.pruneLinks(s);
     assert.deepEqual(s.links.map((l) => l.to), ['a2']);
   });
-  t('G4 trace · stats: 원천을 읽을 때마다 계산 — 연결을 지우면 바로 사라지고, 끊긴 곳을 센다', () => {
+  t('G4 trace · stats: NodeRel 색인은 원천이 바뀌면 다시 만든다 — 연결을 지우면 바로 사라지고, 끊긴 곳을 센다', () => {
     let s = st(); rg.addLink(s, { from: 'n1', to: 'a1', type: 'SPAWNED' });
-    const g = rg.createGraph({ loadData: () => s });
+    const g = rg.createGraph({ loadData: () => s, dataFileOf: gFile() });
     assert.deepEqual(g.trace('default', { id: 'n1', maxDepth: 2, direction: 'out' }).map((x) => x.id), ['a1', 'day:2026-10-01']);
     s = { ...s, links: [] };
     assert.deepEqual(g.trace('default', { id: 'n1', maxDepth: 2, direction: 'out' }), []);
+    assert.ok(fs.existsSync(g.fileOf('default')), 'graph-index.sqlite가 만들어진다');
     const gaps = g.stats('default').gaps;
     assert.deepEqual(gaps.tasksNoDue.map((x) => x.id), ['a2']);
     assert.deepEqual(gaps.notesUnused.map((x) => x.id), ['n1']);
     assert.throws(() => g.trace('default', { id: 'nope' }), /not found/);
   });
-  t('G5 워크와 지식이 한 그래프: 언급(MENTIONED_IN)과 업무 항목을 끝으로 둔 사실로 이어진다', () => {
+  t('G5 한 그래프: 업무 항목 · 개체 · 문서가 언급(MENTIONED_IN)과 사실로 이어지고, 종류와 연결은 한 목록이다', () => {
     const s = st();
     const k = { classes: [{ id: 'Client', label: 'Client' }], relations: [{ id: 'ASKED_FOR', label: 'asked for', domain: 'Client', range: 'Task' }],
       entities: [{ id: 'acme', label: 'Acme', class: 'Client', items: ['n1', 'doc-1'] }], facts: [{ from: 'acme', rel: 'ASKED_FOR', to: 'a1' }] };
-    const g = rg.createGraph({ loadData: () => s, loadKnowledge: () => k, loadDocs: () => ({ items: [{ id: 'doc-1', name: 'brief.pdf' }] }) });
+    const g = rg.createGraph({ loadData: () => s, loadKnowledge: () => k, loadDocs: () => ({ items: [{ id: 'doc-1', name: 'brief.pdf' }, { id: 'doc-2', name: 'unused.pdf' }] }), dataFileOf: gFile() });
     const tr = g.trace('default', { id: 'n1', maxDepth: 2, direction: 'both' });
     assert.deepEqual(tr.map((x) => `${x.depth}:${x.id}`).sort(), ['1:kg:acme', '2:a1', '2:doc-1'], '메모 → 그 안의 개체 → 개체가 가리키는 할일·문서');
     const nb = g.neighbors('default', 'a1');
-    assert.ok(nb.links.some((l) => l.type === 'ASKED_FOR' && l.direction === 'in' && l.other.id === 'kg:acme' && l.layer === 'knowledge'));
-    const st2 = g.stats('default'); assert.deepEqual(st2.kg, { entities: 1, facts: 1, mentions: 2 });
-    const wl = g.workLayer('default');
-    assert.deepEqual(wl.classes.map((c) => `${c.id}:${c.count}`), ['Note:1', 'Task:2', 'Event:1', 'Day:1']);
-    assert.ok(!wl.links.some((l) => l.to.startsWith('day:')), '워크 층의 연결에는 Day를 넣지 않는다');
+    assert.ok(nb.links.some((l) => l.type === 'ASKED_FOR' && l.direction === 'in' && l.other.id === 'kg:acme'));
+    assert.ok(!('layer' in nb.node) && !nb.links.some((l) => 'layer' in l), '층으로 나누지 않는다');
+    const st2 = g.stats('default');
+    assert.ok(st2.kinds.some((x) => x.kind === 'Client' && x.count === 1) && st2.types.some((x) => x.type === 'MENTIONED_IN' && x.count === 2));
+    const o = g.ontology('default');
+    assert.deepEqual(o.kinds.map((c) => `${c.id}:${c.count}`), ['Note:1', 'Task:2', 'Event:1', 'Day:1', 'Client:1', 'Document:2']);
+    assert.deepEqual(o.relations.filter((r) => r.count).map((r) => `${r.id}:${r.count}`), ['DUE_ON:1', 'ON:1', 'ASKED_FOR:1', 'MENTIONED_IN:2']);
+    assert.ok(o.kinds.find((c) => c.id === 'Client').removable && !o.kinds.find((c) => c.id === 'Task').removable, '지식에서 온 종류만 지울 수 있다');
+    assert.ok(!o.nodes.some((n) => n.kind === 'Day' || n.id === 'doc-2'), '그림에는 Day와 이어지지 않은 문서를 넣지 않는다');
+    assert.deepEqual(o.edges.find((e) => e.type === 'ASKED_FOR').fact, { from: 'acme', rel: 'ASKED_FOR', to: 'a1' });
     const d = g.describe('default');
-    assert.equal(d.vocabulary.MENTIONED_IN.count, 2); assert.equal(d.vocabulary.ASKED_FOR.layer, 'knowledge');
-    assert.ok(d.nodeKinds.some((n) => n.kind === 'Client' && n.layer === 'knowledge' && n.count === 1));
+    assert.equal(d.vocabulary.MENTIONED_IN.count, 2); assert.match(d.vocabulary.ASKED_FOR.editWith, /knowledge/); assert.match(d.vocabulary.SPAWNED.editWith, /link/);
+    assert.ok(d.nodeKinds.some((n) => n.kind === 'Client' && n.count === 1) && d.observed, 'NodeRel이 관찰한 모양도 준다');
   });
   t('G6 새 업무 종류: work-ontology에 선언하면 그 배열이 그래프에 들어오고, id를 가리키는 필드가 연결이 된다', () => {
     rg.useOntology({ classes: [{ id: 'Lead', list: 'leads', title: (x) => x.name }, { id: 'Quote', list: 'quotes' }],

@@ -11,7 +11,7 @@ One workspace, six tabs, in this order:
 |---|---|---|
 | **PRD** | Current · History | what this ANA is and does (see agent-requests) |
 | **Work** | none at first; one per kind of work once built | empty until the agent builds it from the PRD (*Build Work from the PRD*) into `#workArea` |
-| **Knowledge** | Ontology · Graph · Documents | work and knowledge in one view — work kinds and links, knowledge kinds and relations, items, things and facts (see agent-requests) |
+| **Knowledge** | Ontology · Graph · Documents | one graph of everything here — kinds and relations, items, things, documents and their links (see agent-requests) |
 | **Requests** | Waiting · In progress · Done | what the agent needs from you (see agent-requests) |
 | **Evolve** | Waiting · In progress · Done | proposals for the work and the app (see agent-requests) |
 | **Update** | Waiting · In progress · Done | features from upstream not yet here (see ana-update) |

@@ -1,7 +1,7 @@
 {
   "name": "ana-base",
   "private": true,
-  "description": "ANA base — chat with your coding agent; PRD, Work, Knowledge (work and knowledge in one graph), Requests, Evolve, Update",
+  "description": "ANA base — chat with your coding agent; PRD, Work, Knowledge (everything in one NodeRel graph), Requests, Evolve, Update",
   "engines": {
     "node": ">=24.13.1"
   },
@@ -10,6 +10,7 @@
     "test": "node --test lite.test.cjs onboarding.test.cjs codex-settings.test.cjs permission-mode.test.cjs && node test.cjs"
   },
   "dependencies": {
+    "@tykimos/noderel": "github:tykimos/NodeRel#2a1e84987449c0dde5fb7506bacf08cb4fa63372",
     "modern-screenshot": "^4.7.0"
   }
 }

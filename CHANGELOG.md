@@ -5,6 +5,19 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.22.0] — 2026-11-06
+
+### Changed
+
+- **NodeRel is back, and the graph is one graph — not work and knowledge.** `graph-index.js` builds one graph from `work-graph.json`, `knowledge.json` and the documents and indexes it with NodeRel again (`@tykimos/noderel`, `.ana/graph-index.sqlite`, rebuilt when a source changes). Nodes and links no longer carry a layer; `/api/graph/trace`, `neighbors`, `schema` and `/api/stats` run on NodeRel over everything.
+- **Knowledge › Ontology is one list of kinds and one list of relations.** Each shows its count and where it is declared (`work-graph.json → notes`, `knowledge.json`, computed from dates). Only kinds and relations from `knowledge.json` have ✕.
+- **Knowledge › Graph draws one graph.** Every item, thing and document in one force layout, coloured by kind, with one style of link. The *All · Work · Knowledge* filter and the two-column layout are gone. *Links* lists the links people and the agent made — facts and work links — and ✕ removes either.
+- `GET /api/knowledge` returns `graph` (kinds, relations, nodes, edges) in place of `work`. `GET /api/graph/schema` gives one list of node kinds and one vocabulary, with `editWith` for each link type and the shape NodeRel observed.
+
+### Porting
+
+- Take `graph-index.js`, the Knowledge markup and `renderKnowledge` / `kGraphSvg` from `dashboard.html`, the `/api/knowledge` GET and `createGraph({…, dataFileOf})` in `dashboard-api.js`, and put `@tykimos/noderel` back in `package.json`. `work-ontology.js` is unchanged from 0.21.0.
+
 ## [0.21.0] — 2026-11-06
 
 ### Changed
