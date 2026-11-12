@@ -5,6 +5,16 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.23.0] — 2026-11-12
+
+### 바뀜
+
+- **탭을 ANA 로고 아래 메뉴로 옮겼습니다.** 로고를 누르면 PRD · Work · Knowledge · Requests · Evolve · Update가 드롭다운으로 열립니다. 하나를 고르거나 바깥을 누르거나 Esc를 누르면 닫히고, ↑/↓로 움직일 수 있습니다. 로고 옆에는 지금 탭 이름과, 기다리는 것 전체(Requests + Evolve + Update)를 합친 배지 하나가 보입니다. 위쪽 바에는 로고, Chip, 프로필만 남습니다. 휴대폰의 하단 메뉴는 그대로입니다.
+
+### 이식
+
+- `dashboard.html`의 `#brandBtn` / `#tabMenu` 마크업, `.topnav-brand`·`.tabstrip` 스타일, `openTabMenu` / `revealTab`, `setBadge`를 가져오세요.
+
 ## [0.22.0] — 2026-11-06
 
 ### 바뀜

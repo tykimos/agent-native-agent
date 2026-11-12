@@ -74,13 +74,22 @@ input { font-family: inherit; }
 .topnav .tab.on::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 0; height: 2.5px; border-radius: 2px; background: var(--text); }
 .topnav .tab .tbadge { min-width: 17px; height: 17px; margin-left: 5px; padding: 0 5px; border-radius: 999px; background: var(--c-1); color: #fff; font-size: 10.5px; line-height: 17px; font-weight: 800; display: none; }
 .topnav .tab .tbadge.show { display: inline-block; }
-/* 탭이 늘어나도 브랜드·ANA 토글은 고정되고 탭만 가로로 밀린다(좁은 폭 대응) */
-.tabstrip { flex: 1 1 auto; min-width: 0; display: flex; align-items: stretch; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
-/* 탭이 옆으로 더 있으면 그쪽 가장자리를 흐리게 — 밀어 보면 더 있다는 표시 */
-.tabstrip.more-r { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
-.tabstrip.more-l { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); }
-.tabstrip.more-l.more-r { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
-.tabstrip::-webkit-scrollbar { display: none; }
+/* 메뉴: ANA 로고(지금 탭 이름 ▾)를 누르면 탭 목록이 드롭다운으로 열린다 */
+.topnav-brand { border-radius: var(--r-sm); margin: 6px 0; color: var(--text); }
+.topnav-brand:hover, .topnav-brand[aria-expanded="true"] { background: var(--surface-2); }
+.topnav-brand .bcur { font-size: 14.5px; font-weight: 800; letter-spacing: -0.02em; color: var(--text-sub); padding-left: 9px; border-left: 1px solid var(--line); }
+.topnav-brand .bchev { width: 15px; height: 15px; color: var(--text-weak); transition: transform .15s; }
+.topnav-brand[aria-expanded="true"] .bchev { transform: rotate(180deg); }
+.topnav-brand .tbadge { min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px; background: var(--c-1); color: #fff; font-size: 10.5px; line-height: 17px; font-weight: 800; display: none; }
+.topnav-brand .tbadge.show { display: inline-block; }
+.tabstrip { position: fixed; top: calc(var(--header-h) + var(--safe-t) + 4px); left: 12px; z-index: 80; min-width: 220px; padding: 6px;
+  display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); box-shadow: var(--sh-sheet); }
+.tabstrip[hidden] { display: none; }
+.topnav .tabstrip .tab { justify-content: flex-start; height: 42px; padding: 0 12px; border-radius: var(--r-xs); font-size: 14.5px; }
+.topnav .tabstrip .tab:hover { background: var(--surface-2); color: var(--text); }
+.topnav .tabstrip .tab.on { background: var(--surface-2); }
+.topnav .tabstrip .tab.on::after { display: none; }
+.topnav .tabstrip .tab .tbadge { margin-left: auto; }
 .topnav .tab { flex: 0 0 auto; white-space: nowrap; }
 .topnav .sp { flex: 1; }
 /* ANA 토글 버튼 */
@@ -345,6 +354,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
   .topnav { padding: var(--safe-t) 4px 0; }
   .topnav-brand { padding: 0 6px; }
   .topnav-brand .bname { display: none; }
+  .topnav-brand .bcur { border-left: 0; padding-left: 0; }
   .topnav .tab { padding: 0 10px; white-space: nowrap; }
 }
 /* System은 탭이 다섯 개(Trustworthiness가 길다) — 폰 폭에서도 한 줄에 다 보이게 탭 간격과 글자를 조금 줄인다 */
@@ -364,8 +374,8 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 
   .mode-toggle, .chip-scan { align-self: center; height: 34px; }
   .avatar-btn { display: flex; align-items: center; }
-  .tabstrip { order: 10; flex: 1 0 100%; height: 44px; border-top: 1px solid var(--line-2); }
-  .me-menu { top: calc(48px + var(--safe-t) + 4px); }
+  .me-menu, .tabstrip { top: calc(48px + var(--safe-t) + 4px); }
+  .topnav-brand { margin: 4px 0; }
 }
 @keyframes pulse { 50% { opacity: .35; } }
 /* 채팅 헤더(간소): 제목 + 닫기 */
@@ -444,7 +454,6 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .evo-card.focus { outline: 2px solid var(--blue); outline-offset: 2px; }
 
 @media (max-width: 768px) {
-  .tabstrip { display: none; }                                        /* 휴대폰: 위 탭 대신 하단 메뉴 */
   .topnav #modeToggle { margin-left: auto; }                           /* 칩·그리기·내 정보는 오른쪽 끝으로 */
 
 }
@@ -1144,9 +1153,10 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
 
 <!-- ◀ 메인: 할일 / 일정 / 진화 -->
 <div id="main">
-  <nav class="topnav" aria-label="Main menu" role="tablist">
-    <div class="topnav-brand"><img src="/ana-logo.png" alt="ANA logo"><span class="bname">ANA</span></div>
-    <div class="tabstrip">
+  <nav class="topnav" aria-label="Main menu">
+    <button class="topnav-brand" id="brandBtn" aria-haspopup="true" aria-expanded="false" aria-controls="tabMenu" aria-label="Menu"><img src="/ana-logo.png" alt="ANA logo"><span class="bname">ANA</span><span class="bcur" id="brandCur">Work</span><span class="tbadge" id="brandBadge"></span><svg class="bchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <!-- 메뉴: ANA 로고를 누르면 열리는 드롭다운 -->
+    <div class="tabstrip" id="tabMenu" role="tablist" aria-orientation="vertical" hidden>
       <button class="tab" data-view="prd" role="tab" aria-selected="false">PRD</button>
       <button class="tab on" data-view="work" role="tab" aria-selected="true">Work</button>
       <button class="tab" data-view="knowledge" role="tab" aria-selected="false">Knowledge</button>
@@ -1154,6 +1164,7 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
       <button class="tab" data-view="evolve" role="tab" aria-selected="false">Evolve<span class="tbadge" data-evobadge>0</span></button>
       <button class="tab" data-view="update" role="tab" aria-selected="false">Update<span class="tbadge" data-updbadge>0</span></button>
     </div>
+    <span class="sp"></span>
     <button id="modeToggle" class="mode-toggle" role="switch" aria-checked="false" aria-label="Chip mode">
       <span class="knob"></span>Chip
     </button>
@@ -2324,7 +2335,7 @@ function openMyInfo() {
   $('mePic').innerHTML = avatarHtml(me.email, 'lg');
   openModal('meModal');
 }
-$('meBtn').onclick = (e) => {
+$('meBtn').onclick = (e) => { if (!$('tabMenu').hidden) openTabMenu(false);
   e.stopPropagation();
   const menu = $('meMenu');
   if (menu.hidden) {
@@ -2336,7 +2347,7 @@ $('meBtn').onclick = (e) => {
   menu.hidden = !menu.hidden;
 };
 document.addEventListener('click', (e) => { if (!$('meMenu').hidden && !e.target.closest('#meMenu, #meBtn')) $('meMenu').hidden = true; });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('meMenu').hidden = true; });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { $('meMenu').hidden = true; if (!$('tabMenu').hidden) openTabMenu(false); } });
 $('menuEditInfo').onclick = () => { $('meMenu').hidden = true; openMyInfo(); };
 $('menuSettings').onclick = () => { $('meMenu').hidden = true; renderSettings(); openModal('settingsModal'); };
 
@@ -2439,22 +2450,31 @@ function showTab(v) {
   const b = document.querySelector(`.topnav .tab[data-view="${v}"]`); if (b && !b.classList.contains('on')) selectTab(b);
 }
 document.querySelectorAll('.topnav .tab').forEach((b) => { b.onclick = () => selectTab(b); });
-// 고른 탭이 가려져 있으면 보이게 밀고, 양옆에 더 있는지 가장자리 흐림으로 알린다
-function tabEdges() {
-  const t = document.querySelector('.tabstrip'); if (!t) return;
-  t.classList.toggle('more-r', t.scrollLeft + t.clientWidth < t.scrollWidth - 2);
-  t.classList.toggle('more-l', t.scrollLeft > 2);
+// 메뉴: ANA 로고를 누르면 탭 목록이 열린다. 고르거나 바깥을 누르거나 Esc면 닫힌다. 로고 옆에는 지금 탭 이름
+function openTabMenu(on) {
+  const m = $('tabMenu'), btn = $('brandBtn'); m.hidden = !on; btn.setAttribute('aria-expanded', String(on));
+  if (on) { $('meMenu').hidden = true; (m.querySelector('.tab.on') || m.querySelector('.tab')).focus(); }
 }
-function revealTab(b) { try { b.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' }); } catch {} setTimeout(tabEdges, 350); }
-document.querySelector('.tabstrip').addEventListener('scroll', tabEdges, { passive: true });
-window.addEventListener('resize', tabEdges);
+function revealTab(b) { $('brandCur').textContent = b.firstChild ? b.firstChild.textContent.trim() : b.dataset.view; openTabMenu(false); }
+$('brandBtn').onclick = (e) => { e.stopPropagation(); openTabMenu($('tabMenu').hidden); };
+document.addEventListener('click', (e) => { if (!$('tabMenu').hidden && !e.target.closest('#tabMenu, #brandBtn')) openTabMenu(false); });
+$('tabMenu').addEventListener('keydown', (e) => {
+  const tabs = [...$('tabMenu').querySelectorAll('.tab:not([hidden])')], i = tabs.indexOf(document.activeElement);
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); tabs[(i + (e.key === 'ArrowDown' ? 1 : tabs.length - 1)) % tabs.length].focus(); }
+  if (e.key === 'Escape') { openTabMenu(false); $('brandBtn').focus(); }
+});
 // 하단 메뉴(휴대폰): 위 탭과 같은 여섯, 지금 탭에 불
 function syncBottomNav(tab) {
   document.querySelectorAll('.bottomnav button').forEach((x) => { const on = x.dataset.nav === tab; x.classList.toggle('on', on); x.setAttribute('aria-current', on ? 'page' : 'false'); });
 }
 document.querySelectorAll('.bottomnav button[data-view]').forEach((x) => x.onclick = () => selectTab(document.querySelector(`.topnav .tab[data-view="${x.dataset.view}"]`)));
 // 배지 = 그 탭에서 나를 기다리는 수(대기)
-function setBadge(attr, n) { document.querySelectorAll(`[${attr}]`).forEach((x) => { x.textContent = n > 9 ? '9+' : String(n); x.classList.toggle('show', n > 0); }); }
+function setBadge(attr, n) {
+  document.querySelectorAll(`[${attr}]`).forEach((x) => { x.textContent = n > 9 ? '9+' : String(n); x.classList.toggle('show', n > 0); });
+  // 메뉴가 닫혀 있어도 기다리는 게 있는지 — 로고 옆 배지 = 세 탭의 합
+  const sum = ['data-reqbadge', 'data-evobadge', 'data-updbadge'].reduce((t, a) => { const x = document.querySelector(`#tabMenu [${a}]`); return t + (x && x.classList.contains('show') ? (parseInt(x.textContent, 10) || 0) : 0); }, 0);
+  const bb = $('brandBadge'); if (bb) { bb.textContent = sum > 9 ? '9+' : String(sum); bb.classList.toggle('show', sum > 0); }
+}
 // 첫 탭은 스크립트가 다 읽힌 뒤에 — 탭 클릭이 아래쪽에서 선언되는 상태 변수를 건드려도 TDZ에 걸리지 않게
 setTimeout(() => selectTab(document.querySelector(`.topnav .tab[data-view="${lastTab}"]`)), 0);
 

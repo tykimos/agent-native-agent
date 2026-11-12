@@ -1,6 +1,6 @@
 ---
 name: app-shell
-description: Port ANA's app shell — one workspace, six top tabs (PRD with Current / History, Work with a sub-tab per kind of work, Knowledge with Ontology / Graph, Requests · Evolve · Update with Waiting / In progress / Done), the bottom menu on phones, sub-tabs, badges, right-aligned profile, "New version available" reload pill, and the remembered tab. Use when the user says "하단 메뉴", "탭 구조", "모바일 네비게이션", "워크 탭", "서브탭", or when ana-update reports app-tabs missing.
+description: Port ANA's app shell — one workspace, six tabs in a menu under the ANA logo (PRD with Current / History, Work with a sub-tab per kind of work, Knowledge with Ontology / Graph, Requests · Evolve · Update with Waiting / In progress / Done), the bottom menu on phones, sub-tabs, badges, right-aligned profile, "New version available" reload pill, and the remembered tab. Use when the user says "하단 메뉴", "탭 구조", "모바일 네비게이션", "워크 탭", "서브탭", or when ana-update reports app-tabs missing.
 ---
 
 # app-shell — where things live
@@ -40,7 +40,7 @@ Mobile (≤768px)                                        Desktop
 
 ## Anchors / code (upstream `dashboard.html`)
 
-Top tabs and bottom-menu buttons carry `data-view` = `prd | work | knowledge | requests | evolve | update`. `TABS`, `WORK_VIEWS`, `VIEWS` list them. Functions: `selectTab(b)` (the one place that switches tabs; for Work it shows `curSub('work')`), `showTab(v)` (any screen, including a Work screen → picks that sub-tab), `syncBottomNav(tab)`, `setBadge`. Sub-tabs: `SUBTABS`, `renderSubtabs` (renders every `.subtabs[data-sub=v]`, toggles `[data-subsec]`), `openSub`, `curSub`, `setSubCount`, `RENDER_SUB` (re-renders a status list when its sub-tab changes), `REFRESH_TAB` (loads a tab's data when it opens).
+The tabs live in a dropdown (`#tabMenu`) that the ANA logo (`#brandBtn`) opens — `openTabMenu(on)`; the logo shows the current tab (`#brandCur`) and the sum of the Requests · Evolve · Update badges (`#brandBadge`); choosing, clicking outside or Esc closes it, ↑/↓ move. The tabs and the bottom-menu buttons carry `data-view` = `prd | work | knowledge | requests | evolve | update`. `TABS`, `WORK_VIEWS`, `VIEWS` list them. Functions: `selectTab(b)` (the one place that switches tabs; for Work it shows `curSub('work')`), `showTab(v)` (any screen, including a Work screen → picks that sub-tab), `syncBottomNav(tab)`, `setBadge`. Sub-tabs: `SUBTABS`, `renderSubtabs` (renders every `.subtabs[data-sub=v]`, toggles `[data-subsec]`), `openSub`, `curSub`, `setSubCount`, `RENDER_SUB` (re-renders a status list when its sub-tab changes), `REFRESH_TAB` (loads a tab's data when it opens).
 
 ## Porting
 

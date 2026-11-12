@@ -5,6 +5,16 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.23.0] — 2026-11-12
+
+### Changed
+
+- **The tabs moved into a menu under the ANA logo.** Click the logo to open PRD · Work · Knowledge · Requests · Evolve · Update as a dropdown; choosing one, clicking outside or Esc closes it, and ↑/↓ move through it. Next to the logo you see the tab you are on and one badge with everything waiting (Requests + Evolve + Update). The top bar keeps only the logo, Chip and your profile. Phones keep the bottom menu as well.
+
+### Porting
+
+- Take the `#brandBtn` / `#tabMenu` markup, the `.topnav-brand` and `.tabstrip` styles, `openTabMenu` / `revealTab` and `setBadge` from `dashboard.html`.
+
 ## [0.22.0] — 2026-11-06
 
 ### Changed
