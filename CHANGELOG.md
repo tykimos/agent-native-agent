@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.24.1] — 2026-11-12
+
+### Changed
+
+- **No bottom menu on phones.** Phones use the same ANA logo menu as the desktop, with the sub-tabs as a second row of the top bar. The chat button sits back at the bottom right corner.
+
 ## [0.24.0] — 2026-11-12
 
 ### Added

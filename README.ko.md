@@ -328,7 +328,7 @@ claude plugin install ana@agent-native-agent          # 이후: claude plugin up
 | [`ana-update`](skills/ana-update/SKILL.md) | 이미 쓰고 있는 ANA를 기능 단위로 최신화 |
 | [`chat-window`](skills/chat-window/SKILL.md) | Claude 앱 같은 채팅: 세션 콤보, 기록 기반 표시, 모델 시트, 사용량 링, 음성, 첨부, Codex |
 | [`context-chips`](skills/context-chips/SKILL.md) | 칩 모드, ✎ 화면 그리기, ⟳ 새 요소 등록 |
-| [`app-shell`](skills/app-shell/SKILL.md) | 여섯 탭(PRD · Work · Knowledge · Requests · Evolve · Update), 하위 탭, 휴대폰의 하단 메뉴 |
+| [`app-shell`](skills/app-shell/SKILL.md) | 로고 메뉴의 여섯 탭(PRD · Work · Knowledge · Requests · Evolve · Update)과 System, 위쪽 바의 하위 탭 |
 | [`agent-requests`](skills/agent-requests/SKILL.md) | Requests, Evolve, PRD, Knowledge |
 
 ### 기존 ANA 업데이트

@@ -328,7 +328,7 @@ claude plugin install ana@agent-native-agent          # later: claude plugin upd
 | [`ana-update`](skills/ana-update/SKILL.md) | bring an existing, customized ANA up to date, feature by feature |
 | [`chat-window`](skills/chat-window/SKILL.md) | the Claude-app chat: session combo, log-based rendering, model sheet, usage rings, voice, attachments, Codex |
 | [`context-chips`](skills/context-chips/SKILL.md) | Chip mode, ✎ draw-on-screen annotation, ⟳ register new elements |
-| [`app-shell`](skills/app-shell/SKILL.md) | the six tabs (PRD · Work · Knowledge · Requests · Evolve · Update), sub-tabs, the bottom menu on phones |
+| [`app-shell`](skills/app-shell/SKILL.md) | the six tabs (PRD · Work · Knowledge · Requests · Evolve · Update) and System in the logo menu, sub-tabs in the top bar |
 | [`agent-requests`](skills/agent-requests/SKILL.md) | Requests, Evolve, PRD and Knowledge |
 
 ### Updating an existing ANA

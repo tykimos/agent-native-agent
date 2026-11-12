@@ -1045,10 +1045,8 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
 .cbar #send.stop svg { width: 18px; height: 18px; }   /* 중지 ■는 버튼의 약 1/3 — Claude 앱과 같은 비율 */
 
 /* ================= 영역: Workspace / System =================
-   PC는 로고 옆 두 칸 전환, 모바일은 하단 메뉴. System에서는 워크스페이스 콤보를 숨기고 시스템 탭만 보인다. */
+    System에서는 워크스페이스 콤보를 숨기고 시스템 탭만 보인다. */
 
-.bottomnav .tbadge { min-width: 17px; height: 17px; margin-left: 5px; padding: 0 5px; border-radius: 999px; background: var(--c-1); color: #fff; font-size: 10.5px; line-height: 17px; font-weight: 800; display: none; }
-.bottomnav .tbadge.show { display: inline-block; }
 
 /* 점검 카드(Trustworthiness · Safety · Security) */
 
@@ -1056,20 +1054,8 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
 /* 콤보가 빠진 자리 — Chip·그리기·새로고침·프로필 묶음을 Workspace일 때와 같이 오른쪽 끝에 붙인다 */
 
 .topnav .tab[hidden] { display: none; }
-.bottomnav { display: none; }
 @media (max-width: 768px) {
-
-  .bottomnav { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; height: calc(58px + var(--safe-b)); padding-bottom: var(--safe-b);
-    background: color-mix(in srgb, var(--bg) 88%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.5); backdrop-filter: blur(16px) saturate(1.5);
-    border-top: 1px solid var(--line-2); }
-  .bottomnav button { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-    font-size: 11.5px; font-weight: 700; color: var(--text-weak); }
-  .bottomnav button.on { color: var(--text); }
-  .bottomnav button.on svg { color: var(--blue); }
-  .bottomnav svg { width: 23px; height: 23px; }
-  .bottomnav .tbadge { position: absolute; top: 6px; left: calc(50% + 6px); margin: 0; }
-  .view .wrap { padding-bottom: calc(150px + var(--safe-b)); }   /* 하단 메뉴(58) + 채팅 버튼(74+56) 위로 마지막 항목을 올릴 수 있게 */
-  .fab { bottom: calc(74px + var(--safe-b)); }
+  .view .wrap { padding-bottom: calc(92px + var(--safe-b)); }   /* 채팅 버튼(20+56) 위로 마지막 항목을 올릴 수 있게 */
 }
 /* 관계 흐름 그림 */
 
@@ -1434,15 +1420,6 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
   <div class="sketch-paper"><canvas id="skCanvas"></canvas></div>
   <div class="sk-hint">Rough is fine — boxes for lists and buttons, a few words. Double-click to write; drag a text or a box edge to move it, a corner (or the wheel on text) to resize. ANA reads it and asks what is unclear.</div>
 </div>
-<!-- 하단 메뉴(모바일): 위 탭과 같은 여섯 — PRD · Work · Knowledge · Requests · Evolve · Update -->
-<nav class="bottomnav" aria-label="Menu">
-  <button data-view="prd" data-nav="prd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>PRD</button>
-  <button data-view="work" data-nav="work"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Work</button>
-  <button data-view="knowledge" data-nav="knowledge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="7" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8.3 6.4l7.4.4M7.3 8.2l3.6 7.7M16.8 9.2l-3.6 6.7"/></svg>Knowledge</button>
-  <button data-view="requests" data-nav="requests"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></svg>Requests<span class="tbadge" data-reqbadge>0</span></button>
-  <button data-view="evolve" data-nav="evolve"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8"/></svg>Evolve<span class="tbadge" data-evobadge>0</span></button>
-  <button data-view="update" data-nav="update"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>Update<span class="tbadge" data-updbadge>0</span></button>
-</nav>
 <!-- 모델 선택 시트(Claude Code 세션) — Claude 앱과 같은 모양 -->
 <div class="limit-pop" id="limitPop" role="status" hidden></div>
 <div class="msheet-scrim" id="msheetScrim"></div>
@@ -2513,7 +2490,6 @@ function selectTab(b) {
   const tab = b.dataset.view, view = tab;
   document.querySelectorAll('.topnav .tab').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
   VIEWS.forEach((v) => $(v + 'View').classList.toggle('on', view === v));
-  syncBottomNav(tab);
   lastTab = tab;
   logEvent('tab.view', tab);
   revealTab(b);
@@ -2538,11 +2514,6 @@ $('tabMenu').addEventListener('keydown', (e) => {
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); tabs[(i + (e.key === 'ArrowDown' ? 1 : tabs.length - 1)) % tabs.length].focus(); }
   if (e.key === 'Escape') { openTabMenu(false); $('brandBtn').focus(); }
 });
-// 하단 메뉴(휴대폰): 위 탭과 같은 여섯, 지금 탭에 불
-function syncBottomNav(tab) {
-  document.querySelectorAll('.bottomnav button').forEach((x) => { const on = x.dataset.nav === tab; x.classList.toggle('on', on); x.setAttribute('aria-current', on ? 'page' : 'false'); });
-}
-document.querySelectorAll('.bottomnav button[data-view]').forEach((x) => x.onclick = () => selectTab(document.querySelector(`.topnav .tab[data-view="${x.dataset.view}"]`)));
 // 배지 = 그 탭에서 나를 기다리는 수(대기)
 function setBadge(attr, n) {
   document.querySelectorAll(`[${attr}]`).forEach((x) => { x.textContent = n > 9 ? '9+' : String(n); x.classList.toggle('show', n > 0); });

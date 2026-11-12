@@ -215,7 +215,7 @@
       "id": "app-tabs",
       "title": "Tabs: PRD · Work · Knowledge · Requests · Evolve · Update",
       "skill": "app-shell",
-      "summary": "One workspace. Six tabs (and System) in a menu that opens from the ANA logo (the logo shows the current tab and the waiting count; a bottom menu on phones too); the current tab's sub-tabs sit in the top bar (#topSub; a second row on phones), opening on PRD: PRD with Current · History; Work, empty until it is built from the PRD (screens go into #workArea, with sub-tabs if there are several kinds of work); Knowledge with Ontology · Graph; Requests, Evolve and Update, each with Waiting · In progress · Done. Badges count what is waiting.",
+      "summary": "One workspace. Six tabs (and System) in a menu that opens from the ANA logo (the logo shows the current tab and the waiting count; phones use the same menu — no bottom menu); the current tab's sub-tabs sit in the top bar (#topSub; a second row on phones), opening on PRD: PRD with Current · History; Work, empty until it is built from the PRD (screens go into #workArea, with sub-tabs if there are several kinds of work); Knowledge with Ontology · Graph; Requests, Evolve and Update, each with Waiting · In progress · Done. Badges count what is waiting.",
       "anchors": [
         "function selectTab",
         "function showTab",
@@ -223,9 +223,7 @@
         "function renderSubtabs",
         "STATUS_TABS",
         "workArea",
-        "function syncBottomNav",
         "function openTabMenu",
-        "bottomnav",
         "data-reqbadge"
       ]
     },
