@@ -481,6 +481,14 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 @media (max-width: 768px) {
   .topnav .topsub { order: 10; flex: 1 0 100%; height: 42px; margin: 0; padding: 0 2px; border-top: 1px solid var(--line-2); }
 }
+/* System */
+.tabstrip .tm-sep { height: 1px; margin: 4px 6px; background: var(--line-2); }
+.sys-info { display: grid; grid-template-columns: max-content 1fr; gap: 0; margin-bottom: 18px; overflow: hidden; }
+.sys-info dt, .sys-info dd { margin: 0; padding: 10px 14px; border-top: 1px solid var(--line-2); font-size: 13.5px; }
+.sys-info dt { color: var(--text-weak); font-weight: 700; } .sys-info dd { color: var(--text); font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.sys-info dt:first-of-type, .sys-info dt:first-of-type + dd { border-top: 0; }
+.sys-act { align-items: center; } .sys-act .k-desc { margin-top: 2px; }
+.sys-status { margin: 12px 2px; font-size: 13px; color: var(--text-sub); min-height: 18px; }
 .subtabs .n { min-width: 18px; padding: 0 5px; border-radius: 999px; font-size: 11px; line-height: 18px; text-align: center; background: var(--blue); color: var(--white); }
 .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 0 12px; padding: 2px 1px; }
 .toolbar::-webkit-scrollbar { display: none; } .toolbar .sp { flex: 1 0 8px; } .toolbar > * { flex: 0 0 auto; } .toolbar .stseg { margin: 0; }
@@ -1172,6 +1180,8 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
       <button class="tab" data-view="requests" role="tab" aria-selected="false">Requests<span class="tbadge" data-reqbadge>0</span></button>
       <button class="tab" data-view="evolve" role="tab" aria-selected="false">Evolve<span class="tbadge" data-evobadge>0</span></button>
       <button class="tab" data-view="update" role="tab" aria-selected="false">Update<span class="tbadge" data-updbadge>0</span></button>
+      <div class="tm-sep" role="presentation"></div>
+      <button class="tab" data-view="system" role="tab" aria-selected="false">System</button>
     </div>
     <!-- 지금 탭의 하위 탭(2단계 메뉴) — 위쪽 바에 -->
     <nav class="subtabs topsub" id="topSub" role="tablist" aria-label="Sections" hidden></nav>
@@ -1305,6 +1315,18 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
     <div class="toolbar"><span class="cnt upd-last" id="updLast"></span><span class="sp"></span><button class="ib-btn" id="updCheck">Check for updates</button></div>
     <div id="updList"></div>
     <div class="empty" id="updEmpty"></div>
+  </div></section>
+
+  <!-- System: 이 ANA가 어떻게 돌고 있는지, 그리고 다시 띄우기 -->
+  <section class="view" id="systemView" role="tabpanel"><div class="wrap">
+    <div class="toolbar"><span class="cnt" id="sysSum"></span><span class="sp"></span><button class="ib-btn" id="sysRefresh">Refresh</button></div>
+    <div class="card sys-info" id="sysInfo"></div>
+    <div class="sec-head"><h2>Restart</h2></div>
+    <div class="card k-list">
+      <div class="k-row sys-act"><div class="k-main"><b class="k-t">Restart the server</b><div class="k-desc">Starts ANA's server again so it picks up new code and settings. The page reconnects by itself in a few seconds; the agent keeps running.</div></div><button class="ib-btn" id="sysRestartServer">Restart</button></div>
+      <div class="k-row sys-act"><div class="k-main"><b class="k-t">Restart the agent</b><div class="k-desc">Starts the coding agent in its tmux pane again with the same command. A reply it is writing now stops; the conversation continues if it was started with <code>--continue</code>.</div></div><button class="ib-btn" id="sysRestartAgent">Restart</button></div>
+    </div>
+    <div class="sys-status" id="sysStatus" role="status" aria-live="polite"></div>
   </div></section>
 
 </div>
@@ -2279,6 +2301,45 @@ function confirmAsk({ title, body, yes }) {
   });
 }
 
+/* ---- System: 상태와 재시작 ---- */
+let sysCache = null;
+const fmtUptime = (sec) => { const d = Math.floor(sec / 86400), h = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60);
+  return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : m ? `${m}m` : `${sec}s`; };
+const SUPERVISOR = { launchd: 'launchd — brings it back when it stops', systemd: 'systemd — brings it back when it stops', supervisor: 'a supervisor (ANA_SUPERVISED=1)', self: 'none — ANA starts itself again' };
+async function refreshSystem() {
+  try { sysCache = await getJSON('/api/system'); } catch { $('sysSum').textContent = 'The server is not answering'; return; }
+  const x = sysCache, a = x.agent || {};
+  $('sysSum').textContent = `${x.name}${x.version ? ' · v' + x.version : ''} · running for ${fmtUptime(x.uptimeSec)}`;
+  const rows = [['ANA', x.name], ['Version', x.version || '—'], ['Running for', `${fmtUptime(x.uptimeSec)} (since ${fmtWhen(x.startedAt)})`],
+    ['Server', `port ${x.port || '—'} · ${x.bind || ''} · pid ${x.pid}`], ['Node', x.node], ['Computer', x.platform], ['Kept alive by', SUPERVISOR[x.supervisor] || x.supervisor],
+    ['Agent', a.alive ? `${a.target} · ${a.command || 'running'}` : `${a.target || '—'} · not running`]];
+  $('sysInfo').innerHTML = `<dl class="sys-info" style="display:contents">${rows.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(String(v))}</dd>`).join('')}</dl>`;
+  $('sysRestartAgent').disabled = !a.alive;
+}
+$('sysRefresh').onclick = () => refreshSystem();
+$('sysRestartServer').onclick = async () => {
+  if (!(await confirmAsk({ title: 'Restart the server?', body: 'ANA will be unavailable for a few seconds. The page reconnects by itself.', yes: 'Restart' }))) return;
+  const before = sysCache && sysCache.startedAt, b = $('sysRestartServer'); b.disabled = true; $('sysStatus').textContent = 'Restarting the server…';
+  let r; try { r = await post('/api/system/restart', { what: 'server' }); } catch {}
+  if (!r || !r.ok) { b.disabled = false; $('sysStatus').textContent = ''; showErr(((r && (await r.json().catch(() => ({})))) || {}).error || 'Could not restart the server'); return; }
+  // 새 프로세스가 답할 때까지 기다렸다가(시작 시각이 바뀜) 새 화면으로 다시 읽는다
+  for (let i = 0; i < 60; i++) {
+    await new Promise((res) => setTimeout(res, 1000));
+    try { const x = await getJSON('/api/system'); if (x.startedAt !== before) { $('sysStatus').textContent = 'Restarted — reloading…'; setTimeout(() => location.reload(), 400); return; } } catch {}
+    $('sysStatus').textContent = `Restarting the server… ${i + 1}s`;
+  }
+  b.disabled = false; $('sysStatus').textContent = 'The server has not come back after a minute — check the server log on the computer.';
+};
+$('sysRestartAgent').onclick = async () => {
+  if (!(await confirmAsk({ title: 'Restart the agent?', body: 'The coding agent starts again in its pane. A reply it is writing now stops.', yes: 'Restart' }))) return;
+  const b = $('sysRestartAgent'); b.disabled = true; $('sysStatus').textContent = 'Restarting the agent…';
+  let r; try { r = await post('/api/system/restart', { what: 'agent' }); } catch {}
+  const j = r ? await r.json().catch(() => ({})) : {};
+  if (!r || !r.ok) { b.disabled = false; $('sysStatus').textContent = ''; showErr(j.error || 'Could not restart the agent'); return; }
+  $('sysStatus').textContent = `Restarted the agent in ${j.target}.`; toast('Agent restarted');
+  setTimeout(refreshSystem, 1500);
+};
+
 /* ---- 공용 ---- */
 const fmtWhen = (iso) => { try { return new Date(iso).toLocaleString('en-US', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
 let toastT = null;
@@ -2434,7 +2495,7 @@ $('menuLogout').onclick = () => { if (!logoutUrl) return; $('meMenu').hidden = t
 
 /* ================= 탭 전환 ================= */
 // 위 탭: PRD · Work · Knowledge · Requests · Evolve · Update
-const TABS = ['prd', 'work', 'knowledge', 'requests', 'evolve', 'update'];
+const TABS = ['prd', 'work', 'knowledge', 'requests', 'evolve', 'update', 'system'];
 const VIEWS = TABS;
 let lastTab = 'prd';   // 처음엔 PRD — 이 ANA가 무엇을 할지부터
 try { const t = localStorage.getItem('ana-tab'); if (TABS.includes(t)) lastTab = t; } catch {}
@@ -2445,7 +2506,7 @@ function logEvent(action, target) {
   if (action === 'tab.view' && now - (logSeen.get(k) || 0) < 60000) return;
   logSeen.set(k, now); post('/api/activity', { action, target: String(target) }).catch(() => {});
 }
-const REFRESH_TAB = { work: () => renderWork(), knowledge: () => { refreshKnowledge(); refreshDocs(); }, requests: () => refreshRequests(), evolve: () => refreshEvolve(), prd: () => refreshPrd(), update: () => refreshUpdates() };
+const REFRESH_TAB = { work: () => renderWork(), knowledge: () => { refreshKnowledge(); refreshDocs(); }, requests: () => refreshRequests(), evolve: () => refreshEvolve(), prd: () => refreshPrd(), update: () => refreshUpdates(), system: () => refreshSystem() };
 // 탭 선택은 click()이 아니라 이 함수로 — 클릭 처리 중인 버튼에 다시 click()을 부르면 브라우저가 무시한다
 function selectTab(b) {
   if (!b) b = document.querySelector('.topnav .tab[data-view="work"]');

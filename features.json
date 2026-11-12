@@ -215,7 +215,7 @@
       "id": "app-tabs",
       "title": "Tabs: PRD · Work · Knowledge · Requests · Evolve · Update",
       "skill": "app-shell",
-      "summary": "One workspace. Six tabs in a menu that opens from the ANA logo (the logo shows the current tab and the waiting count; a bottom menu on phones too); the current tab's sub-tabs sit in the top bar (#topSub; a second row on phones), opening on PRD: PRD with Current · History; Work, empty until it is built from the PRD (screens go into #workArea, with sub-tabs if there are several kinds of work); Knowledge with Ontology · Graph; Requests, Evolve and Update, each with Waiting · In progress · Done. Badges count what is waiting.",
+      "summary": "One workspace. Six tabs (and System) in a menu that opens from the ANA logo (the logo shows the current tab and the waiting count; a bottom menu on phones too); the current tab's sub-tabs sit in the top bar (#topSub; a second row on phones), opening on PRD: PRD with Current · History; Work, empty until it is built from the PRD (screens go into #workArea, with sub-tabs if there are several kinds of work); Knowledge with Ontology · Graph; Requests, Evolve and Update, each with Waiting · In progress · Done. Badges count what is waiting.",
       "anchors": [
         "function selectTab",
         "function showTab",
@@ -227,6 +227,19 @@
         "function openTabMenu",
         "bottomnav",
         "data-reqbadge"
+      ]
+    },
+    {
+      "id": "system",
+      "title": "System: status and restart",
+      "skill": "app-shell",
+      "summary": "System at the bottom of the ANA logo menu shows this ANA's name, version, uptime, port, Node, computer, what keeps the server alive and the agent session. Restart the server: under launchd or systemd it exits and the supervisor brings it back; otherwise it leaves a detached copy that starts after a second (log in .ana/server.log); the page waits for the new process and reloads. Restart the agent: tmux respawn-pane -k runs the pane's original command again (claude --continue keeps the conversation). Both ask first and are audited. GET /api/system, POST /api/system/restart {what: server|agent}.",
+      "anchors": [
+        "/api/system/restart",
+        "function restartServer",
+        "function supervisor",
+        "systemView",
+        "function refreshSystem"
       ]
     },
     {

@@ -1021,6 +1021,13 @@ async function integration() {
       assert.ok(stats.graph.gaps.notesUnused.some((x) => x.id === n), '출처 관계가 없어진 메모는 미처리로 잡힌다');
     });
 
+    await ta('C14b System: 상태를 보이고, 재시작은 무엇을 다시 띄울지 확인한다', async () => {
+      const x = await (await fetch(`${api}/api/system`)).json();
+      assert.ok(x.version && x.node && x.startedAt && typeof x.uptimeSec === 'number' && x.agent, 'System 상태');
+      assert.ok(['launchd', 'systemd', 'supervisor', 'self'].includes(x.supervisor));
+      const r = await post('/api/system/restart', { what: 'nope' }); assert.equal(r.status, 400, 'server 또는 agent만');
+    });
+
     await ta('C15 요청(Requests): 에이전트 등록·중복 방지·kind 검증, 답변→answered, 완료/보류/재개', async () => {
       let r = await post('/api/requests', { requests: [{ kind: 'decision', title: 'Pick one', options: ['A', 'B'] }, { kind: 'access', title: 'Share calendar' }] });
       let j = await r.json(); assert.equal(j.added, 2);

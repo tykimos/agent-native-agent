@@ -21,6 +21,34 @@ const codexSettings = require('./codex-settings.js');
 const permissionMode = require('./permission-mode.js');
 const { createAgentLog } = require('./agent-log.js');
 
+// ---- System: 재시작 ----
+const STARTED_AT = new Date().toISOString();
+let restarting = false;
+function pluginVersion() {
+  try { return JSON.parse(require('node:fs').readFileSync(path.join(__dirname, '.claude-plugin', 'plugin.json'), 'utf8')).version || ''; } catch { return ''; }
+}
+// 누가 이 서버를 지키고 있나 — 지키는 쪽이 있으면 끝내기만 하면 그쪽이 다시 띄운다(launchd KeepAlive, systemd Restart=)
+function supervisor() {
+  const env = process.env;
+  if (env.ANA_SUPERVISED === '1') return 'supervisor';
+  if (env.INVOCATION_ID) return 'systemd';
+  if (process.platform === 'darwin' && process.ppid === 1) return 'launchd';
+  return 'self';
+}
+function restartServer(how) {
+  if (how === 'self') {
+    // 지키는 쪽이 없으면 스스로: 포트가 풀릴 때까지 잠깐 기다렸다가 같은 명령·환경으로 다시 띄우는 분리된 프로세스를 남긴다
+    const fs = require('node:fs'), { spawn } = require('node:child_process');
+    const dir = process.env.ANA_DATA_DIR || path.join(__dirname, '.ana');
+    let out = 'ignore'; try { fs.mkdirSync(dir, { recursive: true }); out = fs.openSync(path.join(dir, 'server.log'), 'a'); } catch {}
+    const child = spawn('/bin/sh', ['-c', 'sleep 1; exec "$0" "$@"', process.execPath, ...process.execArgv, ...process.argv.slice(1)],
+      { cwd: process.cwd(), env: process.env, detached: true, stdio: ['ignore', out, out] });
+    child.unref();
+  }
+  console.log(`[ana] restarting the server (${how})`);
+  process.exit(0);
+}
+
 function createDashboardApi(core, opts) {
   const { ROOT } = opts;
   const DATA_FILE = opts.DATA_FILE || path.join(ROOT, 'data', 'work-graph.json');   // 기본 워크스페이스의 워크 그래프
@@ -1108,6 +1136,38 @@ function createDashboardApi(core, opts) {
         notified = await tryDeliver(ctx);
       }
       return sendJson(res, 200, { ok: true, status: r2.status, version: rq.version, notified }), true;
+    }
+
+    // ---- System: 이 ANA의 상태와 재시작 ----
+    //   GET  /api/system                        이름 · 버전 · 가동 시간 · 노드 · 포트 · 감독자 · 에이전트 세션
+    //   POST /api/system/restart {what}         'server' = 이 서버 프로세스를 다시 띄운다, 'agent' = 에이전트 팬을 같은 명령으로 다시 띄운다
+    if (p === '/api/system' && req.method === 'GET') {
+      let agent = { target: '', alive: false, command: '' };
+      try { agent.target = ctx.ch.getTarget(); agent.alive = !!(await ctx.hasSession()); if (agent.alive) agent.command = (await ctx.ch.tmux(['display-message', '-p', '-t', agent.target, '#{pane_current_command}'])).trim(); } catch {}
+      return sendJson(res, 200, { name: path.basename(ROOT), version: pluginVersion(), node: process.version, pid: process.pid, startedAt: STARTED_AT, uptimeSec: Math.round(process.uptime()),
+        port: opts.PORT || null, bind: opts.BIND || '', platform: `${os.type()} ${os.release()}`, supervisor: supervisor(), restarting: !!restarting, agent }), true;
+    }
+    if (p === '/api/system/restart' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      if (body.what === 'agent') {
+        let t = ''; try { t = ctx.ch.getTarget(); } catch {}
+        if (!t || !(await ctx.hasSession())) return sendJson(res, 409, { error: 'No agent session to restart' }), true;
+        // 팬을 처음 띄운 명령 그대로 다시 실행한다(예: claude --continue → 대화는 이어진다)
+        try { await ctx.ch.tmux(['respawn-pane', '-k', '-t', t]); } catch (e) { return sendJson(res, 500, { error: `Could not restart the agent — ${e.message}` }), true; }
+        audit(actor(req), 'system.restart', `agent ${t}`);
+        return sendJson(res, 200, { ok: true, what: 'agent', target: t }), true;
+      }
+      if (body.what === 'server') {
+        if (restarting) return sendJson(res, 409, { error: 'Already restarting' }), true;
+        if (opts.NO_RESTART) return sendJson(res, 409, { error: 'Restart is turned off for this server' }), true;
+        restarting = true; const how = supervisor();
+        audit(actor(req), 'system.restart', `server (${how})`);
+        sendJson(res, 202, { ok: true, what: 'server', supervisor: how, startedAt: STARTED_AT });
+        setTimeout(() => restartServer(how), 400);   // 응답이 나간 뒤에
+        return true;
+      }
+      return sendJson(res, 400, { error: "what: 'server' or 'agent'" }), true;
     }
 
     // 에이전트에게 보내는 지시문의 주소. 브라우저 주소(예: 로그인 게이트웨이 뒤의 base.anahub.io)는 에이전트의 curl이

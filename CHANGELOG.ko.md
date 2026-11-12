@@ -5,6 +5,19 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.24.0] — 2026-11-12
+
+### 추가
+
+- **ANA 로고 메뉴에 System과 재시작.** 이 ANA의 이름, 버전, 가동 시간, 포트, Node, 컴퓨터, 서버를 지키는 쪽, 에이전트 세션을 보입니다.
+  - *Restart the server*는 먼저 묻고 서버를 다시 띄웁니다. launchd나 systemd 아래에서는 서버가 끝나고 그쪽이 다시 띄웁니다. 지키는 쪽이 없으면 1초 뒤에 시작하는 분리된 프로세스를 남깁니다(`.ana/server.log`). 페이지는 새 서버를 기다렸다가 다시 읽습니다.
+  - *Restart the agent*는 먼저 묻고 에이전트의 tmux 팬을 처음 명령 그대로 다시 실행합니다(`tmux respawn-pane -k`). `--continue`로 띄운 에이전트는 대화가 이어집니다.
+  - `GET /api/system`, `POST /api/system/restart {what: 'server'|'agent'}`. 두 재시작 모두 감사 기록에 남습니다.
+
+### 이식
+
+- `dashboard-api.js`의 `supervisor` / `restartServer`와 `/api/system` 라우트 둘, `dashboard.html`의 System 메뉴 항목, `#systemView`, `refreshSystem`, `TABS`/`REFRESH_TAB` 변경을 가져오세요.
+
 ## [0.23.1] — 2026-11-12
 
 ### 바뀜

@@ -5,6 +5,19 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.24.0] — 2026-11-12
+
+### Added
+
+- **System in the ANA logo menu, with restart.** It shows this ANA's name, version, how long it has been running, port, Node, the computer, what keeps the server alive, and the agent session.
+  - *Restart the server* asks first, then starts the server again. Under launchd or systemd the server exits and the supervisor brings it back; without one, it leaves a detached copy that starts a second later (`.ana/server.log`). The page waits for the new server and reloads.
+  - *Restart the agent* asks first, then runs the agent's tmux pane again with its original command (`tmux respawn-pane -k`); an agent started with `--continue` keeps its conversation.
+  - `GET /api/system`, `POST /api/system/restart {what: 'server'|'agent'}`; both restarts are written to the audit log.
+
+### Porting
+
+- Take `supervisor` / `restartServer` and the two `/api/system` routes from `dashboard-api.js`, and the System menu entry, `#systemView`, `refreshSystem` and `TABS`/`REFRESH_TAB` changes from `dashboard.html`.
+
 ## [0.23.1] — 2026-11-12
 
 ### Changed
