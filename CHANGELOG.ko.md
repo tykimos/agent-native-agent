@@ -5,6 +5,12 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.23.1] — 2026-11-12
+
+### 바뀜
+
+- **하위 탭(2단계 메뉴)을 위쪽 바로 올렸습니다.** ANA 로고 메뉴 옆에 Current · History, Ontology · Graph · Documents, Waiting · In progress · Done, Work 화면의 하위 탭이 나옵니다. 휴대폰에서는 위쪽 바 아래 둘째 줄입니다. 각 탭 안의 줄은 감추고, `<nav class="subtabs" data-sub="…">`는 선언 자리로 그대로 둡니다.
+
 ## [0.23.0] — 2026-11-12
 
 ### 바뀜

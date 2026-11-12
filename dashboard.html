@@ -472,6 +472,15 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .subtabs::-webkit-scrollbar { display: none; }
 .subtabs button { position: relative; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px; font-size: 14px; font-weight: 700; color: var(--text-weak); }
 .subtabs button.on { color: var(--text); } .subtabs button.on::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2.5px; border-radius: 2px; background: var(--blue); }
+/* 2단계 메뉴는 위쪽 바(#topSub)에 보인다 — 화면 안의 같은 줄은 감춘다(데이터 자리로만 남는다) */
+.view .subtabs { display: none; }
+.topnav .topsub { flex: 0 1 auto; min-width: 0; align-self: stretch; margin: 0 0 0 10px; border-bottom: 0; padding-left: 10px; }
+.topnav .topsub[hidden] { display: none; }
+.topnav .topsub button { height: auto; align-self: stretch; }
+.topnav .topsub button.on::after { bottom: 0; }
+@media (max-width: 768px) {
+  .topnav .topsub { order: 10; flex: 1 0 100%; height: 42px; margin: 0; padding: 0 2px; border-top: 1px solid var(--line-2); }
+}
 .subtabs .n { min-width: 18px; padding: 0 5px; border-radius: 999px; font-size: 11px; line-height: 18px; text-align: center; background: var(--blue); color: var(--white); }
 .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 0 12px; padding: 2px 1px; }
 .toolbar::-webkit-scrollbar { display: none; } .toolbar .sp { flex: 1 0 8px; } .toolbar > * { flex: 0 0 auto; } .toolbar .stseg { margin: 0; }
@@ -1164,6 +1173,8 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
       <button class="tab" data-view="evolve" role="tab" aria-selected="false">Evolve<span class="tbadge" data-evobadge>0</span></button>
       <button class="tab" data-view="update" role="tab" aria-selected="false">Update<span class="tbadge" data-updbadge>0</span></button>
     </div>
+    <!-- 지금 탭의 하위 탭(2단계 메뉴) — 위쪽 바에 -->
+    <nav class="subtabs topsub" id="topSub" role="tablist" aria-label="Sections" hidden></nav>
     <span class="sp"></span>
     <button id="modeToggle" class="mode-toggle" role="switch" aria-checked="false" aria-label="Chip mode">
       <span class="knob"></span>Chip
@@ -1758,6 +1769,9 @@ function renderSubtabs(v) {
   const cur = curSub(v), c = subCounts[v] || {};
   const html = subList(v).map(([k, l]) => `<button role="tab" data-k="${k}" class="${k === cur ? 'on' : ''}" aria-selected="${k === cur}">${l}${c[k] ? `<span class="n">${c[k]}</span>` : ''}</button>`).join('');
   document.querySelectorAll(`.subtabs[data-sub="${v}"]`).forEach((el) => { el.innerHTML = html; });   // Work는 세 화면에 같은 줄이 있다
+  // 2단계 메뉴는 위쪽 바(#topSub)에 — 지금 열린 탭의 것만
+  const on = document.querySelector('.topnav .tab.on'), top = $('topSub');
+  if (top && on && on.dataset.view === v) { top.dataset.sub = v; top.setAttribute('aria-label', v); top.innerHTML = html; top.hidden = !html; }
   const view = $(v + 'View'); if (!view) return;
   view.querySelectorAll('[data-subsec]').forEach((x) => { x.hidden = !x.dataset.subsec.split(' ').includes(cur); });
 }

@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.23.1] — 2026-11-12
+
+### Changed
+
+- **Sub-tabs moved up into the top bar,** next to the ANA logo menu: Current · History, Ontology · Graph · Documents, Waiting · In progress · Done, and a Work screen's sub-tabs. On phones they are a second row under the top bar. The rows inside each tab are hidden; `<nav class="subtabs" data-sub="…">` still declares them.
+
 ## [0.23.0] — 2026-11-12
 
 ### Changed
