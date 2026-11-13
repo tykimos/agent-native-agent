@@ -3227,11 +3227,13 @@ async function pollLog() {
     updateEmpty(); markClip(); reconcile();
     if (stick) { atBottom = true; pinChat(); } else notifyNew();
   }
-  if (fresh && sw && sw.target === target) {
+  // 진행 카드가 떠 있으면 여기서 끝낸다 — fresh가 아니어도(이미 보던 세션이 4MB 넘게 자라 서버가 뒤에서 다시 읽은 뒤) 'Loading…'이 남지 않게
+  if (sw && sw.target === target) {
     if (sw.st.find?.s !== 'ok') swSet('find', 'ok', d.title ? `${kindName} · ${d.title}` : kindName);
     swSet('read', 'ok', sw.readTotal ? fmtMB(sw.readTotal) : 'already loaded');
-    swSet('show', 'ok', d.total ? `latest ${Math.min(d.items.length, d.total)} of ${d.total}` : 'no messages yet');
-    atBottom = true; pinChat(); swEnd(700);
+    swSet('show', 'ok', !fresh ? `caught up${d.items.length ? ` · ${d.items.length} new` : ''}` : d.total ? `latest ${Math.min(d.items.length, d.total)} of ${d.total}` : 'no messages yet');
+    if (fresh) { atBottom = true; pinChat(); }
+    swEnd(700);
   }
   next();
 }

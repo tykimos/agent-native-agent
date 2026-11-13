@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.24.2] — 2026-11-14
+
+### Fixed
+
+- **The chat no longer gets stuck on "Loading…".** When a conversation you were already watching grew by more than 4 MB at once (a long tool output, or the phone waking after a while), the server re-read it in the background and the page showed the loading state — but never cleared it, because only a fresh session cleared it. Now the loading card closes whenever the log comes back, fresh or not. Before, only a reload fixed it.
+
 ## [0.24.1] — 2026-11-12
 
 ### Changed
