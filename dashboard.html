@@ -839,10 +839,10 @@ body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 �
 :root[data-mode="dark"][data-accent="purple"] { --acc: #9D85FF; --acc-strong: #C6B7FF; --acc-weak: #2C2352; }
 :root[data-mode="dark"][data-accent="green"]  { --acc: #3ED598; --acc-strong: #8FEAC4; --acc-weak: #113D2B; }
 
-/* ④ 시간대 = 배경의 색온도. 아침은 따뜻한 크림, 낮은 중립, 저녁은 노을빛 */
-:root[data-mode="light"][data-daypart="morning"] { --bg: #FFF8F1; --surface: #FFFFFF; --surface-2: #FFF3E8; --line: #F0E4D6; --line-2: #F7EDE2; }
+/* ④ 시간대 = 배경의 색온도. 아침은 살짝 따뜻하게, 낮은 중립, 저녁은 살짝 차갑게 — 한눈에 '색'으로 읽힐 만큼은 아니게(예전 아침 배경은 살구색으로 보였다) */
+:root[data-mode="light"][data-daypart="morning"] { --bg: #F5F4F1; --surface: #FFFFFF; --surface-2: #FAF9F6; --line: #E7E5E0; --line-2: #EEECE7; }
 :root[data-mode="light"][data-daypart="day"]     { --bg: #F2F4F6; --surface: #FFFFFF; --surface-2: #F9FAFB; --line: #E5E8EB; --line-2: #EDF0F2; }
-:root[data-mode="light"][data-daypart="evening"] { --bg: #F5F0F5; --surface: #FFFFFF; --surface-2: #F7EFF3; --line: #E8DEE6; --line-2: #F0E7ED; }
+:root[data-mode="light"][data-daypart="evening"] { --bg: #F3F3F6; --surface: #FFFFFF; --surface-2: #F8F8FB; --line: #E4E5EB; --line-2: #ECEDF2; }
 :root[data-mode="dark"][data-daypart="evening"]  { --bg: #1B181C; --surface: #231F25; --surface-2: #2A252C; }
 :root[data-mode="dark"][data-daypart="night"]    { --bg: #121317; --surface: #1A1C21; --surface-2: #212429; }
 

@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.24.3] — 2026-11-15
+
+### Changed
+
+- **The morning background is no longer apricot.** In light mode the page's background shifts slightly with the time of day; the morning tint (`#FFF8F1`) read as a peach colour rather than a neutral page. Morning is now a faint warm grey (`#F5F4F1`) and evening a faint cool grey (`#F3F3F6`); day stays as it was.
+
 ## [0.24.2] — 2026-11-14
 
 ### Fixed
