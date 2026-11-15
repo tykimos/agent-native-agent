@@ -3800,13 +3800,14 @@ async function attachFiles(files, reuse) {
     // 클립보드 이미지는 이름이 없을 수 있다 → 확장자를 MIME에서 복원
     const name = f.name || `clipboard-${Date.now()}.${(f.type.split('/')[1] || 'png').replace(/[^\w]/g, '')}`;
     const item = reuse || { path: '', pending: true };
-    Object.assign(item, { name, size: f.size, stage: 'Uploading', pct: 0, pending: true });
+    const base = item.pctBase || 0;   // 앞선 단계(캡처)가 있으면 그 뒤를 이어 100%까지
+    Object.assign(item, { name, size: f.size, stage: 'Uploading', pct: base, pending: true });
     if (!reuse) attachments.push(item);
     reuse = null; renderChips();
     try {
       let last = 0;
       const { ok, status, j } = await postWithProgress('/api/upload', { name, type: f.type || '', data: await readAsBase64(f) },
-        (pct) => { item.pct = pct; const now = performance.now(); if (now - last > 80 || pct >= 99) { last = now; renderChips(); } });   // 칩 갱신은 80ms에 한 번
+        (pct) => { item.pct = base + Math.round((pct * (100 - base)) / 100); const now = performance.now(); if (now - last > 80 || pct >= 99) { last = now; renderChips(); } });   // 칩 갱신은 80ms에 한 번
       if (!ok) throw new Error(j.error || `Upload failed (${status})`);
       item.path = j.path; item.name = j.name || name; item.pending = false; item.pct = null; item.stage = '';
     } catch (e) {
@@ -3949,18 +3950,35 @@ $('drawDone').onclick = async () => {
   const overlay = matchMedia('(max-width: 768px)').matches || document.body.classList.contains('chatting');
   L.hidden = true;                                   // 캔버스 픽셀은 남아 있다 — 합성에 그대로 쓴다
   addChip('Screen', `${where}${marks} · annotated screenshot attached — look for the ${colors} pen marks (white-outlined)`);
-  const ph = { name: 'annotated-screenshot.jpg', size: 0, path: '', pending: true, stage: 'Capturing' };
-  attachments.push(ph); renderChips();
+  const ph = { name: 'annotated-screenshot.jpg', size: 0, path: '', pending: true, stage: 'Capturing', pct: 0, pctBase: 92 };
+  attachments.push(ph);
+  // 단계와 진행률을 칩에 보인다. 복제 단계는 동기라 그동안 화면이 멈추므로, 단계가 바뀔 때마다 한 프레임 쉬어 칩이 먼저 그려지게 한다.
+  const stage = (s, pct) => { ph.stage = s; ph.pct = pct; renderChips(); return new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0))); };
+  await stage('Loading tool', 2);
   if (overlay) openChat();
   try {
     // 가볍게: 긴 변이 1600px을 넘지 않는 배율(최대 2배)로 찍는다 — 휴대폰 3배 화면도 글자는 읽히고 용량은 1/4 안팎
     const onModal = drawEl && drawEl.classList.contains('modal'), m = drawEl || $('main');
     const bg = getComputedStyle(onModal ? m : document.body).backgroundColor;
     const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2, SHOT_MAX_SIDE / Math.max(m.clientWidth, m.clientHeight, 1)));
-    let shot;
+    let shot, ctx = null;
     try {
       shotLib = shotLib || await import('/vendor/modern-screenshot.mjs');
-      shot = await shotLib.domToCanvas(m, { scale: dpr, backgroundColor: bg });
+      const { vis, total } = shotPlan(m);
+      await stage(`Reading ${total} nodes`, 8);
+      ctx = await shotLib.createContext(m, {
+        scale: dpr, backgroundColor: bg,
+        timeout: 8000,                                   // 안 열리는 이미지 하나가 30초(기본값)를 잡아먹지 않게
+        features: { restoreScrollPosition: true },       // 기본값이 꺼져 있어 스크롤한 화면을 찍어도 맨 위가 나왔다
+        includeStyleProperties: SHOT_PROPS,              // 요소마다 350여 개 속성을 다 비교하지 않고 모양에 쓰이는 것만
+        filter: (n) => (n.nodeType === 3 ? vis.get(n.parentNode) !== 0 : n.nodeType !== 1 || vis.has(n)),
+        onCloneNode: () => stage('Fetching images', 50),
+        progress: (c, n) => { if (n) { ph.stage = `Fetching images ${c}/${n}`; ph.pct = 50 + Math.round((c / n) * 20); renderChips(); } },
+        // Safari용 다시 그리기(fixSvgXmlDecode)는 그림 수만큼 반복한다 — 그림 100장이면 10초. 세 번이면 충분하다.
+        drawImageInterval: 60,
+        onCreateForeignObjectSvg: () => { ctx.drawImageCount = Math.min(ctx.drawImageCount, 3); return stage('Rendering', 72); },
+      });
+      shot = await shotLib.domToCanvas(ctx);
     } catch (e) {
       // 캡처 라이브러리를 못 불러오면(예: 서버가 옛 버전이라 /vendor 경로가 없음) 표시만이라도 보낸다.
       // 칩에 위치·가리킨 항목은 이미 들어 있으므로 에이전트는 무엇을 짚었는지 알 수 있다.
@@ -3968,11 +3986,12 @@ $('drawDone').onclick = async () => {
       const g0 = shot.getContext('2d'); g0.fillStyle = bg; g0.fillRect(0, 0, shot.width, shot.height);
       const c = contextChips[0]; if (c) c.t = c.t.replace('annotated screenshot attached', 'screen capture unavailable — the image shows only the marks');
       toast('Screen capture unavailable — sent the marks only (restart the ANA server after npm install)');
-    }
+    } finally { if (ctx) { try { shotLib.destroyContext(ctx); } catch {} } }
+    await stage('Marking', 86);
     const g = shot.getContext('2d');
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.drawImage($('drawCanvas'), 0, 0, shot.width, shot.height);
-    ph.stage = 'Compressing'; renderChips();
+    await stage('Compressing', 90);
     // JPEG 0.82(펜 자국·글자가 또렷한 선), 그래도 크면 0.7 — PNG는 같은 화면이 3~6배 크다
     let blob = await new Promise((ok) => shot.toBlob(ok, 'image/jpeg', 0.82));
     if (blob && blob.size > SHOT_MAX_BYTES) blob = await new Promise((ok) => shot.toBlob(ok, 'image/jpeg', 0.7));
@@ -3990,6 +4009,44 @@ $('drawDone').onclick = async () => {
 };
 
 const SHOT_MAX_SIDE = 1600, SHOT_MAX_BYTES = 900 * 1024;
+// 캡처에 복사할 스타일 속성 — 모양·자리에 쓰이는 것만. (기본은 요소마다 350여 개를 모두 비교해 몇 배 느리다)
+const SHOT_PROPS = ['display', 'position', 'top', 'right', 'bottom', 'left', 'z-index', 'float', 'clear', 'box-sizing', 'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height', 'aspect-ratio',
+  'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left', 'overflow-x', 'overflow-y', 'clip', 'clip-path',
+  'flex-direction', 'flex-wrap', 'flex-grow', 'flex-shrink', 'flex-basis', 'align-items', 'align-self', 'align-content', 'justify-content', 'justify-items', 'justify-self', 'order', 'row-gap', 'column-gap',
+  'grid-template-columns', 'grid-template-rows', 'grid-template-areas', 'grid-auto-flow', 'grid-auto-rows', 'grid-auto-columns', 'grid-column-start', 'grid-column-end', 'grid-row-start', 'grid-row-end',
+  'vertical-align', 'line-height', 'font-family', 'font-size', 'font-weight', 'font-style', 'font-variant-numeric', 'font-feature-settings', 'letter-spacing', 'word-spacing', 'text-align', 'text-indent',
+  'text-decoration-line', 'text-decoration-color', 'text-decoration-style', 'text-decoration-thickness', 'text-underline-offset', 'text-transform', 'text-overflow', 'text-shadow',
+  'white-space', 'white-space-collapse', 'text-wrap-mode', 'word-break', 'overflow-wrap', 'hyphens', 'direction', 'color', 'color-scheme', '-webkit-line-clamp', '-webkit-box-orient', '-webkit-text-fill-color', '-webkit-background-clip',
+  'background-color', 'background-image', 'background-size', 'background-position-x', 'background-position-y', 'background-repeat', 'background-clip', 'background-origin', 'background-attachment',
+  'border-top-width', 'border-top-style', 'border-top-color', 'border-right-width', 'border-right-style', 'border-right-color', 'border-bottom-width', 'border-bottom-style', 'border-bottom-color', 'border-left-width', 'border-left-style', 'border-left-color',
+  'border-top-left-radius', 'border-top-right-radius', 'border-bottom-right-radius', 'border-bottom-left-radius', 'outline-width', 'outline-style', 'outline-color', 'outline-offset', 'box-shadow', 'opacity', 'visibility',
+  'transform', 'transform-origin', 'transform-box', 'translate', 'rotate', 'scale', 'filter', 'backdrop-filter', 'mix-blend-mode', 'mask-image', 'mask-size', 'mask-position', 'mask-repeat', '-webkit-mask-image', 'image-rendering',
+  'object-fit', 'object-position', 'list-style-type', 'list-style-position', 'table-layout', 'border-collapse', 'border-spacing', 'appearance', 'accent-color',
+  'fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-opacity', 'stroke-linecap', 'stroke-linejoin', 'stroke-dasharray', 'stroke-dashoffset', 'stop-color', 'stop-opacity', 'dominant-baseline', 'text-anchor', 'paint-order', 'vector-effect'];
+// 캡처 계획 — 보이는 영역 밖은 뺀다. 1 = 그대로, 0 = 위쪽에 있어 자리만 지키는 빈 상자(자식은 뺌; 복제본은 높이가 px로 고정되므로 자리가 유지된다),
+// 뺌 = 아래·옆(부모 높이도 고정돼 자리에 영향 없음) 또는 display:none. 표·select·svg 안쪽은 건드리지 않는다(빈 행·빈 defs는 모양이 깨진다).
+// 15,000개 요소의 긴 목록도 수백 개만 복제한다 — 캡처가 50초에서 1초 아래로.
+const SHOT_KEEP_ALL = new Set(['SELECT', 'TABLE', 'THEAD', 'TBODY', 'TFOOT', 'TR', 'VIDEO', 'AUDIO', 'PICTURE']);
+function shotPlan(root) {
+  const R = root.getBoundingClientRect(), vis = new Map([[root, 1]]); let total = 1;
+  const walk = (el, all) => {
+    for (let c = el.firstChild; c; c = c.nextSibling) {
+      if (c.nodeType !== 1) continue;
+      const html = c instanceof HTMLElement;
+      let v = 1;
+      if (!all && (html || c instanceof SVGSVGElement)) {
+        const r = c.getBoundingClientRect();
+        if (!r.width && !r.height) { if (getComputedStyle(c).display === 'none') continue; }   // 크기 없음: display:contents 등은 두고, 숨긴 것은 뺀다
+        else v = r.top > R.bottom || r.left > R.right || r.right < R.left ? -1 : r.bottom >= R.top ? 1 : 0;
+      }
+      if (v < 0) continue;
+      vis.set(c, v); total++;
+      if (v === 1) walk(c, all || !html || SHOT_KEEP_ALL.has(c.tagName));
+    }
+  };
+  walk(root, false);
+  return { vis, total };
+}
 const CAP = [
   ['.req-card', 'Request', (el) => el.querySelector('.req-t')?.textContent || el.textContent],
   ['.evo-card', 'Proposal', (el) => el.querySelector('.evo-t')?.textContent || el.textContent],

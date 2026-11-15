@@ -5,6 +5,16 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.25.0] — 2026-11-15
+
+### Changed
+
+- **Screen capture (✎ Add to chat) is fast, and shows its steps.** Capturing a long page took tens of seconds on a phone — the library cloned every element of the page, including thousands above and below the part you could see, and then re-drew the result once per embedded image. Now the capture is planned first: only what is visible is cloned (elements above keep their height as empty boxes so positions hold; elements below are dropped), only the style properties that affect appearance are copied, image loads time out at 8 s, and the re-draw loop is capped at three. A 15,000-element list went from ~50 s to ~1 s. The attachment chip now walks through the stages with a percentage: *Loading tool → Reading N nodes → Fetching images c/n → Rendering → Marking → Compressing → Uploading*.
+
+### Fixed
+
+- **A capture of a scrolled list showed the top of the list, not what you marked.** The library's scroll restore was off by default; it is on now, so the picture matches the pen marks.
+
 ## [0.24.3] — 2026-11-15
 
 ### Changed
