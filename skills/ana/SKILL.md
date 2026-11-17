@@ -78,7 +78,7 @@ That's it — type in the page, the agent answers in the page.
 
 ## Rich responses (optional)
 
-Plain replies mirror automatically. For **preview + approve** cards, the agent posts `POST /api/agent {text, diff, why?, ask?, effect?, ifNot?}` (the plain fields show on the approval card — what's going on, what's asked, what it changes, what if not; without them the card says how many items it adds, changes and removes); your server applies the diff on approval and bumps a `version` so every device re-syncs. See `dashboard-api.js` in the ANA base for the todo/schedule/memo/evolve reference implementation.
+Plain replies mirror automatically. For **preview + approve** cards, the agent posts `POST /api/agent {text, diff, why?, ask?, effect?, ifNot?}` (the plain fields show on the approval card — what's going on, what's asked, what it changes, what if not; without them the card says how many items it adds, changes and removes); your server applies the diff on approval and bumps a `version` so every device re-syncs. `diff = {add:[{list:'<array in work-graph.json>', …fields}], update:[{id, …fields}], remove:[id]}` — `list` names the array of that kind, declared in `work-ontology.js` (the base declares none; the agent adds kinds as it builds Work). See `dashboard-api.js` in the ANA base (`validateDiff`, `applyDiff`).
 
 ## Safety notes (already built in)
 

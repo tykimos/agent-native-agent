@@ -21,6 +21,26 @@ const TEST_PORT = 8811 + (process.pid % 900);
 process.env.ANA_TEST = '1';
 // 모든 런타임 상태를 스크래치로 격리 — users/audit/uploads가 ROOT/.ana로 새지 않도록 ANA_DATA_DIR도 건다.
 process.env.ANA_DATA_DIR = path.join(SCRATCH, 'unit-ana');
+// 베이스는 업무 종류를 선언하지 않는다 — 시험은 메모·할일·일정을 선언한 온톨로지로 돈다(여기서 만든 서버와 자식 서버 모두)
+fs.writeFileSync(path.join(SCRATCH, 'test-ontology.js'), `'use strict';
+const firstLine = (s) => String(s || '').trim().split('\\n')[0].slice(0, 60);
+module.exports = {
+  classes: [
+    { id: 'Note', label: 'Note', list: 'notes', desc: 'A note', title: (x) => String(x.title || '').trim() || firstLine(x.text) || 'Untitled' },
+    { id: 'Task', label: 'Task', list: 'items', desc: 'A task to do', title: (x) => String(x.title || x.text || '') },
+    { id: 'Event', label: 'Event', list: 'events', desc: 'A calendar event', title: (x) => String(x.title || '') },
+    { id: 'Day', label: 'Day', desc: 'A calendar day (computed from dates)' },
+  ],
+  relations: [
+    { id: 'SPAWNED', label: 'spawned', from: ['Note'], to: ['Task', 'Event'], made: 'explicit', desc: 'The note is where this task or event came from' },
+    { id: 'SCHEDULED_AS', label: 'scheduled as', from: ['Task'], to: ['Event'], made: 'explicit', desc: 'The task is worked on during this calendar event' },
+    { id: 'REFERS_TO', label: 'refers to', from: ['*'], to: ['*'], made: 'explicit', desc: 'Manual reference between two work items' },
+    { id: 'DUE_ON', label: 'due on', from: ['Task'], to: ['Day'], made: 'derived', field: 'Task.due', desc: 'The task is due on this day' },
+    { id: 'ON', label: 'on', from: ['Event'], to: ['Day'], made: 'derived', field: 'Event.date', desc: 'The event happens on this day' },
+  ],
+};
+`);
+process.env.ANA_WORK_ONTOLOGY = path.join(SCRATCH, 'test-ontology.js');
 process.env.TRANSCRIPT_FILE = path.join(SCRATCH, 'unit-transcript.jsonl');
 process.env.DATA_FILE = path.join(SCRATCH, 'unit-state.json');
 process.env.PROPOSALS_FILE = path.join(SCRATCH, 'unit-proposals.json');
@@ -308,7 +328,7 @@ t('extractDraft: 입력 박스 추출 / placeholder·메뉴 제외', () => {
 
 t('D1 applyDiff: add/update/remove + version++ (caller id 무시 — QA-M5)', () => {
   srv.saveData({ version: 1, items: [] });
-  let r = srv.applyDiff({ add: [{ id: 'x1', title: 'A' }] });
+  let r = srv.applyDiff({ add: [{ list: 'items', id: 'x1', title: 'A' }] });
   assert.equal(r.version, 2);
   const id = srv.loadData().items[0].id;
   assert.notEqual(id, 'x1');                        // caller id 무시 — 서버 생성
@@ -333,16 +353,20 @@ t('D4 validateDiff: 깨진 diff 거부 (CR7/QA-C2)', () => {
   assert.ok(srv.validateDiff({ add: 'abc' }));             // 비배열 → 에러 문자열
   assert.ok(srv.validateDiff({ add: ['문자열'] }));         // 원소 비객체 → 에러
   assert.ok(srv.validateDiff({ update: [{ title: 'x' }] })); // id 없음 → 에러
-  assert.ok(srv.validateDiff({ add: Array(501).fill({}) })); // 개수 초과 → 에러
-  assert.equal(srv.validateDiff({ add: [{ title: 'ok' }], remove: ['id1'] }), null); // 정상 → null
+  assert.ok(srv.validateDiff({ add: Array(501).fill({ list: 'items' }) })); // 개수 초과 → 에러
+  assert.match(srv.validateDiff({ add: [{ title: 'no list' }] }), /list/); // add에 list(종류의 배열) 없음 → 에러
+  assert.equal(srv.validateDiff({ add: [{ list: 'items', title: 'ok' }], remove: ['id1', { id: 'id2' }] }), null); // 정상 → null
 });
 
-t('D5 applyDiff 방어: done 불리언 강제 + 미허용 키 차단 (QA-m3)', () => {
+t('D5 applyDiff 방어: 선언 안 된 list 거부, 중첩 객체 값은 버림, 이상한 키 이름 차단, 불리언·수는 그대로 (QA-m3)', () => {
   srv.saveData({ version: 1, items: [] });
-  srv.applyDiff({ add: [{ title: 'X', done: 'yes-string', evil: 'x' }] });
+  assert.throws(() => srv.applyDiff({ add: [{ list: 'ghosts', title: 'X' }] }), /unknown list "ghosts"/);
+  srv.applyDiff({ add: [{ list: 'items', title: 'X', done: true, n: 3, nested: { a: 1 }, tags: ['a', { b: 1 }], '$bad key': 'x', id: 'mine' }] });
   const it = srv.loadData().items[0];
-  assert.strictEqual(it.done, true);                       // 'yes-string' → !! → true
-  assert.equal(it.evil, undefined);                        // 화이트리스트 밖 키 차단
+  assert.strictEqual(it.done, true); assert.strictEqual(it.n, 3);
+  assert.strictEqual(it.nested, '');                       // 객체 값은 저장하지 않는다
+  assert.deepEqual(it.tags, ['a', '']);                    // 배열은 원시값만
+  assert.equal(it['$bad key'], undefined); assert.equal(it.list, undefined); assert.notEqual(it.id, 'mine');
 });
 
 t('D6 applyDiff: 변경 0건이면 version 미증가 (QA-m2)', () => {
@@ -516,9 +540,9 @@ t('D11 Codex dialog: selected option stays a button; footer is not an option des
     s = { ...s, links: [] };
     assert.deepEqual(g.trace('default', { id: 'n1', maxDepth: 2, direction: 'out' }), []);
     assert.ok(fs.existsSync(g.fileOf('default')), 'graph-index.sqlite가 만들어진다');
-    const gaps = g.stats('default').gaps;
-    assert.deepEqual(gaps.tasksNoDue.map((x) => x.id), ['a2']);
-    assert.deepEqual(gaps.notesUnused.map((x) => x.id), ['n1']);
+    const gaps = g.stats('default').gaps;   // 선언된 관계마다, 출발 종류의 항목 중 그 관계가 없는 것
+    assert.deepEqual(gaps.DUE_ON.map((x) => x.id), ['a2']);
+    assert.deepEqual(gaps.SPAWNED.map((x) => x.id), ['n1']);
     assert.throws(() => g.trace('default', { id: 'nope' }), /not found/);
   });
   t('G5 한 그래프: 업무 항목 · 개체 · 문서가 언급(MENTIONED_IN)과 사실로 이어지고, 종류와 연결은 한 목록이다', () => {
@@ -851,7 +875,7 @@ async function integration() {
     // ---------------------------------------- Part C: 대시보드 API
     // (I13 draft 가드보다 먼저 실행 — mock의 draftbox는 입력 박스를 화면에 남겨
     //  이후 /api/chat이 계속 409가 되므로 draft 케이스는 맨 마지막이어야 한다.)
-    console.log('\n[Part C] 대시보드 API 통합 (/api/state · /api/agent · /api/approve · /api/done)');
+    console.log('\n[Part C] 대시보드 API 통합 (/api/state · /api/agent · /api/approve · /api/apply)');
     const state = async () => (await fetch(`${api}/api/state`)).json();
     const post = (p, body) => fetch(`${api}${p}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
     let pid = 0, itemId = '';
@@ -864,7 +888,7 @@ async function integration() {
 
     await ta('C2 /api/agent diff 제안 → proposal(pending) + 원장 proposal 항목', async () => {
       const t0 = (await feed()).total;
-      const r = await post('/api/agent', { text: '영어 7시 추가 제안', diff: { add: [{ title: '영어 7시' }] } });
+      const r = await post('/api/agent', { text: '영어 7시 추가 제안', diff: { add: [{ list: 'items', title: '영어 7시' }] } });
       const j = await r.json();
       assert.ok(j.ok && j.pid, `pid 기대: ${JSON.stringify(j)}`);
       pid = j.pid;
@@ -897,13 +921,15 @@ async function integration() {
       assert.equal((await post('/api/approve', { pid, decision: 'approve' })).status, 400);
     });
 
-    await ta('C4 /api/done 토글 → version++ + 서버 저장', async () => {
+    await ta('C4 /api/apply update(id로 어느 배열이든) → version++ + 서버 저장; 선언 안 된 list는 400', async () => {
       const v0 = (await state()).version;
-      const r = await post('/api/done', { id: itemId, done: true });
+      const r = await post('/api/apply', { diff: { update: [{ id: itemId, done: true }] } });
       const j = await r.json();
-      assert.ok(j.ok && j.done === true);
+      assert.ok(j.ok && j.changed);
       assert.equal(j.version, v0 + 1);
       assert.equal((await state()).items.find((x) => x.id === itemId).done, true);
+      const bad = await post('/api/apply', { diff: { add: [{ list: 'ghosts', title: 'x' }] } });
+      assert.equal(bad.status, 400); assert.match((await bad.json()).error, /unknown list/);
     });
 
     await ta('C5 /api/agent 텍스트 → assistant(src:api) 원장 확정 + /api/feed version 노출', async () => {
@@ -945,7 +971,7 @@ async function integration() {
 
     await ta('C8 경계: null 본문 → 400 (500 아님) 전 POST (QA-M1)', async () => {
       const bad = (p) => fetch(`${api}${p}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: 'null' });
-      for (const p of ['/api/agent', '/api/approve', '/api/apply', '/api/done', '/api/evolve', '/api/evolve-act']) {
+      for (const p of ['/api/agent', '/api/approve', '/api/apply', '/api/link', '/api/evolve', '/api/evolve-act']) {
         assert.equal((await bad(p)).status, 400, `${p} null 본문 400 기대`);
       }
     });
@@ -957,7 +983,7 @@ async function integration() {
     });
 
     await ta('C10 경계: decision 오타 → 400 (제안 파괴 안 됨 — QA-M2)', async () => {
-      const j = await (await post('/api/agent', { text: '제안', diff: { add: [{ title: 'z' }] } })).json();
+      const j = await (await post('/api/agent', { text: '제안', diff: { add: [{ list: 'items', title: 'z' }] } })).json();
       assert.equal((await post('/api/approve', { pid: j.pid, decision: 'BOGUS' })).status, 400);
       // 여전히 pending인지
       const s = await state();
@@ -970,21 +996,21 @@ async function integration() {
       assert.equal((await post('/api/agent', { text: big })).status, 413);
     });
 
-    await ta('C12 diff 필드 방어: 객체 title은 버리고 done은 불리언, 긴 text는 캡(오픈 이슈 #2)', async () => {
+    await ta('C12 diff 필드 방어: 객체 title은 버리고, 긴 text는 캡(오픈 이슈 #2)', async () => {
       const bigText = 'x'.repeat(30000);
-      const r = await post('/api/apply', { diff: { add: [{ title: { evil: 1 }, text: bigText, done: 'yes' }] } });
+      const r = await post('/api/apply', { diff: { add: [{ list: 'items', title: { evil: 1 }, text: bigText, done: true }] } });
       assert.equal(r.status, 200);
       const s = await state();
       const it = s.items[s.items.length - 1];
       assert.equal(typeof it.title, 'string'); assert.equal(it.title, '', '객체 title은 빈 문자열로 환원');
-      assert.equal(it.done, true, 'done 문자열 → 불리언 true');
+      assert.equal(it.done, true);
       assert.ok(it.text.length <= 20000, `text는 20000자로 캡(실제 ${it.text.length})`);
       await post('/api/apply', { diff: { remove: [it.id] } }); // 정리
     });
 
     await ta('C13 알림 커서: 무효 since는 큐 전체가 아니라 빈 목록 반환(오픈 이슈 #5)', async () => {
       // 제안 생성→거절로 알림 하나 큐잉(NOTIFY_AGENT=0라 미전달로 큐에 남는다)
-      const j = await (await post('/api/agent', { text: 'notify-src', diff: { add: [{ title: 'n' }] } })).json();
+      const j = await (await post('/api/agent', { text: 'notify-src', diff: { add: [{ list: 'items', title: 'n' }] } })).json();
       await post('/api/approve', { pid: j.pid, decision: 'reject' });
       const all = await (await fetch(`${api}/api/notifications`)).json();
       assert.ok(all.notifications.length >= 1, '거절 알림이 큐에 있어야 함');
@@ -994,13 +1020,14 @@ async function integration() {
       assert.equal(bogus.notifications.length, 0, '무효 커서 → 빈 목록(큐 재생 금지)');
     });
 
-    await ta('C14 관계: 메모→할일(from)·할일→일정(from)·참조 추가, 그래프·이웃·스키마 조회, 삭제 시 관계 정리', async () => {
-      const n = (await (await post('/api/note', { action: 'add', title: 'Plan', text: 'x' })).json()).id;
-      const a = (await (await post('/api/todo', { title: 'Do it', due: '2026-10-05', from: n })).json()).id;
-      const e = (await (await post('/api/event', { action: 'add', title: 'Block', date: '2026-10-04', time: '09:00', from: a })).json()).id;
-      assert.ok(n && a && e, '생성 응답에 id');
-      let r = await post('/api/todo', { title: 'bad', from: e });
-      assert.equal(r.status, 400, '할일의 출처는 메모만');
+    await ta('C14 관계: 선언된 종류의 항목을 diff로 만들고 /api/link로 잇기, 그래프·이웃·스키마 조회, 삭제 시 관계 정리', async () => {
+      const mk = async (list, fields) => { const s0 = await state(); await post('/api/apply', { diff: { add: [{ list, ...fields }] } }); const s1 = await state(); return s1[list].find((x) => !s0[list].some((y) => y.id === x.id)).id; };
+      const n = await mk('notes', { title: 'Plan', text: 'x' });
+      const a = await mk('items', { title: 'Do it', due: '2026-10-05' });
+      const e = await mk('events', { title: 'Block', date: '2026-10-04', time: '09:00' });
+      assert.ok(n && a && e, '만든 항목의 id');
+      let r = await post('/api/link', { action: 'add', from: n, to: a, type: 'SPAWNED' }); assert.equal(r.status, 200);
+      r = await post('/api/link', { action: 'add', from: a, to: e, type: 'SCHEDULED_AS' }); assert.equal(r.status, 200);
       r = await post('/api/link', { action: 'add', from: e, to: n, type: 'REFERS_TO' }); assert.equal(r.status, 200);
       r = await post('/api/link', { action: 'add', from: a, to: n, type: 'SPAWNED' }); assert.equal(r.status, 400, '방향이 틀린 관계 거부');
       const st2 = await (await fetch(`${api}/api/state`)).json();
@@ -1012,13 +1039,13 @@ async function integration() {
       assert.deepEqual(tr.nodes.map((x) => x.id), [a, e]);
       const sc = await (await fetch(`${api}/api/graph/schema`)).json();
       assert.ok(sc.vocabulary.SPAWNED.editable && !sc.vocabulary.DUE_ON.editable, '스키마에 편집 가능 여부');
-      await post('/api/todo-remove', { id: a });
+      await post('/api/apply', { diff: { remove: [a] } });
       const st3 = await (await fetch(`${api}/api/state`)).json();
       assert.ok(!st3.links.some((l) => l.from === a || l.to === a), '할일을 지우면 원천 관계도 사라진다');
       assert.ok(!st3.graph.links.some((l) => l.from === a || l.to === a), '그래프에서도 사라진다');
       r = await post('/api/link', { action: 'remove', from: e, to: n, type: 'REFERS_TO' }); assert.equal(r.status, 200);
       const stats = await (await fetch(`${api}/api/stats`)).json();
-      assert.ok(stats.graph.gaps.notesUnused.some((x) => x.id === n), '출처 관계가 없어진 메모는 미처리로 잡힌다');
+      assert.ok(stats.graph.gaps.SPAWNED.some((x) => x.id === n), '출처 관계가 없어진 메모는 끊긴 곳(gaps.SPAWNED)으로 잡힌다');
     });
 
     await ta('C14b System: 상태를 보이고, 재시작은 무엇을 다시 띄울지 확인한다', async () => {

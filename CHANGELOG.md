@@ -5,6 +5,17 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.26.0] — 2026-11-17
+
+### Changed — breaking for ANAs that used the base's notes, tasks and events
+
+- **The base declares no kind of work.** `work-ontology.js` ships empty, `work-graph.json` starts as `{version, links: []}`, and Knowledge › Ontology and Graph start empty — an ANA with no Work screen has nothing in its graph. Before, the base declared Note, Task, Event and Day (`SPAWNED`, `SCHEDULED_AS`, `REFERS_TO`, `DUE_ON`, `ON`) and kept notes, tasks and events that no screen showed, so Work said *empty* while Knowledge counted ten nodes.
+- **Removed routes:** `POST /api/note`, `/api/todo`, `/api/todo-remove`, `/api/done`, `/api/event`, `/api/examples`. The `from` shortcut that linked a new task or event to its source is gone — use `POST /api/link`.
+- **Data changes work on any declared kind.** `diff = {add:[{list:'quotes', …fields}], update:[{id, …}], remove:[id | {id}]}` — `list` names that kind's array in `work-graph.json` (declared in `work-ontology.js`); `update` and `remove` find the item by id across all arrays. Fields are any key (`[A-Za-z_][\w-]*`) with a boolean, a finite number, a string (≤ 20 000 chars) or an array of those (≤ 100); nested objects are dropped. A diff that names an undeclared kind is refused with *unknown list "quotes" — declare its kind in work-ontology.js*: `/api/agent` and `/api/apply` answer 400, and on approval the card shows the reason with *Try again*.
+- **`/api/stats` → `graph.gaps` is generic:** for every declared relation, the items of its source kind that have none of it (`{ DUE_ON: [{id, title}…], … }`) instead of the fixed `notesUnused` / `tasksNoDue` / `tasksUnscheduled`; `all.work` / `mine.work` count items per declared array instead of `todos` / `events` / `notes`.
+- **Tests can declare their own kinds:** `ANA_WORK_ONTOLOGY=<file>` points the server at another ontology module (the test suite uses one that declares Note, Task and Event).
+- **Porting note (ana-update):** an ANA that still uses notes, tasks and events keeps its own `work-ontology.js` declarations and routes — do not port this part. Agents sending `diff.add` must now include `list`.
+
 ## [0.25.1] — 2026-11-17
 
 ### Fixed

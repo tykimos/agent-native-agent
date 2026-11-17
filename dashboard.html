@@ -1502,27 +1502,23 @@ let logMode = false, logRev = 0, logSession = '', logTimer = null, logBusy = fal
 const logOpen = new Set();          // 사용자가 펼쳐 둔 도구 묶음(다시 그려도 유지)   // attachments: {name, size, path, pending}
 
 /* ================= 데이터 ================= */
-// 일 데이터(work-graph.json) — Work 화면은 처음엔 비어 있지만, 요청·지식 카드가 항목 이름을 보이고 데이터 변경 승인이 이 버전을 따른다
-let dataVersion = 0, items = [], events = [], notes = [];
+// 일 데이터(work-graph.json) — 종류마다 배열 하나(work-ontology.js가 선언; 베이스는 없음). Work 화면은 처음엔 비어 있지만,
+// 요청·지식 카드가 항목 이름을 보이고 데이터 변경 승인이 이 버전을 따른다
+let dataVersion = 0, workItems = new Map();   // id → { list, x }
 const proposals = new Map();
 async function refreshData() {
   let s;
   try { s = await (await getJSON('/api/state')); } catch { return; }
   dataVersion = s.version || 1;
-  items = s.items || []; events = s.events || []; notes = s.notes || [];
+  workItems = new Map();
+  for (const [list, arr] of Object.entries(s)) if (Array.isArray(arr) && !['links', 'proposals'].includes(list)) for (const x of arr) if (x && x.id != null) workItems.set(String(x.id), { list, x });
   (s.proposals || []).forEach((p) => proposals.set(p.id, p)); renderApprovals();
   refreshPropCards();
 }
-const noteTitle = (n) => (n.title || '').trim() || (n.text || '').trim().split('\n')[0].slice(0, 40) || 'Untitled';
-const mdDate = (d) => (d ? `${+d.slice(5, 7)}/${+d.slice(8, 10)}` : '');
+const noteTitle = (n) => (n.title || n.name || '').trim() || String(n.text || '').trim().split('\n')[0].slice(0, 40) || 'Untitled';
 function nodeOf(id) {
-  let x = items.find((t) => t.id === id);
-  if (x) return { id, kind: 'Task', x, title: x.title || x.text || '', label: x.title || x.text || '' };
-  x = events.find((e) => e.id === id);
-  if (x) return { id, kind: 'Event', x, title: x.title, label: `${mdDate(x.date)}${x.time ? ' ' + x.time : ''} · ${x.title}` };
-  x = notes.find((n) => n.id === id);
-  if (x) return { id, kind: 'Note', x, title: noteTitle(x), label: noteTitle(x) };
-  return null;
+  const w = workItems.get(String(id)); if (!w) return null;
+  return { id, kind: w.list, x: w.x, title: noteTitle(w.x), label: noteTitle(w.x) };
 }
 
 /* ---- Work: 처음엔 비어 있다. PRD를 보고 에이전트가 화면을 만든다 ---- */
@@ -1540,7 +1536,7 @@ $('workBuild').onclick = () => {
   const api = (path) => `http://${agentHost}${path}`;
   const prompt = `[Work] Build the Work tab of this ANA from its PRD.
 Read the PRD GET ${api('/api/prd')} and the code in this folder (dashboard.html, dashboard-api.js, server.js). If there is no PRD or it does not yet say what the work is — what people handle, what they need to see and do — ask me first, and write what we agree into the PRD before building. Follow any sketches in it (## Sketches).
-Build it into #workArea in dashboard.html (sub-tabs with <nav class="subtabs" data-sub="work"> and SUBTABS.work if there is more than one kind of work), with the data and API routes it needs in dashboard-api.js, matching the look of the rest of the app. Keep each kind of work item in work-graph.json as one array and declare the kind in work-ontology.js (list, title, and a derived relation for each field that points at another item), so it shows in Knowledge next to the knowledge. Keep PRD, Knowledge, Requests, Evolve and Update as they are.
+Build it into #workArea in dashboard.html (sub-tabs with <nav class="subtabs" data-sub="work"> and SUBTABS.work if there is more than one kind of work), with the data and API routes it needs in dashboard-api.js, matching the look of the rest of the app. Keep each kind of work item in work-graph.json as one array and declare the kind in work-ontology.js (list, title, and a derived relation for each field that points at another item) — then its items join the one graph with everything else and data-change proposals (POST /api/agent {diff:{add:[{list:'<that array>', …}], update:[{id, …}], remove:[id]}}) apply to that array, so it shows in Knowledge next to the knowledge. Keep PRD, Knowledge, Requests, Evolve and Update as they are.
 Verify with the tests and a look at the page. Then update the PRD so it says what Work now has (POST ${api('/api/prd')} {"md":"…","note":"Built Work","source":"agent"}) and tell me what you built.`;
   post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
     .catch(() => showErr('Request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
@@ -3080,7 +3076,7 @@ document.addEventListener('click', (e) => { if (!e.target.closest('#connPill') &
 /* ================= 채팅 렌더 ================= */
 // 데이터 변경 세부를 사람 말로: 어느 항목(이름)에 무엇이 바뀌는지 — 날것의 JSON을 보이지 않는다
 const FIELD_WORD = { title: 'title', text: 'text', note: 'text', due: 'due date', date: 'date', time: 'time', priority: 'priority', category: 'category', person: 'person' };
-function itemName(id) { const x = [...items, ...events, ...notes].find((y) => String(y.id) === String(id)); return x ? (x.title || noteTitle(x)) : ''; }
+function itemName(id) { const w = workItems.get(String(id)); return w ? noteTitle(w.x) : ''; }
 function changeWords(u) {
   const out = [];
   for (const [k, v] of Object.entries(u)) {
@@ -3091,7 +3087,7 @@ function changeWords(u) {
   return out.join(', ') || 'update';
 }
 function diffRows(diff) {
-  const rows = [], kindOf = (a) => (a.date ? 'event' : a.text !== undefined && !a.due ? 'note' : 'task');
+  const rows = [], kindOf = (a) => (a.list ? String(a.list).replace(/s$/, '') : 'item');   // list = 종류의 배열 이름(quotes → quote)
   (diff.add || []).forEach((a) => rows.push(`<div class="row"><span class="k k-add">Add</span><span>${escapeHtml(`${kindOf(a)} "${a.title || String(a.text || '').split('\n')[0].slice(0, 60) || 'untitled'}"${a.due ? `, due ${a.due}` : a.date ? ` on ${a.date}${a.time ? ' ' + a.time : ''}` : ''}`)}</span></div>`));
   (diff.update || []).forEach((u) => rows.push(`<div class="row"><span class="k k-up">Change</span><span>${escapeHtml(`"${itemName(u.id) || u.id}": ${changeWords(u)}`)}</span></div>`));
   (diff.remove || []).forEach((id) => rows.push(`<div class="row"><span class="k k-rm">Remove</span><span>${escapeHtml(`"${itemName(id) || id}"`)}</span></div>`));

@@ -26,7 +26,7 @@ const { NodeRel, describeNodeRel } = (() => {
 })();
 
 // work-ontology.js는 에이전트가 고친다 — 바뀌면 서버를 다시 띄우지 않아도 다음 읽기에서 새로 읽는다.
-const ONTO_FILE = path.join(__dirname, 'work-ontology.js');
+const ONTO_FILE = process.env.ANA_WORK_ONTOLOGY || path.join(__dirname, 'work-ontology.js');   // 시험은 다른 선언 파일을 쓸 수 있다
 let onto = null, ontoAt = 0, override = null;
 function work() {
   if (override) return override;
@@ -39,9 +39,6 @@ function work() {
 }
 function norm(o) {
   const classes = (o.classes || []).filter((c) => c && /^[A-Za-z][\w]{0,39}$/.test(c.id));
-  // 0.21 전의 선언(list 없음)도 읽는다 — 메모·할일·일정은 원래 배열 이름으로
-  const OLD = { Note: 'notes', Task: 'items', Event: 'events' };
-  for (const c of classes) if (!c.list && OLD[c.id]) c.list = OLD[c.id];
   const relations = (o.relations || []).filter((r) => r && /^[A-Z][A-Z0-9_]{1,39}$/.test(r.id));
   return {
     classes, relations,
@@ -153,15 +150,13 @@ function createGraph({ loadData, loadKnowledge, loadDocs, dataFileOf }) {
   // 종류별 개수와 '흐름이 끊긴 곳'
   function stats(ws) {
     const { db } = ensure(ws), r = rows(db, ws), st = db.stats(ws), W = work();
-    const openOnly = (list) => list.filter((x) => (r.get(x.id) || {}).status === 'open');
+    const openOnly = (list) => list.filter((x) => (r.get(x.id) || {}).status !== 'done');   // 끝난 항목은 끊긴 곳으로 세지 않는다(상태가 없는 종류는 모두 센다)
     const newTypes = [...tally(g(ws).edges.filter((e) => e.newType), 'type')].map(([type, count]) => ({ type, count }));
     return {
       kinds: st.kinds, types: st.types, newLinkTypes: newTypes,
-      gaps: W.byId.has('Note') && W.byId.has('Task') ? {
-        notesUnused: db.orphans({ scope: ws, kind: 'Note', type: 'SPAWNED', side: 'out' }),
-        tasksNoDue: openOnly(db.orphans({ scope: ws, kind: 'Task', type: 'DUE_ON', side: 'out' })),
-        tasksUnscheduled: openOnly(db.orphans({ scope: ws, kind: 'Task', type: 'SCHEDULED_AS', side: 'out' })),
-      } : {},
+      // 흐름이 끊긴 곳 = 선언된 관계마다, 출발 종류의 항목 중 그 관계가 하나도 없는 것(열린 것만) — { DUE_ON: [{id,title}…], … }
+      gaps: Object.fromEntries(W.relations.filter((r) => (r.from || []).length && !r.from.includes('*')).map((r) => [r.id,
+        openOnly(r.from.flatMap((kind) => db.orphans({ scope: ws, kind, type: r.id, side: 'out' }))).slice(0, 50)]).filter(([, v]) => v.length)),
     };
   }
   // Knowledge 탭: 한 온톨로지(종류 · 연결 — 선언과 개수)와 한 그래프(노드 · 연결, Day 제외)

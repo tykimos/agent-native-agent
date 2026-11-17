@@ -5,6 +5,17 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.26.0] — 2026-11-17
+
+### 바뀜 — 베이스의 메모·할일·일정을 쓰던 ANA에는 호환이 깨집니다
+
+- **베이스는 아무 업무 종류도 선언하지 않습니다.** `work-ontology.js`는 비어 있고, `work-graph.json`은 `{version, links: []}`로 시작하며, Knowledge › Ontology와 Graph도 비어서 시작합니다 — Work 화면이 없는 ANA의 그래프는 비어 있는 게 맞습니다. 전에는 베이스가 Note·Task·Event·Day(`SPAWNED`, `SCHEDULED_AS`, `REFERS_TO`, `DUE_ON`, `ON`)를 선언하고, 어느 화면에도 안 나오는 메모·할일·일정을 보관해서 Work는 *비었다*는데 Knowledge는 노드 10개를 세는 일이 있었습니다.
+- **없앤 경로:** `POST /api/note`, `/api/todo`, `/api/todo-remove`, `/api/done`, `/api/event`, `/api/examples`. 새 할일·일정을 출처와 잇던 `from` 지름길도 없어졌습니다 — `POST /api/link`를 쓰세요.
+- **데이터 변경은 선언된 어느 종류에나 적용됩니다.** `diff = {add:[{list:'quotes', …필드}], update:[{id, …}], remove:[id | {id}]}` — `list`는 `work-graph.json`에서 그 종류의 배열 이름(`work-ontology.js`에 선언)이고, `update`·`remove`는 id로 모든 배열에서 찾습니다. 필드는 아무 키(`[A-Za-z_][\w-]*`)에 불리언·유한수·문자열(≤ 20,000자)이나 그 배열(≤ 100개)이며, 중첩 객체는 버립니다. 선언 안 된 종류를 적은 diff는 *unknown list "quotes" — declare its kind in work-ontology.js*로 거절합니다. `/api/agent`·`/api/apply`는 400, 승인 때는 카드에 이유와 *Try again*이 보입니다.
+- **`/api/stats` → `graph.gaps`가 일반화됐습니다.** 고정된 `notesUnused` / `tasksNoDue` / `tasksUnscheduled` 대신, 선언된 관계마다 출발 종류의 항목 중 그 관계가 없는 것(`{ DUE_ON: [{id, title}…], … }`). `all.work` / `mine.work`는 `todos` / `events` / `notes` 대신 선언된 배열마다 개수를 셉니다.
+- **시험은 자기 종류를 선언할 수 있습니다.** `ANA_WORK_ONTOLOGY=<파일>`로 서버에 다른 온톨로지 모듈을 지정합니다(테스트는 Note·Task·Event를 선언한 파일을 씁니다).
+- **이식 메모(ana-update):** 메모·할일·일정을 아직 쓰는 ANA는 자기 `work-ontology.js` 선언과 경로를 그대로 둡니다 — 이 부분은 이식하지 마세요. 에이전트가 보내는 `diff.add`에는 이제 `list`가 있어야 합니다.
+
 ## [0.25.1] — 2026-11-17
 
 ### 고침

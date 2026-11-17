@@ -200,7 +200,7 @@
       "id": "agent-evolve",
       "title": "Evolve (agent → app proposals)",
       "skill": "agent-requests",
-      "summary": "Evolve tab (Waiting · In progress · Done): the agent looks at the work (notes, tasks, events, where the flow breaks) and the usage log (/api/activity), and proposes what to do now and how ANA should change — at three horizons (tidy · improve · reimagine), with the reason, what changes for people and what others do (links). Do it hands the proposal to the agent, which updates the PRD when what the app does changed.",
+      "summary": "Evolve tab (Waiting · In progress · Done): the agent looks at the work (the work items and where the flow breaks) and the usage log (/api/activity), and proposes what to do now and how ANA should change — at three horizons (tidy · improve · reimagine), with the reason, what changes for people and what others do (links). Do it hands the proposal to the agent, which updates the PRD when what the app does changed.",
       "anchors": [
         "/api/evolve",
         "/api/evolve-act",

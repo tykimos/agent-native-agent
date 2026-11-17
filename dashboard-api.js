@@ -170,20 +170,17 @@ function createDashboardApi(core, opts) {
   // ---- 상태 파일 (원자적 + shape 검증) ----
   function loadData(ws) {
     const file = dataFileOf(ws || curWs());
-    const s = readJsonStrict(file, () => ({ version: 1, items: [], events: [], notes: [] }));
-    if (!s || typeof s !== 'object' || Array.isArray(s) || !Array.isArray(s.items))
+    const s = readJsonStrict(file, () => ({ version: 1, links: [] }));
+    if (!s || typeof s !== 'object' || Array.isArray(s))
       throw new Error(`work graph file shape invalid (${file})`);
-    if (!Array.isArray(s.events)) s.events = []; // 일정(달력) — 할일(items)과 별도
-    if (!Array.isArray(s.notes)) s.notes = []; // 메모 — {id, title, text, updatedAt}
     if (!Array.isArray(s.links)) s.links = []; // 명시적 관계 — {from, to, type, at, by} (graph-index.js 참고)
-    for (const l of relgraph.workLists()) if (!Array.isArray(s[l])) s[l] = [];   // work-ontology.js가 선언한 다른 업무 종류의 배열
+    for (const l of relgraph.workLists()) if (!Array.isArray(s[l])) s[l] = [];   // work-ontology.js가 선언한 업무 종류마다 배열 하나(베이스는 없음)
     if (typeof s.version !== 'number' || !Number.isFinite(s.version)) s.version = 1;
     return s;
   }
   const clip = (v, n) => String(v == null ? '' : v).slice(0, n);
   const newId = (p) => p + Date.now().toString(36) + crypto.randomBytes(2).toString('hex');
   const CLIENT_EVENTS = { 'tab.view': /^[a-z]{2,20}(\.[a-z]{2,20})?$/ };
-  const isExample = (x) => /^[nae]-ex-/.test(String((x && x.id) || ''));   // 예전 판(seed.js)이 넣은 예제 id
   const saveData = (s, ws) => { relgraph.pruneLinks(s); writeJsonAtomic(dataFileOf(ws || curWs()), s); };
   // 업무 항목(work-graph.json)·지식(knowledge.json)·문서를 한 그래프로 — NodeRel 색인(graph-index.sqlite), 원천이 바뀌면 다음 읽기에 다시 만든다.
   const graph = relgraph.createGraph({ loadData, dataFileOf, loadKnowledge: () => loadKnowledge(), loadDocs: () => loadDocs() });
@@ -347,51 +344,44 @@ function createDashboardApi(core, opts) {
   function bootstrap(feed) { _feedRef = feed; }
 
   // ---- diff 검증·적용 ----
-  const ITEM_FIELDS = new Set(['title', 'text', 'done', 'due', 'priority', 'category', 'sender', 'note', 'time', 'day', 'person']);
-  const MAX_DIFF_ITEMS = 500;
+  // diff는 work-ontology.js가 선언한 종류의 배열(list)에 적용된다: add는 list가 필요하고, update·remove는 id로 모든 배열에서 찾는다
+  const MAX_DIFF_ITEMS = 500, FIELD_KEY = /^[A-Za-z_][\w-]{0,39}$/;
   function validateDiff(diff) {
     if (!diff || typeof diff !== 'object' || Array.isArray(diff)) return 'diff must be an object';
     for (const k of ['add', 'update', 'remove']) if (k in diff && !Array.isArray(diff[k])) return `diff.${k} must be an array`;
     const total = (diff.add || []).length + (diff.update || []).length + (diff.remove || []).length;
     if (total > MAX_DIFF_ITEMS) return `too many diff items (>${MAX_DIFF_ITEMS})`;
-    for (const a of diff.add || []) if (a === null || typeof a !== 'object' || Array.isArray(a)) return 'diff.add items must be objects';
+    for (const a of diff.add || []) {
+      if (a === null || typeof a !== 'object' || Array.isArray(a)) return 'diff.add items must be objects';
+      if (typeof a.list !== 'string' || !FIELD_KEY.test(a.list)) return 'diff.add items need list — the work-graph.json array of their kind (declared in work-ontology.js)';
+    }
     for (const u of diff.update || []) if (!u || typeof u !== 'object' || Array.isArray(u) || typeof u.id === 'undefined') return 'diff.update items must be objects with id';
-    for (const r of diff.remove || []) if (typeof r !== 'string' && typeof r !== 'number') return 'diff.remove items must be id (string|number)';
+    for (const r of diff.remove || []) if (typeof r !== 'string' && typeof r !== 'number' && !(r && typeof r === 'object' && typeof r.id !== 'undefined')) return 'diff.remove items must be an id (string|number) or {id}';
     return null;
   }
   const hasDiff = (d) => !!d && !!((Array.isArray(d.add) && d.add.length) || (Array.isArray(d.update) && d.update.length) || (Array.isArray(d.remove) && d.remove.length));
-  // 필드별 상한 — 수동 라우트(/api/todo 등)의 캡과 맞춘다. done은 불리언, 나머지는 문자열로 강제 후 절단.
-  const FIELD_MAX = { title: 200, text: 20000, note: 20000, due: 40, priority: 20, category: 40, sender: 80, time: 40, day: 40, person: 80 };
-  // 문자열로 안전 변환: 객체·배열은 버리고(빈 문자열), 원시값만 String화해 캡을 적용한다.
-  const coerceField = (k, v) => {
-    if (k === 'done') return !!v;
-    if (v === null || v === undefined) return '';
-    if (typeof v === 'object') return '';                 // {a:1} 같은 값이 워크 그래프 파일에 저장되지 않도록
-    return String(v).slice(0, FIELD_MAX[k] || 200);
-  };
+  // 값은 원시값(불리언·유한수·문자열 ≤ 20000자)이나 그 배열(≤ 100개)만 — 중첩 객체는 버린다(빈 문자열). id·list는 필드가 아니다.
+  const FIELD_MAX = 20000, LIST_MAX = 100;
+  const scalar = (v) => (typeof v === 'boolean' ? v : typeof v === 'number' && Number.isFinite(v) ? v : v === null || v === undefined || typeof v === 'object' ? '' : String(v).slice(0, FIELD_MAX));
+  const coerceField = (k, v) => (Array.isArray(v) ? v.slice(0, LIST_MAX).map(scalar) : scalar(v));
   function assignFields(target, src) {
     for (const k of Object.keys(src)) {
-      if (k === 'id') continue;
-      if (ITEM_FIELDS.has(k)) target[k] = coerceField(k, src[k]);
+      if (k === 'id' || k === 'list' || !FIELD_KEY.test(k)) continue;
+      target[k] = coerceField(k, src[k]);
     }
   }
   // 방어적 적용: caller id 무시(QA-M5), 키 화이트리스트(QA-m3), done 불리언, 실제 변경 0이면 version 미증가(QA-m2)
   function applyDiff(diff, ws) {
-    const s = loadData(ws);
+    const s = loadData(ws), lists = relgraph.workLists();
+    for (const a of diff.add || []) if (!lists.includes(a.list)) throw new Error(`unknown list "${a.list}" — declare its kind in work-ontology.js (declared: ${lists.join(', ') || 'none'})`);
     const summary = { added: 0, updated: 0, removed: 0 };
-    (diff.remove || []).forEach((id) => { const b = s.items.length; s.items = s.items.filter((it) => it.id !== id); if (s.items.length < b) summary.removed++; });
-    (diff.update || []).forEach((u) => { const it = s.items.find((x) => x.id === u.id); if (it) { assignFields(it, u); summary.updated++; } });
-    (diff.add || []).forEach((a) => { const it = { id: 'a' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex'), done: false }; assignFields(it, a); s.items.push(it); summary.added++; });
+    const where = (id) => { for (const l of lists) { const i = (s[l] || []).findIndex((x) => x && x.id === id); if (i >= 0) return [l, i]; } return null; };
+    (diff.remove || []).forEach((r) => { const w = where(typeof r === 'object' ? r.id : r); if (w) { s[w[0]].splice(w[1], 1); summary.removed++; } });
+    (diff.update || []).forEach((u) => { const w = where(u.id); if (w) { assignFields(s[w[0]][w[1]], u); summary.updated++; } });
+    (diff.add || []).forEach((a) => { const it = { id: 'a' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex') }; assignFields(it, a); s[a.list].push(it); summary.added++; });
     const changed = summary.added || summary.updated || summary.removed;
     if (changed) { s.version = (s.version || 1) + 1; saveData(s, ws); }
     return { summary, version: s.version, changed };
-  }
-  // 새 항목을 만들면서 출처와 잇는다. from이 없으면 아무것도 안 한다. 오류면 문자열(저장 전이라 되돌릴 것도 없다).
-  function linkFrom(s, from, to, typeByKind) {
-    if (from === undefined || from === null || from === '') return null;
-    const type = typeByKind[relgraph.kindOf(s, String(from))];
-    if (!type) return `from must be a ${Object.keys(typeByKind).join(' or ')} id`;
-    return relgraph.addLink(s, { from: String(from), to, type });
   }
   const dataVersion = (ws) => { try { return loadData(ws).version || 1; } catch { return 1; } };
 
@@ -585,19 +575,15 @@ function createDashboardApi(core, opts) {
       }
       let s4 = null; try { s4 = loadData(); } catch {}
       let g4 = null; try { g4 = graph.stats(curWs()); } catch (e) { g4 = { error: e.message }; }
-      const mineCount = (arr) => (arr || []).filter((x) => x.by === me).length;
+      // 업무 항목 수는 선언된 종류(배열)마다 — { quotes: 12, leads: 3 }
+      const counts = (pick) => Object.fromEntries(relgraph.workLists().map((l) => [l, ((s4 && s4[l]) || []).filter(pick).length]));
       return sendJson(res, 200, {
         me,
-        mine: me ? {
-          ...(per[me] || { total: 0, today: 0, actions: {} }),
-          todos: mineCount(s4 && s4.items),
-          events: mineCount(s4 && s4.events), notes: mineCount(s4 && s4.notes),
-        } : null,
+        mine: me ? { ...(per[me] || { total: 0, today: 0, actions: {} }), work: counts((x) => x && x.by === me) } : null,
         all: {
           total: log.length, actions, days,
           people: Object.values(per).sort((a, b) => b.total - a.total),
-          todos: (s4 && s4.items || []).length,
-          events: (s4 && s4.events || []).length, notes: (s4 && s4.notes || []).length,
+          work: counts(() => true),
         },
         graph: g4,
       }), true;
@@ -625,22 +611,6 @@ function createDashboardApi(core, opts) {
       return sendJson(res, 200, usageCache.get(key).data), true;
     }
 
-    // 예제 정리: 예전 판이 첫 실행에 넣은 예제(id가 n-/a-/e-ex-로 시작)를 지우거나(clear) 그대로 두기로(keep) 한다
-    if (p === '/api/examples' && req.method === 'POST') {
-      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
-      const body = await jsonBody(req, res); if (!body) return true;
-      let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
-      if (body.action === 'keep') s.examplesKept = true;
-      else if (body.action === 'clear') {
-        const before = s.items.length + s.events.length + s.notes.length;
-        s.items = s.items.filter((x) => !isExample(x)); s.events = s.events.filter((x) => !isExample(x)); s.notes = s.notes.filter((x) => !isExample(x));
-        audit(actor(req), 'examples.clear', `${before - s.items.length - s.events.length - s.notes.length} items`);
-        try { require('node:fs').writeFileSync(path.join(path.dirname(dataFileOf(curWs())), '.seeded'), new Date().toISOString() + '\n'); } catch {}   // 예전에 넣은 예제도 다시 생기지 않게
-      } else return sendJson(res, 400, { error: 'action must be clear|keep' }), true;
-      s.version = (s.version || 1) + 1; saveData(s);   // saveData가 끝점이 사라진 관계도 걷어 낸다
-      broadcast({ kind: 'data', version: s.version });
-      return sendJson(res, 200, { ok: true, version: s.version }), true;
-    }
     if (p === '/api/state' && req.method === 'GET') {
       let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
       const ps = loadProposals();
@@ -792,7 +762,7 @@ function createDashboardApi(core, opts) {
           pr.status = 'failed'; pr.failReason = String(e.message || e).replace(/'\/[^']*\/([^'/]+)'/g, "'$1'").replace(/(^|\s)\/\S*\/([^\s/]+)/g, '$1$2').slice(0, 300);   // 긴 절대 경로는 파일 이름만
           pr.decidedAt = new Date().toISOString(); saveProposals(ps);
           broadcast({ kind: 'proposal', proposal: pr });
-          return sendJson(res, 500, { error: 'apply failed', detail: e.message }), true;
+          return sendJson(res, /unknown list/.test(e.message) ? 400 : 500, { error: 'apply failed', detail: e.message }), true;   // 선언 안 된 종류는 요청 쪽 잘못(400)
         }
         pr.status = 'applied'; pr.failReason = ''; pr.decidedAt = new Date().toISOString(); saveProposals(ps);
         const entry = commit({ role: 'system', text: `Changes applied — ${[[result.summary.added, 'added'], [result.summary.updated, 'changed'], [result.summary.removed, 'removed']].filter(([n]) => n).map(([n, w]) => `${n} ${w}`).join(', ') || 'nothing changed'}`, src: 'api' });
@@ -820,123 +790,9 @@ function createDashboardApi(core, opts) {
       if (!hasDiff(body.diff)) return sendJson(res, 400, { error: 'diff required' }), true;
       const err = validateDiff(body.diff);
       if (err) return sendJson(res, 400, { error: err }), true;
-      let result; try { result = applyDiff(body.diff); } catch (e) { return sendJson(res, 500, { error: 'apply failed', detail: e.message }), true; }
+      let result; try { result = applyDiff(body.diff); } catch (e) { const known = /unknown list/.test(e.message); return sendJson(res, known ? 400 : 500, { error: known ? e.message : 'apply failed', detail: e.message }), true; }
       if (result.changed) broadcast({ kind: 'data', version: result.version });
       return sendJson(res, 200, { ok: true, version: result.version, changed: !!result.changed, summary: result.summary }), true;
-    }
-
-    // 완료 토글 — 서버 저장(다기기 공유)
-    if (p === '/api/done' && req.method === 'POST') {
-      // 완료 토글은 소유자 제한 없이 허용하되(팀 작업), 누가 눌렀는지는 남긴다.
-      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
-      const body = await jsonBody(req, res); if (!body) return true;
-      let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
-      const it = s.items.find((x) => x.id === body.id);
-      if (!it) return sendJson(res, 404, { error: 'not found' }), true;
-      it.done = !!body.done;
-      touchUser(actor(req)); audit(actor(req), it.done ? 'todo.done' : 'todo.undone', String(it.title).slice(0, 80));
-      s.version = (s.version || 1) + 1; saveData(s);
-      broadcast({ kind: 'data', version: s.version });
-      return sendJson(res, 200, { ok: true, version: s.version, id: body.id, done: it.done }), true;
-    }
-
-    // 일정(달력) CRUD — {action:'add'|'remove'|'done', ...}
-    if (p === '/api/event' && req.method === 'POST') {
-      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
-      const body = await jsonBody(req, res); if (!body) return true;
-      let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
-      let createdId;
-      if (body.action === 'add') {
-        const title = String(body.title || '').trim();
-        const date = String(body.date || '').trim();
-        if (!title) return sendJson(res, 400, { error: 'title required' }), true;
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return sendJson(res, 400, { error: 'date must be YYYY-MM-DD' }), true;
-        const time = String(body.time || '').trim();
-        if (time && !/^\d{2}:\d{2}$/.test(time)) return sendJson(res, 400, { error: 'time must be HH:MM' }), true;
-        const ev = { id: newId('e'), title: title.slice(0, 200), date, time, done: false, by: actor(req) };
-        s.events.push(ev);
-        // from: 메모면 SPAWNED(메모에서 나온 일정), 할일이면 SCHEDULED_AS(그 할일을 할 시간)
-        const err = linkFrom(s, body.from, ev.id, { Note: 'SPAWNED', Task: 'SCHEDULED_AS' });
-        if (err) return sendJson(res, 400, { error: err }), true;
-        audit(actor(req), 'event.add', title.slice(0, 80));
-        createdId = ev.id;
-      } else if (body.action === 'remove') {
-        const ev = s.events.find((e) => e.id === body.id);
-        if (!ev) return sendJson(res, 404, { error: 'not found' }), true;
-        if (!owns(ev, actor(req))) return sendJson(res, 403, { error: 'Only the author can delete this' }), true;
-        s.events = s.events.filter((e) => e.id !== body.id);
-        audit(actor(req), 'event.remove', String(ev.title).slice(0, 80));
-      } else if (body.action === 'done') {
-        const e = s.events.find((x) => x.id === body.id);
-        if (!e) return sendJson(res, 404, { error: 'not found' }), true;
-        e.done = !!body.done;
-      } else return sendJson(res, 400, { error: 'action must be add|remove|done' }), true;
-      s.version = (s.version || 1) + 1; saveData(s);
-      broadcast({ kind: 'data', version: s.version });
-      return sendJson(res, 200, { ok: true, version: s.version, id: createdId }), true;
-    }
-
-    // 할일 수동 추가 — {title, due?}
-    if (p === '/api/todo' && req.method === 'POST') {
-      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
-      const body = await jsonBody(req, res); if (!body) return true;
-      const title = String(body.title || '').trim();
-      if (!title) return sendJson(res, 400, { error: 'title required' }), true;
-      let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
-      const it = { id: newId('a'), title: title.slice(0, 200), done: false, by: actor(req) };
-      if (body.due && /^\d{4}-\d{2}-\d{2}$/.test(String(body.due))) it.due = String(body.due);
-      s.items.push(it);
-      const err = linkFrom(s, body.from, it.id, { Note: 'SPAWNED' });   // from: 이 할일이 나온 메모
-      if (err) return sendJson(res, 400, { error: err }), true;
-      touchUser(actor(req)); audit(actor(req), 'todo.add', title.slice(0, 80));
-      s.version = (s.version || 1) + 1; saveData(s);
-      broadcast({ kind: 'data', version: s.version });
-      return sendJson(res, 200, { ok: true, version: s.version, id: it.id }), true;
-    }
-
-    // 워크 항목의 하위 종류 — {id, type}. Ticket ⊂ Task처럼 지식 종류가 워크 종류의 하위 종류일 때 그 항목에 붙인다.
-    // 앱은 그대로 Task로 다루고, 지식 쪽은 Ticket으로 읽는다(코드 수정 없는 확장). type ''이면 뗀다.
-    if (p === '/api/todo-remove' && req.method === 'POST') {
-      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
-      const body = await jsonBody(req, res); if (!body) return true;
-      let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
-      const it = s.items.find((x) => x.id === body.id);
-      if (!it) return sendJson(res, 404, { error: 'not found' }), true;
-      if (!owns(it, actor(req))) return sendJson(res, 403, { error: 'Only the author can delete this' }), true;
-      s.items = s.items.filter((x) => x.id !== body.id);
-      audit(actor(req), 'todo.remove', String(it.title).slice(0, 80));
-      s.version = (s.version || 1) + 1; saveData(s);
-      broadcast({ kind: 'data', version: s.version });
-      return sendJson(res, 200, { ok: true, version: s.version }), true;
-    }
-
-    // 메모 CRUD — {action:'add'|'update'|'remove', ...}
-    if (p === '/api/note' && req.method === 'POST') {
-      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
-      const body = await jsonBody(req, res); if (!body) return true;
-      let s; try { s = loadData(); } catch (e) { return sendJson(res, 500, { error: 'state file corrupt', detail: e.message }), true; }
-      let noteId;
-      if (body.action === 'add') {
-        const n = { id: newId('n'), title: String(body.title || '').slice(0, 200), text: String(body.text || '').slice(0, 20000), by: actor(req), updatedAt: new Date().toISOString() };
-        s.notes.push(n); noteId = n.id;
-        touchUser(actor(req)); audit(actor(req), 'note.add', n.title.slice(0, 80) || '(untitled)');
-      } else if (body.action === 'update') {
-        const n = s.notes.find((x) => x.id === body.id);
-        if (!n) return sendJson(res, 404, { error: 'not found' }), true;
-        if (!owns(n, actor(req))) return sendJson(res, 403, { error: 'Only the author can edit this' }), true;
-        if (body.title !== undefined) n.title = String(body.title).slice(0, 200);
-        if (body.text !== undefined) n.text = String(body.text).slice(0, 20000);
-        n.updatedAt = new Date().toISOString(); noteId = n.id;
-      } else if (body.action === 'remove') {
-        const n = s.notes.find((x) => x.id === body.id);
-        if (!n) return sendJson(res, 404, { error: 'not found' }), true;
-        if (!owns(n, actor(req))) return sendJson(res, 403, { error: 'Only the author can delete this' }), true;
-        s.notes = s.notes.filter((x) => x.id !== body.id);
-        audit(actor(req), 'note.remove', String(n.title).slice(0, 80) || '(untitled)');
-      } else return sendJson(res, 400, { error: 'action must be add|update|remove' }), true;
-      s.version = (s.version || 1) + 1; saveData(s);
-      broadcast({ kind: 'data', version: s.version });
-      return sendJson(res, 200, { ok: true, version: s.version, id: noteId }), true;
     }
 
     // 에이전트가 답에 넣은 그림 파일 — ![…](/절대/경로.png). 그림 확장자만, 그 팬의 작업 폴더나 그 폴더의 Claude 스크래치패드

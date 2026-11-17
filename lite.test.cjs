@@ -65,7 +65,7 @@ test('Inbox items speak plainly: why / ask / effect / ifNot are kept on requests
   await post('/api/requests', { requests: [{ kind: 'approval', title: 'Send the quote to Acme', ...plain }] });
   const rq = (await (await fetch(api + '/api/requests')).json()).requests.find((x) => x.title === 'Send the quote to Acme');
   for (const k of Object.keys(plain)) assert.equal(rq[k], plain[k], `request.${k}`);
-  const pr = await (await post('/api/agent', { text: 'Add a follow-up task', diff: { add: [{ title: 'Call Acme' }] }, why: 'The call passed before the quote', effect: 'A new task to call Acme' })).json();
+  const pr = await (await post('/api/agent', { text: 'Add a follow-up task', diff: { add: [{ list: 'tasks', title: 'Call Acme' }] }, why: 'The call passed before the quote', effect: 'A new task to call Acme' })).json();
   const st = await (await fetch(api + '/api/state')).json();
   const p0 = (st.proposals || []).find((x) => x.id === pr.pid);
   assert.equal(p0.why, 'The call passed before the quote'); assert.equal(p0.effect, 'A new task to call Acme');
@@ -124,9 +124,12 @@ test('A new ANA starts with no PRD, no work and no knowledge — the first conve
   t.after(stop);
   assert.equal((await (await fetch(api + '/api/prd')).json()).current, null, 'no PRD');
   const st = await (await fetch(api + '/api/state')).json();
-  assert.deepEqual([st.items.length, st.events.length, st.notes.length], [0, 0, 0], 'no example work');
+  const lists = Object.entries(st).filter(([k, v]) => Array.isArray(v) && !['links', 'proposals'].includes(k));
+  assert.deepEqual(lists, [], 'the base declares no kind of work — work-graph.json has no item arrays');
+  assert.deepEqual(st.links, [], 'no links');
   const k = await (await fetch(api + '/api/knowledge')).json();
   assert.equal(k.classes.length + k.entities.length, 0, 'knowledge empty');
+  assert.deepEqual([k.graph.kinds.length, k.graph.nodes.length, k.graph.edges.length], [0, 0, 0], 'the one graph starts empty — no Note/Task/Event kinds in the base');
   assert.ok(require('node:fs').readFileSync(path.join(__dirname, 'prd-template.md'), 'utf8').includes('## Sketches'), 'the template the agent writes from');
 });
 

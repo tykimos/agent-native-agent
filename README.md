@@ -254,7 +254,7 @@ links   made by people and the agent (work-graph.json links[]) · computed from 
         facts (knowledge.json, an end may be a work item) · MENTIONED_IN (a thing appears in an item or document)
 ```
 
-- **Kinds grow with the app.** The base declares notes, tasks and events (`SPAWNED`, `SCHEDULED_AS`, `REFERS_TO`, and `DUE_ON` / `ON` days computed from dates). When the agent builds a new kind of work, such as quotes, it keeps the items in `work-graph.json` (`quotes: […]`) and declares the kind in `work-ontology.js`. A field that points at another item becomes a link: `{ id: 'QUOTE_FOR', from: ['Quote'], to: ['Lead'], made: 'derived', field: 'Quote.lead' }`. Edits to `work-ontology.js` are picked up without a restart. Things and facts the agent learns from the work are added to `knowledge.json`.
+- **Kinds grow with the app.** The base declares none — an ANA with no Work screen has an empty graph. When the agent builds a kind of work, such as quotes, it keeps the items in `work-graph.json` (`quotes: […]`) and declares the kind in `work-ontology.js`. A field that points at another item becomes a link: `{ id: 'QUOTE_FOR', from: ['Quote'], to: ['Lead'], made: 'derived', field: 'Quote.lead' }`. Edits to `work-ontology.js` are picked up without a restart. Things and facts the agent learns from the work are added to `knowledge.json`.
 - **Knowledge › Ontology** is one list of kinds and one list of relations, with counts and where each is declared. **Knowledge › Graph** draws every node and link in one picture.
 
 | Endpoint | Purpose |
@@ -263,12 +263,12 @@ links   made by people and the agent (work-graph.json links[]) · computed from 
 | `GET /api/graph/neighbors?id=` · `GET /api/graph/trace?id=&depth=&direction=&types=` | what one node touches / everything reachable, through any kind of link (things are `kg:<id>`) |
 | `GET /api/graph/schema` | node kinds and link vocabulary with meanings and counts, and the shape NodeRel observed. Hand it to the agent |
 | `POST /api/link {action:'add'\|'remove', from, to, type}` | add / remove a link between work items (a new `UPPER_SNAKE` kind is kept and shown as new) |
-| `POST /api/todo {title, due?, from?}` · `POST /api/event {action:'add', …, from?}` | create a task or event and link it to its source in one call |
+| `POST /api/apply {diff}` · `POST /api/agent {text, diff, why, effect}` | change work items directly / through a card the person approves. `diff = {add:[{list:'quotes', …}], update:[{id, …}], remove:[id]}` — `list` is the array of that kind in `work-graph.json` |
 | `GET /api/state` → `graph.links` · `GET /api/stats` → `graph` | the work links / counts and where the flow breaks (`gaps`) |
 
 ### Requests, Evolve and PRD — the API
 
-*Ask the agent* has it fill the list. The agent registers items with `POST /api/requests {requests:[{kind, title, why, ask, effect, ifNot, options?, ref?}]}` (`ref` = a task/event/note id shown as a link) and data changes with `POST /api/agent {text, diff, why, effect}`. Your answer goes straight to the agent in chat. *Resolved* / *Not now* notify it (`POST /api/request-act {id, action: answer|done|dismiss|reopen}`). Evolve proposals come in through `POST /api/evolve` and are handled with `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen}`. Documents are `GET /api/documents`, `POST /api/documents {name, type, data (base64), note?}` or `{action:'remove', id}`, and `GET /api/documents/<id>/file`. Knowledge is `GET /api/knowledge` and `POST /api/knowledge {classes?, relations?, entities?, facts?}` (same id = update) or `{action:'remove', kind, id}`. The PRD is `GET /api/prd` (current + history) and `POST /api/prd {md, note, source}` (a new version) or `{action:'restore', v}`. Updates: `GET /api/updates`, `POST /api/update/check`, `POST /api/update-act {id, action}`.
+*Ask the agent* has it fill the list. The agent registers items with `POST /api/requests {requests:[{kind, title, why, ask, effect, ifNot, options?, ref?}]}` (`ref` = a work item id shown as a link) and data changes with `POST /api/agent {text, diff, why, effect}`. Your answer goes straight to the agent in chat. *Resolved* / *Not now* notify it (`POST /api/request-act {id, action: answer|done|dismiss|reopen}`). Evolve proposals come in through `POST /api/evolve` and are handled with `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen}`. Documents are `GET /api/documents`, `POST /api/documents {name, type, data (base64), note?}` or `{action:'remove', id}`, and `GET /api/documents/<id>/file`. Knowledge is `GET /api/knowledge` and `POST /api/knowledge {classes?, relations?, entities?, facts?}` (same id = update) or `{action:'remove', kind, id}`. The PRD is `GET /api/prd` (current + history) and `POST /api/prd {md, note, source}` (a new version) or `{action:'restore', v}`. Updates: `GET /api/updates`, `POST /api/update/check`, `POST /api/update-act {id, action}`.
 
 ### Sharing it with other people (optional)
 
@@ -356,7 +356,7 @@ node skills/ana-update/scripts/ana-diff.mjs --target ~/ana/my-ana --record   # a
 ```
 channel-core.js     ★ the whole ANA runtime — tmux inject / capture-pane mirror / per-session ledgers (0 deps)
 server.js             base app: mounts channel-core + dashboard-api, serves dashboard.html
-dashboard-api.js      base API: tasks · events · notes · links · knowledge · requests · approvals · evolve · PRD · updates
+dashboard-api.js      base API: work items (kinds declared in work-ontology.js) · links · knowledge · requests · approvals · evolve · PRD · updates
 dashboard.html        reference UI: PRD · Work · Knowledge · Requests · Evolve · Update, Claude-app chat, Chip mode + drawing, relation chips
 agent-log.js          chat from the agent's own JSONL log (Claude Code + Codex): replies, tools, model, limits
 codex-settings.js     Codex model/effort catalog and switching through Codex's own menu

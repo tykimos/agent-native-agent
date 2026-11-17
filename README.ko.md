@@ -200,7 +200,7 @@ Requests와 Evolve의 카드는 같은 질문에 사람 말로 답합니다 — 
   <img src="docs/assets/tabs/tab-knowledge-light.webp" alt="Knowledge tab" />
 </picture>
 
-**이 ANA의 모든 것을 그래프 하나로.** *Ontology*는 종류 한 목록(앱이 저장하는 할일·메모·일정과 일이 다루는 고객·프로젝트 종류)과 관계 한 목록을 개수와 함께 보입니다. *Graph*는 모든 항목·개체·문서와 그 사이의 모든 연결을 그리고, 사람과 에이전트가 만든 연결을 목록으로 보입니다. *Documents*에는 에이전트가 읽어야 할 파일(명세서, 가격표, 파일당 25MB까지)을 올립니다. *Ask the agent*를 누르면 에이전트가 업무를 읽고 채우며, 틀린 것은 사람이 지웁니다.
+**이 ANA의 모든 것을 그래프 하나로.** *Ontology*는 종류 한 목록(앱이 저장하는 업무 항목의 종류와 일이 다루는 고객·프로젝트 종류)과 관계 한 목록을 개수와 함께 보입니다. *Graph*는 모든 항목·개체·문서와 그 사이의 모든 연결을 그리고, 사람과 에이전트가 만든 연결을 목록으로 보입니다. *Documents*에는 에이전트가 읽어야 할 파일(명세서, 가격표, 파일당 25MB까지)을 올립니다. *Ask the agent*를 누르면 에이전트가 업무를 읽고 채우며, 틀린 것은 사람이 지웁니다.
 
 #### Requests
 
@@ -254,7 +254,7 @@ Requests와 Evolve의 카드는 같은 질문에 사람 말로 답합니다 — 
        사실(knowledge.json, 끝이 업무 항목일 수도 있음) · MENTIONED_IN(개체가 항목이나 문서에 나옴)
 ```
 
-- **종류는 앱과 함께 늘어납니다.** base에는 메모, 할일, 일정이 선언되어 있습니다(`SPAWNED`, `SCHEDULED_AS`, `REFERS_TO`, 그리고 날짜에서 계산하는 `DUE_ON` / `ON`). 에이전트가 견적 같은 새 업무를 만들면 그 항목을 `work-graph.json`(`quotes: […]`)에 두고 `work-ontology.js`에 종류를 선언합니다. 다른 항목을 가리키는 필드는 연결이 됩니다: `{ id: 'QUOTE_FOR', from: ['Quote'], to: ['Lead'], made: 'derived', field: 'Quote.lead' }`. `work-ontology.js`를 고치면 서버를 다시 띄우지 않아도 반영됩니다. 에이전트가 일에서 알아낸 개체와 사실은 `knowledge.json`에 더해집니다.
+- **종류는 앱과 함께 늘어납니다.** base는 아무 종류도 선언하지 않습니다 — Work 화면이 없는 ANA의 그래프는 비어 있습니다. 에이전트가 견적 같은 업무를 만들면 그 항목을 `work-graph.json`(`quotes: […]`)에 두고 `work-ontology.js`에 종류를 선언합니다. 다른 항목을 가리키는 필드는 연결이 됩니다: `{ id: 'QUOTE_FOR', from: ['Quote'], to: ['Lead'], made: 'derived', field: 'Quote.lead' }`. `work-ontology.js`를 고치면 서버를 다시 띄우지 않아도 반영됩니다. 에이전트가 일에서 알아낸 개체와 사실은 `knowledge.json`에 더해집니다.
 - **Knowledge › Ontology**는 종류 한 목록과 관계 한 목록을 개수, 선언된 곳과 함께 보입니다. **Knowledge › Graph**는 모든 노드와 연결을 한 그림에 그립니다.
 
 | 엔드포인트 | 용도 |
@@ -263,12 +263,12 @@ Requests와 Evolve의 카드는 같은 질문에 사람 말로 답합니다 — 
 | `GET /api/graph/neighbors?id=` · `GET /api/graph/trace?id=&depth=&direction=&types=` | 한 노드에 이어진 것 / 어느 연결로든 닿는 모든 것(개체는 `kg:<id>`) |
 | `GET /api/graph/schema` | 노드 종류, 연결 어휘와 뜻·개수, NodeRel이 관찰한 모양. 에이전트에게 주세요 |
 | `POST /api/link {action:'add'\|'remove', from, to, type}` | 업무 항목 사이 연결 추가·삭제(새 `UPPER_SNAKE` 종류도 남기고 new로 보임) |
-| `POST /api/todo {title, due?, from?}` · `POST /api/event {action:'add', …, from?}` | 할일·일정을 만들면서 출처와 바로 연결 |
+| `POST /api/apply {diff}` · `POST /api/agent {text, diff, why, effect}` | 업무 항목을 바로 바꾸기 / 사람이 승인하는 카드로 바꾸기. `diff = {add:[{list:'quotes', …}], update:[{id, …}], remove:[id]}` — `list`는 `work-graph.json`에서 그 종류의 배열 이름 |
 | `GET /api/state` → `graph.links` · `GET /api/stats` → `graph` | 업무 연결 / 개수와 흐름이 끊긴 곳(`gaps`) |
 
 ### Requests, Evolve, PRD — API
 
-*Ask the agent*를 누르면 에이전트가 목록을 채웁니다. 에이전트는 `POST /api/requests {requests:[{kind, title, why, ask, effect, ifNot, options?, ref?}]}`로 항목을 올리고(`ref` = 링크로 보일 할일·일정·메모 id), 데이터 변경은 `POST /api/agent {text, diff, why, effect}`로 올립니다. 내 답은 채팅으로 바로 에이전트에게 갑니다. *Resolved* / *Not now*도 알려 줍니다(`POST /api/request-act {id, action: answer|done|dismiss|reopen}`). Evolve 제안은 `POST /api/evolve`로 들어오고 `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen}`로 처리합니다. 문서는 `GET /api/documents`, `POST /api/documents {name, type, data(base64), note?}` 또는 `{action:'remove', id}`, `GET /api/documents/<id>/file`입니다. Knowledge는 `GET /api/knowledge`와 `POST /api/knowledge {classes?, relations?, entities?, facts?}`(같은 id는 고침) 또는 `{action:'remove', kind, id}`입니다. PRD는 `GET /api/prd`(지금 판 + 이력)와 `POST /api/prd {md, note, source}`(새 판) 또는 `{action:'restore', v}`입니다. 업데이트는 `GET /api/updates`, `POST /api/update/check`, `POST /api/update-act {id, action}`입니다.
+*Ask the agent*를 누르면 에이전트가 목록을 채웁니다. 에이전트는 `POST /api/requests {requests:[{kind, title, why, ask, effect, ifNot, options?, ref?}]}`로 항목을 올리고(`ref` = 링크로 보일 업무 항목 id), 데이터 변경은 `POST /api/agent {text, diff, why, effect}`로 올립니다. 내 답은 채팅으로 바로 에이전트에게 갑니다. *Resolved* / *Not now*도 알려 줍니다(`POST /api/request-act {id, action: answer|done|dismiss|reopen}`). Evolve 제안은 `POST /api/evolve`로 들어오고 `POST /api/evolve-act {id, action: do|done|fail|ignore|reopen}`로 처리합니다. 문서는 `GET /api/documents`, `POST /api/documents {name, type, data(base64), note?}` 또는 `{action:'remove', id}`, `GET /api/documents/<id>/file`입니다. Knowledge는 `GET /api/knowledge`와 `POST /api/knowledge {classes?, relations?, entities?, facts?}`(같은 id는 고침) 또는 `{action:'remove', kind, id}`입니다. PRD는 `GET /api/prd`(지금 판 + 이력)와 `POST /api/prd {md, note, source}`(새 판) 또는 `{action:'restore', v}`입니다. 업데이트는 `GET /api/updates`, `POST /api/update/check`, `POST /api/update-act {id, action}`입니다.
 
 ### 여러 사람과 함께 쓰기 (선택)
 
@@ -356,7 +356,7 @@ node skills/ana-update/scripts/ana-diff.mjs --target ~/ana/my-ana --record   # �
 ```
 channel-core.js     ★ ANA 런타임 전부 — tmux 주입 / capture-pane 미러 / 세션별 원장 (의존성 0)
 server.js             베이스 앱: channel-core + dashboard-api 마운트, dashboard.html 제공
-dashboard-api.js      베이스 API: 할일 · 일정 · 메모 · 관계 · 지식 · 요청 · 승인 · 진화 · PRD · 업데이트
+dashboard-api.js      베이스 API: 업무 항목(종류는 work-ontology.js에 선언) · 관계 · 지식 · 요청 · 승인 · 진화 · PRD · 업데이트
 dashboard.html        레퍼런스 UI: PRD · Work · Knowledge · Requests · Evolve · Update, Claude 앱 같은 채팅, 칩 모드 + 그리기, 관계 칩
 agent-log.js          에이전트 자체 JSONL 기록으로 채팅 표시(Claude Code + Codex): 응답·도구·모델·한도
 codex-settings.js     Codex 모델·추론 강도 목록, Codex 자체 메뉴로 전환
