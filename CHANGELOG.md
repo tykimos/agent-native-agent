@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.27.1] — 2026-11-17
+
+### Fixed
+
+- **A drawn screenshot shows a scrolled iframe where you scrolled it.** The capture library pastes the whole framed document in place of the frame, so a Work screen with an iframe (an embedded viewer, a form) came out at the frame's top, under your pen marks. Each visible same-origin iframe is now captured on its own at its scroll position and drawn into its place (border kept); cross-origin frames stay as a blank box. Inner scrolling boxes (`overflow: auto`) were already right since 0.25.0.
+
 ## [0.27.0] — 2026-11-17
 
 ### Added

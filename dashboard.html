@@ -4105,24 +4105,59 @@ $('drawDone').onclick = async () => {
     const onModal = drawEl && drawEl.classList.contains('modal'), m = drawEl || $('main');
     const bg = getComputedStyle(onModal ? m : document.body).backgroundColor;
     const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2, SHOT_MAX_SIDE / Math.max(m.clientWidth, m.clientHeight, 1)));
-    let shot, ctx = null;
+    let shot, ctx = null, frames = [];
     try {
       shotLib = shotLib || await import('/vendor/modern-screenshot.mjs');
       const { vis, total } = shotPlan(m);
       await stage(`Reading ${total} nodes`, 8);
+      // iframe은 따로 찍는다 — 라이브러리는 iframe 자리에 그 문서 전체(<html>)를 붙여서 안쪽 스크롤이 무시되고 맨 위가 나온다.
+      // 바깥 캡처에서는 iframe을 빼고 같은 크기의 자리(placeholder)만 남긴 뒤, 각 iframe을 제 스크롤 위치로 찍어 그 자리에 얹는다.
+      const R0 = m.getBoundingClientRect();
+      frames = [...m.querySelectorAll('iframe')].filter((f) => vis.has(f)).map((f) => {
+        const r = f.getBoundingClientRect(), cs = getComputedStyle(f);
+        const ph0 = document.createElement('div'); ph0.setAttribute('data-shot-ph', ''); ph0.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
+        f.parentNode.insertBefore(ph0, f);   // 산 DOM에서는 자리를 차지하지 않는다(absolute 0×0) — 복제본에서만 iframe 크기의 상자가 된다
+        return { f, ph: ph0, rect: r, box: { display: cs.display === 'inline' ? 'inline-block' : cs.display, width: f.offsetWidth, height: f.offsetHeight, margin: cs.margin, verticalAlign: cs.verticalAlign, borderRadius: cs.borderRadius, border: cs.border } };
+      });
       ctx = await shotLib.createContext(m, {
         scale: dpr, backgroundColor: bg,
         timeout: 8000,                                   // 안 열리는 이미지 하나가 30초(기본값)를 잡아먹지 않게
         features: { restoreScrollPosition: true },       // 기본값이 꺼져 있어 스크롤한 화면을 찍어도 맨 위가 나왔다
         includeStyleProperties: SHOT_PROPS,              // 요소마다 350여 개 속성을 다 비교하지 않고 모양에 쓰이는 것만
-        filter: (n) => (n.nodeType === 3 ? vis.get(n.parentNode) !== 0 : n.nodeType !== 1 || vis.has(n)),
-        onCloneNode: () => stage('Fetching images', 50),
+        filter: (n) => (n.nodeType === 3 ? vis.get(n.parentNode) !== 0 : n.nodeType !== 1 || (vis.has(n) && n.tagName !== 'IFRAME') || n.hasAttribute('data-shot-ph')),
+        onCloneNode: (clone) => {
+          clone.querySelectorAll('[data-shot-ph]').forEach((el, i) => { const b = frames[i] && frames[i].box; if (!b) return;
+            Object.assign(el.style, { position: 'static', display: b.display, width: b.width + 'px', height: b.height + 'px', margin: b.margin, verticalAlign: b.verticalAlign, borderRadius: b.borderRadius, border: b.border, boxSizing: 'border-box', flex: '0 0 auto', background: 'var(--surface-2)' }); });
+          return stage('Fetching images', 50);
+        },
         progress: (c, n) => { if (n) { ph.stage = `Fetching images ${c}/${n}`; ph.pct = 50 + Math.round((c / n) * 20); renderChips(); } },
         // Safari용 다시 그리기(fixSvgXmlDecode)는 그림 수만큼 반복한다 — 그림 100장이면 10초. 세 번이면 충분하다.
         drawImageInterval: 60,
         onCreateForeignObjectSvg: () => { ctx.drawImageCount = Math.min(ctx.drawImageCount, 3); return stage('Rendering', 72); },
       });
       shot = await shotLib.domToCanvas(ctx);
+      // 각 iframe: 같은 출처면 그 문서를 보이는 창 크기로, 스크롤만큼 위로 옮겨 찍어 자리에 얹는다(다른 출처면 빈 상자로 남는다)
+      for (const fr of frames) {
+        let doc = null; try { doc = fr.f.contentDocument; } catch {} if (!doc || !doc.documentElement) continue;
+        const w = fr.f.clientWidth, h = fr.f.clientHeight; if (!w || !h) continue;
+        const fbg = getComputedStyle(doc.body || doc.documentElement).backgroundColor || '';
+        const plan = shotPlan(doc.documentElement, { left: 0, top: 0, right: w, bottom: h });
+        let c2 = null;
+        try {
+          c2 = await shotLib.createContext(doc.documentElement, {
+            // 스크롤은 라이브러리가 되돌린다(documentElement.scrollTop → body를 위로). 투명한 문서는 바깥 배경 위에 보이므로 그 색으로
+            scale: dpr, width: w, height: h, backgroundColor: /rgba\(0, 0, 0, 0\)|transparent/.test(fbg) ? bg : fbg,
+            style: { overflow: 'visible' },
+            timeout: 8000, features: { restoreScrollPosition: true }, includeStyleProperties: SHOT_PROPS, drawImageInterval: 60,
+            filter: (n) => (n.nodeType === 3 ? plan.vis.get(n.parentNode) !== 0 : n.nodeType !== 1 || (plan.vis.has(n) && n.tagName !== 'IFRAME')),
+            onCreateForeignObjectSvg: () => { c2.drawImageCount = Math.min(c2.drawImageCount, 3); },
+          });
+          const img = await shotLib.domToCanvas(c2);
+          const g2 = shot.getContext('2d'); g2.setTransform(1, 0, 0, 1, 0, 0);
+          g2.drawImage(img, Math.round((fr.rect.left + fr.f.clientLeft - R0.left) * dpr), Math.round((fr.rect.top + fr.f.clientTop - R0.top) * dpr), Math.round(w * dpr), Math.round(h * dpr));
+        } catch (e) { console.warn('iframe capture skipped:', e.message); }
+        finally { if (c2) { try { shotLib.destroyContext(c2); } catch {} } }
+      }
     } catch (e) {
       // 캡처 라이브러리를 못 불러오면(예: 서버가 옛 버전이라 /vendor 경로가 없음) 표시만이라도 보낸다.
       // 칩에 위치·가리킨 항목은 이미 들어 있으므로 에이전트는 무엇을 짚었는지 알 수 있다.
@@ -4130,7 +4165,7 @@ $('drawDone').onclick = async () => {
       const g0 = shot.getContext('2d'); g0.fillStyle = bg; g0.fillRect(0, 0, shot.width, shot.height);
       const c = contextChips[0]; if (c) c.t = c.t.replace('annotated screenshot attached', 'screen capture unavailable — the image shows only the marks');
       toast('Screen capture unavailable — sent the marks only (restart the ANA server after npm install)');
-    } finally { if (ctx) { try { shotLib.destroyContext(ctx); } catch {} } }
+    } finally { if (ctx) { try { shotLib.destroyContext(ctx); } catch {} } for (const fr of frames) fr.ph.remove(); frames = []; }
     await stage('Marking', 86);
     const g = shot.getContext('2d');
     g.setTransform(1, 0, 0, 1, 0, 0);
@@ -4171,8 +4206,8 @@ const SHOT_PROPS = ['display', 'position', 'top', 'right', 'bottom', 'left', 'z-
 // 뺌 = 아래·옆(부모 높이도 고정돼 자리에 영향 없음) 또는 display:none. 표·select·svg 안쪽은 건드리지 않는다(빈 행·빈 defs는 모양이 깨진다).
 // 15,000개 요소의 긴 목록도 수백 개만 복제한다 — 캡처가 50초에서 1초 아래로.
 const SHOT_KEEP_ALL = new Set(['SELECT', 'TABLE', 'THEAD', 'TBODY', 'TFOOT', 'TR', 'VIDEO', 'AUDIO', 'PICTURE']);
-function shotPlan(root) {
-  const R = root.getBoundingClientRect(), vis = new Map([[root, 1]]); let total = 1;
+function shotPlan(root, rect) {
+  const R = rect || root.getBoundingClientRect(), vis = new Map([[root, 1]]); let total = 1;
   const walk = (el, all) => {
     for (let c = el.firstChild; c; c = c.nextSibling) {
       if (c.nodeType !== 1) continue;
