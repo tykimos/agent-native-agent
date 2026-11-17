@@ -5,6 +5,12 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.26.2] — 2026-11-17
+
+### 바뀜
+
+- **빈 칸이 다른 칸에 무엇이 있는지 말합니다.** Requests·Evolve·Update에서 *Waiting* / *In progress* / *Done* 칸이 비어 있으면 다른 칸의 개수를 함께 보입니다 — *Nothing waiting — 1 in progress, 2 done. Press [Ask the agent] for proposals*. 바로 옆 칸에서 만들고 있는데 *No proposals*라고 하던 것을 고쳤습니다.
+
 ## [0.26.1] — 2026-11-17
 
 ### 바뀜

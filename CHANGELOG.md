@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.26.2] — 2026-11-17
+
+### Changed
+
+- **Empty sections say where the items are.** In Requests, Evolve and Update, an empty *Waiting* / *In progress* / *Done* section now says what the other sections hold — *Nothing waiting — 1 in progress, 2 done. Press [Ask the agent] for proposals* — instead of *No proposals* while one was being built next door.
+
 ## [0.26.1] — 2026-11-17
 
 ### Changed

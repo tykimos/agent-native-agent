@@ -1581,11 +1581,18 @@ const BUCKET_OF = {
   diff: { pending: 'wait', applying: 'doing', applied: 'done', failed: 'fail', rejected: 'cancel' },
   upd: { new: 'wait', doing: 'doing', done: 'done', failed: 'fail', dismissed: 'cancel' },
 };
+// 빈 칸 문구: 이 칸이 빈 이유 + 다른 칸에 무엇이 있는지 + 다음 할 일 — "Nothing waiting — 1 in progress, 2 done. Press [Ask the agent] for proposals"
 const ST_EMPTY = {
-  requests: { wait: 'Nothing waiting for you — press [Ask the agent] to ask what it needs', doing: 'Nothing in progress — answered requests show here until they are done', done: 'Nothing finished yet' },
-  evolve: { wait: 'No proposals — press [Ask the agent] to get some', doing: 'Nothing being built right now', done: 'No finished proposals yet' },
-  update: { wait: 'Nothing new — press [Check for updates]', doing: 'Nothing being brought in right now', done: 'No updates handled yet' },
+  requests: { wait: ['Nothing waiting for you', 'Press [Ask the agent] to ask what it needs'], doing: ['Nothing in progress', 'Answered requests show here until they are done'], done: ['Nothing finished yet', ''] },
+  evolve: { wait: ['Nothing waiting', 'Press [Ask the agent] for proposals'], doing: ['Nothing being built right now', ''], done: ['No finished proposals yet', ''] },
+  update: { wait: ['Nothing new', 'Press [Check for updates]'], doing: ['Nothing being brought in right now', ''], done: ['No updates handled yet', ''] },
 };
+const ST_WORD = { wait: 'waiting', doing: 'in progress', done: 'done' };
+function stEmptyText(v, k, B) {   // B = { wait: [], doing: [], done: [] }
+  const [head, tip] = ST_EMPTY[v][k];
+  const others = ['wait', 'doing', 'done'].filter((b) => b !== k && (B[b] || []).length).map((b) => `${B[b].length} ${ST_WORD[b]}`);
+  return `${head}${others.length ? ` — ${others.join(', ')}` : ''}${tip ? (others.length ? `. ${tip}` : ` — ${tip[0].toLowerCase()}${tip.slice(1)}`) : ''}`;
+}
 let diffCache = [], evoCache = [];
 const recent = (x) => String(x.updatedAt || x.closedAt || x.decidedAt || x.answeredAt || x.at || '');
 // wait · doing은 오래된 것부터, done(완료 · 실패 · 취소)은 최근 것부터
@@ -1619,7 +1626,7 @@ function renderRequestsAll() {
   listEl.innerHTML = req[k].map((r) => reqCard(r, isClosed(BUCKET_OF.req, r))).join('');
   Object.entries(drafts).forEach(([id, v]) => { const t = listEl.querySelector(`.req-card[data-rid="${id}"] textarea`); if (t) t.value = v; });
   $('reqHead').hidden = !(diffs[k].length && req[k].length); $('reqCnt').textContent = req[k].length || '';
-  $('reqEmpty').textContent = ST_EMPTY.requests[k]; $('reqEmpty').style.display = req[k].length || diffs[k].length ? 'none' : 'block';
+  $('reqEmpty').textContent = stEmptyText('requests', k, { wait: [...req.wait, ...diffs.wait], doing: [...req.doing, ...diffs.doing], done: [...req.done, ...diffs.done] }); $('reqEmpty').style.display = req[k].length || diffs[k].length ? 'none' : 'block';
   setStatusCounts('requests', { wait: [...req.wait, ...diffs.wait], doing: [...req.doing, ...diffs.doing], done: [] });
   setBadge('data-reqbadge', req.wait.length + diffs.wait.length);
 }
@@ -1706,7 +1713,7 @@ function renderEvolve() {
   const B = bucketList(evoCache, BUCKET_OF.evo), k = curSub('evolve');
   setStatusCounts('evolve', B); setBadge('data-evobadge', B.wait.length);
   $('evoList').innerHTML = evoCardsHtml(B[k]);
-  $('evoEmpty').textContent = ST_EMPTY.evolve[k]; $('evoEmpty').style.display = B[k].length ? 'none' : 'block';
+  $('evoEmpty').textContent = stEmptyText('evolve', k, B); $('evoEmpty').style.display = B[k].length ? 'none' : 'block';
 }
 $('evoList').addEventListener('click', async (e) => {
   const card = e.target.closest('.evo-card'); const btn = e.target.closest('button');
@@ -2231,7 +2238,7 @@ function renderUpdates() {
   const lc = updCache.lastCheck;
   $('updLast').innerHTML = !lc ? 'Not checked yet' : `Checked ${escapeHtml(fmtWhen(lc.at))} · agent-native-agent @ ${escapeHtml(String(lc.commit || '').slice(0, 7))} · ${lc.present}/${lc.total} features here${lc.runtime === 'differs' ? ' · shared runtime differs' : ''}`;
   $('updList').innerHTML = B[k].map(updCardHtml).join('');
-  $('updEmpty').textContent = ST_EMPTY.update[k]; $('updEmpty').style.display = B[k].length ? 'none' : 'block';
+  $('updEmpty').textContent = stEmptyText('update', k, B); $('updEmpty').style.display = B[k].length ? 'none' : 'block';
 }
 $('updCheck').onclick = async () => {
   const b = $('updCheck'); b.disabled = true; const orig = b.textContent; b.textContent = 'Checking GitHub…';
