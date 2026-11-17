@@ -5,6 +5,12 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.27.3] — 2026-11-17
+
+### 고침
+
+- **채팅의 Codex 세션.** 세션이 Codex면 `/` 메뉴에 Codex 명령(`/model`, `/status`, `/usage`, `/permissions`, `/new`, `/resume`, `/compact`, `/review`…)이 보이고, 명령 결과에 Codex의 입력줄·상태줄이 섞이지 않으며, Codex 메뉴 때문에 기다리던 메시지가 메뉴가 닫히면 다시 보내집니다 — Codex는 입력줄 둘레에 상자가 없어 서버가 *ready*를 세우지 못해 기다림이 끝나지 않았습니다. 실제 Codex 세션으로 메시지와 답, `/status` 결과 상자, `/model` 다이얼로그 카드, 메뉴 중 보내기, 작업 중 표시를 확인했습니다.
+
 ## [0.27.2] — 2026-11-17
 
 ### 고침

@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.27.3] — 2026-11-17
+
+### Fixed
+
+- **Codex sessions in the chat.** The `/` menu now lists Codex's commands (`/model`, `/status`, `/usage`, `/permissions`, `/new`, `/resume`, `/compact`, `/review`…) when the session is Codex; command results no longer include Codex's prompt line and status line; and a message that waited on a Codex menu is resent when the menu closes — Codex draws no box around its input line, so the server never reported it *ready* and the wait never ended. Checked against a live Codex session: messages and replies, `/status` as a result box, `/model` as a dialog card, sending during that menu, and the busy indicator all work.
+
 ## [0.27.2] — 2026-11-17
 
 ### Fixed

@@ -3687,6 +3687,8 @@ async function sendInstruction(text, { open = true, err = 'Request failed' } = {
   await postChat(o, err);
   return o.state === 'sent';
 }
+// 입력줄이 열려 있나 — Codex는 입력 상자에 구분선이 없어 서버가 ready를 못 세우므로, 다이얼로그만 없으면 열린 것으로 본다
+const inputReadyNow = () => !!health && !health.dialog && !dialogInfo && (health.ready || logKind === 'codex');
 // 입력줄이 닫혀 있을 때(질문·메뉴·시작 중): 터미널 화면 카드를 띄우고, 3분 동안 2초마다 보다가 열리면 다시 보낸다
 function waitAndResend(o) {
   setOptimState(o, 'waiting'); dialogShown = false; updateDialog(true);
@@ -3694,7 +3696,7 @@ function waitAndResend(o) {
   o.waitT = setInterval(async () => {
     if (o.state !== 'waiting') { clearInterval(o.waitT); return; }
     await pollHealth();
-    if (health && health.ready && !health.dialog && !dialogInfo) { clearInterval(o.waitT); postChat(o); return; }
+    if (inputReadyNow()) { clearInterval(o.waitT); postChat(o); return; }
     if (Date.now() - t0 > 180000) { clearInterval(o.waitT); setOptimState(o, 'failed', 'The terminal stayed busy for 3 minutes'); }
   }, 2000);
 }
@@ -3780,22 +3782,30 @@ const SLASH_CMDS = [
   ['login', 'Sign in to Anthropic'], ['logout', 'Sign out'], ['doctor', 'Check the installation'], ['release-notes', 'What changed in Claude Code'], ['feedback', 'Report a bug or ask for a feature', true],
   ['keybindings', 'Customize keyboard shortcuts'], ['export', 'Save the conversation to a file', true], ['exit', 'Quit Claude Code'],
 ];
+// Codex의 명령 — 세션이 Codex면 이 목록을 보인다
+const CODEX_CMDS = [
+  ['model', 'Choose the model and reasoning effort'], ['status', 'Model, account, session and limits'], ['usage', 'Plan limits used so far'], ['permissions', 'What Codex is allowed to do'],
+  ['new', 'Start a new conversation'], ['resume', 'Pick an earlier conversation'], ['compact', 'Summarize the conversation to free context'], ['review', 'Review the current changes'],
+  ['diff', 'Show uncommitted changes'], ['init', 'Write an AGENTS.md for this folder'], ['mention', 'Add a file to the conversation', true], ['mcp', 'MCP servers'], ['skills', 'Skills'], ['plugins', 'Plugins'],
+  ['memories', 'Memory use and generation'], ['experimental', 'Experimental features'], ['keymap', 'Remap shortcuts'], ['vim', 'Toggle Vim mode'], ['feedback', 'Send feedback', true], ['logout', 'Sign out'], ['quit', 'Quit Codex'],
+];
+const slashCmds = () => (logKind === 'codex' ? CODEX_CMDS : SLASH_CMDS);
 let slashSel = 0, slashOverlay = false;
-function slashList() { const v = $('input').value; const m = /^\/([\w:-]*)$/.exec(v); if (!m) return null; const q = m[1].toLowerCase(); return SLASH_CMDS.filter(([c]) => c.startsWith(q)); }
+function slashList() { const v = $('input').value; const m = /^\/([\w:-]*)$/.exec(v); if (!m) return null; const q = m[1].toLowerCase(); return slashCmds().filter(([c]) => c.startsWith(q)); }
 function updateSlashMenu() {
   const el = $('slashMenu'), list = slashList();
   if (!list || !sesAlive()) { el.hidden = true; return; }
   if (slashSel >= list.length) slashSel = 0;
-  el.innerHTML = list.map(([c, d], i) => `<button type="button" class="sm-row${i === slashSel ? ' on' : ''}" data-cmd="${c}" data-args="${SLASH_CMDS.find((x) => x[0] === c)[2] ? 1 : ''}" role="option" aria-selected="${i === slashSel}"><span class="sm-cmd">/${c}</span><span class="sm-desc">${escapeHtml(d)}</span></button>`).join('')
-    + `<div class="sm-hint">${list.length ? '↑↓ to choose · Tab or Enter to fill in · ' : ''}Claude Code runs whatever you send that starts with /</div>`;
+  el.innerHTML = list.map(([c, d, args], i) => `<button type="button" class="sm-row${i === slashSel ? ' on' : ''}" data-cmd="${c}" data-args="${args ? 1 : ''}" role="option" aria-selected="${i === slashSel}"><span class="sm-cmd">/${c}</span><span class="sm-desc">${escapeHtml(d)}</span></button>`).join('')
+    + `<div class="sm-hint">${list.length ? '↑↓ to choose · Tab or Enter to fill in · ' : ''}${logKind === 'codex' ? 'Codex' : 'Claude Code'} runs whatever you send that starts with /</div>`;
   el.hidden = false;
   const on = el.querySelector('.sm-row.on'); if (on) on.scrollIntoView({ block: 'nearest' });
 }
-function pickSlash(c) { const row = SLASH_CMDS.find((x) => x[0] === c); const v = `/${c}${row && row[2] ? ' ' : ''}`; $('input').value = v; $('input').setSelectionRange(v.length, v.length); $('slashMenu').hidden = true; autoGrow(); updateSendMode(); $('input').focus(); if (!(row && row[2])) send(); }
+function pickSlash(c) { const row = slashCmds().find((x) => x[0] === c); const v = `/${c}${row && row[2] ? ' ' : ''}`; $('input').value = v; $('input').setSelectionRange(v.length, v.length); $('slashMenu').hidden = true; autoGrow(); updateSendMode(); $('input').focus(); if (!(row && row[2])) send(); }
 $('slashMenu').addEventListener('mousedown', (e) => { const b = e.target.closest('.sm-row'); if (!b) return; e.preventDefault(); pickSlash(b.dataset.cmd); });
 document.addEventListener('click', (e) => { if (!e.target.closest('#inputwrap')) $('slashMenu').hidden = true; });
 async function screenText() { try { const s = await getJSON('/api/screen', 4000); return s.screen || ''; } catch { return ''; } }
-const SEP = /^[▔─━═]{10,}$/, NOISE = /esc to interrupt|bypass permissions|shift\+tab to cycle|for shortcuts|ctrl\+c to stop|^[✻✽✢✳✶∗]\s|^\s*[❯>]\s*$/i;
+const SEP = /^[▔─━═]{10,}$/, NOISE = /esc to interrupt|bypass permissions|shift\+tab to cycle|for shortcuts|ctrl\+c to stop|^[✻✽✢✳✶∗]\s|^\s*[❯›>]\s*$|^\s*[❯›>]\s+Ask Codex|^\s*\S+ (minimal|low|medium|high|xhigh)\s+·\s+\S/i;   // 끝의 두 묶음은 Codex의 빈 입력줄과 상태줄
 // 입력 박스(마지막 두 구분선) 위의 본문 줄만 — 로고·상태줄·스피너 제외
 function bodyLines(screen) {
   const lines = screen.split('\n').map((l) => l.replace(/\s+$/, '')), seps = [];
@@ -3816,7 +3826,7 @@ async function closeSlashOverlay() {
 async function watchSlash(o, raw) {
   const cmd = raw.split(/\s/)[0], t0 = Date.now();
   let lastDiff = '', stable = 0, div = null;
-  const echo = (l) => l.trim() === raw.trim() || /^[❯>]\s/.test(l.trim());   // 입력줄에 남은 명령 자체
+  const echo = (l) => l.trim() === raw.trim() || /^[❯›>]\s/.test(l.trim());   // 입력줄에 남은 명령 자체(Claude ❯ · Codex ›)
   while (Date.now() - t0 < 20000) {
     await new Promise((r) => setTimeout(r, 700));
     await pollHealth();
