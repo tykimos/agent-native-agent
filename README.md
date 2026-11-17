@@ -233,6 +233,7 @@ Every Requests and Evolve card answers the same questions in plain words — **W
 
 - **Rendered from the agent's own log**, not the screen: Claude Code's transcript (`~/.claude/projects/…`) or Codex's rollout (`~/.codex/sessions/…`). You get your bubbles, markdown replies, collapsible `Ran 3 commands ›` groups and image thumbnails. Agents without a log fall back to the screen mirror.
 - **Session combo:** pick the tmux session (Claude Code or Codex). Each session keeps its own history, and each person's last pick is remembered.
+- **Slash commands:** type `/` and Claude Code's commands come up (`/btw`, `/help`, `/model`, `/login`, `/effort`, `/cost`…); pick one or type any command and send it like a message. The result comes back into the chat — an answer screen (`/btw`, `/help`) as a terminal box with *Close*, a printed line (`/effort high` → *Set effort level to high*) as text, a menu (`/login`, `/model`) as the usual dialog card.
 - **Composer:** ＋ attach files · **model pill** (the real model, e.g. `Opus 5.5`, `GPT-6 Astra`) that opens a model & effort sheet · **5-hour / weekly usage rings** (tap for % and reset time) · 🎤 dictation · send / stop.
 - Floating input with a ↓ jump button. It sits right on top of the phone keyboard.
 - **Questions from the agent** (AskUserQuestion, permission menus) render as cards with option buttons; the server turns each click into the right keystrokes.

@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.27.0] — 2026-11-17
+
+### Added
+
+- **Claude Code's slash commands work from the chat.** Type `/` and the commands come up (`/btw`, `/help`, `/status`, `/model`, `/effort`, `/cost`, `/usage`, `/compact`, `/clear`, `/login`…); pick one with ↑↓ and Tab, or type any command and send it like a message — Claude Code runs it. The result comes back into the chat: an answer screen (`/btw`, `/help`) as a terminal box with *Close*, a printed line (`/effort high` → *Set effort level to high*) as text, and a menu (`/login`, `/model`) as the usual dialog card. A command's bubble is confirmed on delivery (commands leave no transcript echo, so it no longer turns *Unconfirmed*), and sending a normal message while an answer screen is still open closes it first — before, that message hung on *Sending…*.
+
 ## [0.26.2] — 2026-11-17
 
 ### Changed

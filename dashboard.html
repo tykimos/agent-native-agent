@@ -443,6 +443,19 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .act.toolresult.clip::after { content: "⋯ more"; position: absolute; bottom: 0; left: 0; right: 0; text-align: center; font-family: inherit; font-size: 11px; color: var(--blue-700); background: linear-gradient(transparent, var(--surface) 70%); padding-top: 14px; }
 #pendingWrap .msg, #pendingWrap .act { opacity: .75; }
 #optimistic .msg.user { opacity: .55; } #optimistic .icard { opacity: .7; }
+/* 슬래시 명령: 명령 말풍선은 고정폭, 결과는 터미널 화면을 그대로(단색 상자) */
+.msg.user.cmd { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+.msg.term { align-self: stretch; max-width: none; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 10px; }
+.msg.term pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 12.5px/1.5 ui-monospace, Menlo, monospace; color: var(--text); }
+.msg.term .term-h { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 11.5px; font-weight: 800; color: var(--text-weak); }
+.msg.term .term-h button { margin-left: auto; min-height: 28px; padding: 2px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); color: var(--text-sub); font-size: 12px; font-weight: 700; }
+.slash-menu { position: absolute; left: 0; right: 0; bottom: calc(100% + 6px); max-height: 46dvh; overflow-y: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); box-shadow: var(--sh-card); padding: 4px; z-index: 6; }
+.slash-menu[hidden] { display: none; }
+.slash-menu .sm-row { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: baseline; width: 100%; padding: 7px 10px; border-radius: 8px; text-align: left; background: none; border: 0; color: var(--text); }
+.slash-menu .sm-row.on, .slash-menu .sm-row:hover { background: var(--blue-weak); }
+.slash-menu .sm-cmd { font: 700 13px ui-monospace, Menlo, monospace; color: var(--blue-700); white-space: nowrap; }
+.slash-menu .sm-desc { font-size: 12.5px; color: var(--text-sub); }
+.slash-menu .sm-hint { padding: 6px 10px 4px; font-size: 11.5px; color: var(--text-weak); }
 /* 전송 상태 배지(진화 #7) — 낙관적 에코에 전송중/전달됨/실패·미확인 상태 표시 */
 .optim { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; align-self: flex-end; max-width: 86%; }
 .optim .msg.user { max-width: 100%; }
@@ -1390,6 +1403,8 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
     <div class="inputwrap" id="inputwrap">
       <textarea id="input" rows="1" placeholder="Message ANA — Enter to send" aria-label="Message input"></textarea>
       <div id="ghost"></div>
+      <!-- / 를 치면 Claude Code 명령 목록 — 고르면 입력창에 들어가고 Enter로 보낸다. 목록에 없는 명령도 그대로 보내진다 -->
+      <div class="slash-menu" id="slashMenu" role="listbox" aria-label="Claude Code commands" hidden></div>
     </div>
     <div class="cbar">
       <button id="attachBtn" class="attach" title="Attach files" aria-label="Attach files">
@@ -2676,7 +2691,7 @@ let dialogShown = false, dialogInfo = null, dialogBusy = false, dialogRenderSig 
 let dialogRenderStage = '';
 async function updateDialog(open) {
   const card = $('dlgcard');
-  if (!open) { card.classList.remove('on'); dialogShown = false; dialogRenderSig = ''; $('dlgQ').innerHTML = ''; return; }
+  if (!open || (slashOverlay && !dialogInfo)) { card.classList.remove('on'); dialogShown = false; dialogRenderSig = ''; $('dlgQ').innerHTML = ''; return; }   // 명령 결과 화면은 채팅에 이미 보였다
   // 구조화에 성공하면 선택지 버튼으로, 아니면(알 수 없는 다이얼로그) 화면 캡처 텍스트 + 키 버튼으로
   renderDialog();
   if (!dialogInfo) {
@@ -2817,6 +2832,7 @@ async function pollHealth() {
   // 서버가 기억한 내 세션이 지금 보는 원장과 다르면(다른 탭·기기에서 바꿈) 그 세션으로 갈아탄다
   if (health && health.target && streamTarget && health.target !== streamTarget) { switchStream(); return; }
   if (health && 'dialogInfo' in health && !dialogBusy) dialogInfo = health.dialogInfo;
+  if (slashOverlay && health && !health.dialog) { slashOverlay = false; document.querySelectorAll('.msg.term .term-close').forEach((b) => b.remove()); }
   if (health && health.build) {
     if (!bootBuild) bootBuild = health.build;
     else if (health.build !== bootBuild) $('newver').classList.add('on');   // 누르면 새로고침(아래 onclick)
@@ -3299,7 +3315,7 @@ function logItemHtml(it) {
     return `<div class="umsg" data-lid="${id}">${imgs.length ? `<div class="limgs">${imgs.map(imgTile).join('')}</div>` : ''}${
       ctx.length || other.length ? `<div class="uctx">${ctx.map((c) => `<span class="chip"><span class="k">${escapeHtml(c.k)}</span><span class="ct">${escapeHtml(c.t)}</span></span>`).join('')}${
         other.map((f) => `<span class="chip file"><span class="k">File</span><span class="ct">${escapeHtml(f.split('/').pop())}</span></span>`).join('')}</div>` : ''}${
-      text ? `<div class="msg user" data-seq="${it.rev}">${escapeHtml(text)}</div>` : ''}</div>`;
+      text ? `<div class="msg user${isSlash(text) ? ' cmd' : ''}" data-seq="${it.rev}">${escapeHtml(text)}</div>` : ''}</div>`;
   }
   if (it.kind === 'assistant') return `<div class="msg assistant md" data-lid="${id}">${mdHtml(it.text)}</div>`;
   if (it.kind === 'tools') {
@@ -3431,7 +3447,7 @@ const msgHtml = (m) => {
     // 보낸 사람이 나 자신이면 배지는 군더더기다 — 남이 보낸 것만 표시한다.
     const tag = who2 && who2.email !== me.email
       ? `<span class="msg-by">${avatarHtml(who2.email, 'sm')}${escapeHtml(who2.name)}</span>` : '';
-    return `<div class="msg user"${seq}>${tag}${escapeHtml(stripSender(m.text))}</div>`;
+    return `<div class="msg user${isSlash(stripSender(m.text)) ? ' cmd' : ''}"${seq}>${tag}${escapeHtml(stripSender(m.text))}</div>`;
   }
   return `<div class="msg ${m.role}"${seq}>${escapeHtml(m.text)}</div>`;
 };
@@ -3688,6 +3704,7 @@ function reconcile() {
     const texts = pend.concat(logged.filter((e) => Number(e.dataset.seq) > (o.seq0 || 0)).map(textOf));
     if (o.state !== 'sending' && texts.some((t) => echoOf(o, t))) { o.el.remove(); return false; }
     const age = Date.now() - o.t;
+    if (o.cmd && o.state === 'sent') { setOptimState(o, 'acked'); $('msgs').appendChild(o.el); pinChat(); return true; }   // 슬래시 명령은 기록에 안 남는다 — 전달이 곧 확정
     if ((o.state === 'sent' || o.state === 'unconfirmed') && ((!o.busyAtSend && busy) || (o.state === 'sent' && o.busyAtSend && age > 12000))) {
       setOptimState(o, 'acked'); $('msgs').appendChild(o.el); pinChat();
     }
@@ -3712,7 +3729,89 @@ async function send() {
   // 고스트 자동완성을 '작성 중 draft'로 오인해 막던 문제(remote-C1 오탐)를 근본 차단.
   // force는 주입 전 Ctrl-U로 입력줄을 비우므로 고스트/기존 입력에 붙지 않고 깨끗이 덮어쓴다.
   const label = raw || (files.length ? `(${files.length} attachment${files.length === 1 ? '' : 's'})` : '(context)');
-  await postChat(addOptimistic(label, text));
+  const cmd = isSlash(raw);
+  // 앞서 보낸 명령의 결과 화면(/btw·/help…)이 아직 떠 있으면 먼저 닫는다 — 안 그러면 입력줄이 준비되지 않아 보내지 못한다
+  if (slashOverlay) { await closeSlashOverlay(); }
+  const o = addOptimistic(label, text);
+  if (cmd) { o.el.querySelector('.msg.user')?.classList.add('cmd'); o.cmd = true; o.before = await screenText(); }
+  await postChat(o);
+  if (cmd && o.state === 'sent') watchSlash(o, raw);
+}
+/* ---- Claude Code 슬래시 명령 ----
+   "/btw …", "/login", "/model" 같은 명령은 메시지와 똑같이 입력줄에 넣어 보내면 Claude Code가 실행한다. 다른 점 둘:
+   ① 대화 기록(JSONL)에 남지 않아 에코가 없다 → 전달되면 바로 확정한다.
+   ② 결과가 화면에만 나온다(오버레이 또는 입력줄 위의 몇 줄) → 터미널 화면을 읽어 채팅에 넣어 준다. 선택지가 있는 창(/login, /model)은 기존 다이얼로그 카드가 맡는다. */
+const isSlash = (s) => /^\/[a-z][\w:-]*(\s|$)/i.test(s || '');
+const SLASH_CMDS = [
+  ['btw', 'Ask a side question without changing the conversation', true], ['help', 'Show help and the list of commands'], ['status', 'Version, model, account and session'],
+  ['model', 'Choose the model'], ['effort', 'Set reasoning effort (low · medium · high)', true], ['cost', 'Token and cost totals for this session'], ['usage', 'Plan limits used so far'],
+  ['context', 'What is in the context window'], ['compact', 'Summarize the conversation to free context', true], ['clear', 'Start a new conversation'], ['resume', 'Pick an earlier conversation'],
+  ['rename', 'Name this conversation', true], ['memory', 'Edit what Claude remembers'], ['init', 'Write a CLAUDE.md for this folder'], ['review', 'Review the current changes'],
+  ['diff', 'Show uncommitted changes'], ['permissions', 'Allow and deny rules'], ['mcp', 'MCP servers'], ['hooks', 'Hooks configuration'], ['config', 'Settings'],
+  ['login', 'Sign in to Anthropic'], ['logout', 'Sign out'], ['doctor', 'Check the installation'], ['release-notes', 'What changed in Claude Code'], ['feedback', 'Report a bug or ask for a feature', true],
+  ['keybindings', 'Customize keyboard shortcuts'], ['export', 'Save the conversation to a file', true], ['exit', 'Quit Claude Code'],
+];
+let slashSel = 0, slashOverlay = false;
+function slashList() { const v = $('input').value; const m = /^\/([\w:-]*)$/.exec(v); if (!m) return null; const q = m[1].toLowerCase(); return SLASH_CMDS.filter(([c]) => c.startsWith(q)); }
+function updateSlashMenu() {
+  const el = $('slashMenu'), list = slashList();
+  if (!list || !sesAlive()) { el.hidden = true; return; }
+  if (slashSel >= list.length) slashSel = 0;
+  el.innerHTML = list.map(([c, d], i) => `<button type="button" class="sm-row${i === slashSel ? ' on' : ''}" data-cmd="${c}" data-args="${SLASH_CMDS.find((x) => x[0] === c)[2] ? 1 : ''}" role="option" aria-selected="${i === slashSel}"><span class="sm-cmd">/${c}</span><span class="sm-desc">${escapeHtml(d)}</span></button>`).join('')
+    + `<div class="sm-hint">${list.length ? '↑↓ to choose · Tab or Enter to fill in · ' : ''}Claude Code runs whatever you send that starts with /</div>`;
+  el.hidden = false;
+  const on = el.querySelector('.sm-row.on'); if (on) on.scrollIntoView({ block: 'nearest' });
+}
+function pickSlash(c) { const row = SLASH_CMDS.find((x) => x[0] === c); const v = `/${c}${row && row[2] ? ' ' : ''}`; $('input').value = v; $('input').setSelectionRange(v.length, v.length); $('slashMenu').hidden = true; autoGrow(); updateSendMode(); $('input').focus(); if (!(row && row[2])) send(); }
+$('slashMenu').addEventListener('mousedown', (e) => { const b = e.target.closest('.sm-row'); if (!b) return; e.preventDefault(); pickSlash(b.dataset.cmd); });
+document.addEventListener('click', (e) => { if (!e.target.closest('#inputwrap')) $('slashMenu').hidden = true; });
+async function screenText() { try { const s = await getJSON('/api/screen', 4000); return s.screen || ''; } catch { return ''; } }
+const SEP = /^[▔─━═]{10,}$/, NOISE = /esc to interrupt|bypass permissions|shift\+tab to cycle|for shortcuts|ctrl\+c to stop|^[✻✽✢✳✶∗]\s|^\s*[❯>]\s*$/i;
+// 입력 박스(마지막 두 구분선) 위의 본문 줄만 — 로고·상태줄·스피너 제외
+function bodyLines(screen) {
+  const lines = screen.split('\n').map((l) => l.replace(/\s+$/, '')), seps = [];
+  lines.forEach((l, i) => { if (SEP.test(l.trim())) seps.push(i); });
+  const end = seps.length >= 2 ? seps[seps.length - 2] : lines.length;
+  return lines.slice(0, end).filter((l) => l.trim() && !NOISE.test(l.trim()) && !/^[ ▐▝▛▜█▀]+\s*(Claude Code|Fable|Opus|Sonnet|Haiku)/.test(l) && !/^\s*[▝▐]/.test(l));
+}
+function termMsg(title, text, o) {
+  const div = document.createElement('div'); div.className = 'msg term';
+  div.innerHTML = `<div class="term-h"><span>${escapeHtml(title)}</span></div><pre>${escapeHtml(text)}</pre>`;
+  if (o && o.el.parentNode === $('msgs')) o.el.insertAdjacentElement('afterend', div); else $('msgs').appendChild(div);
+  pinChat(); return div;
+}
+async function closeSlashOverlay() {
+  slashOverlay = false; document.querySelectorAll('.msg.term .term-close').forEach((b) => b.remove());
+  try { await post('/api/keys', { key: 'esc' }); } catch {} await new Promise((r) => setTimeout(r, 400));
+}
+async function watchSlash(o, raw) {
+  const cmd = raw.split(/\s/)[0], t0 = Date.now();
+  let lastDiff = '', stable = 0, div = null;
+  const echo = (l) => l.trim() === raw.trim() || /^[❯>]\s/.test(l.trim());   // 입력줄에 남은 명령 자체
+  while (Date.now() - t0 < 20000) {
+    await new Promise((r) => setTimeout(r, 700));
+    await pollHealth();
+    if (dialogInfo) return;                                      // 선택지가 있는 창(/login · /model) — 다이얼로그 카드가 맡는다
+    const screen = await screenText(); if (!screen) continue;
+    if (health && health.dialog) {                                // 오버레이(/btw · /help · /cost …): 그 내용을 채팅에, 닫기 버튼과 함께. 답이 다 써질 때까지 갱신한다
+      const body = extractDialog(screen).split('\n').filter((l) => !NOISE.test(l.trim()) && !/\bEsc to (close|cancel)\b|to copy ·|to browse ·/i.test(l) && !echo(l) && !/^\s*\/\w/.test(l)).join('\n').trim();
+      if (!body) continue;
+      if (!div) {
+        div = termMsg(cmd, body, o); slashOverlay = true;
+        const b = document.createElement('button'); b.className = 'term-close'; b.textContent = 'Close'; b.title = 'Close this in the terminal (Esc)'; b.onclick = () => closeSlashOverlay();
+        div.querySelector('.term-h').appendChild(b);
+      } else if (div.querySelector('pre').textContent !== body) div.querySelector('pre').textContent = body;
+      if (body === lastDiff) { if (++stable >= 2 && !/…\s*$/.test(body)) return; } else { stable = 0; lastDiff = body; }
+      continue;
+    }
+    if (div) return;                                              // 오버레이가 닫혔다(사용자가 터미널에서 Esc) — 보인 것까지가 결과
+    // 오버레이가 아니면 입력줄 위에 새로 찍힌 줄(⎿ Set effort level to high …)을 기다렸다가 보여 준다
+    // 보내기 전 화면에 없던 줄(같은 줄이 또 찍혀도 — 개수로 비교)
+    const before = new Map(); for (const l of bodyLines(o.before || '')) before.set(l, (before.get(l) || 0) + 1);
+    const fresh = bodyLines(screen).filter((l) => { if (echo(l)) return false; const n = before.get(l) || 0; if (n) { before.set(l, n - 1); return false; } return true; });
+    const diff = fresh.join('\n').replace(/^\s*⎿\s*/gm, '').trim();
+    if (diff && diff === lastDiff) { if (++stable >= 1) { termMsg(cmd, diff, o); return; } } else { stable = 0; lastDiff = diff; }
+  }
 }
 // 전송 버튼은 상황에 따라 정지 버튼이 된다(클로드 동작):
 //   작업 중 + 입력창이 비어 있음 → ■ 정지(ctrl-c). 그 외 → ↑ 전송.
@@ -3743,10 +3842,16 @@ function interrupt() {
 $('send').onclick = () => (stopMode() ? interrupt() : send());
 $('input').addEventListener('keydown', (e) => {
   if (e.isComposing || e.keyCode === 229) return;
+  const sm = $('slashMenu'), sl = sm.hidden ? null : slashList();
+  if (sl && sl.length) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); slashSel = (slashSel + (e.key === 'ArrowDown' ? 1 : sl.length - 1)) % sl.length; updateSlashMenu(); return; }
+    if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey && $('input').value.trim() !== `/${sl[slashSel][0]}`)) { e.preventDefault(); pickSlash(sl[slashSel][0]); return; }
+    if (e.key === 'Escape') { sm.hidden = true; return; }
+  }
   if (e.key === 'Tab' && !e.shiftKey && ghostActive()) { e.preventDefault(); acceptGhost(); return; }
   if (e.key === 'Enter' && !e.shiftKey && !isTouch) { e.preventDefault(); send(); }
 });
-$('input').addEventListener('input', () => { autoGrow(); updateGhost(); updateSendMode(); });
+$('input').addEventListener('input', () => { autoGrow(); updateGhost(); updateSendMode(); slashSel = 0; updateSlashMenu(); });
 // 특수키 버튼(중단 + 다이얼로그 응답 키). 중단은 확인 팝업 없이 즉시 전송.
 document.querySelectorAll('[data-key]').forEach((b) => {
   b.onclick = () => post('/api/keys', { key: b.dataset.key })

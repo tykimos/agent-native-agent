@@ -5,6 +5,12 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.27.0] — 2026-11-17
+
+### 추가
+
+- **Claude Code의 슬래시 명령이 채팅에서 됩니다.** `/`를 치면 명령 목록이 뜹니다(`/btw`, `/help`, `/status`, `/model`, `/effort`, `/cost`, `/usage`, `/compact`, `/clear`, `/login`…). ↑↓와 Tab으로 고르거나 아무 명령이나 쳐서 메시지처럼 보내면 Claude Code가 실행합니다. 결과는 채팅으로 돌아옵니다 — 답 화면(`/btw`, `/help`)은 *Close* 버튼이 달린 터미널 상자로, 한 줄 결과(`/effort high` → *Set effort level to high*)는 글로, 선택 메뉴(`/login`, `/model`)는 평소의 다이얼로그 카드로. 명령은 기록에 에코가 없어 *Unconfirmed*로 바뀌던 말풍선이 전달되는 즉시 확정되고, 답 화면이 떠 있는 채로 보통 메시지를 보내면 먼저 닫고 보냅니다 — 전에는 그 메시지가 *Sending…*에서 멈췄습니다.
+
 ## [0.26.2] — 2026-11-17
 
 ### 바뀜

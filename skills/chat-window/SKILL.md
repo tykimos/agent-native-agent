@@ -41,6 +41,7 @@ UI/UX is the point of this skill. Match the spec below exactly; it came from sid
 - **Mic:** shows only if `SpeechRecognition` exists; pulses red while listening; dictation goes into the input. It needs **https**, and on iPhone Siri & Dictation must be on.
 - **Keyboard (iOS):** the composer sits 2px above the keyboard. Safari's own ^ ∨ ✓ accessory bar can't be removed from a web page; say so if asked.
 - **Empty state:** "No agent connected — tap the session name above to choose one".
+- **Slash commands (`/btw`, `/login`, `/model`, `/effort`, `/help`, `/cost`…):** typing `/` opens `#slashMenu` (`SLASH_CMDS`, filtered as you type; ↑↓, Tab/Enter fill in, commands without arguments send at once). Anything starting with `/` is sent to the input line as-is and Claude Code runs it. Because commands leave no transcript echo, their bubble (`.msg.user.cmd`) is confirmed on delivery (`o.cmd`). `watchSlash` then reads the terminal (`/api/screen` + `/api/health`): an overlay (`health.dialog` without `dialogInfo` — `/btw`, `/help`) is shown as a `.msg.term` box with *Close* (sends Esc; the generic dialog card is suppressed while `slashOverlay`), new lines above the input box (`/effort` → *Set effort level to …*) are shown as text, and a menu (`dialogInfo`) is left to the dialog card. Sending a normal message while an overlay is open presses Esc first — otherwise the input line is not ready and `/api/chat` answers 409.
 
 ## Architecture
 
