@@ -5,6 +5,13 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.27.4] — 2026-11-17
+
+### Fixed
+
+- **Codex sends go out at once** (runtime `channel-core.js`). The readiness check only knew Claude Code's boxed input line, so a Codex session never counted as ready and every message waited the full 5-second gate before it was typed in. The check now recognizes the Codex composer — the `›` line right above the `<model> <effort> · <folder>` status line — and tells it apart from Codex menus, the model picker and the command popup. Measured: 0.24 s instead of ~5 s per send; `health.ready` is true for Codex. (Test R11.)
+- **A drawn capture says where it is and never hangs silently.** A stage that lasts 3 s or more shows its elapsed time in the chip (*Rendering · 12s*); a stage that lasts 40 s is cut off with *Screen capture stuck at "…" for 40 s — sent the marks only*, and each stage's time goes to the browser console (`[capture] Rendering 61 ms`). An ANA still on a capture that only said *Capturing…* is on code before 0.25.0 — bring in the context-chips feature with ana-update.
+
 ## [0.27.3] — 2026-11-17
 
 ### Fixed

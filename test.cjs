@@ -305,6 +305,16 @@ t('R9 csrfOk: content-type/Origin 검사 (CR-1)', () => {
   assert.equal(mk({ 'content-type': 'application/json', host: 'localhost:8809', 'sec-fetch-site': 'cross-site' }), false);
 });
 
+t('R11 inputBoxReady: Codex 작성줄(구분선 없음)은 ready, 메뉴·모델 선택기·명령 팝업은 아님', () => {
+  const { inputBoxReady } = require('./channel-core.js');
+  assert.equal(inputBoxReady('⚠ MCP startup incomplete\n› Ask Codex to do anything\n  gpt-5.6-luna medium · /tmp/proj\n'), true, '빈 작성줄');
+  assert.equal(inputBoxReady('• Working (1s • esc to interrupt)\n› count to 15\n\n  gpt-5.6-luna high · /tmp/proj'), true, '쓰는 중·작업 중에도 작성줄은 있다');
+  assert.equal(inputBoxReady('  Select Model and Effort\n› 1. gpt-5.6-sol (default)\n  2. gpt-5.6-terra\n  Press enter to confirm or esc to go back'), false, '모델 선택기');
+  assert.equal(inputBoxReady('› 1. Update now\n  2. Skip\n  Press enter to continue'), false, '번호 메뉴');
+  assert.equal(inputBoxReady('› /\n  /model   choose what model\n  /ide     include context'), false, '명령 팝업(상태줄이 밀려남)');
+  assert.equal(inputBoxReady('some output\nno prompt here'), false);
+});
+
 t('R10 stripBottomUI: 입력 박스(❯) 있을 때만 절삭, 본문 수평선은 보존 (2차 NR1)', () => {
   // 입력 박스: 두 구분선 사이에 ❯ → 절삭
   const box = ['⏺ 응답', '───────', '❯ 입력', '───────', '  상태줄'].join('\n');

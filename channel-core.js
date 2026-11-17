@@ -163,13 +163,31 @@ function inputBoxReady(screen) {
   const lines = screen.split('\n');
   const seps = [];
   for (let i = 0; i < lines.length; i++) if (SEP_LINE(lines[i])) seps.push(i);
-  if (seps.length < 2) return false;
+  if (seps.length < 2) return codexPromptReady(lines);   // 상자가 없다 — Codex 작성줄인지 본다
   const top = seps[seps.length - 2], bot = seps[seps.length - 1];
   const typed = typedBelowBox(lines, bot);
   for (let i = top + 1; i < bot; i++) {
     const t = lines[i].replace(/\u00A0/g, ' ').trim();
     if (/^[❯›>]\s+\d+\.(\s|$)/.test(t) && !typed) return false;   // 다이얼로그 메뉴 — 점 뒤 공백까지 봐야 숫자로 시작하는 입력(0.5.1, 3.14)과 구별된다
     if (/^[❯›>]/.test(t)) return true;
+  }
+  return false;
+}
+
+// Codex 작성줄(v0.1xx): 구분선 상자 없이 '› …' 한 줄과 바로 아래 '<모델> <effort> · <폴더>' 상태줄로 그린다.
+// 화면 맨 아래 비어 있지 않은 줄이 그 상태줄이고 그 위 줄이 '›'로 시작하면 입력 가능. 메뉴('› 1. …')·모델 선택기(상태줄 대신 안내문)·명령 팝업(상태줄이 밀려남)은 아니다.
+// 이걸 몰라 Codex는 한 번도 ready가 되지 않았고, 보낼 때마다 준비 게이트의 타임아웃(5초)을 꽉 기다렸다.
+function codexPromptReady(lines) {
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const t = lines[i].replace(/\u00A0/g, ' ').trim();
+    if (!t) continue;
+    if (!/^\S+\s+(minimal|low|medium|high|xhigh)\s+·\s/.test(t)) return false;
+    for (let j = i - 1; j >= Math.max(0, i - 3); j--) {
+      const u = lines[j].replace(/\u00A0/g, ' ').trim();
+      if (!u) continue;
+      return /^›(\s|$)/.test(u) && !/^›\s+\d+\.(\s|$)/.test(u);
+    }
+    return false;
   }
   return false;
 }

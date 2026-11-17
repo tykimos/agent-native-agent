@@ -5,6 +5,13 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.27.4] — 2026-11-17
+
+### 고침
+
+- **Codex에 보내는 메시지가 바로 나갑니다**(런타임 `channel-core.js`). 준비 검사가 Claude Code의 상자형 입력줄만 알아서, Codex 세션은 한 번도 준비됐다고 보지 않았고 메시지마다 5초 게이트를 꽉 기다린 뒤 입력됐습니다. 이제 Codex 작성줄 — `<모델> <effort> · <폴더>` 상태줄 바로 위의 `›` 줄 — 을 알아보고, Codex 메뉴·모델 선택기·명령 팝업과 구별합니다. 재 보니 메시지당 약 5초 → 0.24초. Codex도 `health.ready`가 참입니다. (테스트 R11)
+- **그려서 보내는 캡처가 어디까지 왔는지 말하고, 조용히 멈추지 않습니다.** 3초 넘게 머무는 단계는 칩에 경과 시간이 붙고(*Rendering · 12s*), 40초를 넘기면 *Screen capture stuck at "…" for 40 s — sent the marks only*로 끊으며, 단계별 시간은 브라우저 콘솔에 남습니다(`[capture] Rendering 61 ms`). 칩에 *Capturing…*만 뜨는 ANA는 0.25.0 이전 코드라 ana-update로 context-chips를 가져오면 됩니다.
+
 ## [0.27.3] — 2026-11-17
 
 ### 고침

@@ -4136,7 +4136,12 @@ $('drawDone').onclick = async () => {
   const ph = { name: 'annotated-screenshot.jpg', size: 0, path: '', pending: true, stage: 'Capturing', pct: 0, pctBase: 92 };
   attachments.push(ph);
   // 단계와 진행률을 칩에 보인다. 복제 단계는 동기라 그동안 화면이 멈추므로, 단계가 바뀔 때마다 한 프레임 쉬어 칩이 먼저 그려지게 한다.
-  const stage = (s, pct) => { ph.stage = s; ph.pct = pct; renderChips(); return new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0))); };
+  // 단계마다 시각을 적고, 3초 넘게 머무는 단계에는 경과 시간을 붙인다(멈춘 게 아니라 어디서 오래 걸리는지 보이게). 콘솔에도 단계별 시간을 남긴다.
+  const t0 = performance.now(); let stageAt = t0, stageName = '';
+  const stage = (s, pct) => { if (stageName) console.info(`[capture] ${stageName} ${Math.round(performance.now() - stageAt)} ms`); stageName = s; stageAt = performance.now(); ph.stage = s; ph.pct = pct; renderChips(); return new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0))); };
+  const tick = setInterval(() => { if (!ph.pending) return; const sec = Math.round((performance.now() - stageAt) / 1000); ph.stage = sec >= 3 ? `${stageName} · ${sec}s` : stageName; renderChips(); }, 1000);
+  // 한 단계가 40초를 넘기면 멈춘 것으로 보고 끊는다 — 어느 단계였는지 말해 준다
+  const guard = (promise, what) => Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error(`capture stuck at "${what}" for 40 s`)), 40000))]);
   await stage('Loading tool', 2);
   if (overlay) openChat();
   try {
@@ -4174,7 +4179,7 @@ $('drawDone').onclick = async () => {
         drawImageInterval: 60,
         onCreateForeignObjectSvg: () => { ctx.drawImageCount = Math.min(ctx.drawImageCount, 3); return stage('Rendering', 72); },
       });
-      shot = await shotLib.domToCanvas(ctx);
+      shot = await guard(shotLib.domToCanvas(ctx), stageName);
       // 각 iframe: 같은 출처면 그 문서를 보이는 창 크기로, 스크롤만큼 위로 옮겨 찍어 자리에 얹는다(다른 출처면 빈 상자로 남는다)
       for (const fr of frames) {
         let doc = null; try { doc = fr.f.contentDocument; } catch {} if (!doc || !doc.documentElement) continue;
@@ -4191,7 +4196,7 @@ $('drawDone').onclick = async () => {
             filter: (n) => (n.nodeType === 3 ? plan.vis.get(n.parentNode) !== 0 : n.nodeType !== 1 || (plan.vis.has(n) && n.tagName !== 'IFRAME')),
             onCreateForeignObjectSvg: () => { c2.drawImageCount = Math.min(c2.drawImageCount, 3); },
           });
-          const img = await shotLib.domToCanvas(c2);
+          const img = await guard(shotLib.domToCanvas(c2), `iframe ${fr.f.src || fr.f.id || ''}`.trim());
           const g2 = shot.getContext('2d'); g2.setTransform(1, 0, 0, 1, 0, 0);
           g2.drawImage(img, Math.round((fr.rect.left + fr.f.clientLeft - R0.left) * dpr), Math.round((fr.rect.top + fr.f.clientTop - R0.top) * dpr), Math.round(w * dpr), Math.round(h * dpr));
         } catch (e) { console.warn('iframe capture skipped:', e.message); }
@@ -4203,7 +4208,7 @@ $('drawDone').onclick = async () => {
       shot = document.createElement('canvas'); shot.width = $('drawCanvas').width; shot.height = $('drawCanvas').height;
       const g0 = shot.getContext('2d'); g0.fillStyle = bg; g0.fillRect(0, 0, shot.width, shot.height);
       const c = contextChips[0]; if (c) c.t = c.t.replace('annotated screenshot attached', 'screen capture unavailable — the image shows only the marks');
-      toast('Screen capture unavailable — sent the marks only (restart the ANA server after npm install)');
+      console.warn('[capture] failed:', e); toast(/stuck/.test(e.message) ? `Screen capture ${e.message} — sent the marks only` : 'Screen capture unavailable — sent the marks only (restart the ANA server after npm install)');
     } finally { if (ctx) { try { shotLib.destroyContext(ctx); } catch {} } for (const fr of frames) fr.ph.remove(); frames = []; }
     await stage('Marking', 86);
     const g = shot.getContext('2d');
@@ -4220,10 +4225,11 @@ $('drawDone').onclick = async () => {
     if (onModal && overlay) closeModal();   // 휴대폰: 캡처가 끝났으니 팝업을 내려 채팅이 보이게(입력한 내용은 남는다)
     if (!overlay) openChat();
     await attachFiles([file], ph);
+    console.info(`[capture] total ${Math.round(performance.now() - t0)} ms`);
   } catch (e) {
     attachments = attachments.filter((a) => a !== ph); renderChips();
     showErr(`Screen capture failed — ${e.message}`);
-  } finally { closeDraw(); }
+  } finally { clearInterval(tick); closeDraw(); }
 };
 
 const SHOT_MAX_SIDE = 1600, SHOT_MAX_BYTES = 900 * 1024;
