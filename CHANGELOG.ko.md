@@ -5,6 +5,12 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.26.1] — 2026-11-17
+
+### 바뀜
+
+- **에이전트에게 무엇을 물었는지 채팅에 바로 보입니다.** *Ask the agent*(Requests·Evolve·PRD·Knowledge), *Build the first screen from the PRD*, 제안의 *Do it*, 요청 답하기, 업데이트 *Bring in*은 버튼이 *Asking…*으로 바뀔 뿐 지시는 에이전트 터미널로만 갔습니다. 이제 하나하나가 채팅에 카드로 바로 나타납니다 — 태그, 무엇을 물었는지 한 줄, 전문을 보는 *Show instruction*, 그 탭으로 가는 *Open* — 그리고 직접 친 메시지처럼 *Sending… → Delivered ✓* 배지가 붙습니다. 에이전트 기록에 같은 지시가 돌아오면 카드는 그 기록으로 바뀝니다. `[Work]` 지시도 카드로 보입니다.
+
 ## [0.26.0] — 2026-11-17
 
 ### 바뀜 — 베이스의 메모·할일·일정을 쓰던 ANA에는 호환이 깨집니다

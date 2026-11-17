@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.26.1] — 2026-11-17
+
+### Changed
+
+- **What you asked the agent shows in the chat right away.** *Ask the agent* (Requests, Evolve, PRD, Knowledge), *Build the first screen from the PRD*, *Do it* on a proposal, answering a request and *Bring in* an update only turned the button into *Asking…* while the instruction went to the agent's terminal. Now each one appears in the chat at once as a card — tag, one line saying what was asked, *Show instruction* for the full text, *Open* for its tab — with the same *Sending… → Delivered ✓* badge as a typed message; when the agent's log echoes it, the card is replaced by the real entry. `[Work]` instructions get a card too.
+
 ## [0.26.0] — 2026-11-17
 
 ### Changed — breaking for ANAs that used the base's notes, tasks and events

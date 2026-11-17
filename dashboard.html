@@ -442,7 +442,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .act.toolresult.expanded { max-height: none; cursor: default; }
 .act.toolresult.clip::after { content: "⋯ more"; position: absolute; bottom: 0; left: 0; right: 0; text-align: center; font-family: inherit; font-size: 11px; color: var(--blue-700); background: linear-gradient(transparent, var(--surface) 70%); padding-top: 14px; }
 #pendingWrap .msg, #pendingWrap .act { opacity: .75; }
-#optimistic .msg.user { opacity: .55; }
+#optimistic .msg.user { opacity: .55; } #optimistic .icard { opacity: .7; }
 /* 전송 상태 배지(진화 #7) — 낙관적 에코에 전송중/전달됨/실패·미확인 상태 표시 */
 .optim { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; align-self: flex-end; max-width: 86%; }
 .optim .msg.user { max-width: 100%; }
@@ -1538,7 +1538,7 @@ $('workBuild').onclick = () => {
 Read the PRD GET ${api('/api/prd')} and the code in this folder (dashboard.html, dashboard-api.js, server.js). If there is no PRD or it does not yet say what the work is — what people handle, what they need to see and do — ask me first, and write what we agree into the PRD before building. Follow any sketches in it (## Sketches).
 Build it into #workArea in dashboard.html (sub-tabs with <nav class="subtabs" data-sub="work"> and SUBTABS.work if there is more than one kind of work), with the data and API routes it needs in dashboard-api.js, matching the look of the rest of the app. Keep each kind of work item in work-graph.json as one array and declare the kind in work-ontology.js (list, title, and a derived relation for each field that points at another item) — then its items join the one graph with everything else and data-change proposals (POST /api/agent {diff:{add:[{list:'<that array>', …}], update:[{id, …}], remove:[id]}}) apply to that array, so it shows in Knowledge next to the knowledge. Keep PRD, Knowledge, Requests, Evolve and Update as they are.
 Verify with the tests and a look at the page. Then update the PRD so it says what Work now has (POST ${api('/api/prd')} {"md":"…","note":"Built Work","source":"agent"}) and tell me what you built.`;
-  post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
+  sendInstruction(prompt, { err: 'Request failed' })
     .catch(() => showErr('Request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
 };
 
@@ -1642,7 +1642,7 @@ async function reqAnswer(card, answer) {
   if (!(await reqAct(id, 'answer', answer))) return;
   openChat();
   const msg = `[Request #${id}] You asked: "${r.title}"\nMy answer: ${answer}\nAct on it, then mark the request done: POST http://${agentHost}/api/request-act {"id":${id},"action":"done"}`;
-  post('/api/chat', { text: msg, force: true }).then((x) => { if (!x.ok) x.json().then((e) => showErr(e.error || 'Could not send the answer to the agent')).catch(() => {}); })
+  sendInstruction(msg, { open: false, err: 'Could not send the answer to the agent' })
     .catch(() => showErr('Could not send the answer to the agent'));
 }
 $('reqList').addEventListener('click', (e) => {
@@ -1667,7 +1667,7 @@ $('reqAsk').onclick = () => {
   const prompt = `[Requests] Look at how the work is going — the PRD (GET http://${h}/api/prd), the work data and our recent conversation — and register what you need FROM ME: a step you should not take on your own (deleting or overwriting things, spending money, sending messages to other people, changing settings) as kind approval, a choice between options as decision, access you need me to grant as access, actions only I can do as action, and information you are missing as info. Data changes to the board still go through the diff → approve flow (POST /api/agent). Do not register changes to the app itself — those are Evolve proposals. Write every request for a person who does not know how this app works inside: fill \"why\" (what's going on — the situation, in the words of the work: names, tasks, dates), \"ask\" (exactly what you need from them), \"effect\" (what changes once it's done) and \"ifNot\" (what happens if they say no or wait). Keep words like graph, schema, API, diff out of them.
 Register: curl -s -X POST http://${h}/api/requests -H 'content-type: application/json' -d '{"requests":[{"kind":"decision","title":"Short question","why":"What is going on","ask":"What you need from me","effect":"What changes once it is settled","ifNot":"What happens if it waits","options":["A","B"],"ref":"<optional task/event/note id>"}]}' (kind is approval|decision|access|action|info; options only for decisions).
 Where the flow breaks: GET http://${h}/api/stats (graph.gaps) · links: GET http://${h}/api/graph/schema · open requests: GET http://${h}/api/requests.`;
-  post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
+  sendInstruction(prompt, { err: 'Request failed' })
     .catch(() => showErr('Request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
 };
 
@@ -1729,9 +1729,7 @@ async function evoAct(id, action, title, desc) {
     // 왜 이 제안인지와 밖의 사례도 함께 넘긴다 — 만드는 쪽이 같은 근거를 보고 만들게
     const ctx = `${p.because ? ` Seen: ${p.because}` : ''}${p.outcome ? ` What should change for people: ${p.outcome}` : ''}${p.how ? ` How (suggested): ${p.how}` : ''}${(p.sources || []).length ? ` Seen elsewhere: ${p.sources.map((x) => `${x.title || x.url} <${x.url}>${x.note ? ' (' + x.note + ')' : ''}`).join('; ')}.` : ''}`;
     const text = `[Evolve] Implement/apply proposal #${id} "${title}"${desc ? ' — ' + desc : ''}.${ctx} Changes to the work data go through the APIs (a diff via POST /api/agent {text, diff, why, effect} — why = what's going on, effect = what the change does, in plain words; links via /api/link). When it's done, if what the app does changed, update the PRD: GET http://${agentHost}/api/prd, then POST /api/prd {"md":"…","note":"what changed","source":"agent"}. Tell me when it's done.`;
-    openChat();
-    post('/api/chat', { text, force: true }).then((x) => { if (!x.ok) x.json().then((e) => showErr(e.error || 'Failed to send the request (agent not connected?)')).catch(() => {}); })
-      .catch(() => showErr('Failed to send the request'));
+    sendInstruction(text, { err: 'Failed to send the request (agent not connected?)' });
   }
   return true;
 }
@@ -1752,7 +1750,7 @@ Look outside: search the web for how others in this domain handle the same thing
 Keep API, schema and file names out of titles, "because" and "outcome". Put them only in "how", which is for whoever builds it.
 Register: curl -s -X POST "${api('/api/evolve')}" -H 'content-type: application/json' --data-binary @evolve.json
    evolve.json = {"proposals":[{"horizon":"tidy|improve|reimagine","type":"improve|add|remove","title":"What people get","because":"What you saw","outcome":"What changes for people","how":"Technical: actions, APIs, files","sources":[{"title":"…","url":"https://…","note":"What to take from it"}]}]}`;
-  post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Analyze request failed')).catch(() => {}); else openChat(); })
+  sendInstruction(prompt, { err: 'Analyze request failed' })
     .catch(() => showErr('Analyze request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
 }
 $('evoAnalyze').onclick = () => askEvolveAgent($('evoAnalyze'));
@@ -1853,7 +1851,7 @@ Read: the code in this folder (dashboard.html, dashboard-api.js, server.js, feat
 If there is no PRD yet, or it leaves out what the work is, ask me a few short questions first (what this ANA is for, who uses it, what the work is made of — a rough sketch is welcome) and write in what I answer.
 Write it in markdown for a person who uses the app, not for a developer, with the sections of prd-template.md in this folder: # title, ## Purpose, ## Users, ## Work (what people handle, see and do — the Work tab is built from this), ## Sketches (the drawings I sent, as ![…](/uploads/<file>)), ## Knowledge, ## Agent, ## What is here now (each tab and what it shows — only what really exists), ## Not yet. Keep what a person wrote by hand unless it is no longer true.
 Save it as a new version: write the markdown to prd.md, then: node -e 'process.stdout.write(JSON.stringify({md: require("fs").readFileSync("prd.md", "utf8"), note: process.argv[1], source: "agent"}))' "What changed in one line" | curl -s -X POST "${api('/api/prd')}" -H 'content-type: application/json' --data-binary @-`;
-  post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
+  sendInstruction(prompt, { err: 'Request failed' })
     .catch(() => showErr('Request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
 };
 
@@ -2056,7 +2054,7 @@ Then lead the conversation: one short question at a time — who it is for, what
 ${ko ? 'Talk with me in Korean (the PRD itself may stay in English if I prefer).' : 'Talk in the language I answer in.'} Keep each message short.
 When we have enough for a first version, show me a short summary and, once I agree, save the PRD with the sections of prd-template.md (POST ${api('/api/prd')} {"md":"…","note":"…","source":"agent"}) and build the first Work screen, as CLAUDE.md says. Do not build anything before that.`;
   openChat();
-  post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Could not reach the agent — choose a session at the top of the chat')).catch(() => {}); })
+  sendInstruction(prompt, { open: false, err: 'Could not reach the agent — choose a session at the top of the chat' })
     .catch(() => showErr('Could not reach the agent'));
 }
 // 어디서든: [data-sketch] 손그림판, [data-talk] PRD 대화 시작, [data-starter] 예시 문장을 입력창에
@@ -2160,7 +2158,7 @@ ids are short and stable (letters, digits, _ - . :); labels are the words people
 Save: write the JSON to knowledge.json, then: curl -s -X POST "${api('/api/knowledge')}" -H 'content-type: application/json' --data-binary @knowledge.json
    knowledge.json = {"classes":[{"id":"Client","label":"Client","desc":"…","parent":""}],"relations":[{"id":"client_of","label":"client of","domain":"Client","range":"Team"}],"entities":[{"id":"acme","label":"Acme","class":"Client","items":["<note/task/event id>"]}],"facts":[{"from":"acme","rel":"client_of","to":"our_team","items":["<id>"]}]}
 Then tell me in two or three sentences what you added.`;
-  post('/api/chat', { text: prompt, force: true }).then((r) => { if (!r.ok) r.json().then((e) => showErr(e.error || 'Request failed')).catch(() => {}); else openChat(); })
+  sendInstruction(prompt, { err: 'Request failed' })
     .catch(() => showErr('Request failed')).finally(() => { b.disabled = false; b.textContent = orig; });
 };
 
@@ -2255,8 +2253,7 @@ async function updAct(it, action) {
     const text = `[Update] Bring "${it.title}" (${it.key}) from the latest agent-native-agent into this ANA.
 Upstream checkout: ${up} @ ${String(it.upstreamCommit || '').slice(0, 7)} — follow ${up}/skills/${it.skill}/SKILL.md (Porting) and the rules in ${up}/skills/ana-update/SKILL.md: port into this ANA's own files, keep its domain code${it.kind === 'runtime' ? '; this item IS the shared runtime — replace channel-core.js whole, never patch it' : ', never patch channel-core.js'}.
 ${(it.missing || []).length ? `Missing here: ${it.missing.join(', ')}.\n` : ''}${(it.modules || []).length ? `Modules: ${it.modules.join(', ')}.\n` : ''}${(it.npm || []).length ? `npm: ${it.npm.join(', ')}.\n` : ''}Verify with the tests and a look at the page. If what the app does changed, update the PRD (GET http://${h}/api/prd, then POST /api/prd {"md":"…","note":"…","source":"agent"}). Then report: curl -s -X POST http://${h}/api/update-act -H 'content-type: application/json' -d '{"id":${id},"action":"done"}' — or if it can't be done: -d '{"id":${id},"action":"fail","reason":"why"}'.`;
-    openChat();
-    post('/api/chat', { text, force: true }).then((x) => { if (!x.ok) x.json().then((e) => showErr(e.error || 'Could not send it to the agent')).catch(() => {}); }).catch(() => showErr('Could not send it to the agent'));
+    sendInstruction(text, { err: 'Could not send it to the agent' });
   }
   return true;
 }
@@ -3287,7 +3284,7 @@ function splitUserText(t) {
 }
 function logItemHtml(it) {
   const id = escapeHtml(it.id);
-  if (it.kind === 'user' && instructionInfo(it.text)) return instrCardHtml(instructionInfo(it.text), ` data-lid="${id}"`);
+  if (it.kind === 'user' && instructionInfo(it.text)) return instrCardHtml(instructionInfo(it.text), ` data-lid="${id}" data-seq="${it.rev}"`);
   if (it.kind === 'user') {
     const { text, files, ctx } = splitUserText(it.text);
     const imgs = [...(it.images || []).map(logImg), ...files.filter((f) => /\.ana\/uploads\/[^/]+\.(png|jpe?g|gif|webp)$/i.test(f)).map((f) => `/uploads/${encodeURIComponent(f.split('/').pop())}`)];
@@ -3377,7 +3374,7 @@ const stripSender = (t) => String(t).replace(ID_PREFIX, '');
 /* ---- ANA가 대신 보낸 지시문 → 한 줄 카드 ----
    [Evolve] [Requests] [Approvals] [PRD] [Knowledge] [Update] [Request #n]은 화면의 버튼이 보낸 긴 지시문(curl 포함)이라
    내가 쓴 말풍선처럼 보이면 안 된다. '무엇을 시켰는지' 한 줄 + 해당 화면으로 가는 Open + 펼쳐 보는 원문으로 보여 준다. */
-const INSTR_RE = /^\[(Evolve|Requests|Approvals|PRD|Knowledge|Update|Request #(\d+))\]\s*/;
+const INSTR_RE = /^\[(Evolve|Requests|Approvals|PRD|Knowledge|Update|Work|Request #(\d+))\]\s*/;
 function instructionInfo(raw) {
   const full = stripSender(String(raw || '').replace(/<\/?pasted_content[^>]*>/g, '')).trim();
   const m = INSTR_RE.exec(full); if (!m) return null;
@@ -3392,6 +3389,7 @@ function instructionInfo(raw) {
     view = 'evolve'; sub = pm ? 'doing' : 'wait';
   } else if (m[1] === 'PRD') { summary = /^Let's shape/.test(body) ? 'Started shaping the PRD together' : /^Update/.test(body) ? 'Asked the agent to update the PRD' : 'Asked the agent to write the PRD'; view = 'prd'; sub = 'current'; }
   else if (m[1] === 'Knowledge') { summary = 'Asked the agent to add to the knowledge from your work'; view = 'knowledge'; sub = 'graph'; }
+  else if (m[1] === 'Work') { summary = 'Asked the agent to build the Work screen from the PRD'; view = 'work'; }
   else if (m[1] === 'Update') { const t = (/^Bring "([^"]+)"/.exec(body) || [])[1]; summary = `Asked the agent to bring in ${t ? `“${t}”` : 'an update'} from upstream`; view = 'update'; sub = 'doing'; }
   else { summary = 'Asked the agent what it needs from you'; sub = 'wait'; }
   return { tag: m[2] ? 'Request' : m[1], summary, view, sub, full };
@@ -3624,7 +3622,10 @@ let optim = [];
    실패하거나 12초 내 에코가 확인되지 않으면 배지에 재전송·삭제 버튼을 노출한다. */
 function addOptimistic(display, sendText) {
   const wrap = document.createElement('div'); wrap.className = 'optim';
-  const div = document.createElement('div'); div.className = 'msg user'; div.textContent = display;
+  // 화면 버튼이 보낸 지시([Knowledge] …)는 긴 본문 대신 카드로 — 무엇을 물었는지 한 줄, 펼치면 전문
+  const ins = instructionInfo(sendText); let div;
+  if (ins) { const tpl = document.createElement('div'); tpl.innerHTML = instrCardHtml(ins, ''); div = tpl.firstElementChild; }
+  else { div = document.createElement('div'); div.className = 'msg user'; div.textContent = display; }
   const badge = document.createElement('div'); badge.className = 'sstat';
   wrap.append(div, badge); $('optimistic').appendChild(wrap);
   const o = { sendText, display, el: wrap, badge, state: 'sending', t: Date.now(), seq0: logMode ? logRev : lastSeq, busyAtSend: busy };
@@ -3646,13 +3647,20 @@ function setOptimState(o, state, detail) {
   x.onclick = () => { optim = optim.filter((z) => z !== o); o.el.remove(); };
   b.append(t, re, x);
 }
-async function postChat(o) {
+// 화면 버튼이 보내는 지시 — 채팅에 바로 카드로 보이고(무엇을 물었는지), 전달·확인은 보낸 말풍선과 같은 규칙으로 따라간다
+async function sendInstruction(text, { open = true, err = 'Request failed' } = {}) {
+  const o = addOptimistic((instructionInfo(text) || {}).summary || text, text);
+  if (open) openChat();
+  await postChat(o, err);
+  return o.state === 'sent';
+}
+async function postChat(o, err) {
   setOptimState(o, 'sending');
   let r;
   try { r = await post('/api/chat', { text: o.sendText, force: true }); }
   catch { setOptimState(o, 'failed', 'Server unreachable'); showErr('Send failed — cannot reach the server.'); return; }
   if (!r.ok) { const e = await r.json().catch(() => ({}));
-    setOptimState(o, 'failed', e.error || `HTTP ${r.status}`); showErr(e.error || `Send failed (${r.status})`); return; }
+    setOptimState(o, 'failed', e.error || `HTTP ${r.status}`); showErr(e.error || err || `Send failed (${r.status})`); return; }
   o.t = Date.now(); o.busyAtSend = busy; setOptimState(o, 'sent'); // 200 = 에이전트 입력창까지 주입 완료
 }
 // 보낸 말풍선이 에이전트에게 닿았는지 판정한다.
@@ -3666,10 +3674,11 @@ function echoOf(o, t) {
   return t.length >= 6 && (w.startsWith(head(t)) || t.startsWith(head(w)) || (d.length >= 6 && t.startsWith(head(d))));
 }
 function reconcile() {
-  const pend = [...$('pendingWrap').querySelectorAll('.msg.user')].map((e) => normWs(stripSender(e.textContent)));
-  const logged = [...$('msgs').querySelectorAll('.msg.user[data-seq]')];
+  const textOf = (e) => (e.classList.contains('icard') ? normWs((e.querySelector('pre') || {}).textContent || '') : normWs(stripSender(e.textContent)));   // 지시 카드는 전문으로 맞춘다
+  const pend = [...$('pendingWrap').querySelectorAll('.msg.user, .icard')].map(textOf);
+  const logged = [...$('msgs').querySelectorAll('.msg.user[data-seq], .icard[data-seq]')];
   optim = optim.filter((o) => {
-    const texts = pend.concat(logged.filter((e) => Number(e.dataset.seq) > (o.seq0 || 0)).map((e) => normWs(stripSender(e.textContent))));
+    const texts = pend.concat(logged.filter((e) => Number(e.dataset.seq) > (o.seq0 || 0)).map(textOf));
     if (o.state !== 'sending' && texts.some((t) => echoOf(o, t))) { o.el.remove(); return false; }
     const age = Date.now() - o.t;
     if ((o.state === 'sent' || o.state === 'unconfirmed') && ((!o.busyAtSend && busy) || (o.state === 'sent' && o.busyAtSend && age > 12000))) {
