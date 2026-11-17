@@ -443,6 +443,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .act.toolresult.clip::after { content: "⋯ more"; position: absolute; bottom: 0; left: 0; right: 0; text-align: center; font-family: inherit; font-size: 11px; color: var(--blue-700); background: linear-gradient(transparent, var(--surface) 70%); padding-top: 14px; }
 #pendingWrap .msg, #pendingWrap .act { opacity: .75; }
 #optimistic .msg.user { opacity: .55; } #optimistic .icard { opacity: .7; }
+.sstat.wait { color: var(--warm-fg); }
 /* 슬래시 명령: 명령 말풍선은 고정폭, 결과는 터미널 화면을 그대로(단색 상자) */
 .msg.user.cmd { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
 .msg.term { align-self: stretch; max-width: none; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 10px; }
@@ -2694,6 +2695,7 @@ async function updateDialog(open) {
   if (!open || (slashOverlay && !dialogInfo)) { card.classList.remove('on'); dialogShown = false; dialogRenderSig = ''; $('dlgQ').innerHTML = ''; return; }   // 명령 결과 화면은 채팅에 이미 보였다
   // 구조화에 성공하면 선택지 버튼으로, 아니면(알 수 없는 다이얼로그) 화면 캡처 텍스트 + 키 버튼으로
   renderDialog();
+  $('dlgcardH').textContent = dialogInfo || (health && health.dialog) ? 'The terminal is showing a dialog that needs your input' : 'The terminal is not taking input right now — this is what it shows';
   if (!dialogInfo) {
     try {
       const s = await (await getJSON('/api/screen'));
@@ -3662,6 +3664,14 @@ function setOptimState(o, state, detail) {
   if (state === 'sending') { b.textContent = 'Sending…'; return; }
   if (state === 'sent') { b.textContent = 'Delivered ✓'; return; }
   if (state === 'acked') { b.textContent = ''; return; }   // 에이전트가 받아서 일하기 시작함 — 표시할 것 없음
+  if (state === 'waiting') {   // 터미널 입력줄이 닫혀 있어 기다리는 중 — 무엇이 막는지 보여 주고, 풀리면 알아서 보낸다
+    b.className = 'sstat wait'; b.textContent = '';
+    const t = document.createElement('span'); t.textContent = 'Terminal is busy with a dialog — will send when it is free';
+    const sh = document.createElement('button'); sh.textContent = 'Show'; sh.onclick = () => { dialogShown = false; updateDialog(true); };
+    const x = document.createElement('button'); x.textContent = '✕'; x.className = 'dis'; x.setAttribute('aria-label', 'Delete message');
+    x.onclick = () => { clearInterval(o.waitT); optim = optim.filter((z) => z !== o); o.el.remove(); };
+    b.append(t, sh, x); return;
+  }
   b.textContent = '';
   const t = document.createElement('span');
   t.textContent = state === 'failed' ? (detail ? `Send failed — ${String(detail).slice(0, 60)}` : 'Send failed') : 'Unconfirmed';
@@ -3677,12 +3687,24 @@ async function sendInstruction(text, { open = true, err = 'Request failed' } = {
   await postChat(o, err);
   return o.state === 'sent';
 }
+// 입력줄이 닫혀 있을 때(질문·메뉴·시작 중): 터미널 화면 카드를 띄우고, 3분 동안 2초마다 보다가 열리면 다시 보낸다
+function waitAndResend(o) {
+  setOptimState(o, 'waiting'); dialogShown = false; updateDialog(true);
+  const t0 = Date.now(); clearInterval(o.waitT);
+  o.waitT = setInterval(async () => {
+    if (o.state !== 'waiting') { clearInterval(o.waitT); return; }
+    await pollHealth();
+    if (health && health.ready && !health.dialog && !dialogInfo) { clearInterval(o.waitT); postChat(o); return; }
+    if (Date.now() - t0 > 180000) { clearInterval(o.waitT); setOptimState(o, 'failed', 'The terminal stayed busy for 3 minutes'); }
+  }, 2000);
+}
 async function postChat(o, err) {
   setOptimState(o, 'sending');
   let r;
   try { r = await post('/api/chat', { text: o.sendText, force: true }); }
   catch { setOptimState(o, 'failed', 'Server unreachable'); showErr('Send failed — cannot reach the server.'); return; }
   if (!r.ok) { const e = await r.json().catch(() => ({}));
+    if (r.status === 409 && /not ready/i.test(e.error || '')) { waitAndResend(o); return; }   // 입력줄이 닫혀 있다(질문·메뉴·시작 중) — 풀리면 알아서 다시 보낸다
     setOptimState(o, 'failed', e.error || `HTTP ${r.status}`); showErr(e.error || err || `Send failed (${r.status})`); return; }
   o.t = Date.now(); o.busyAtSend = busy; setOptimState(o, 'sent'); // 200 = 에이전트 입력창까지 주입 완료
 }
@@ -3732,6 +3754,13 @@ async function send() {
   const cmd = isSlash(raw);
   // 앞서 보낸 명령의 결과 화면(/btw·/help…)이 아직 떠 있으면 먼저 닫는다 — 안 그러면 입력줄이 준비되지 않아 보내지 못한다
   if (slashOverlay) { await closeSlashOverlay(); }
+  // 터미널이 질문(AskUserQuestion)을 띄워 놓은 동안은 입력줄이 닫혀 있다. 그때 보통 글을 보내면
+  // 'Chat about this'를 골라 입력줄을 열고 보낸다(에이전트가 답하고 다시 묻는다). 그게 없고 '직접 입력'만 있으면 그 답으로 넣는다.
+  if (dialogInfo && Array.isArray(dialogInfo.options) && !cmd) {
+    const chat = dialogInfo.options.find((x) => x.chat), other = dialogInfo.options.find((x) => x.other);
+    if (chat) { await dialogDo({ action: 'pick', n: chat.n }); await new Promise((r) => setTimeout(r, 600)); }
+    else if (other && !files.length) { const o2 = addOptimistic(label, text); await dialogDo({ action: 'pick', n: other.n, text: raw }); setOptimState(o2, 'acked'); $('msgs').appendChild(o2.el); pinChat(); return; }
+  }
   const o = addOptimistic(label, text);
   if (cmd) { o.el.querySelector('.msg.user')?.classList.add('cmd'); o.cmd = true; o.before = await screenText(); }
   await postChat(o);

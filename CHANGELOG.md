@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.27.2] — 2026-11-17
+
+### Fixed
+
+- **Sending while the terminal is waiting on something no longer fails with "Agent input line is not ready".** When the agent has a question open (AskUserQuestion), a message you type now goes through the question's *Chat about this* first and then reaches the agent (a question with only *Type something* gets your text as the answer). When a menu is open (`/model`, startup), the bubble says *Terminal is busy with a dialog — will send when it is free*, the terminal card shows what is on screen with its keys, and the message is sent by itself the moment the input line is free (up to 3 minutes). Before, the send failed at once and only *Resend* was offered.
+
 ## [0.27.1] — 2026-11-17
 
 ### Fixed

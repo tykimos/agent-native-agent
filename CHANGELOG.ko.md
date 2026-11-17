@@ -5,6 +5,12 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.27.2] — 2026-11-17
+
+### 고침
+
+- **터미널이 무언가를 기다리는 동안 보내도 "Agent input line is not ready"로 실패하지 않습니다.** 에이전트가 질문(AskUserQuestion)을 띄워 둔 동안 글을 보내면 질문의 *Chat about this*를 먼저 고른 뒤 에이전트에게 전달합니다(*Type something*만 있는 질문이면 그 답으로 넣습니다). 메뉴(`/model`, 시작 중)가 떠 있으면 말풍선에 *Terminal is busy with a dialog — will send when it is free*가 붙고, 터미널 카드가 화면과 키를 보여 주며, 입력줄이 열리는 순간 알아서 보냅니다(최대 3분). 전에는 바로 실패하고 *Resend*만 있었습니다.
+
 ## [0.27.1] — 2026-11-17
 
 ### 고침
