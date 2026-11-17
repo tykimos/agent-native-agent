@@ -356,6 +356,16 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
   .topnav-brand .bname { display: none; }
   .topnav-brand .bcur { border-left: 0; padding-left: 0; }
   .topnav .tab { padding: 0 10px; white-space: nowrap; }
+  /* 한 줄을 지킨다: 로고 버튼은 줄어들 수 있고(탭 이름은 …으로), 아바타가 다음 줄로 떨어지지 않게 */
+  .topnav { flex-wrap: nowrap; }
+  .topnav-brand { flex: 0 1 auto; min-width: 0; }
+  .topnav-brand .bcur { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topnav-brand .tbadge, .topnav-brand .bchev { flex: 0 0 auto; }
+}
+/* 휴대폰에서 Chip 모드가 켜지면 ✎·⟳가 더 생긴다 — Chip 글자를 숨기고 손잡이만 남겨 한 줄에 들어가게 */
+@media (max-width: 430px) {
+  body.ana-mode .mode-toggle { font-size: 0; gap: 0; padding: 0 6px; margin-right: 4px; }
+  body.ana-mode .chip-scan { margin-right: 4px; }
 }
 /* System은 탭이 다섯 개(Trustworthiness가 길다) — 폰 폭에서도 한 줄에 다 보이게 탭 간격과 글자를 조금 줄인다 */
 @media (max-width: 430px) {
@@ -551,6 +561,9 @@ body.sketching { overflow: hidden; }
 .k-rel { color: var(--acc, var(--blue)); font-weight: 700; } .k-dot { width: 10px; height: 10px; border-radius: 999px; flex: 0 0 auto; }
 .k-new { font-size: 10.5px; font-weight: 800; padding: 1px 7px; border-radius: 999px; background: var(--surface-2); color: var(--text-weak); }
 .k-del { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 8px; color: var(--text-weak); } .k-del:hover { background: var(--surface-2); color: var(--danger); }
+@media (max-width: 768px) { .k-del { width: 40px; height: 40px; margin: -7px -8px -7px 0; } .work-more button { display: inline-block; padding: 12px 10px; margin: -8px 0; } }
+/* 좁은 폭: 'v2 · 11/17 · by you · Edited' 같은 설명은 …으로 자르지 않고 한 줄 통째로 위에, 버튼은 아래 줄에 */
+@media (max-width: 430px) { .toolbar:has(.cnt:not(:empty)) { flex-wrap: wrap; row-gap: 6px; } .toolbar .cnt:not(:empty) { flex: 1 1 100%; white-space: normal; } }
 .doc-drop { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 14px 16px; margin-bottom: 12px; border: 1.5px dashed var(--line); border-radius: 14px; color: var(--text-sub); font-size: 13px; }
 .doc-drop.over { border-color: var(--acc, var(--blue)); background: var(--acc-weak, var(--blue-weak)); }
 .doc-drop .ok { height: 34px; padding: 0 14px; border-radius: 999px; font-weight: 700; background: var(--acc, var(--blue)); color: #fff; } .doc-status { margin-left: auto; font-weight: 700; color: var(--text); }
@@ -747,6 +760,7 @@ body.chat-loading #connPill .dot { background: transparent !important; box-shado
 .fab { display: none; position: fixed; right: 18px; bottom: calc(20px + var(--safe-b)); width: 56px; height: 56px; border-radius: 999px; background: var(--blue); color: var(--white); box-shadow: var(--sh-fab); z-index: 38; place-items: center; }
 .fab svg { width: 24px; height: 24px; }
 body:not(.chatting) .fab { display: grid; }     /* Chip 모드와 무관하게 항상 — 채팅이 열려 있을 때만 숨김 */
+body.drawing .fab { display: none !important; }   /* 그리는 동안은 툴바와 겹치므로 숨긴다 */
 .fab.busy::after { content: ""; position: absolute; inset: -3px; border-radius: 999px; border: 2px solid var(--green); animation: pulse 1.4s infinite; }
 .fab .badge { position: absolute; top: -3px; right: -3px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--c-1); color: #fff; font-size: 11px; font-weight: 800; line-height: 20px; text-align: center; display: none; }
 .fab.unread .badge { display: block; }
@@ -1157,7 +1171,7 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
 <!-- ◀ 메인: 할일 / 일정 / 진화 -->
 <div id="main">
   <nav class="topnav" aria-label="Main menu">
-    <button class="topnav-brand" id="brandBtn" aria-haspopup="true" aria-expanded="false" aria-controls="tabMenu" aria-label="Menu"><img src="/ana-logo.png" alt="ANA logo"><span class="bname">ANA</span><span class="bcur" id="brandCur">Work</span><span class="tbadge" id="brandBadge"></span><svg class="bchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <button class="topnav-brand" id="brandBtn" aria-haspopup="true" aria-expanded="false" aria-controls="tabMenu" aria-label="Menu"><img src="/ana-logo.png" alt="ANA logo"><span class="bname">ANA</span><span class="bcur" id="brandCur">Work</span><svg class="bchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg><span class="tbadge" id="brandBadge"></span></button>
     <!-- 메뉴: ANA 로고를 누르면 열리는 드롭다운 -->
     <div class="tabstrip" id="tabMenu" role="tablist" aria-orientation="vertical" hidden>
       <button class="tab" data-view="prd" role="tab" aria-selected="false">PRD</button>
@@ -1773,7 +1787,10 @@ function renderSubtabs(v) {
   if (top && on && on.dataset.view === v) { top.dataset.sub = v; top.setAttribute('aria-label', v); top.innerHTML = html; top.hidden = !html; }
   const view = $(v + 'View'); if (!view) return;
   view.querySelectorAll('[data-subsec]').forEach((x) => { x.hidden = !x.dataset.subsec.split(' ').includes(cur); });
+  if (v === 'knowledge') setTimeout(kGraphFit, 0);   // 그래프 칸이 이제 보이면 그 폭에 맞춰 다시 그린다
 }
+// 그래프는 그릴 자리의 폭에 맞춰 그린다 — 숨긴 채 그렸거나(폭 0 → 760 기준) 폭이 바뀌었으면 다시
+function kGraphFit() { const g = $('kGraph'); if (g && !g.hidden && g.clientWidth && Math.abs(g.clientWidth - (g.dataset.w || 0)) > 40) { g.innerHTML = kGraphSvg(); g.dataset.w = g.clientWidth; } }
 function setSubCount(v, k, n) { if (!SUBTABS) return; const c = (subCounts[v] ||= {}); if (c[k] === n) return; c[k] = n; renderSubtabs(v); }
 function openSub(v, k) { subSel[v] = k; try { localStorage.setItem('ana-subtabs', JSON.stringify(subSel)); } catch {} renderSubtabs(v); }
 // 상태 하위 탭을 바꾸면 그 목록을 다시 그린다
@@ -2024,6 +2041,8 @@ $('skSend').onclick = () => {
   }, 'image/png');
 };
 window.addEventListener('resize', () => { if (!$('sketchLayer').hidden) skResize(); });
+// 그래프는 폭에 맞춰 그리므로 폭이 바뀌면(회전·창 크기) 다시 그린다
+let kGraphResizeT = null; window.addEventListener('resize', () => { clearTimeout(kGraphResizeT); kGraphResizeT = setTimeout(kGraphFit, 150); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('sketchLayer').hidden) { if (skSel) { skSel = null; skRepaint(); } else closeSketch(); } });
 // Talk to ANA: PRD를 함께 정하는 대화를 연다 — 누르면 바로 에이전트에게 시작 지시가 가고, 에이전트가 먼저 묻는다
 function talkToAna(b) {
@@ -2094,7 +2113,7 @@ function renderKnowledge() {
   $('kFacts').innerHTML = made.map((e) => `<div class="k-row"><div class="k-main"><span class="k-t">${escapeHtml(name(e.from))} <span class="k-rel">${escapeHtml(relLabel(e.type))}</span> ${escapeHtml(name(e.to))}</span>${e.newType ? kNew : ''}${(e.items || []).length ? `<div class="rels">${kItems(e.items)}</div>` : ''}</div>${e.fact ? kDel(`data-kind="fact" data-from="${escapeHtml(e.fact.from)}" data-rel="${escapeHtml(e.fact.rel)}" data-to="${escapeHtml(e.fact.to)}"`) : kDel(`data-kind="link" data-from="${escapeHtml(e.from)}" data-rel="${escapeHtml(e.type)}" data-to="${escapeHtml(e.to)}"`)}</div>`).join('');
   $('kFactHead').hidden = $('kFacts').hidden = !made.length; $('kFactCnt').textContent = made.length || '';
   const svg = kGraphSvg();
-  $('kGraph').hidden = !svg; $('kGraph').innerHTML = svg;
+  $('kGraph').hidden = !svg; $('kGraph').innerHTML = svg; $('kGraph').dataset.w = $('kGraph').clientWidth;
   $('kGraphEmpty').style.display = svg ? 'none' : 'block';
 }
 // 힘 배치(결정적): 이어진 것은 당기고 모든 노드는 서로 밀어낸다. 노드는 종류마다 색, 모양은 하나
@@ -2102,7 +2121,9 @@ function kGraphSvg() {
   const G = kG(), nodes = (G.nodes || []).slice().sort((a, b) => String(a.kind).localeCompare(String(b.kind)) || String(a.title).localeCompare(String(b.title)));
   if (!nodes.length) return '';
   const idx = new Map(nodes.map((n, i) => [n.id, i])), edges = (G.edges || []).filter((e) => idx.has(e.from) && idx.has(e.to));
-  const N = nodes.length, W0 = 760, H = Math.max(360, Math.min(760, 260 + N * 12)), K = Math.sqrt((W0 * H) / N) * 0.55;
+  // 폭은 그릴 자리에 맞춘다(휴대폰 ~340px) — 760 고정이면 축소돼 글자가 5px로 보인다. 높이는 폭이 좁을수록 조금 더
+  const box = $('kGraph'), W0 = Math.max(300, Math.min(760, (box && box.clientWidth) || 760));
+  const N = nodes.length, H = Math.max(W0 < 500 ? 420 : 360, Math.min(760, 260 + N * 12)), K = Math.sqrt((W0 * H) / N) * 0.55;
   const P = nodes.map((n, i) => { const a = (i / N) * Math.PI * 2; return [Math.cos(a) * 200, Math.sin(a) * 200]; });
   for (let it = 0, t = 40; it < 400; it++, t *= 0.988) {
     const D = P.map(() => [0, 0]);
@@ -2116,7 +2137,7 @@ function kGraphSvg() {
   }
   const xs = P.map((p) => p[0]), ys = P.map((p) => p[1]), mx = Math.min(...xs), Mx = Math.max(...xs), my = Math.min(...ys), My = Math.max(...ys);
   const fit = (v, lo, hi, a, b) => (hi - lo < 1 ? (a + b) / 2 : a + ((v - lo) / (hi - lo)) * (b - a));
-  const pos = P.map(([x, y]) => [fit(x, mx, Mx, 90, W0 - 90), fit(y, my, My, 40, H - 50)]);
+  const pad = W0 < 500 ? 60 : 90, pos = P.map(([x, y]) => [fit(x, mx, Mx, pad, W0 - pad), fit(y, my, My, 40, H - 50)]);
   const lines = edges.map((e) => { const [x1, y1] = pos[idx.get(e.from)], [x2, y2] = pos[idx.get(e.to)];
     return `<line class="k-edge" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>${edges.length <= 24 && e.type !== 'MENTIONED_IN' ? `<text class="k-elabel" x="${(x1 + x2) / 2}" y="${(y1 + y2) / 2 - 4}">${escapeHtml(e.type.toLowerCase().replace(/_/g, ' '))}</text>` : ''}`; }).join('');
   const dots = nodes.map((n, i) => { const [x, y] = pos[i];
@@ -2377,6 +2398,7 @@ async function loadMe() {
   $('meLogout').style.display = logoutUrl ? '' : 'none';   // 로그아웃 경로는 앞단이 정한다
   // 프로필 메뉴의 로그아웃: 앞단 로그아웃 경로가 있을 때만 활성. 없으면 이유를 보여 주고 비활성.
   $('menuLogout').disabled = !logoutUrl;
+  $('menuLogout').hidden = !logoutUrl && !signedIn;   // 혼자 쓰는 모드엔 로그아웃이 없다 — 보이지 않게
   $('menuLogoutHint').hidden = !!logoutUrl;
   $('menuLogoutHint').textContent = signedIn ? 'Set ANA_LOGOUT_URL to enable' : 'Single-user mode — no sign-in';
 }
@@ -2519,7 +2541,12 @@ function setBadge(attr, n) {
   document.querySelectorAll(`[${attr}]`).forEach((x) => { x.textContent = n > 9 ? '9+' : String(n); x.classList.toggle('show', n > 0); });
   // 메뉴가 닫혀 있어도 기다리는 게 있는지 — 로고 옆 배지 = 세 탭의 합
   const sum = ['data-reqbadge', 'data-evobadge', 'data-updbadge'].reduce((t, a) => { const x = document.querySelector(`#tabMenu [${a}]`); return t + (x && x.classList.contains('show') ? (parseInt(x.textContent, 10) || 0) : 0); }, 0);
-  const bb = $('brandBadge'); if (bb) { bb.textContent = sum > 9 ? '9+' : String(sum); bb.classList.toggle('show', sum > 0); }
+  const bb = $('brandBadge'); if (bb) {
+    bb.textContent = sum > 9 ? '9+' : String(sum); bb.classList.toggle('show', sum > 0);
+    // 배지는 메뉴 화살표 뒤에 — 지금 탭의 수가 아니라 메뉴 안에서 기다리는 것의 합이라는 뜻. 어느 탭인지는 툴팁으로
+    const parts = [['data-reqbadge', 'Requests'], ['data-evobadge', 'Evolve'], ['data-updbadge', 'Update']].map(([a, l]) => { const x = document.querySelector(`#tabMenu [${a}]`); const n = x && x.classList.contains('show') ? x.textContent : ''; return n ? `${l} ${n}` : ''; }).filter(Boolean);
+    bb.title = parts.length ? `Waiting for you — ${parts.join(' · ')}` : '';
+  }
 }
 // 첫 탭은 스크립트가 다 읽힌 뒤에 — 탭 클릭이 아래쪽에서 선언되는 상태 변수를 건드려도 TDZ에 걸리지 않게
 setTimeout(() => selectTab(document.querySelector(`.topnav .tab[data-view="${lastTab}"]`)), 0);
@@ -3871,9 +3898,9 @@ function openDraw() {
   drawRect = { left: r.left, top: r.top, width: r.width, height: r.height };
   Object.assign(L.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
   c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr);
-  drawStrokes = []; drawCur = null; L.hidden = false; L.classList.remove('busy'); drawRepaint();
+  drawStrokes = []; drawCur = null; L.hidden = false; L.classList.remove('busy'); drawRepaint(); document.body.classList.add('drawing');
 }
-function closeDraw() { const L = $('drawLayer'); if (!L) return; L.hidden = true; drawStrokes = []; drawCur = null; }
+function closeDraw() { const L = $('drawLayer'); if (!L) return; L.hidden = true; drawStrokes = []; drawCur = null; document.body.classList.remove('drawing'); }
 $('drawBtn').onclick = () => ($('drawLayer').hidden ? openDraw() : closeDraw());
 $('drawCancel').onclick = closeDraw;
 $('drawUndo').onclick = () => { drawStrokes.pop(); drawRepaint(); };
@@ -4188,7 +4215,13 @@ function closeChat() { document.body.classList.remove('chatting'); }
 $('fab').onclick = openChat;
 $('chatCloseBtn').onclick = closeChat;
 $('chatScrim').onclick = closeChat;
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('chatting')) closeChat(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || !document.body.classList.contains('chatting')) return;
+  // 맨 위 한 겹만 닫는다 — 세션 팝업·메뉴·시트·팝업·그리기가 열려 있으면 그것(각자의 핸들러)만, 채팅은 그대로
+  if (!cfgPanel.hidden) { cfgPanel.hidden = true; $('connPill').setAttribute('aria-expanded', 'false'); return; }
+  if (modalCur || $('msheet').classList.contains('on') || !$('tabMenu').hidden || !$('meMenu').hidden || !$('drawLayer').hidden || !$('sketchLayer').hidden) return;
+  closeChat();
+});
 if (window.visualViewport) window.visualViewport.addEventListener('resize', () => pinChat());
 
 /* ================= 부트스트랩 =================

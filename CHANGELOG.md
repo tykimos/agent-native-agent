@@ -5,6 +5,21 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.25.1] — 2026-11-17
+
+### Fixed
+
+- **Phone top bar no longer wraps when Chip mode is on.** With a long tab name (Knowledge) the avatar fell onto a second row; the tab name now shrinks with an ellipsis and, below 430 px, the Chip switch shows only its knob while ✎ and ⟳ are visible.
+- **Knowledge › Graph is readable on a phone.** The picture was drawn 760 px wide and scaled down, so labels were 5 px tall. It is now drawn at the width of its box (and redrawn when the box changes — rotating, resizing, or opening the Graph section).
+- **The chat button no longer sits behind the drawing toolbar on a phone.** It hides while you draw.
+- **The badge next to the logo is now after the menu arrow, with a tooltip** (*Waiting for you — Requests 2 · Evolve 1*). Next to the tab name it read as that tab's count.
+- **Esc closes one layer at a time.** With the session popover open in the chat, Esc closed the popover and the chat together; now only the popover.
+- **Bigger tap targets on phones:** the *Open the PRD* link in the empty Work screen and the ✕ in the Graph's Links list.
+- **The PRD's version line is not cut off on a phone** — it takes its own line above the buttons.
+- **System › Kept alive by** said *launchd* for any process whose parent is pid 1 (a `nohup` server after its terminal closed, too). It now checks `launchctl list` for the server's pid.
+- **"Changes applied" reads in words** — *1 added, 2 changed* — instead of `(+1 ~2 -0, v6)`.
+- **The profile menu hides *Log out* in single-user mode** instead of showing it disabled.
+
 ## [0.25.0] — 2026-11-15
 
 ### Changed

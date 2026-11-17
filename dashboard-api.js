@@ -32,7 +32,11 @@ function supervisor() {
   const env = process.env;
   if (env.ANA_SUPERVISED === '1') return 'supervisor';
   if (env.INVOCATION_ID) return 'systemd';
-  if (process.platform === 'darwin' && process.ppid === 1) return 'launchd';
+  if (process.platform === 'darwin' && process.ppid === 1) {
+    // 부모가 1이라고 다 launchd 잡은 아니다(터미널을 닫아 고아가 된 nohup 프로세스도 그렇다) — launchctl 목록에 이 pid가 있어야 한다
+    try { const out = require('node:child_process').execFileSync('launchctl', ['list'], { encoding: 'utf8', timeout: 2000 }); if (new RegExp(`^${process.pid}\t`, 'm').test(out)) return 'launchd'; } catch {}
+    return 'self';
+  }
   return 'self';
 }
 function restartServer(how) {
@@ -791,7 +795,7 @@ function createDashboardApi(core, opts) {
           return sendJson(res, 500, { error: 'apply failed', detail: e.message }), true;
         }
         pr.status = 'applied'; pr.failReason = ''; pr.decidedAt = new Date().toISOString(); saveProposals(ps);
-        const entry = commit({ role: 'system', text: `Changes applied (+${result.summary.added} ~${result.summary.updated} -${result.summary.removed}, v${result.version})`, src: 'api' });
+        const entry = commit({ role: 'system', text: `Changes applied — ${[[result.summary.added, 'added'], [result.summary.updated, 'changed'], [result.summary.removed, 'removed']].filter(([n]) => n).map(([n, w]) => `${n} ${w}`).join(', ') || 'nothing changed'}`, src: 'api' });
         broadcast({ kind: 'commit', messages: [entry] });
         broadcast({ kind: 'proposal', proposal: pr });
         broadcast({ kind: 'data', version: result.version });
