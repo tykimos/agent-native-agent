@@ -223,14 +223,15 @@ function createAgentLog({ socket = '' } = {}) {
   }
   // 새로 붙은 줄만 읽는다. 파일이 줄었으면(교체) 처음부터.
   // 읽을 양이 크면(처음 여는 긴 대화) 백그라운드에서 4MB씩 나눠 읽는다 — 서버가 멈추지 않고, 그동안 read()는 진행률을 돌려준다.
-  const SYNC_MAX = 4 * 1024 * 1024, CHUNK = 4 * 1024 * 1024;
+  const SYNC_MAX = 4 * 1024 * 1024, SYNC_MAX_GROW = 32 * 1024 * 1024, CHUNK = 4 * 1024 * 1024;
   function update(file, kind) {
     const st = state(file, kind);
     if (st.loading) return st;
     let size; try { size = fs.statSync(file).size; } catch { return st; }
     if (size < st.offset) { logs.delete(file); return update(file, kind); }
     if (size === st.offset) return st;
-    if (size - st.offset > SYNC_MAX) { loadInBackground(file, st, size); return st; }
+    // 처음 여는 큰 기록만 뒤에서 나눠 읽는다. 이미 읽던 기록이 자란 것(큰 도구 출력·그림)은 32MB까지 바로 읽는다 — 보던 대화가 '불러오는 중'으로 바뀌지 않게
+    if (size - st.offset > (st.offset > 0 ? SYNC_MAX_GROW : SYNC_MAX)) { loadInBackground(file, st, size); return st; }
     const fd = fs.openSync(file, 'r');
     try { ingestRange(st, fd, size); } finally { fs.closeSync(fd); }
     return st;

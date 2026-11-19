@@ -601,6 +601,7 @@ body.sketching { overflow: hidden; }
 .icard-d pre { margin: 6px 0 0; max-height: 260px; overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: 11.5px; line-height: 1.5; color: var(--text-sub); background: var(--surface); border-radius: 8px; padding: 8px; }
 .swload { align-self: stretch; margin: 18px auto 8px; width: min(100%, 420px); padding: 14px 16px; border-radius: 14px; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line-2); font-size: 13px; transition: opacity .3s; }
 .swload[hidden] { display: none; }
+body.chat-catchup .swload { position: sticky; top: 8px; z-index: 4; box-shadow: 0 0 0 1px var(--line), var(--sh-card); }   /* 읽는 중에도 입력은 열려 있다 — 카드만 보인다 */
 body.chat-loading .swload { position: sticky; top: 8px; z-index: 4; box-shadow: 0 0 0 1px var(--line), var(--sh-card); }   /* 긴 대화 중간에서도 늘 보이게 */
 .sw-log { margin-top: 8px; } .sw-log summary { cursor: pointer; font-size: 12px; font-weight: 700; color: var(--text-weak); }
 .sw-log pre { margin: 6px 0 0; max-height: 160px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 11.5px/1.5 ui-monospace, Menlo, monospace; color: var(--text-sub); }
@@ -3159,8 +3160,8 @@ document.addEventListener('click', (e) => {
 });
 // 감시: 불러오는 중인데 폴이 12초 넘게 없으면 폴러를 다시 띄운다
 setInterval(() => { if (!sw || document.hidden) return; if (Date.now() - lastPollAt > 12000) { swLog('no answer for 12 s — restarting the log reader'); logBusy = false; pollLog(); } }, 3000);
-function swStart(target, title, withConnect) {
-  sw = { target, title, t0: performance.now(), st: withConnect ? {} : { connect: { s: 'skip' } }, ledger: null, log: [] };
+function swStart(target, title, withConnect, quiet) {
+  sw = { target, title, t0: performance.now(), st: withConnect ? {} : { connect: { s: 'skip' } }, ledger: null, log: [], switching: !!withConnect, quiet: !!quiet };
   swLog(`${title} (${target})`);
   swSet(withConnect ? 'connect' : 'find', 'run');
   clearInterval(swTick); swTick = setInterval(renderSw, 200);
@@ -3181,7 +3182,8 @@ function swSet(key, s, detail, pct) {
   renderSw();
 }
 function renderSw() {
-  const el = $('swLoad'), loading = !!sw;
+  const el = $('swLoad'), loading = !!(sw && sw.switching);   // 입력창을 잠그는 화면(chat-loading)은 세션 전환 때만
+  document.body.classList.toggle('chat-catchup', !!sw && !loading);
   if (document.body.classList.contains('chat-loading') !== loading) {
     document.body.classList.toggle('chat-loading', loading);
     $('feed').setAttribute('aria-busy', String(loading));
@@ -3282,7 +3284,9 @@ async function pollLogBody() {
   }
   // 긴 대화를 처음 읽는 중 — 진행률(MB)을 보여 주며 짧게 다시 묻는다
   if (d.loading) {
-    if (!sw || sw.target !== target) swStart(target, 'Loading the conversation', false);
+    // 이미 보고 있던 대화가 크게 자라 서버가 뒤에서 읽는 중이면: 화면은 그대로 두고 작은 '따라잡는 중' 카드만
+    const catchUp = logMode && logSession && d.session === logSession;
+    if (!sw || sw.target !== target) swStart(target, catchUp ? 'Catching up on new messages' : 'Loading the conversation', false, catchUp);
     if (sw.st.find?.s !== 'ok') swSet('find', 'ok', d.title ? `${kindName} · ${d.title}` : kindName);
     const L = d.loading, pct = L.total ? Math.round((L.done / L.total) * 100) : 0;
     sw.readTotal = L.total; swSet('read', 'run', `${fmtMB(L.done)} / ${fmtMB(L.total)}`, pct);
@@ -3776,7 +3780,7 @@ function reconcile() {
 }
 setInterval(reconcile, 3000); // SSE 이벤트가 없어도 미확인 판정이 굴러가게
 async function send() {
-  if (sw) return;                                  // 세션 전환·기록 불러오는 중
+  if (sw && sw.switching) { showErr('Switching sessions — one moment'); return; }   // 세션을 바꾸는 중에만 막는다(기록을 읽는 중에는 보낸다)
   if (dialogInfo?.kind === 'onboarding') { showErr('Finish Claude setup using the card above.'); return; }
   const raw = $('input').value.trim();
   const files = attachments.filter((a) => a.path);
@@ -3900,9 +3904,12 @@ function stopMode() {
 function updateSendMode() {
   const b = $('send'), stop = stopMode();
   const setup = dialogInfo?.kind === 'onboarding';
-  b.disabled = !sesAlive() || setup || !!sw;
-  $('input').disabled = setup || !!sw;          // 세션 전환·기록 불러오는 중에는 보내지 않는다
-  $('input').placeholder = sw ? `Loading ${sw.target}…` : setup ? 'Complete Claude setup above' : noPrd ? 'Tell ANA what this ANA should do — the work, who it is for…' : 'Message ANA — Enter to send';
+  // 입력창은 세션을 '바꾸는' 동안만 잠근다. 기록을 읽는 중(처음 열기·뒤에서 따라잡기)에는 쓰고 보낼 수 있다 —
+  // 보내기는 기록과 상관없이 터미널로 간다. 예전엔 쓰던 중에 기록이 크게 자라면 입력창이 통째로 잠겼다.
+  const switching = !!(sw && sw.switching);
+  b.disabled = !sesAlive() || setup || switching;
+  $('input').disabled = setup || switching;
+  $('input').placeholder = switching ? `Switching to ${sw.target}…` : setup ? 'Complete Claude setup above' : noPrd ? 'Tell ANA what this ANA should do — the work, who it is for…' : 'Message ANA — Enter to send';
   if (b.classList.contains('stop') !== stop) b.innerHTML = stop ? STOP_GLYPH : SEND_GLYPH;
   b.classList.toggle('stop', stop);
   b.title = stop ? 'Stop the current task' : 'Send';

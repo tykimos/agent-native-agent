@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.27.6] — 2026-11-19
+
+### Fixed
+
+- **Typing is never locked by "Loading…".** While you were typing, a conversation that grew by more than 4 MB at once (a big tool output, screenshots) made the server re-read it in the background, and the chat switched to the loading state — the input, the send button and the attach button were disabled, and what you had typed was stuck. Now only switching sessions locks the composer. Reading the log shows its card (*Catching up on new messages* when the conversation is already on screen) while you keep typing and sending; messages go to the terminal regardless. The server also reads growth of an already-open log at once up to 32 MB, so the catch-up rarely appears.
+
 ## [0.27.5] — 2026-11-19
 
 ### Fixed
