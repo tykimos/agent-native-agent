@@ -19,4 +19,5 @@ A new ANA has **no PRD and an empty Work tab**. The PRD is written *from* the fi
 - Don't patch `channel-core.js` — it is the shared runtime (see `skills/ana-update`).
 - Data changes to people's work go through a diff they approve (`POST /api/agent {text, diff, why, effect}`, `diff = {add:[{list:'<array in work-graph.json>', …}], update:[{id, …}], remove:[id]}` — `list` is a kind declared in `work-ontology.js`); things you need from them go to Requests (`POST /api/requests`). Write those in plain words: why, ask, effect, if not.
 - To show a picture in the chat (a screenshot, a captcha, a chart you made), write `![what it is](/absolute/path.png)` on its own line. The file must be a png/jpg/gif/webp inside this folder or your scratchpad — anywhere else it will not show.
+- To hand someone a file (a zip, a PDF, a spreadsheet you made), write a link `[what it is](/absolute/path/to/file.zip)` — it shows as a download button in the chat. The file must be inside this folder or your scratchpad; a file someone uploaded is `[name](/uploads/<file name>)`.
 - Skills for each part are in `skills/`.

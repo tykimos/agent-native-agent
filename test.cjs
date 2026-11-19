@@ -1109,6 +1109,18 @@ async function integration() {
       assert.ok(cfg.sessions.every((x) => x.name === orig || x.name.startsWith(`${cfg.ana}-`)), `규칙 밖 세션이 섞임: ${cfg.sessions.map((x) => x.name)}`);
     });
 
+    await ta('I17 내려받기: /uploads/<zip>?download=1 → attachment(한글 이름 포함), 그림은 그대로 보여 준다', async () => {
+      fs.mkdirSync(childEnv.UPLOAD_DIR, { recursive: true });
+      fs.writeFileSync(path.join(childEnv.UPLOAD_DIR, '개념도-skill.zip'), 'PK zip');
+      const r = await fetch(`${api}/uploads/${encodeURIComponent('개념도-skill.zip')}?download=1`);
+      assert.equal(r.status, 200);
+      assert.match(r.headers.get('content-disposition') || '', /^attachment; .*filename\*=UTF-8''%EA%B0%9C/);
+      assert.equal(await r.text(), 'PK zip');
+      fs.writeFileSync(path.join(childEnv.UPLOAD_DIR, 'pic.png'), 'x');
+      const g = await fetch(`${api}/uploads/pic.png`);
+      assert.equal(g.headers.get('content-disposition'), null);
+    });
+
     await ta('I13 draft 가드: 터미널 입력창에 미제출 텍스트 있으면 /api/chat 409 (맨 마지막 — 입력 박스가 화면에 남음)', async () => {
       await chat('draftbox 미리 입력한 문장');           // mock이 입력 박스를 렌더한 채 멈춤
       await sleep(600);                                    // 폴이 extractDraft로 lastDraft 채우기 대기

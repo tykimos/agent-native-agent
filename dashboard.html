@@ -549,6 +549,9 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .talk-step { max-width: 560px; margin: 14px auto 0; padding: 10px 14px; border-radius: 12px; background: var(--acc-weak, var(--blue-weak)); color: var(--text-sub); font-size: 12.5px; line-height: 1.55; } .talk-step b { color: var(--text); }
 .work-more { margin-top: 14px; font-size: 12.5px; color: var(--text-weak); } .work-more button { font-size: 12.5px; color: var(--text-sub); text-decoration: underline; text-underline-offset: 2px; }
 .md-img { max-width: 100%; border-radius: 10px; border: 1px solid var(--line); background: #fff; margin: 4px 0; }
+.md a.md-file, .md-file { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px 2px 4px; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; color: inherit; font-weight: 500; word-break: break-all; }
+.md a.md-file:hover { border-color: var(--accent, #4a7); background: color-mix(in srgb, var(--accent, #4a7) 8%, transparent); }
+.md-file .mf-ic { flex: none; width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 12px; background: var(--accent, #4a7); color: #fff; }
 .sketch-layer { position: fixed; inset: 0; z-index: 120; background: rgba(15, 17, 21, .55); display: flex; flex-direction: column; padding: 14px; gap: 8px; } .sketch-layer[hidden] { display: none; }
 .sketch-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; background: var(--surface); border-radius: 14px; padding: 8px 10px; box-shadow: 0 6px 24px rgba(0,0,0,.18); }
 .sketch-bar .sk-title { font-weight: 800; font-size: 14px; margin-right: 6px; } .sketch-bar .sp { flex: 1; } .sk-sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
@@ -3383,6 +3386,11 @@ function mdHtml(src) {
         const src = `/api/agentfile?target=${encodeURIComponent((health && health.target) || '')}&path=${encodeURIComponent(f.replace(/&amp;/g, '&'))}`;
         return `<a href="${src}" target="_blank" rel="noopener"><img class="md-img" src="${src}" alt="${alt}" loading="lazy"></a>`; })
       .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+      .replace(/\[([^\]\n]+)\]\((\/[^\s)"<>]+)\)/g, (_, label, f) => {   // 내려받을 파일 — 올린 파일(/uploads/…) 또는 에이전트가 만든 파일(작업 폴더·스크래치패드의 절대 경로)
+        const raw = f.replace(/&amp;/g, '&'), name = raw.split('/').pop();
+        const href = raw.startsWith('/uploads/') ? `${raw}?download=1`
+          : `/api/agentfile?target=${encodeURIComponent((health && health.target) || '')}&path=${encodeURIComponent(raw)}&download=1`;
+        return `<a class="md-file" href="${escapeHtml(href)}" download="${escapeHtml(name)}" title="Download ${escapeHtml(name)}"><span class="mf-ic" aria-hidden="true">↓</span>${label}</a>`; })
       .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>');
     return t.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${escapeHtml(codes[i])}</code>`);
   };

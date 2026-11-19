@@ -139,6 +139,8 @@ function createDashboardApi(core, opts) {
   const UPLOAD_DIR = opts.UPLOAD_DIR || path.join(ROOT, '.ana', 'uploads');
   const MAX_UPLOAD = opts.MAX_UPLOAD || 10 * 1024 * 1024;
   // 경로 탈출·셸 특수문자 차단: 디렉터리 성분을 버리고 안전 문자만 남긴다.
+  // 내려받기 헤더 — 한글 파일 이름도 그대로(RFC 5987)
+  const attachment = (n) => `attachment; filename="${String(n).replace(/[^\x20-\x7e]|["\\]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(n)}`;
   const safeName = (n) => {
     const base = String(n || 'file').split(/[\\/]/).pop() || 'file';
     const clean = base.replace(/[^\w.\-가-힣]+/g, '_').replace(/^[._]+/, '').slice(-80);
@@ -700,7 +702,9 @@ function createDashboardApi(core, opts) {
       const ext = path.extname(abs).toLowerCase();
       const type = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif',
         '.webp': 'image/webp', '.heic': 'image/heic', '.pdf': 'application/pdf' }[ext] || 'application/octet-stream';
-      res.writeHead(200, { 'content-type': type, 'content-length': st.size, 'cache-control': 'public, max-age=86400' });
+      const dl = url.searchParams.get('download') === '1' || type === 'application/octet-stream';
+      res.writeHead(200, { 'content-type': type, 'content-length': st.size, 'cache-control': 'public, max-age=86400', 'x-content-type-options': 'nosniff',
+        ...(dl ? { 'content-disposition': attachment(name) } : {}) });
       if (req.method === 'HEAD') return res.end(), true;
       require('node:fs').createReadStream(abs).pipe(res);
       return true;
@@ -800,8 +804,11 @@ function createDashboardApi(core, opts) {
     if (p === '/api/agentfile' && (req.method === 'GET' || req.method === 'HEAD')) {
       const target = String(url.searchParams.get('target') || ''), want = String(url.searchParams.get('path') || '');
       if (!/^[\w.:@%+-]{1,100}$/.test(target) || !path.isAbsolute(want)) return sendJson(res, 400, { error: 'target and absolute path required' }), true;
-      const type = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp' }[path.extname(want).toLowerCase()];
-      if (!type) return sendJson(res, 403, { error: 'images only' }), true;
+      // download=1이면 어떤 파일이든 내려받기(attachment)로 준다 — 채팅의 [이름](/절대/경로) 링크. 그 밖엔 그림만.
+      const dl = url.searchParams.get('download') === '1';
+      const imgType = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp' }[path.extname(want).toLowerCase()];
+      if (!imgType && !dl) return sendJson(res, 403, { error: 'images only' }), true;
+      const type = dl ? 'application/octet-stream' : imgType;
       const r = await agentLog.resolve(target).catch(() => null);
       if (!r || !r.cwd) return sendJson(res, 404, { error: 'agent not found' }), true;
       let abs; try { abs = await fsp.realpath(want); } catch { return sendJson(res, 404, { error: 'not found' }), true; }
@@ -810,8 +817,9 @@ function createDashboardApi(core, opts) {
       const roots = (await Promise.all([r.cwd, path.join('/tmp', `claude-${uid}`, slug), path.join(os.tmpdir(), `claude-${uid}`, slug)].map(real))).filter(Boolean);
       if (!roots.some((d) => abs.startsWith(d + path.sep))) return sendJson(res, 403, { error: 'forbidden' }), true;
       let st; try { st = await fsp.stat(abs); } catch { return sendJson(res, 404, { error: 'not found' }), true; }
-      if (!st.isFile() || st.size > 25 * 1024 * 1024) return sendJson(res, 404, { error: 'not found' }), true;
-      res.writeHead(200, { 'content-type': type, 'content-length': st.size, 'cache-control': 'private, no-cache', 'x-content-type-options': 'nosniff' });
+      if (!st.isFile() || st.size > (dl ? 2048 : 25) * 1024 * 1024) return sendJson(res, 404, { error: 'not found' }), true;
+      res.writeHead(200, { 'content-type': type, 'content-length': st.size, 'cache-control': 'private, no-cache', 'x-content-type-options': 'nosniff',
+        ...(dl ? { 'content-disposition': attachment(path.basename(abs)) } : {}) });
       if (req.method === 'HEAD') return res.end(), true;
       require('node:fs').createReadStream(abs).pipe(res);
       return true;

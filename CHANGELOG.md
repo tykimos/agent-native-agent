@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.27.7] — 2026-11-19
+
+### Added
+
+- **Download files right from the chat.** When the agent hands you a file — a zip, a PDF, a spreadsheet — as a markdown link `[what it is](/absolute/path)` or `[name](/uploads/<file>)`, it now shows as a download button instead of plain text. Clicking saves it under its own name (Korean names too). Only files inside the ANA's folder, its Claude scratchpad or the uploads folder are served; anything else is refused. `CLAUDE.md` tells the agent to offer files this way.
+
 ## [0.27.6] — 2026-11-19
 
 ### Fixed
