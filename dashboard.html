@@ -601,6 +601,10 @@ body.sketching { overflow: hidden; }
 .icard-d pre { margin: 6px 0 0; max-height: 260px; overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: 11.5px; line-height: 1.5; color: var(--text-sub); background: var(--surface); border-radius: 8px; padding: 8px; }
 .swload { align-self: stretch; margin: 18px auto 8px; width: min(100%, 420px); padding: 14px 16px; border-radius: 14px; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line-2); font-size: 13px; transition: opacity .3s; }
 .swload[hidden] { display: none; }
+body.chat-loading .swload { position: sticky; top: 8px; z-index: 4; box-shadow: 0 0 0 1px var(--line), var(--sh-card); }   /* 긴 대화 중간에서도 늘 보이게 */
+.sw-log { margin-top: 8px; } .sw-log summary { cursor: pointer; font-size: 12px; font-weight: 700; color: var(--text-weak); }
+.sw-log pre { margin: 6px 0 0; max-height: 160px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 11.5px/1.5 ui-monospace, Menlo, monospace; color: var(--text-sub); }
+.sw-acts { display: flex; gap: 6px; margin-top: 10px; } .sw-acts button { min-height: 32px; padding: 4px 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); font-size: 12.5px; font-weight: 700; color: var(--text-sub); }
 /* 불러오는 동안 채팅 컨트롤: 입력·버튼은 잠그고 흐리게, 모델 자리와 세션 점은 스피너, 입력창 위에는 움직이는 막대 */
 body.chat-loading .composer { position: relative; }
 body.chat-loading .composer::before { content: ''; position: absolute; left: 18px; right: 18px; top: 0; height: 3px; border-radius: 99px;
@@ -2818,7 +2822,7 @@ function signedOut(login) {
   }
 }
 async function pollHealth() {
-  if (!logTimer) pollLogSoon();
+  if (Date.now() - lastPollAt > 15000) pollLogSoon();   // 폴 체인이 끊겼으면 다시 잇는다
   if (healthInFlight) return; healthInFlight = true;
   // 응답 상태를 본다 — 로그인 게이트웨이(anahub)는 로그인이 풀리면 401 {"error":"Sign-in required","login":…}을 JSON으로 준다.
   // 그걸 건강 정보로 읽으면 session이 비어 'Not connected'로 굳고, 새로고침(전체 페이지 로드=다시 인증)해야 풀렸다.
@@ -3145,11 +3149,29 @@ const SW_STEPS = [['connect', 'Connect to the session'], ['find', 'Find the conv
 const fmtMs = (ms) => (ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`);
 const fmtMB = (b) => `${(b / 1048576).toFixed(b < 10485760 ? 1 : 0)} MB`;
 let swTick = null;
+// 진행 카드 버튼: 다시 시도(처음부터 다시 읽기) · 새로고침 · 숨기기(입력은 다시 열린다)
+document.addEventListener('click', (e) => {
+  const s = e.target.closest('#swLoad .sw-log summary'); if (s && sw) { e.preventDefault(); sw.logOpen = !s.parentNode.open; renderSw(); return; }   // 0.2초마다 다시 그려도 펼침 상태 유지
+  const b = e.target.closest('#swLoad [data-sw]'); if (!b || !sw) return;
+  if (b.dataset.sw === 'reload') return location.reload();
+  if (b.dataset.sw === 'close') { swLog('hidden by you'); sw = null; clearInterval(swTick); swTick = null; renderSw(); updateEmpty(); return; }
+  swLog('trying again from the start'); sw.t0 = performance.now(); logRev = 0; logSession = ''; logBusy = false; pollLog();
+});
+// 감시: 불러오는 중인데 폴이 12초 넘게 없으면 폴러를 다시 띄운다
+setInterval(() => { if (!sw || document.hidden) return; if (Date.now() - lastPollAt > 12000) { swLog('no answer for 12 s — restarting the log reader'); logBusy = false; pollLog(); } }, 3000);
 function swStart(target, title, withConnect) {
-  sw = { target, title, t0: performance.now(), st: withConnect ? {} : { connect: { s: 'skip' } }, ledger: null };
+  sw = { target, title, t0: performance.now(), st: withConnect ? {} : { connect: { s: 'skip' } }, ledger: null, log: [] };
+  swLog(`${title} (${target})`);
   swSet(withConnect ? 'connect' : 'find', 'run');
   clearInterval(swTick); swTick = setInterval(renderSw, 200);
   updateEmpty();
+}
+// 진행 카드의 상세 기록 — 같은 줄이 이어지면 ×N으로 묶는다
+function swLog(m) {
+  if (!sw) return;
+  const L = sw.log || (sw.log = []), last = L[L.length - 1], at = fmtMs(Math.round(performance.now() - sw.t0));
+  if (last && last.m === m) { last.n++; last.at = at; } else { L.push({ at, m, n: 1 }); if (L.length > 14) L.shift(); }
+  console.info(`[chat-load] +${at} ${m}`);
 }
 function swSet(key, s, detail, pct) {
   if (!sw) return;
@@ -3171,7 +3193,10 @@ function renderSw() {
     SW_STEPS.filter(([k]) => (sw.st[k] || {}).s !== 'skip').map(([k, l]) => {
       const x = sw.st[k] || { s: 'wait' };
       return `<div class="sw-row ${x.s}"><span class="sw-ic" aria-hidden="true"></span><span class="sw-l">${l}${x.detail ? ` <span class="sw-d">· ${escapeHtml(x.detail)}</span>` : ''}</span><span class="sw-ms">${x.ms != null ? fmtMs(x.ms) : ''}</span>${x.pct != null ? `<div class="sw-bar"><i style="width:${x.pct}%"></i></div>` : ''}</div>`;
-    }).join('');
+    }).join('') +
+    // 상세 기록과, 오래 걸리면 다시 시도·새로고침·닫기
+    `<details class="sw-log"${(sw.logOpen ?? (performance.now() - sw.t0) > 8000) ? ' open' : ''}><summary>Details</summary><pre>${(sw.log || []).map((x) => `+${x.at}  ${escapeHtml(x.m)}${x.n > 1 ? ` ×${x.n}` : ''}`).join('\n')}</pre></details>` +
+    ((performance.now() - sw.t0) > 20000 ? `<div class="sw-acts"><button data-sw="retry">Try again</button><button data-sw="reload">Reload page</button><button data-sw="close">Hide</button></div>` : '');
 }
 // 끝: 잘 되면 잠깐 보여 주고 사라지고, 실패면 이유를 몇 초 남긴다
 function swEnd(delay) {
@@ -3220,16 +3245,28 @@ async function loadOlder() {
 }
 $('feed').addEventListener('scroll', () => { if (logMode && logHasOlder && !logLoadingOlder && $('feed').scrollTop < 320) loadOlder(); }, { passive: true });
 
+// 폴러는 절대 죽지 않는다 — 본문에서 예외가 나도(그림 하나가 깨진 기록 등) 다음 폴을 잡고, 무엇이 났는지 진행 카드에 적는다.
+// 예전에는 예외 한 번에 폴 체인이 끊겨 'Loading…'이 영영 남았고 새로고침해야 풀렸다.
+var lastPollAt = 0;   // var — 부팅 중 pollLog가 선언보다 먼저 불려도 안전
 async function pollLog() {
+  lastPollAt = Date.now();
+  try { await pollLogBody(); }
+  catch (e) { logBusy = false; swLog(`error while reading the log: ${e && e.message || e} — retrying`); console.error('[chat] pollLog', e); clearTimeout(logTimer); logTimer = setTimeout(pollLog, 2000); }
+}
+async function pollLogBody() {
   clearTimeout(logTimer);
   const target = health && health.session && health.target;
   const next = () => { logTimer = setTimeout(pollLog, busy ? 900 : chatHidden() ? 5000 : 2000); };
   if (logBusy) { logAgain = true; return; }       // 앞선 요청이 끝나면 바로 다시(세션을 바꾼 직후 2초를 기다리지 않게)
   if (!target) return next();
   logBusy = true;
-  let d; try { d = await (await getJSON(`/api/agentlog?target=${encodeURIComponent(target)}&since=${logSession ? logRev : 0}`)); } catch { d = null; }
+  const q0 = performance.now(), since = logSession ? logRev : 0;
+  let d, why = ''; try { d = await (await getJSON(`/api/agentlog?target=${encodeURIComponent(target)}&since=${since}`)); } catch (e) { d = null; why = e && e.name === 'TimeoutError' ? 'timed out after 8 s' : (e && e.message) || 'network error'; }
   logBusy = false;
+  const qms = Math.round(performance.now() - q0);
+  if (sw) swLog(!d ? `GET /api/agentlog → no answer (${why}, ${qms} ms)` : d.loading ? `server is reading the log ${fmtMB(d.loading.done)} / ${fmtMB(d.loading.total)}` : !d.available ? `server: no structured log for ${target}${d.error ? ` (${d.error})` : ''}` : `GET /api/agentlog since=${since} → ${d.items.length} message(s), rev ${d.rev}${d.total != null ? `, ${d.total} in total` : ''} (${qms} ms)`);
   if (logAgain) { logAgain = false; if (target !== (health && health.target)) return pollLog(); }
+  if (d && target !== (health && health.target) && sw) swLog(`session changed to ${(health && health.target) || '—'} — asking again`);
   if (!d || target !== (health && health.target)) { if (sw && sw.target === target && !d) { swSet(sw.st.find?.s === 'ok' ? 'read' : 'find', 'fail', 'Can\'t reach the server — retrying'); } return next(); }
   const kindName = d.kind === 'codex' ? 'Codex' : 'Claude Code';
   if (!d.available) {

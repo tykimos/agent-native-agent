@@ -5,6 +5,13 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.27.5] — 2026-11-19
+
+### Fixed
+
+- **The chat no longer stays on "Loading…" until you reload.** One error while reading the conversation log (a malformed answer, a message the page could not draw) ended the log reader for good, so the loading state never cleared; a reload started it again. The reader now always schedules its next read, restarts itself after 12–15 s of silence, and records what went wrong.
+- **Loading shows a detailed log.** The loading card stays in view at the top of the chat and keeps a line for every step — the server reading the log (*2.9 MB / 7.6 MB*), each answer with its time, timeouts, session changes, errors. *Details* opens by itself after 8 s, and after 20 s the card offers *Try again*, *Reload page* and *Hide*. The same lines go to the browser console as `[chat-load]`.
+
 ## [0.27.4] — 2026-11-17
 
 ### Fixed
