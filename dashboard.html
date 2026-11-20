@@ -725,6 +725,10 @@ body.chat-loading #connPill .dot { background: transparent !important; box-shado
 .dq-opt .tx { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .dq-opt .l { font-size: 13.5px; font-weight: 700; }
 .dq-opt .d { font-size: 12px; color: var(--text-weak); }
+.dq-opt .dq-pv { align-self: flex-start; margin-top: 3px; font-size: 11.5px; font-weight: 600; color: var(--blue); cursor: pointer; }
+.dq-opt .dq-pv:hover { text-decoration: underline; }
+.dq-prev-wrap { overflow-x: auto; margin: -2px 0 2px 29px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); }
+.dq-prev { margin: 0; padding: 8px 10px; font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); white-space: pre; }
 .dq-other { display: flex; gap: 6px; }
 .dq-other input { flex: 1; min-width: 0; height: 38px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-size: 13.5px; }
 .dq-other button { flex: 0 0 auto; height: 38px; padding: 0 12px; border-radius: 10px; background: var(--blue); color: #fff; font-size: 13px; font-weight: 800; }
@@ -2735,7 +2739,9 @@ function renderDialog() {
     }
     const mark = d.multi ? `<span class="cb">${o.checked ? '✓' : ''}</span>` : `<span class="no">${o.n}</span>`;
     return `<button class="dq-opt ${o.cur ? 'cur' : ''} ${o.checked ? 'on' : ''}" data-n="${o.n}" ${dis} aria-pressed="${d.multi ? !!o.checked : 'false'}">
-      ${mark}<span class="tx"><span class="l">${escapeHtml(o.label)}</span>${o.desc ? `<span class="d">${escapeHtml(o.desc)}</span>` : ''}</span></button>`;
+      ${mark}<span class="tx"><span class="l">${escapeHtml(o.label)}</span>${o.desc ? `<span class="d">${escapeHtml(o.desc)}</span>` : ''}${
+        d.preview && d.previewFor !== o.n ? `<span class="dq-pv" data-focus="${o.n}" role="button" tabindex="0">Preview</span>` : ''}</span></button>${
+      d.preview && d.previewFor === o.n ? `<div class="dq-prev-wrap"><pre class="dq-prev" aria-label="Preview of option ${o.n}">${escapeHtml(d.preview)}</pre></div>` : ''}`;
   }).join('');
   const chat = d.options.find((o) => o.chat);
   q.innerHTML = `
@@ -2772,6 +2778,8 @@ async function dialogDo(body) {
 }
 $('dlgQ').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b || b.disabled || b.closest('form')) return;   // 직접 입력 폼의 전송 버튼은 submit 핸들러가 처리
+  const pv = e.target.closest('[data-focus]');   // 미리보기 질문: 그 보기로 커서만 옮겨 미리보기를 바꾼다
+  if (pv) return dialogDo({ action: 'focus', n: Number(pv.dataset.focus) });
   if (b.dataset.act) return dialogDo({ action: b.dataset.act });
   if (b.dataset.n) return dialogDo({ action: 'pick', n: Number(b.dataset.n) });
 });

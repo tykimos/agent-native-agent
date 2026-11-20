@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.27.10] — 2026-11-21
+
+### Fixed
+
+- **Questions with previews show cleanly in the chat.** When Claude asks a question whose options carry a preview (a diagram, a table, a code diff), the terminal draws the options on the left and the focused option's preview box on the right of the same lines. The chat read those lines whole, so the preview's code ran into the question and the option descriptions, and the last option turned into a text box. Now the preview box is cut off by column (Korean width-aware) and shown as its own code block under the option it belongs to; the other options get a **Preview** link that moves the terminal's cursor there to show theirs. A question drawn as a bordered block over several lines is joined into one, and the unnumbered *Chat about this* row is recognized. Number keys only move the cursor in this kind of question, so picking an option now moves to it and presses Enter. (`channel-core.js` — bring it in with `ana-update`.)
+
 ## [0.27.9] — 2026-11-20
 
 ### Docs

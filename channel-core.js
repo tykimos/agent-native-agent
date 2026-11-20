@@ -315,10 +315,51 @@ function dialogOpen(screen) {
 // 검토 화면: "Review your answers" + "● 질문" / "→ 답" + "❯ 1. Submit answers  2. Cancel"
 const DLG_OPT = /^(\s*)([❯›>]?)\s*(\d{1,2})\.\s+(.*)$/;
 const DLG_FOOT = /Enter (?:to )?(select|confirm|continue)|to navigate|Esc (?:to )?(cancel|(?:go )?back)|ctrl\+g to edit/i;
+// 미리보기(preview)가 붙은 질문은 보기 목록 오른쪽 칸에 '지금 커서가 있는 보기'의 미리보기 상자를 그린다:
+//   ❯ 1. Card boxes          ┌──────────────┐
+//     2. Compact table       │ 185  class … │
+//                            └──────────────┘
+//                            Notes: press n to add notes
+// 이 상자를 오른쪽 칸으로 떼어 내고(글자 폭 기준) 왼쪽만 남긴다. 떼어 낸 내용은 미리보기로 돌려준다.
+const BOX_BOT = /^└─+┘$/;
+function cutCols(s, col) {   // 표시 폭 col까지의 앞부분과 그 뒤
+  let w = 0, i = 0;
+  for (const ch of s) { const cw = displayWidth(ch); if (w + cw > col) break; w += cw; i += ch.length; }
+  return [s.slice(0, i), s.slice(i)];
+}
+function splitPreview(L) {
+  for (let top = L.length - 1; top >= 0; top--) {
+    const at = L[top].search(/┌─+┐\s*$/);
+    if (at < 0) continue;
+    const col = displayWidth(L[top].slice(0, at));
+    if (col < 12) continue;   // 줄 머리의 상자(권한 프롬프트 테두리 등)는 미리보기가 아니다
+    let bot = -1;
+    for (let i = top + 1; i < L.length; i++) {
+      const right = cutCols(L[i], col)[1].trim();
+      if (BOX_BOT.test(right)) { bot = i; break; }
+      if (!/^[│├]/.test(right)) break;
+    }
+    if (bot === -1) continue;
+    const lines = [];
+    for (let i = top; i <= bot; i++) {
+      const [left, right] = cutCols(L[i], col);
+      if (i > top && i < bot) lines.push(/^├─/.test(right.trim()) ? '…' : right.trim().replace(/^│ ?/, '').replace(/\s*│$/, ''));
+      L[i] = left.replace(/\s+$/, '');
+    }
+    for (let i = bot + 1; i < Math.min(L.length, bot + 4); i++) {   // 상자 아래 'Notes: press n to add notes'
+      const [left, right] = cutCols(L[i], col);
+      if (/^Notes:/.test(right.trim())) L[i] = left.replace(/\s+$/, '');
+    }
+    return lines.join('\n').replace(/\s+$/, '');
+  }
+  return '';
+}
+
 function parseDialog(screen) {
   const onboarding = parseOnboarding(screen);
   if (onboarding) return onboarding;
   const L = String(screen || '').split('\n').map((l) => l.replace(/ /g, ' ').replace(/\s+$/, ''));
+  const preview = splitPreview(L);
   // 마지막 옵션 묶음을 찾는다(본문에 번호 목록이 있어도 화면 맨 아래 메뉴만 대상)
   let last = -1;
   for (let i = L.length - 1; i >= 0; i--) if (DLG_OPT.test(L[i])) { last = i; break; }
@@ -337,6 +378,7 @@ function parseDialog(screen) {
   const head = L.slice(start + 1, first).filter((l) => l.trim());
   const out = { title: '', tabs: [], options: [], multi: false, submit: null, review: [], footer: '', kind: 'menu' };
   const body = [];
+  let lastBar = false;
   for (const l of head) {
     const t = l.trim();
     if (/[☐☒]/.test(t) && /(^←|→$|✔\s*Submit)/.test(t)) {
@@ -352,7 +394,11 @@ function parseDialog(screen) {
     if (/^→\s+/.test(t) && out.review.length) { out.review[out.review.length - 1].a = t.replace(/^→\s+/, ''); continue; }
     if (/^☐\s+\S/.test(t) && !out.tabs.length) { out.tabs.push({ label: t.replace(/^☐\s+/, ''), done: false }); continue; } // 질문 1개: "☐ Size"
     const clean = t.replace(/^[│┃╭╰╮╯─━\s]+|[│┃╭╰╮╯─━\s]+$/g, '');   // 권한 프롬프트의 박스 테두리 제거
-    if (clean) body.push(clean);
+    // 질문이 '│ ' 테두리 블록으로 여러 줄에 걸쳐 그려지면(미리보기 질문) 한 줄로 다시 잇는다
+    const bar = /^│\s/.test(t) && !/│$/.test(t);
+    if (clean && bar && lastBar && body.length) body[body.length - 1] += ' ' + clean;
+    else if (clean) body.push(clean);
+    lastBar = bar;
   }
   // 옵션·설명·Submit 행·푸터
   let inFooter = false;
@@ -372,13 +418,19 @@ function parseDialog(screen) {
       continue;
     }
     if (/^[❯›>]?\s*Submit$/.test(t)) { out.submit = { cur: /^[❯›>]/.test(t) }; continue; }
+    if (/^[❯›>]?\s*Chat about this$/.test(t) && out.options.length) {   // 미리보기 질문에선 번호 없이 구분선 아래에 있다
+      out.options.push({ n: out.options[out.options.length - 1].n + 1, label: 'Chat about this', desc: '', cur: /^[❯›>]/.test(t), checked: null,
+        other: false, chat: true, nokey: true });
+      continue;
+    }
     const o = out.options[out.options.length - 1];
     if (o) o.desc = (o.desc ? o.desc + ' ' : '') + t;
   }
   if (!out.options.length) return null;
+  if (preview) { const c = out.options.find((o) => o.cur && !o.chat) || out.options[0]; out.preview = preview; out.previewFor = c.n; }
   // 직접 입력 칸에 글자를 치면 라벨이 입력값으로 바뀐다 — "Chat about this" 바로 앞 옵션을 직접 입력으로 본다.
   const chatIdx = out.options.findIndex((o) => o.chat);
-  if (chatIdx > 0 && !out.options.some((o) => o.other)) out.options[chatIdx - 1].other = true;
+  if (chatIdx > 0 && !out.options[chatIdx].nokey && !out.options.some((o) => o.other)) out.options[chatIdx - 1].other = true;   // 미리보기 질문(번호 없는 Chat 행)엔 직접 입력 칸이 없다
   out.title = body.length ? body[body.length - 1] : '';
   out.intro = body.slice(0, -1).join('\n');
   if (out.title === 'Select login method:') {
@@ -947,6 +999,12 @@ function createChannelServer(opts) {
       }
       return false;
     }
+    if (action === 'focus') {   // 커서만 옮긴다 — 미리보기 질문에서 그 보기의 미리보기를 보려고
+      const n = Number(body.n);
+      if (!cur.options.some((o) => o.n === n)) return { status: 400, error: `no option ${body.n}` };
+      if (!(await moveTo(n))) return { status: 409, error: 'Could not move to that option' };
+      await r.ch.delay(150); return { ok: true };
+    }
     if (action === 'submit') {
       if (cur.submit) {
         if (!(await moveTo('submit'))) return { status: 409, error: 'Could not reach the Submit row' };
@@ -960,7 +1018,7 @@ function createChannelServer(opts) {
       const opt = cur.options.find((o) => o.n === n);
       if (!opt) return { status: 400, error: `no option ${body.n}` };
       const text = typeof body.text === 'string' ? body.text.replace(/[\r\n]+/g, ' ').trim().slice(0, 2000) : '';
-      const useArrows = cur.navigation === 'arrows' || n > 9;
+      const useArrows = cur.navigation === 'arrows' || n > 9 || opt.nokey || !!cur.preview;   // 번호 없는 행(Chat about this)·미리보기 질문(숫자는 커서만 옮긴다)은 화살표+Enter로
       if (!useArrows) await send(String(n));
       else if (!(await moveTo(n))) return { status: 409, error: 'Could not move to that option' };
       if (opt.other && text) {
@@ -970,7 +1028,7 @@ function createChannelServer(opts) {
       } else if (useArrows) await send(cur.multi ? 'Space' : 'Enter');
       return { ok: true };
     }
-    return { status: 400, error: 'action must be pick|submit|next|prev|esc' };
+    return { status: 400, error: 'action must be pick|focus|submit|next|prev|esc' };
   }
 
   const server = http.createServer(async (req, res) => {

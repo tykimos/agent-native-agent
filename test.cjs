@@ -448,6 +448,27 @@ t('D9 inputBoxReady / dialogOpen 판정 (CR4)', () => {
   assert.equal(srv.dialogOpen(['──────', '❯ ', '──────', 'Enter to confirm · Esc to cancel'].join('\n')), true);
 });
 
+t('D12 parseDialog: 미리보기 질문 — 오른쪽 상자를 떼어 preview로, 테두리 질문은 한 줄로, 번호 없는 Chat about this', () => {
+  const bar = '─'.repeat(100), pad = ' '.repeat(34);
+  const screen = [bar, ' ☐ Relations', '',
+    '│ 색인은 원천이 바뀌면 다시 만든다. Ontology 페이지 아래의 따로',
+    '│ 떨어진 Relations 목록을 어떻게 보여 줄까요?', '',
+    '❯ 1. 관계도 그림 (권장)           ┌──────────────────────────┐',
+    '  2. 표 (출발→도착)               │ 186   const graph = x;   │',
+    '  3. 지금 그대로                  │ 187 + // 평가 서비스     │',
+    pad + '├─── ✂ ─── 2 lines hidden ─┤',
+    pad + '└──────────────────────────┘', '',
+    pad + 'Notes: press n to add notes', '', bar, '  Chat about this', '',
+    'Enter to select · ↑/↓ to navigate · n to add notes · Esc to cancel'].join('\n');
+  const d = srv.parseDialog(screen);
+  assert.equal(d.title, '색인은 원천이 바뀌면 다시 만든다. Ontology 페이지 아래의 따로 떨어진 Relations 목록을 어떻게 보여 줄까요?');
+  assert.deepEqual(d.options.map((o) => [o.n, o.label, o.desc, o.other, o.chat]),
+    [[1, '관계도 그림 (권장)', '', false, false], [2, '표 (출발→도착)', '', false, false], [3, '지금 그대로', '', false, false], [4, 'Chat about this', '', false, true]]);
+  assert.equal(d.previewFor, 1);
+  assert.equal(d.preview, '186   const graph = x;\n187 + // 평가 서비스\n…');
+  assert.equal(d.kind, 'question');
+});
+
 t('D10 parseDialog: AskUserQuestion(단일·다중·Submit 커서·검토·직접 입력)·권한 메뉴 구조화', () => {
   const S = (a) => a.join('\n');
   const bar = '────────────────────────────────────────';
