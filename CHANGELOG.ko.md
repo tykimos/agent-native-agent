@@ -5,6 +5,12 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.27.9] — 2026-11-20
+
+### 문서
+
+- **Codespaces: 잠자기 시간 늘리기.** [docs/codespaces.ko.md](docs/codespaces.ko.md)에 활동 없이 30분이 지나면 ANA 연결이 끊기는 이유와, 잠자기 시간을 최대 4시간까지 늘리는 방법을 적었습니다 — 계정의 *Default idle timeout* 설정(바꾼 뒤 만드는 Codespace부터) 또는 `gh codespace create --idle-timeout 3h`.
+
 ## [0.27.8] — 2026-11-20
 
 ### 고침

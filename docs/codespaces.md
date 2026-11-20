@@ -46,11 +46,26 @@ bash .devcontainer/start.sh
 
 Then reopen port 8809.
 
+## Keep it awake longer
+
+A codespace stops after **30 minutes** without activity by default, and ANA's connection drops with it. Activity means typing in VS Code or its terminal; ANA's server and agent running inside do not count, and using ANA in the browser may not either. You can raise this to at most **240 minutes (4 hours)**:
+
+- **For every new codespace** — GitHub → **Settings → Codespaces → Default idle timeout**, enter e.g. `180` and save. It applies only to codespaces created **after** the change, so create a new one (an existing codespace keeps its old value).
+- **For one codespace** — create it from the command line:
+
+  ```bash
+  gh codespace create -R tykimos/agent-native-agent --idle-timeout 3h
+  ```
+
+  The **Create codespace** button on the web cannot set this.
+
+`devcontainer.json` cannot change it, and an organization's policy can cap it lower. The whole running time is billed, idle or not.
+
 ## Data and costs
 
 - ANA state lives in the repository's ignored `.ana/` directory. Claude credentials and history live outside the checkout in `/workspaces/.ana-private/`. Do not commit credentials or private conversations.
 - `/workspaces` persists across stop/start and container rebuilds. **Deleting a codespace deletes unbacked-up data.** Committing source code does not back up private application data.
-- Idle codespaces stop automatically, stopping ANA and its agent too. This configuration is not an always-on server.
+- Idle codespaces stop automatically, stopping ANA and its agent too (see [Keep it awake longer](#keep-it-awake-longer)). This configuration is not an always-on server.
 - Codespaces compute and storage are billed separately from Claude. GitHub plans include different usage allowances; storage can remain billable while stopped.
 - The agent operates on files in the cloud environment. Your local computer's files are not automatically available.
 

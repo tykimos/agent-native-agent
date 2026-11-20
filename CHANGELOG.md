@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.27.9] — 2026-11-20
+
+### Docs
+
+- **Codespaces: keep it awake longer.** [docs/codespaces.md](docs/codespaces.md) now explains why ANA disconnects after 30 idle minutes and how to raise the idle timeout up to 4 hours — the account's *Default idle timeout* setting (for codespaces created after the change) or `gh codespace create --idle-timeout 3h`.
+
 ## [0.27.8] — 2026-11-20
 
 ### Fixed

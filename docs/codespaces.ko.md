@@ -44,11 +44,26 @@ bash .devcontainer/connect.sh
 bash .devcontainer/start.sh
 ```
 
+## 잠자기 시간 늘리기
+
+Codespace는 기본으로 **30분** 동안 활동이 없으면 멈추고, ANA 연결도 함께 끊깁니다. 여기서 활동은 VS Code나 그 터미널에 입력하는 것입니다. 안에서 돌고 있는 ANA 서버·에이전트는 활동으로 치지 않고, 브라우저로 ANA를 쓰는 것도 활동으로 치지 않을 수 있습니다. 이 시간은 최대 **240분(4시간)**까지 늘릴 수 있습니다.
+
+- **새로 만드는 모든 Codespace** — GitHub → **Settings → Codespaces → Default idle timeout**에 예를 들어 `180`을 넣고 저장합니다. 바꾼 **뒤에 만드는** Codespace에만 적용되므로 새로 하나 만듭니다(기존 Codespace는 예전 값 그대로입니다).
+- **Codespace 하나만** — 명령줄에서 만듭니다.
+
+  ```bash
+  gh codespace create -R tykimos/agent-native-agent --idle-timeout 3h
+  ```
+
+  웹의 **Create codespace** 버튼으로는 이 값을 정할 수 없습니다.
+
+`devcontainer.json`으로는 바꿀 수 없고, 조직 계정이면 조직 정책이 더 짧게 막아 둘 수 있습니다. 유휴 상태여도 켜져 있는 시간 전체가 과금됩니다.
+
 ## 데이터와 비용
 
 - ANA의 메모·작업·원장은 저장소의 `.ana/`에 저장됩니다. Claude 로그인과 세션 기록은 Git 저장소 밖의 `/workspaces/.ana-private/`에 보관합니다. 로그인 정보와 개인 대화는 GitHub에 커밋하지 않습니다.
 - `/workspaces`는 Codespace 중지·재시작 및 컨테이너 재빌드에도 유지되는 위치입니다. **Codespace를 삭제하면 미백업 데이터도 삭제됩니다.** 코드 백업과 개인 데이터 백업은 별개입니다.
-- 일정 시간 사용하지 않으면 Codespace가 자동 중지되고 ANA와 에이전트도 멈춥니다. 상시 실행 서버로 제공하는 구성은 아닙니다.
+- 일정 시간 사용하지 않으면 Codespace가 자동 중지되고 ANA와 에이전트도 멈춥니다([잠자기 시간 늘리기](#잠자기-시간-늘리기) 참고). 상시 실행 서버로 제공하는 구성은 아닙니다.
 - Claude 이용료와 Codespaces 이용료는 별개입니다. GitHub 계정의 포함 사용량을 넘으면 컴퓨팅·저장소 비용이 발생할 수 있습니다. 중지된 Codespace도 저장소를 차지합니다.
 - 에이전트가 다루는 파일은 클라우드 환경 안의 파일입니다. 사용자 PC 파일이 자동으로 연결되지는 않습니다.
 
