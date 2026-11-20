@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.27.8] — 2026-11-20
+
+### Fixed
+
+- **Slash commands work when several people share an ANA.** With sign-in on, the runtime puts the sender in front of every message (`[name·email] …`), so `/clear` reached the agent as `[jhlee·…] /clear` — no longer a command, just text, and the agent answered that it could not run it. Messages that start with `/` now go to the terminal as they are; the sender is still recorded in the usage log. (`channel-core.js` — bring it in with `ana-update`.)
+
 ## [0.27.7] — 2026-11-19
 
 ### Added

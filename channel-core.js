@@ -1047,7 +1047,9 @@ function createChannelServer(opts) {
         if (!(await agentAlive())) return sendJson(res, 409, { error: `Agent is not running (shell only) — start your coding agent (e.g. claude) in tmux session '${r.target}'` });
         // 보낸 사람을 첫머리에 붙인다 — 접두어까지 포함한 길이로 상한을 다시 확인한다.
         const idn = typeof identify === 'function' ? identify(req) : null;
-        const outText = idn && idn.label ? `[${idn.label}] ${text}` : text;
+        // 슬래시 명령(/clear, /btw …)은 첫 글자가 '/'여야 에이전트가 명령으로 받는다 — 접두어를 붙이면 일반 메시지가 된다.
+        // 그래서 명령에는 붙이지 않는다(보낸 사람은 onChat의 사용 기록에 남는다).
+        const outText = idn && idn.label && !/^\s*\//.test(text) ? `[${idn.label}] ${text}` : text;
         if (Buffer.byteLength(outText) > MAX_TEXT) return sendJson(res, 413, { error: `text too long (>${MAX_TEXT} bytes)` });
         // TOCTOU 방지: draft 가드와 준비 검사를 큐 밖에서 미리 하면, 한 폴 주기(POLL_MS) 안에 들어온
         // 두 요청이 서로의 주입 전에 모두 통과해 입력창에서 문장이 합쳐질 수 있다. 그래서 검사와 주입을
