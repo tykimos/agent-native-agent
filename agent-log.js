@@ -68,8 +68,10 @@ function modelName(id) {
 }
 // 첫 응답 전(기록에 모델이 없을 때) 선택된 모델 — 시작 옵션 --model, 그다음 설정 파일(프로젝트 local → 프로젝트 → 사용자) 순서.
 // 'opus' 같은 별칭은 'Opus'로, 'claude-opus-5-5' 같은 id는 'Opus 5.5'로 보여 준다.
+// 별칭이 가리키는 지금 버전 — 대시보드 모델 시트(MODELS)와 같은 표. 첫 응답 전에도 'Opus'가 아니라 'Opus 5.5'로 보인다
+const CLAUDE_ALIASES = { opus: 'Opus 5.5', fable: 'Fable 5.1', sonnet: 'Sonnet 5', haiku: 'Haiku 4.5' };
 function claudeSelectedModel(start, cwd, configDir = DEFAULT_CLAUDE_DIR) {
-  const pretty = (v) => { v = String(v || '').trim().replace(/\[1m\]$/i, ''); return /^[a-z]+$/i.test(v) ? v[0].toUpperCase() + v.slice(1).toLowerCase() : modelName(v); };
+  const pretty = (v) => { v = String(v || '').trim().replace(/\[1m\]$/i, ''); return /^[a-z]+$/i.test(v) ? (CLAUDE_ALIASES[v.toLowerCase()] || v[0].toUpperCase() + v.slice(1).toLowerCase()) : modelName(v); };
   const flag = /(?:^|\s)--model(?:=|\s+)["']?([\w.\[\]-]+)/.exec(String(start || ''));
   if (flag) return pretty(flag[1]);
   const files = [cwd && path.join(cwd, '.claude', 'settings.local.json'), cwd && path.join(cwd, '.claude', 'settings.json'), path.join(configDir, 'settings.json')];

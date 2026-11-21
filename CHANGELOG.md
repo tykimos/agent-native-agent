@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.27.11] — 2026-11-21
+
+### Fixed
+
+- **The model chip shows the version from the start.** Right after `/clear`, or in any new session before the first reply, the chip under the chat box showed just "Opus". There is no reply yet to read the model from, so it fell back to the setting (`"model": "opus"`), which has no version. Now the short names map to the same versions the model picker lists (Opus 5.5, Fable 5.1, Sonnet 5, Haiku 4.5). (`agent-log.js`)
+
 ## [0.27.10] — 2026-11-21
 
 ### Fixed

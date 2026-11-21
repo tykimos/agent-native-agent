@@ -167,13 +167,13 @@ test('before the first reply the chip shows the selected model, not the Claude C
   const { claudeSelectedModel } = require('./agent-log.js');
   const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
   const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'ana-model-')), cfg = fs.mkdtempSync(path.join(os.tmpdir(), 'ana-cfg-'));
-  assert.equal(claudeSelectedModel('claude --model sonnet', cwd, cfg), 'Sonnet');
+  assert.equal(claudeSelectedModel('claude --model sonnet', cwd, cfg), 'Sonnet 5');
   assert.equal(claudeSelectedModel('claude --model=claude-haiku-4-5-20251001', cwd, cfg), 'Haiku 4.5');
   assert.equal(claudeSelectedModel('claude', cwd, cfg), '', 'nothing chosen → empty (agent name is shown)');
   fs.writeFileSync(path.join(cfg, 'settings.json'), JSON.stringify({ model: 'claude-opus-5-5' }));
   assert.equal(claudeSelectedModel('claude', cwd, cfg), 'Opus 5.5');
   fs.mkdirSync(path.join(cwd, '.claude')); fs.writeFileSync(path.join(cwd, '.claude', 'settings.local.json'), JSON.stringify({ model: 'fable' }));
-  assert.equal(claudeSelectedModel('claude', cwd, cfg), 'Fable', 'project setting wins over the user setting');
+  assert.equal(claudeSelectedModel('claude', cwd, cfg), 'Fable 5.1', 'project setting wins over the user setting');
 });
 
 test('agent pictures: only images, only from the agent folder or its scratchpad', async (t) => {
