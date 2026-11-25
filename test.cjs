@@ -317,6 +317,8 @@ t('R11 inputBoxReady: Codex 작성줄(구분선 없음)은 ready, 메뉴·모델
   assert.equal(inputBoxReady('› Ask Codex to do anything\n\n  GPT-6-Astra max · ~/ana/www · 확인하세요\n  ← for agents · ? for shortcuts\n'), true, '0.17x 안내 줄');
   assert.equal(inputBoxReady('› 1. Update now\n  2. Skip\n  gpt-6 max · /tmp/p\n  ← for agents · ? for shortcuts'), false, '0.17x 번호 메뉴');
   assert.equal(inputBoxReady('› /\n  /model   choose what model\n  ← for agents · ? for shortcuts'), false, '0.17x 명령 팝업');
+  const rule = '  ' + '─'.repeat(40);
+  assert.equal(inputBoxReady(`${rule}\n  | a | b |\n${rule}\n  | 1 | 2 |\n${rule}\n• 끝\n› Ask Codex to do anything\n  gpt-6 max · ~/p\n  ← for agents · ? for shortcuts`), true, '답 속 표 가로줄이 있어도 Codex 작성줄');
 });
 
 t('R10 stripBottomUI: 입력 박스(❯) 있을 때만 절삭, 본문 수평선은 보존 (2차 NR1)', () => {

@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.27.13] — 2026-11-25
+
+### Fixed
+
+- **A table in Codex's answer no longer hides its input line.** When Codex's last answer drew a table, its horizontal rules looked like the borders of Claude Code's input box, so the runtime looked for a `❯` prompt between them, found none, and still refused chat with "Agent input line is not ready". The Codex input line is now checked first. (`channel-core.js` — bring it in with `ana-update`.)
+
 ## [0.27.12] — 2026-11-25
 
 ### Fixed

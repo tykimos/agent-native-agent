@@ -5,6 +5,12 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.27.13] — 2026-11-25
+
+### 고침
+
+- **Codex 답에 표가 있어도 입력줄을 알아봅니다.** Codex 의 마지막 답에 표가 있으면 그 가로줄을 Claude Code 입력 상자 테두리로 읽어 그 사이에서 `❯` 를 찾았고, 없으니 여전히 "Agent input line is not ready" 로 거절했습니다. 이제 Codex 입력줄부터 확인합니다. (`channel-core.js` — `ana-update` 로 반영)
+
 ## [0.27.12] — 2026-11-25
 
 ### 고침

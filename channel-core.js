@@ -162,8 +162,9 @@ function extractDraft(screen) {
 function inputBoxReady(screen) {
   const lines = screen.split('\n');
   const seps = [];
+  if (codexPromptReady(lines)) return true;   // Codex 작성줄 — 답에 그린 표 가로줄을 상자 테두리로 오인하기 전에 먼저 본다
   for (let i = 0; i < lines.length; i++) if (SEP_LINE(lines[i])) seps.push(i);
-  if (seps.length < 2) return codexPromptReady(lines);   // 상자가 없다 — Codex 작성줄인지 본다
+  if (seps.length < 2) return false;
   const top = seps[seps.length - 2], bot = seps[seps.length - 1];
   const typed = typedBelowBox(lines, bot);
   for (let i = top + 1; i < bot; i++) {
