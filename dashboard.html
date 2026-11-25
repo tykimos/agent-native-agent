@@ -3230,7 +3230,7 @@ async function updateDialog(open) {
   if (!open || (slashOverlay && !dialogInfo)) { card.classList.remove('on'); dialogShown = false; dialogRenderSig = ''; $('dlgQ').innerHTML = ''; return; }   // 명령 결과 화면은 채팅에 이미 보였다
   // 구조화에 성공하면 선택지 버튼으로, 아니면(알 수 없는 다이얼로그) 화면 캡처 텍스트 + 키 버튼으로
   renderDialog();
-  $('dlgcardH').textContent = dialogInfo || (health && health.dialog) ? 'The terminal is showing a dialog that needs your input' : 'The terminal is not taking input right now — this is what it shows';
+  if (!dialogInfo) $('dlgcardH').textContent = health && health.dialog ? 'The terminal is showing a dialog that needs your input' : 'The terminal is not taking input right now — this is what it shows';   // 구조화된 것은 renderDialog가 제목을 정한다
   if (!dialogInfo) {
     try {
       const s = await (await getJSON('/api/screen'));
@@ -3314,12 +3314,18 @@ $('dlgQ').addEventListener('submit', (e) => {
   dialogDo({ action: 'pick', n: Number(f.dataset.n), text });
 });
 // 화면에서 다이얼로그 본문 추출: 마지막 긴 구분선(▔/─ 연속) 이후의 비어있지 않은 줄들
+// 화면에서 다이얼로그 부분만: 맨 아래 가로줄 아래. 그 아래가 안내 한 줄뿐이면(예: 'Esc to go back') 위 가로줄까지 넓힌다 —
+// 질문·선택지가 가로줄 위에 있고 가로줄 아래엔 안내만 있는 다이얼로그가 있다(그때 카드에 'Esc to go back'만 보였다)
 function extractDialog(screen) {
-  const lines = screen.split('\n');
-  let sep = -1;
-  for (let i = lines.length - 1; i >= 0; i--) { if (/[▔─━═]{10,}/.test(lines[i])) { sep = i; break; } }
-  const region = (sep >= 0 ? lines.slice(sep + 1) : lines.slice(-10));
-  return region.map((l) => l.replace(/\s+$/, '')).filter((l) => l.trim()).join('\n').trim();
+  const lines = screen.split('\n'), isSep = (l) => /[▔─━═]{10,}/.test(l), meaningful = (ls) => ls.filter((l) => l.trim());
+  const hint = (l) => /^\s*(esc|enter|↑|↓|tab|ctrl|press|space)\b.*(to|cancel|back|select|confirm|navigate|exit)/i.test(l) || /^\s*[·•]?\s*\?\s*for shortcuts/i.test(l);
+  const seps = lines.map((l, i) => (isSep(l) ? i : -1)).filter((i) => i >= 0);
+  if (!seps.length) return meaningful(lines.slice(-12)).map((l) => l.replace(/\s+$/, '')).join('\n').trim();
+  let k = seps.length - 1, from = seps[k] + 1;
+  // 가로줄 아래가 비었거나 안내뿐이면 한 칸씩 위로(최대 3번, 30줄까지)
+  while (k > 0 && meaningful(lines.slice(from)).every(hint) && lines.length - from < 30) { k--; from = seps[k] + 1; }
+  if (k === 0 && meaningful(lines.slice(from)).every(hint)) from = Math.max(0, seps[0] - 12);
+  return meaningful(lines.slice(from).filter((l) => !isSep(l))).map((l) => l.replace(/\s+$/, '')).join('\n').trim();
 }
 // 이 페이지가 로드된 시점의 빌드. 서버 값이 달라지면 열어 둔 탭이 옛 코드라는 뜻이다.
 let bootBuild = null;

@@ -40,6 +40,14 @@ test('incomplete or untrusted URLs never become login buttons', () => {
  for (const value of [url.replace('claude.com','evil.test'), url.replace('S256','plain'), url.split('&state=')[0], 'javascript:alert(1)', url.replace('/cai/oauth/authorize','/other')]) assert.equal(loginUrl(value),null);
  assert.equal(parseDialog('Paste code here if prompted >').url,null);
 });
+test('Claude Code 2.1.3xx login: short link and a bordered input box under "Paste code here if prompted"', () => {
+ const short = 'https://claude.ai/oauth/authorize?zEbFR2xXY_WmB8fAXwVUJ5ZA6rsaTmQ6YQrTeiTOW2psQ';
+ const box = '╭' + '─'.repeat(60) + '╮\n│' + ' '.repeat(60) + '│\n╰' + '─'.repeat(60) + '╯';
+ const screen = ` Browser didn't open? Use the URL below to sign in (c to copy)\n\n${short}\n\n Paste code here if prompted\n ${box}\n Esc to go back`;
+ const d = parseDialog(screen); assert.equal(dialogOpen(screen), true); assert.equal(d.stage, 'login'); assert.equal(d.url, short); assert.equal(d.input, 'code');
+ for (const bad of ['https://claude.ai/oauth/authorize?abc', 'https://evil.test/oauth/authorize?' + 'a'.repeat(30), short + '#x', short.replace('/oauth/authorize', '/other')]) assert.equal(loginUrl(bad + '\nPaste code here if prompted'), null);
+ assert.equal(parseOnboarding('⏺ Paste code here if prompted is what it says'), null);
+});
 test('login success exposes only an explicit Continue action', () => {
  const d = parseDialog('Login successful.\nPress Enter to continue');
  assert.equal(d.stage,'complete'); assert.equal(d.continue,true);

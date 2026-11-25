@@ -210,6 +210,8 @@ function loginUrl(text) {
       const u = new URL(value);
       if (!['claude.ai', 'claude.com'].includes(u.hostname) || !['/oauth/authorize', '/cai/oauth/authorize'].includes(u.pathname)) continue;
       if (['client_id', 'redirect_uri', 'state', 'code_challenge'].every(k => u.searchParams.get(k)) && u.searchParams.get('code_challenge_method') === 'S256') return value;
+      // Claude Code 2.1.3xx shows a short link: /oauth/authorize?<one opaque token> (its terminal hyperlink points at the same text)
+      if (/^\?[A-Za-z0-9_-]{16,200}$/.test(u.search) && !u.hash) return value;
     } catch {}
   }
   return null;
@@ -245,7 +247,7 @@ function parseOnboarding(screen) {
       return out;
     }
   }
-  if (/^\s*Paste code here(?: if prompted)?\s*[:>]/m.test(text)) {
+  if (/^\s*Paste code here(?: if prompted)?\s*(?:[:>]|$)/m.test(text)) {
     const out = onboardingDialog('login', 'Log in to Claude');
     out.url = loginUrl(text);
     out.intro = 'Open Claude login in a new tab. If Claude gives you a code, paste it here to finish signing in.';
@@ -556,7 +558,7 @@ function createChannel(opts) {
     loginSecrets.push(new RegExp(escaped, 'g'));
   }
   function redactLoginCodes(text) {
-    if (/^\s*Paste code here(?: if prompted)?\s*[:>]/m.test(text)) return '[Claude login screen]';
+    if (/^\s*Paste code here(?: if prompted)?\s*(?:[:>]|$)/m.test(text)) return '[Claude login screen]';
     for (const pattern of loginSecrets) text = text.replace(pattern, '[login code redacted]');
     return text;
   }
