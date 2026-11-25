@@ -30,6 +30,7 @@ Mobile (≤768px)                          Desktop
 
 - The profile avatar is **always the rightmost** item in the header; on phones the Chip switch group sits at the right (`#modeToggle { margin-left: auto }`).
 - The **last tab** is remembered (`localStorage ana-tab`), and each tab's sub-tab too (`ana-subtabs`).
+- The **address carries the screen**: `#/<tab>[/<sub-tab>]` (`#/prd`, `#/knowledge/graph`, `#/requests/wait`). Opening such a URL goes straight there (it wins over the remembered tab); switching tabs rewrites it with `history.replaceState` (no history entries); editing it fires `hashchange`. An unknown tab falls back to the remembered one. `urlTab`, `syncUrl`, `openFromUrl`.
 - **Work sub-tabs switch screens:** each Work screen (`todoView`, `scheduleView`, `memoView`) carries the same `<nav class="subtabs" data-sub="work">`; picking one shows that screen. A domain ANA replaces them with its own kinds of work.
 - **Status sub-tabs** (Requests, Evolve, Update): Waiting · In progress · Done (`STATUS_TABS`). Done also holds failed and cancelled items; each card still shows its own state and actions. Waiting and In progress show a count.
 - Sub-tabs and `.toolbar` never wrap on phones (they scroll sideways). Views get bottom padding so the chat FAB never covers the last item. There is no bottom menu.

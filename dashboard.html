@@ -1852,7 +1852,7 @@ function renderSubtabs(v) {
 // 그래프는 그릴 자리의 폭에 맞춰 그린다 — 숨긴 채 그렸거나(폭 0 → 760 기준) 폭이 바뀌었으면 다시
 function kGraphFit() { const g = $('kGraph'); if (g && !g.hidden && g.clientWidth && Math.abs(g.clientWidth - (g.dataset.w || 0)) > 40) { g.innerHTML = kGraphSvg(); g.dataset.w = g.clientWidth; } }
 function setSubCount(v, k, n) { if (!SUBTABS) return; const c = (subCounts[v] ||= {}); if (c[k] === n) return; c[k] = n; renderSubtabs(v); }
-function openSub(v, k) { subSel[v] = k; try { localStorage.setItem('ana-subtabs', JSON.stringify(subSel)); } catch {} renderSubtabs(v); }
+function openSub(v, k) { subSel[v] = k; try { localStorage.setItem('ana-subtabs', JSON.stringify(subSel)); } catch {} renderSubtabs(v); if (v === lastTab) syncUrl(); }
 // 상태 하위 탭을 바꾸면 그 목록을 다시 그린다
 const RENDER_SUB = { requests: () => renderRequestsAll(), evolve: () => renderEvolve(), update: () => renderUpdates() };
 document.addEventListener('click', (e) => {
@@ -2576,8 +2576,23 @@ function selectTab(b) {
   revealTab(b);
   try { localStorage.setItem('ana-tab', lastTab); } catch {}
   renderSubtabs(tab);
+  syncUrl();
   if (REFRESH_TAB[tab]) REFRESH_TAB[tab]();
 }
+// 주소에 지금 화면을 적는다: #/prd · #/work · #/knowledge/graph — 그 주소로 들어오면 바로 그 화면이 열린다(북마크·공유).
+// 해시라 서버·로그인 게이트웨이를 거쳐도 그대로 남는다. 탭을 바꿀 때는 기록을 쌓지 않고 바꿔 적는다(뒤로 가기는 페이지를 떠난다)
+function urlTab() { const m = /^#\/([a-z]+)(?:\/([\w-]+))?\/?$/.exec(location.hash || ''); return m && TABS.includes(m[1]) ? { tab: m[1], sub: m[2] || '' } : null; }
+function syncUrl() {
+  const s = curSub(lastTab), h = `#/${lastTab}${s ? '/' + s : ''}`;
+  if (location.hash !== h) try { history.replaceState(history.state, '', location.pathname + location.search + h); } catch {}
+}
+function openFromUrl() {
+  const u = urlTab(), b = u && document.querySelector(`.topnav .tab[data-view="${u.tab}"]`);
+  if (!b || b.hidden) return false;
+  if (u.sub) { subSel[u.tab] = u.sub; try { localStorage.setItem('ana-subtabs', JSON.stringify(subSel)); } catch {} }
+  selectTab(b); return true;
+}
+window.addEventListener('hashchange', () => { if (!openFromUrl()) syncUrl(); });
 function showTab(v) {
   const b = document.querySelector(`.topnav .tab[data-view="${v}"]`); if (b && !b.classList.contains('on')) selectTab(b);
 }
@@ -2608,7 +2623,8 @@ function setBadge(attr, n) {
   }
 }
 // 첫 탭은 스크립트가 다 읽힌 뒤에 — 탭 클릭이 아래쪽에서 선언되는 상태 변수를 건드려도 TDZ에 걸리지 않게
-setTimeout(() => selectTab(document.querySelector(`.topnav .tab[data-view="${lastTab}"]`)), 0);
+// 주소에 화면이 적혀 있으면(#/knowledge/graph) 그것이 먼저, 없으면 마지막에 본 탭
+setTimeout(() => { if (!openFromUrl()) selectTab(document.querySelector(`.topnav .tab[data-view="${lastTab}"]`)); }, 0);
 
 /* ================= 모달 (수동 추가) ================= */
 let modalCur = null;
