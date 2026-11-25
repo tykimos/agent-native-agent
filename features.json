@@ -289,16 +289,17 @@
     },
     {
       "id": "session-accounts",
-      "title": "An agent account per session — Claude and Codex (account button in the chat)",
+      "title": "New agent sessions from the chat, each with its own sign-in (Claude Code or Codex)",
       "skill": "chat-window",
-      "summary": "A round button right of the session picker at the top of the chat shows the Claude Code account of that session (first letter of its email; orange = not the default account, dashed = not signed in). It lists the accounts on this computer (~/.claude and ~/.claude-<name>) with email and sign-in state; picking one sets CLAUDE_CONFIG_DIR in the tmux session environment and respawns the pane with its start command (--resume <id> dropped); a new name creates ~/.claude-<name> (settings.json copied, not the login) and the chat shows Claude's sign-in. ANA reads each session's config folder (process env → tmux env → ~/.claude) for its conversation, usage limits and login. Codex sessions work the same with CODEX_HOME and ~/.codex-<name> (config.toml copied); an account that is not signed in runs `codex login --device-auth` on the server and the popover shows the link and one-time code, then Codex restarts under it once signed in. GET/POST /api/agent-account (/api/claude-account kept). docs/multi-account.md.",
+      "summary": "The session list at the top of the chat has a + tile (also when there are no sessions yet). It asks for a name and an agent — Claude Code or Codex — and starts tmux session <ANA>-<name> in this folder with its own login folder (~/.claude-<ANA>-<name> via CLAUDE_CONFIG_DIR, or ~/.codex-<ANA>-<name> via CODEX_HOME; settings copied, not the login; the same name reuses it). The chat switches to it right away: Claude's first-run screens (theme, login method, login link + code) come as chat cards; for Codex the server runs codex login --device-auth and the chat shows the link and one-time code, and the session starts codex once auth.json appears. ANA reads each session's config folder (process env → tmux env → default) for its conversation, limits and login. POST /api/sessions, GET/POST /api/agent-login; /api/agent-account still lists and switches a session's account. docs/multi-account.md.",
       "anchors": [
-        "/api/claude-account",
-        "acctBtn",
-        "function switchAcct",
+        "/api/sessions",
+        "/api/agent-login",
+        "nsForm",
+        "cxCard",
+        "function startCodexLogin",
         "function procEnv",
-        "async function claudeConfigOf(target)",
-        "function startCodexLogin"
+        "async function claudeConfigOf(target)"
       ]
     },
     {

@@ -13,18 +13,18 @@ The key is the **`CLAUDE_CONFIG_DIR` environment variable**. Claude Code keeps i
 
 `<ana>` is the ANA folder name (e.g. `base-ana`). Session names must follow the ANA rule `<ana>-<anything>` to appear in the session list of ANA's chat.
 
-## From the chat (account button)
+## From the chat (+ New session)
 
-The round button to the right of the session name at the top of ANA's chat is the **Claude account of that session** — the first letter of its email. Orange means a non-default account; a dashed ring means it isn't signed in yet.
+Open the session list at the top of ANA's chat and press **+ New session** (it is there even when no session exists yet — a fresh ANA starts like that). Give a short name and pick **Claude Code** or **Codex**. ANA starts tmux session `<ana>-<name>` in this folder with its own login folder — `~/.claude-<ana>-<name>` (`CLAUDE_CONFIG_DIR`) or `~/.codex-<ana>-<name>` (`CODEX_HOME`); your settings are copied, your login is not — and the chat switches to it:
 
-1. Press it to see the accounts on this computer (`~/.claude` and every `~/.claude-<name>`), with their email and whether they are signed in.
-2. Pick one to restart Claude in this session under that account. Or press **+ Sign in with another account**, give it a short name (e.g. `alice`), and ANA creates `~/.claude-alice` (with your `settings.json`, not your login), restarts Claude there, and the chat shows Claude's sign-in to follow.
+- **Claude Code** shows its first-run screens (theme, login method, then a login link and a field for the code) as cards in the chat.
+- **Codex** — see below: the chat shows a link and a one-time code.
 
-Behind the button ANA does what the manual steps below do: it sets `CLAUDE_CONFIG_DIR` in the tmux session's environment and respawns the pane with its original command (`--resume <id>` is dropped, because the other account doesn't have that conversation). API: `GET /api/agent-account`, `POST /api/agent-account {target, account, create?}` (`{action:'cancel'}` stops a Codex sign-in).
+Making a session with the same name again reuses its login folder. API: `POST /api/sessions {name, agent: 'claude'|'codex'}`; `GET/POST /api/agent-login` (Codex sign-in state, cancel, a new code); `GET/POST /api/agent-account` lists and switches a running session's account.
 
 ## Codex sessions
 
-The same button works for a Codex session. Its accounts are `~/.codex` and `~/.codex-<name>` (`CODEX_HOME`; ANA copies your `config.toml`, not `auth.json`). Codex's sign-in opens a browser on the machine it runs on, which doesn't work on a remote ANA — so for an account that isn't signed in, ANA runs `codex login --device-auth` itself and the popover shows **a link and a one-time code**. Open the link on any device (your phone is fine), sign in, enter the code; when it is done, Codex in that session restarts under the new account. *Cancel* stops the sign-in and leaves the session as it was. The conversation, model and limits ANA shows come from that session's `CODEX_HOME`.
+For Codex the login folder is `~/.codex-<ana>-<name>` (`CODEX_HOME`; ANA copies your `config.toml`, not `auth.json`). Codex's sign-in opens a browser on the machine it runs on, which doesn't work on a remote ANA — so for an account that isn't signed in, ANA runs `codex login --device-auth` itself and the chat shows **a link and a one-time code**. Open the link on any device (your phone is fine), sign in, enter the code; when it is done, Codex in that session restarts under the new account. *Cancel* stops the sign-in and leaves the session as it was. The conversation, model and limits ANA shows come from that session's `CODEX_HOME`.
 
 ## What ANA follows per session
 

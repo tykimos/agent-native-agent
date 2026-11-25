@@ -436,7 +436,7 @@ function createDashboardApi(core, opts) {
   const DEFAULT_CLAUDE = { dir: path.join(os.homedir(), '.claude'), explicit: false };
   const cfgKey = (c) => `${c.dir}|${c.explicit ? 1 : 0}`;
   const usageCache = new Map();   // cfgKey → {at, data}
-  // 세션마다 계정이 다를 수 있다(CLAUDE_CONFIG_DIR — 채팅 위 계정 버튼, docs/multi-account.md). 사용량·로그인은 '설정 폴더'별로 읽고 캐시한다.
+  // 세션마다 계정이 다를 수 있다(CLAUDE_CONFIG_DIR · CODEX_HOME — 채팅 세션 목록의 + New session, docs/multi-account.md). 사용량·로그인은 '설정 폴더'별로 읽고 캐시한다.
   async function claudeConfigOf(target) {
     if (!target) return DEFAULT_CLAUDE;
     const r = await agentLog.resolve(target).catch(() => ({}));
@@ -505,6 +505,10 @@ function createDashboardApi(core, opts) {
     });
     return st;
   }
+  // 서버가 멈추면 띄운 로그인도 같이 멈춘다(남으면 쓰이지 않는 코드가 계속 살아 있다). SIGTERM·SIGINT는 기본 동작(종료)을 지킨다
+  const stopLogins = () => { for (const st of codexLogins.values()) if (st.proc) try { st.proc.kill(); } catch {} };
+  process.once('exit', stopLogins);
+  for (const sig of ['SIGTERM', 'SIGINT']) process.once(sig, () => { stopLogins(); process.kill(process.pid, sig); });
   const loginView = (st) => (st ? { state: st.state, url: st.url, code: st.code, account: st.id, error: st.error } : null);
   // Claude Code 로그인 정보(macOS keychain → <설정 폴더>/.credentials.json). 토큰은 서버 밖으로 내보내지 않는다.
   // 키체인 항목 이름은 Claude Code와 같게: CLAUDE_CONFIG_DIR이 있으면 'Claude Code-credentials-<sha256(폴더) 앞 8자>'
@@ -1091,6 +1095,60 @@ function createDashboardApi(core, opts) {
         notified = await tryDeliver(ctx);
       }
       return sendJson(res, 200, { ok: true, status: r2.status, version: rq.version, notified }), true;
+    }
+
+    // ---- 새 에이전트 세션: POST /api/sessions {name, agent: claude|codex} ----
+    // tmux 세션 <ANA>-<name>을 이 폴더에서 띄운다. 세션마다 자기 로그인 폴더(~/.claude-<ANA>-<name> · ~/.codex-<ANA>-<name>)를 쓴다 —
+    // 같은 이름으로 다시 만들면 그 폴더(로그인)를 그대로 쓴다. Claude는 채팅에 뜨는 첫 실행 화면에서 로그인하고,
+    // 로그인 전인 Codex는 서버가 기기 로그인(링크·코드)을 시작하고 세션은 로그인이 끝나면 codex를 띄운다.
+    if (p === '/api/sessions' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      const name = String(body.name || '').trim().toLowerCase(), kind = body.agent === 'codex' ? 'codex' : body.agent === 'claude' ? 'claude' : '';
+      if (!kind) return sendJson(res, 400, { error: 'agent: claude or codex' }), true;
+      const ana = opts.ANA_NAME || core.anaNameOf(ROOT, process.env), id = `${ana}-${name}`, sess = id;
+      if (!/^[a-z0-9][a-z0-9-]{0,23}$/.test(name) || !ACCT_ID.test(id)) return sendJson(res, 400, { error: 'Name: lowercase letters, digits and -, up to 24' }), true;
+      if (await ctx.ch.tmux(['has-session', '-t', `=${sess}`]).then(() => true, () => false)) return sendJson(res, 409, { error: `A session named ${sess} is already running — pick it from the list` }), true;
+      const A = AGENT_ACCT[kind], dir = acctDir(kind, id), fs = require('node:fs');
+      fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+      if (!fs.existsSync(path.join(dir, '.ana-account'))) fs.writeFileSync(path.join(dir, '.ana-account'), `created by ANA for ${sess} ${new Date().toISOString()}\n`);
+      try { if (!fs.existsSync(path.join(dir, A.copy))) fs.copyFileSync(path.join(A.def(), A.copy), path.join(dir, A.copy)); } catch {}   // 설정만, 로그인은 아니다
+      const signedIn = (await acctInfo(kind, id)).signedIn;
+      // 사용자의 로그인 셸로 띄운다(launchd로 뜬 서버의 PATH에는 claude·codex가 없을 수 있다). 로그인 전 Codex는 auth.json이 생기면 그때 codex로
+      const run = kind === 'claude' ? 'exec claude'
+        : signedIn ? 'exec codex'
+        : `printf 'Waiting for Codex sign-in — follow the link in the ANA chat...\\n'; while [ ! -s "$CODEX_HOME/auth.json" ]; do sleep 1; done; exec codex`;
+      try {
+        await ctx.ch.tmux(['new-session', '-d', '-s', sess, '-c', ROOT, '-x', '160', '-y', '48', '-e', `${A.env}=${dir}`, `${process.env.SHELL || '/bin/zsh'} -lc ${JSON.stringify(run).replace(/\$/g, '\\$')}`]);
+      } catch (e) { return sendJson(res, 500, { error: `Could not start the session — ${e.message}` }), true; }
+      audit(actor(req), 'session.create', `${sess}: ${kind}${signedIn ? '' : ' (sign-in)'}`);
+      let login = null;
+      if (kind === 'codex' && !signedIn) {
+        const st = startCodexLogin(sess, id, dir, async () => {});
+        for (let n = 0; n < 40 && st.state === 'starting'; n++) await new Promise((r) => setTimeout(r, 250));
+        login = loginView(st);
+      }
+      return sendJson(res, 201, { ok: true, session: sess, agent: kind, signedIn, login }), true;
+    }
+    //   GET /api/agent-login?target=   진행 중인 Codex 로그인(채팅의 로그인 카드) — 없으면 null
+    if (p === '/api/agent-login' && req.method === 'GET') {
+      const t = String(url.searchParams.get('target') || ctx.target);
+      return sendJson(res, 200, { target: t, login: loginView(codexLogins.get(t)) }), true;
+    }
+    //   POST /api/agent-login {target, action:'cancel'|'restart'}   취소 또는 새 코드로 다시
+    if (p === '/api/agent-login' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      const t = String(body.target || ctx.target), st = codexLogins.get(t);
+      if (body.action === 'cancel') { if (st) { st.state = 'cancelled'; if (st.proc) try { st.proc.kill(); } catch {} codexLogins.delete(t); } return sendJson(res, 200, { ok: true }), true; }
+      if (body.action === 'restart') {
+        const ana = opts.ANA_NAME || core.anaNameOf(ROOT, process.env), id = st ? st.id : (t.startsWith(ana + '-') ? t : '');
+        if (!id || !ACCT_ID.test(id)) return sendJson(res, 400, { error: 'No Codex sign-in for this session' }), true;
+        const n = startCodexLogin(t, id, acctDir('codex', id), async () => {});
+        for (let k = 0; k < 40 && n.state === 'starting'; k++) await new Promise((r) => setTimeout(r, 250));
+        return sendJson(res, 200, { ok: true, login: loginView(n) }), true;
+      }
+      return sendJson(res, 400, { error: "action: 'cancel' or 'restart'" }), true;
     }
 
     // ---- 에이전트 계정(세션마다) ----

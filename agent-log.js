@@ -21,10 +21,10 @@ const path = require('node:path');
 const { execFile } = require('node:child_process');
 
 const MAX_RESULT = 4000;          // 도구 결과 본문 상한(화면용)
-// Claude Code의 설정 폴더 — 기본은 ~/.claude. 세션마다 다른 계정을 쓰면 CLAUDE_CONFIG_DIR로 바뀐다(채팅 위 계정 버튼 · docs/multi-account.md).
+// Claude Code의 설정 폴더 — 기본은 ~/.claude. 세션마다 다른 계정을 쓰면 CLAUDE_CONFIG_DIR로 바뀐다(채팅 세션 목록의 + New session · docs/multi-account.md).
 // 대화 기록(projects/), 실행 중 세션(sessions/<pid>.json), 로그인은 모두 그 폴더 안에 있다.
 const DEFAULT_CLAUDE_DIR = path.join(os.homedir(), '.claude');
-// Codex의 홈 폴더 — 기본은 ~/.codex. 세션마다 다른 계정을 쓰면 CODEX_HOME으로 바뀐다(채팅 위 계정 버튼)
+// Codex의 홈 폴더 — 기본은 ~/.codex. 세션마다 다른 계정을 쓰면 CODEX_HOME으로 바뀐다(채팅 세션 목록의 + New session)
 const DEFAULT_CODEX_HOME = process.env.CODEX_HOME || path.join(os.homedir(), '.codex');
 
 const VERB = {
