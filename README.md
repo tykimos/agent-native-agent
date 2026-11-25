@@ -331,6 +331,7 @@ claude plugin install ana@agent-native-agent          # later: claude plugin upd
 | [`context-chips`](skills/context-chips/SKILL.md) | Chip mode, ✎ draw-on-screen annotation, ⟳ register new elements |
 | [`app-shell`](skills/app-shell/SKILL.md) | the six tabs (PRD · Work · Knowledge · Requests · Evolve · Update) and System in the logo menu, sub-tabs in the top bar |
 | [`agent-requests`](skills/agent-requests/SKILL.md) | Requests, Evolve, PRD and Knowledge |
+| [`ana-usage`](skills/ana-usage/SKILL.md) | use a running ANA from the outside: the screen map, how to ask, what each Requests · Evolve · Update button does, driving the dashboard from a browser, recovering an idle codespace |
 
 ### Updating an existing ANA
 
@@ -368,7 +369,7 @@ CLAUDE.md · AGENTS.md what the agent does here (start from the conversation, PR
 features.json         feature manifest: anchors + skill per feature (used by ana-update)
 package.json          dependencies: NodeRel, modern-screenshot
 test.cjs              unit + integration tests (npm test), mock_agent.py = deterministic TUI stand-in
-skills/               install · ana · ana-update · chat-window · context-chips · app-shell · agent-requests · cloud-setting
+skills/               install · ana · ana-update · chat-window · context-chips · app-shell · agent-requests · ana-usage · cloud-setting
 .claude-plugin/       plugin + marketplace manifest
 CHANGELOG.md          release notes per version (Korean: CHANGELOG.ko.md)
 ```

@@ -331,6 +331,7 @@ claude plugin install ana@agent-native-agent          # 이후: claude plugin up
 | [`context-chips`](skills/context-chips/SKILL.md) | 칩 모드, ✎ 화면 그리기, ⟳ 새 요소 등록 |
 | [`app-shell`](skills/app-shell/SKILL.md) | 로고 메뉴의 여섯 탭(PRD · Work · Knowledge · Requests · Evolve · Update)과 System, 위쪽 바의 하위 탭 |
 | [`agent-requests`](skills/agent-requests/SKILL.md) | Requests, Evolve, PRD, Knowledge |
+| [`ana-usage`](skills/ana-usage/SKILL.md) | 돌아가는 ANA를 밖에서 쓰기: 화면 구조, 요청 요령, Requests · Evolve · Update 버튼별 동작, 브라우저로 대시보드 조작, 멈춘 Codespace 복구 |
 
 ### 기존 ANA 업데이트
 
@@ -368,7 +369,7 @@ CLAUDE.md · AGENTS.md 에이전트가 여기서 하는 일(대화로 시작, �
 features.json         기능 목록: 기능별 앵커 + 담당 스킬 (ana-update가 비교 기준으로 사용)
 package.json          의존성: NodeRel, modern-screenshot
 test.cjs              단위 + 통합 테스트(npm test), mock_agent.py = 테스트용 결정적 TUI
-skills/               install · ana · ana-update · chat-window · context-chips · app-shell · agent-requests · cloud-setting
+skills/               install · ana · ana-update · chat-window · context-chips · app-shell · agent-requests · ana-usage · cloud-setting
 .claude-plugin/       플러그인 + 마켓플레이스 매니페스트
 CHANGELOG.ko.md       버전별 변경 기록 (영문: CHANGELOG.md)
 ```
