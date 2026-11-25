@@ -5,6 +5,24 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.28.0] — 2026-11-25
+
+### Added
+
+- **A Claude account per session.** A round button right of the session picker at the top of the chat shows which Claude Code account that session runs on (the first letter of its email; orange = not the default account, dashed = not signed in). Press it to see the accounts on this computer and pick one — Claude in that session restarts under it, with its own sign-in, usage limits and history. *Sign in with another account* takes a short name, creates `~/.claude-<name>` (your `settings.json`, not your login) and the chat shows Claude's sign-in. ANA now reads each session's config folder (process → tmux session → `~/.claude`) for its conversation, limits and login. This was ANA Pro; it is public now. See `docs/multi-account.md`.
+- **Work ontology you can read, export and check.** `work-ontology.js` can now declare each kind's fields (type, allowed values, many, who sees it), relations that allow one or many and their standard parents (PROV-O, Dublin Core, DCAT, EARL), rules (SHACL), a version, and a Description. Knowledge › Ontology shows the Description with numbered references that open the entry (a reference that no longer exists is struck through), Classes with their fields, a relation diagram and table, and Rules with kept / broken / could-not-check counts from an optional `work-rules.js`. *Download .ttl* and *View in OntoAir* export OWL 2 + SHACL. Large knowledge is sent gzipped, with a progress bar and a log. New skill: `skills/ontology`. Also moved out of the Pro list.
+- **The address carries the screen.** `#/prd`, `#/work`, `#/knowledge/graph`, `#/requests/wait` … open that tab and sub-tab directly; the address follows as you switch, so it can be bookmarked or shared.
+- **The agent fills in the ontology lightly.** When it builds the first Work screen it adds what it already knows (descriptions, fields, a version, a short Description) without asking about the ontology, and keeps it current when the work changes.
+
+### Changed
+
+- **Relation codes are lowerCamelCase** (`dueOn`, not `DUE_ON`), the OWL convention. Old codes are still read, and links are rewritten in the new form on the next save — nothing is dropped.
+
+### Fixed
+
+- **Screen capture no longer stalls on videos.** On iPhone the capture waited for videos that don't load before playback, sat at "Reading N nodes" for 40 s and sent only the pen marks. Videos are now drawn from their current frame (or poster).
+- **The model chip names Fable 5.2** (it said 5.1).
+
 ## [0.27.13] — 2026-11-25
 
 ### Fixed
