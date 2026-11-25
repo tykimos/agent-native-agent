@@ -288,6 +288,19 @@
       ]
     },
     {
+      "id": "session-accounts",
+      "title": "A Claude account per session (account button in the chat)",
+      "skill": "chat-window",
+      "summary": "A round button right of the session picker at the top of the chat shows the Claude Code account of that session (first letter of its email; orange = not the default account, dashed = not signed in). It lists the accounts on this computer (~/.claude and ~/.claude-<name>) with email and sign-in state; picking one sets CLAUDE_CONFIG_DIR in the tmux session environment and respawns the pane with its start command (--resume <id> dropped); a new name creates ~/.claude-<name> (settings.json copied, not the login) and the chat shows Claude's sign-in. ANA reads each session's config folder (process env → tmux env → ~/.claude) for its conversation, usage limits and login. GET/POST /api/claude-account. docs/multi-account.md.",
+      "anchors": [
+        "/api/claude-account",
+        "acctBtn",
+        "function switchAcct",
+        "function procEnv",
+        "async function claudeConfigOf(target)"
+      ]
+    },
+    {
       "id": "sketch",
       "title": "Sketch a screen",
       "skill": "context-chips",

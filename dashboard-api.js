@@ -418,7 +418,34 @@ function createDashboardApi(core, opts) {
   const DEFAULT_CLAUDE = { dir: path.join(os.homedir(), '.claude'), explicit: false };
   const cfgKey = (c) => `${c.dir}|${c.explicit ? 1 : 0}`;
   const usageCache = new Map();   // cfgKey → {at, data}
-  async function claudeConfigOf() { return DEFAULT_CLAUDE; }   // 한 계정(~/.claude). 세션마다 다른 계정은 ANA Pro
+  // 세션마다 계정이 다를 수 있다(CLAUDE_CONFIG_DIR — 채팅 위 계정 버튼, docs/multi-account.md). 사용량·로그인은 '설정 폴더'별로 읽고 캐시한다.
+  async function claudeConfigOf(target) {
+    if (!target) return DEFAULT_CLAUDE;
+    const r = await agentLog.resolve(target).catch(() => ({}));
+    return r && r.configDir ? { dir: r.configDir, explicit: !!r.configExplicit } : DEFAULT_CLAUDE;
+  }
+  // ---- Claude 계정(세션마다) ----
+  // 계정 = Claude Code 설정 폴더. 'default' = ~/.claude, 그 밖의 <id> = ~/.claude-<id>(ANA가 만든 것은 .ana-account 표시가 있다).
+  // 세션의 계정을 바꾸면 tmux 세션 환경에 CLAUDE_CONFIG_DIR을 넣고 그 팬의 Claude를 다시 띄운다 — 새 폴더면 Claude가 로그인부터 묻고, 채팅이 그 화면을 보인다.
+  const CLAUDE_HOME = opts.CLAUDE_HOME || process.env.ANA_CLAUDE_HOME || os.homedir();
+  const ACCT_ID = /^[a-z0-9][a-z0-9-]{0,31}$/;
+  const acctDir = (id) => (id === 'default' ? DEFAULT_CLAUDE.dir : path.join(CLAUDE_HOME, `.claude-${id}`));
+  const tilde = (d) => (d.startsWith(os.homedir()) ? '~' + d.slice(os.homedir().length) : d);
+  function acctIds() {
+    const fs = require('node:fs'), out = ['default'];
+    for (const d of fs.readdirSync(CLAUDE_HOME, { withFileTypes: true }).filter((x) => x.isDirectory())) {
+      const m = /^\.claude-([a-z0-9][a-z0-9-]{0,31})$/.exec(d.name), dir = m && path.join(CLAUDE_HOME, d.name);
+      if (m && ['.claude.json', '.ana-account'].some((f) => fs.existsSync(path.join(dir, f)))) out.push(m[1]);   // Claude 설정 폴더로 보이는 것만
+    }
+    return out;
+  }
+  // 계정 정보: 이메일·이름·플랜(<폴더>/.claude.json — 기본 폴더는 ~/.claude.json)과 로그인 여부. 토큰은 내보내지 않는다
+  async function acctInfo(id) {
+    const dir = acctDir(id), cfg = { dir, explicit: id !== 'default' };
+    let a = null; try { a = JSON.parse(await fsp.readFile(id === 'default' ? path.join(os.homedir(), '.claude.json') : path.join(dir, '.claude.json'), 'utf8')).oauthAccount || null; } catch {}
+    const oa = await readOauth(cfg).catch(() => null);
+    return { id, dir: tilde(dir), email: (a && a.emailAddress) || '', name: (a && (a.displayName || a.fullName)) || '', org: (a && a.organizationName) || '', signedIn: !!(oa && oa.accessToken) };
+  }
   // Claude Code 로그인 정보(macOS keychain → <설정 폴더>/.credentials.json). 토큰은 서버 밖으로 내보내지 않는다.
   // 키체인 항목 이름은 Claude Code와 같게: CLAUDE_CONFIG_DIR이 있으면 'Claude Code-credentials-<sha256(폴더) 앞 8자>'
   async function readOauth(cfg = DEFAULT_CLAUDE) {
@@ -1004,6 +1031,46 @@ function createDashboardApi(core, opts) {
         notified = await tryDeliver(ctx);
       }
       return sendJson(res, 200, { ok: true, status: r2.status, version: rq.version, notified }), true;
+    }
+
+    // ---- Claude 계정(세션마다) ----
+    //   GET  /api/claude-account            지금 세션의 계정과 이 컴퓨터의 계정 목록
+    //   POST /api/claude-account {target, account, create?}   이 세션을 그 계정으로 다시 띄운다(create = 새 폴더를 만들고 로그인부터)
+    if (p === '/api/claude-account' && req.method === 'GET') {
+      const cfg = await claudeConfigOf(ctx.target), where = await agentLog.resolve(ctx.target).catch(() => ({}));
+      const ids = acctIds(), cur = !cfg.explicit ? 'default' : ids.find((id) => path.resolve(acctDir(id)) === path.resolve(cfg.dir)) || '';
+      const accounts = await Promise.all(ids.map(acctInfo));
+      return sendJson(res, 200, { target: ctx.target, kind: where.kind || '', current: cur, ...(cur ? {} : { customDir: tilde(cfg.dir) }), accounts }), true;
+    }
+    if (p === '/api/claude-account' && req.method === 'POST') {
+      if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
+      const body = await jsonBody(req, res); if (!body) return true;
+      const t = ctx.target, id = String(body.account || '');
+      if (body.target && body.target !== t) return sendJson(res, 409, { error: 'Agent session changed — reopen the account menu' }), true;
+      if (id !== 'default' && !ACCT_ID.test(id)) return sendJson(res, 400, { error: 'Account name: lowercase letters, digits and -, up to 32' }), true;
+      if (!t || !(await ctx.hasSession())) return sendJson(res, 409, { error: 'No agent session' }), true;
+      const where = await agentLog.resolve(t).catch(() => ({}));
+      if (where.kind === 'codex') return sendJson(res, 409, { error: 'This session runs Codex — accounts here are for Claude Code' }), true;
+      const dir = acctDir(id), fs = require('node:fs');
+      if (body.create && id !== 'default') {
+        if (fs.existsSync(dir) && acctIds().includes(id)) return sendJson(res, 409, { error: `An account named "${id}" already exists — pick it from the list` }), true;
+        fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+        fs.writeFileSync(path.join(dir, '.ana-account'), `created by ANA ${new Date().toISOString()}\n`);
+        // 설정(모델·권한)은 기본 계정 것을 가져와 같은 방식으로 일하게 한다 — 로그인 정보는 가져오지 않는다
+        try { if (!fs.existsSync(path.join(dir, 'settings.json'))) fs.copyFileSync(path.join(DEFAULT_CLAUDE.dir, 'settings.json'), path.join(dir, 'settings.json')); } catch {}
+      } else if (!acctIds().includes(id)) return sendJson(res, 404, { error: `No account named "${id}"` }), true;
+      // 처음 띄운 명령 그대로(claude --continue 등). 다른 계정에는 없는 대화를 가리키는 --resume <id>는 뺀다. 셸만 있던 팬이면 claude로
+      let cmd = '';
+      try { const start = (await ctx.ch.tmux(['display-message', '-p', '-t', t, '#{pane_start_command}'])).trim(); const clean = start.replace(/\s(?:--resume|-r)(?:=|\s+)[0-9a-f-]{8,}/gi, ''); cmd = !start ? 'claude' : clean !== start ? clean : ''; } catch {}
+      const sess = String(t).split(':')[0];
+      try {
+        if (id === 'default') await ctx.ch.tmux(['set-environment', '-t', sess, '-u', 'CLAUDE_CONFIG_DIR']).catch(() => {});
+        else await ctx.ch.tmux(['set-environment', '-t', sess, 'CLAUDE_CONFIG_DIR', dir]);
+        await ctx.ch.tmux(['respawn-pane', '-k', '-t', t, ...(id === 'default' ? [] : ['-e', `CLAUDE_CONFIG_DIR=${dir}`]), ...(cmd ? [cmd] : [])]);
+      } catch (e) { return sendJson(res, 500, { error: `Could not restart the agent — ${e.message}` }), true; }
+      agentLog.forget(t);
+      audit(actor(req), 'agent.account', `${t}: ${id}${body.create ? ' (new)' : ''}`);
+      return sendJson(res, 200, { ok: true, target: t, account: await acctInfo(id) }), true;
     }
 
     // ---- System: 이 ANA의 상태와 재시작 ----

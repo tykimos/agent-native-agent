@@ -13,11 +13,10 @@ In short: **build with it freely — but you cannot make it closed-source, and y
 ## ANA Pro
 
 **Agent-Native Agent Pro** is the commercial edition. On top of this public one it adds:
-- a knowledge layer that grows from the work: analysis, a knowledge graph, an ontology with rules (OntoAir and OWL export)
+- a knowledge layer that grows from the work: analysis jobs and rule inference over the knowledge graph
 - the Graph view (work graph and knowledge graph)
 - a System scope with admin and member roles: the admin inbox, Roadmap (requirements, updates) and Health (trustworthiness, safety, security, tests, usage)
 - several workspaces and a file browser
-- a different Claude account per tmux session
 - an offline edition (Windows) that runs without internet or an LLM
 
 Ask at the contact below.

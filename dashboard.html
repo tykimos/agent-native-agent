@@ -408,6 +408,25 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 /* 드롭다운(tmux 선택) — 채팅 헤더 아래로 펼쳐짐 */
 .conn-pop { position: absolute; top: calc(100% + 8px); left: 0; right: 0; padding: 12px; z-index: 60;
   background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sh-fab); cursor: default; }
+/* 이 세션의 Claude 계정 버튼(세션 콤보 오른쪽)과 팝오버 */
+.ana-status { position: relative; }
+.acct-btn { flex: 0 0 auto; padding: 0; border-radius: 999px; background: none; cursor: pointer; }
+.acct-btn .av { width: 34px; height: 34px; font-size: 13px; font-weight: 800; border: 1px solid var(--line); }
+.acct-btn.other .av { background: var(--warm-bg, #FFF4E5); color: var(--warm-fg); border-color: var(--warm-fg); }
+.acct-btn.out .av { background: var(--surface-2); color: var(--text-weak); border-style: dashed; }
+.acct-btn svg { width: 17px; height: 17px; }
+.acct-pop { position: absolute; top: calc(100% - 4px); right: 14px; width: min(340px, calc(100% - 28px)); padding: 12px; z-index: 61;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sh-fab); }
+.acct-list { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; margin: 6px 0 8px; }
+.acct-row { display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; padding: 7px 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--text); cursor: pointer; }
+.acct-row:hover:not(:disabled) { border-color: var(--accent, var(--blue)); } .acct-row.cur { border-color: var(--success, var(--green)); cursor: default; }
+.acct-row .av { width: 26px; height: 26px; font-size: 11px; flex: 0 0 auto; } .acct-row .at { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.acct-row .at b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .acct-row .at small { font-size: 11.5px; color: var(--text-weak); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-row .tag { flex: 0 0 auto; font-size: 11px; font-weight: 800; color: var(--success, var(--green)); }
+.acct-add { width: 100%; text-align: left; padding: 7px 9px; border-radius: 9px; background: var(--surface-2); color: var(--text); font-weight: 700; font-size: 13px; cursor: pointer; }
+.acct-new { display: flex; gap: 6px; margin-top: 6px; } .acct-new[hidden] { display: none; }
+.acct-new input { flex: 1; min-width: 0; height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 14px; }
+.acct-note { margin-top: 8px; font-size: 11.5px; color: var(--text-weak); line-height: 1.45; }
 /* tmux 세션 연결 설정 팝오버 */
 .tmux-cfg { margin-top: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
 .tmux-cfg-title { font-size: 11.5px; font-weight: 800; color: var(--text-sub); margin-bottom: 6px; }
@@ -1373,6 +1392,18 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
           <div class="tmux-cfg-hint">Each session keeps its own chat history. Start an agent in tmux to see it here.</div>
         </div>
       </div>
+      <!-- 이 세션의 Claude 계정 — 세션마다 다른 계정으로 로그인할 수 있다 -->
+      <button class="acct-btn" id="acctBtn" aria-haspopup="menu" aria-expanded="false" aria-label="Claude account for this session" hidden><span class="av" id="acctAv">?</span></button>
+    </div>
+    <div class="acct-pop" id="acctPop" role="menu" aria-label="Claude account" hidden>
+      <div class="ws-label" id="acctHead">Claude account</div>
+      <div class="acct-list" id="acctList"></div>
+      <button class="acct-add" id="acctAddBtn">+ Sign in with another account</button>
+      <form class="acct-new" id="acctNew" hidden>
+        <input id="acctName" maxlength="32" placeholder="Short name, e.g. alice" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Account name">
+        <button type="submit" class="ib-btn" id="acctGo">Sign in</button>
+      </form>
+      <div class="acct-note">Switching restarts Claude in this session. Each account keeps its own sign-in, usage limits and conversation history.</div>
     </div>
   </div>
   <div id="feed" aria-live="polite" aria-relevant="additions">
@@ -2697,6 +2728,7 @@ function renderStatus() {
   $('fab').classList.toggle('busy', ses && busy);
   updateSendMode();
   updateDialog((!!dialogInfo || !!(health && health.dialog)) && ses);   // 터미널에 확인 창(질문·권한 메뉴)이 열렸는지
+  renderAcctBtn();
 }
 // 터미널 다이얼로그(권한 프롬프트·/remote-control 등)가 열리면 채팅에 안내 카드 표시.
 // TUI 다이얼로그는 채팅 말풍선으로 렌더되지 않으므로, 열려 있음을 알리고 내용을 보여준다.
@@ -2982,6 +3014,72 @@ document.addEventListener('click', (e) => { if (!$('limitPop').hidden && !e.targ
   };
   $('send').addEventListener('click', stop, true);
 })();
+
+/* ---- 이 세션의 Claude 계정 ----
+   세션 콤보 오른쪽 동그라미 = 이 세션의 Claude Code가 로그인한 계정(이메일 첫 글자). 기본 계정이 아니면 주황, 로그인 전이면 점선.
+   누르면 이 컴퓨터의 계정 목록 — 고르면 그 계정으로 이 세션의 Claude를 다시 띄운다. 새 계정은 이름만 정하면 Claude가 로그인부터 묻고, 채팅에 그 화면이 뜬다. */
+var acctData = null, acctFor = '', acctBusy = false;   // var·function: 부팅 중 renderStatus가 먼저 불러도 안전
+var ACCT_PERSON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>';
+function acctLabel(a) { return (a.email || (a.id === 'default' ? 'Default account' : a.id)); }
+function acctAv(a) { return (a && a.email ? escapeHtml(a.email[0].toUpperCase()) : a && a.id !== 'default' ? escapeHtml(a.id[0].toUpperCase()) : ACCT_PERSON || ''); }
+async function loadAcct(force) {
+  const t = health && health.target; if (!t || (!force && acctFor === t && acctData)) return;
+  acctFor = t;
+  try { const d = await getJSON('/api/claude-account'); if (t === (health && health.target)) acctData = d; } catch { acctData = null; }
+  renderAcctBtn(); if (!$('acctPop').hidden) renderAcctPop();
+}
+function renderAcctBtn() {
+  const b = $('acctBtn'), t = health && health.target, show = !!(t && sesAlive() && !(acctData && acctData.kind === 'codex'));
+  b.hidden = !show; if (!show) { $('acctPop').hidden = true; return; }
+  if (acctFor !== t) { loadAcct(); return; }
+  const cur = acctData && acctData.accounts.find((a) => a.id === acctData.current);
+  b.classList.toggle('other', !!(acctData && acctData.current !== 'default'));
+  b.classList.toggle('out', !!(cur && !cur.signedIn));
+  $('acctAv').innerHTML = acctAv(cur || (acctData && acctData.customDir ? { id: 'x' } : null));
+  b.title = !acctData ? 'Claude account' : cur ? `Claude account for ${t}: ${acctLabel(cur)}${cur.signedIn ? '' : ' (not signed in)'} — click to switch` : `Claude account for ${t}: ${acctData.customDir || 'custom'} — click to switch`;
+}
+function renderAcctPop() {
+  const d = acctData, list = $('acctList');
+  $('acctHead').textContent = `Claude account · ${(health && health.target) || ''}`;
+  if (!d) { list.innerHTML = '<div class="k-weak">Could not read the accounts</div>'; return; }
+  list.innerHTML = d.accounts.map((a) => { const cur = a.id === d.current;
+    return `<button class="acct-row${cur ? ' cur' : ''}" role="menuitemradio" aria-checked="${cur}" data-acct="${escapeHtml(a.id)}"${cur || acctBusy ? ' disabled' : ''}><span class="av">${acctAv(a)}</span><span class="at"><b>${escapeHtml(acctLabel(a))}</b><small>${escapeHtml(a.signedIn ? (a.org || a.name || 'Signed in') : 'Not signed in')} · ${escapeHtml(a.dir)}</small></span>${cur ? '<span class="tag">This session</span>' : ''}</button>`; }).join('')
+    + (d.customDir ? `<div class="acct-note">This session uses <code>${escapeHtml(d.customDir)}</code>, set outside ANA.</div>` : '');
+}
+function openAcct(on) {
+  const pop = $('acctPop'); pop.hidden = !on; $('acctBtn').setAttribute('aria-expanded', String(on));
+  if (!on) return;
+  $('acctNew').hidden = true; $('acctAddBtn').hidden = false; renderAcctPop(); loadAcct(true);
+}
+async function switchAcct(id, create) {
+  const t = health && health.target, a = acctData && acctData.accounts.find((x) => x.id === id);
+  if (acctBusy || !t) return;
+  const name = create ? `"${id}"` : acctLabel(a || { id });
+  const ok = await confirmAsk(create
+    ? { title: `Sign in with a new account?`, body: `Claude in ${t} restarts with a new, empty account ${name}. The chat then shows Claude's sign-in — follow it to log in. The current account and its conversations stay as they are.`, yes: 'Restart and sign in' }
+    : { title: `Switch ${t} to ${name}?`, body: `Claude in this session restarts under that account — its own sign-in, usage limits and conversation history apply. The current conversation stays with the current account.`, yes: 'Switch' });
+  if (!ok) return;
+  acctBusy = true; renderAcctPop();
+  let r; try { r = await post('/api/claude-account', { target: t, account: id, create: !!create }); } catch { r = null; }
+  acctBusy = false;
+  if (!r || !r.ok) { let e = {}; try { e = await r.json(); } catch {} renderAcctPop(); showErr(e.error || 'Could not switch the account'); return; }
+  openAcct(false);
+  toast(create ? `Starting Claude for "${id}" — sign in from the chat` : `Restarting ${t} with ${name}`);
+  setTimeout(() => loadAcct(true), 1500); setTimeout(() => loadAcct(true), 6000);
+}
+$('acctBtn').addEventListener('click', (e) => { e.stopPropagation(); openAcct($('acctPop').hidden); });
+$('acctList').addEventListener('click', (e) => { const b = e.target.closest('[data-acct]'); if (b && !b.disabled) switchAcct(b.dataset.acct, false); });
+$('acctAddBtn').onclick = () => { $('acctAddBtn').hidden = true; $('acctNew').hidden = false; $('acctName').value = ''; $('acctName').focus(); };
+$('acctNew').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const id = $('acctName').value.trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9-]{0,31}$/.test(id) || id === 'default') { showErr('Use lowercase letters, digits and -, up to 32 (not "default")'); return; }
+  if (acctData && acctData.accounts.some((a) => a.id === id)) { switchAcct(id, false); return; }
+  switchAcct(id, true);
+});
+document.addEventListener('click', (e) => { if (!$('acctPop').hidden && !e.target.closest('#acctPop, #acctBtn, #confirmModal')) openAcct(false); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('acctPop').hidden) { openAcct(false); $('acctBtn').focus(); } });
+setInterval(() => { if (!document.hidden && health && health.target && !$('acctBtn').hidden) loadAcct(true); }, 60000);   // 다른 곳에서 로그인했으면 1분 안에 따라온다
 
 // 입력창의 모델 알약: Claude Code 세션이면 모델 선택 시트, 아니면 세션 목록
 $('agentPill').addEventListener('click', (e) => { e.stopPropagation(); if (logMode && ['claude', 'codex'].includes(logKind)) openModelSheet(); else $('connPill').click(); });

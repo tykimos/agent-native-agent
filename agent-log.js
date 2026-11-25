@@ -21,7 +21,7 @@ const path = require('node:path');
 const { execFile } = require('node:child_process');
 
 const MAX_RESULT = 4000;          // 도구 결과 본문 상한(화면용)
-// Claude Code의 설정 폴더 ~/.claude(한 계정). 세션마다 다른 계정은 ANA Pro.
+// Claude Code의 설정 폴더 — 기본은 ~/.claude. 세션마다 다른 계정을 쓰면 CLAUDE_CONFIG_DIR로 바뀐다(채팅 위 계정 버튼 · docs/multi-account.md).
 // 대화 기록(projects/), 실행 중 세션(sessions/<pid>.json), 로그인은 모두 그 폴더 안에 있다.
 const DEFAULT_CLAUDE_DIR = path.join(os.homedir(), '.claude');
 const CODEX_SESSIONS = path.join(process.env.CODEX_HOME || path.join(os.homedir(), '.codex'), 'sessions');
@@ -162,8 +162,29 @@ function createAgentLog({ socket = '' } = {}) {
     const kids = await childPids(panePid);
     return [String(panePid), ...kids, ...(await Promise.all(kids.map(childPids))).flat()];
   }
-  // 이 팬의 Claude Code가 쓰는 설정 폴더 — 간소화판은 언제나 ~/.claude
-  async function claudeConfig() { return { dir: DEFAULT_CLAUDE_DIR, explicit: false }; }
+  // 프로세스 환경변수 하나 — Linux는 /proc/<pid>/environ, macOS는 ps eww(같은 사용자 프로세스만 보인다)
+  function procEnv(pid, name) {
+    if (process.platform === 'linux') {
+      try { const kv = fs.readFileSync(`/proc/${pid}/environ`, 'utf8').split('\0').find((x) => x.startsWith(name + '=')); return Promise.resolve(kv ? kv.slice(name.length + 1) : null); } catch { return Promise.resolve(null); }
+    }
+    return new Promise((resolve) => execFile('ps', ['eww', '-o', 'command=', '-p', String(pid)], { timeout: 2000 }, (err, out) => {
+      if (err) return resolve(null);
+      const m = new RegExp(`(?:^|\\s)${name}=(\\S+)`).exec(String(out)); resolve(m ? m[1] : null);
+    }));
+  }
+  // tmux 세션 환경변수(tmux new -e NAME=… 또는 set-environment로 넣은 것) — 없으면 null
+  function tmuxEnv(target, name) {
+    return new Promise((resolve) => execFile('tmux', [...(socket ? ['-L', socket] : []), 'show-environment', '-t', String(target).split(':')[0], name], { timeout: 2000 }, (err, out) => {
+      const m = !err && /^([^=\n]+)=(.*)$/m.exec(String(out)); resolve(m && m[1] === name ? m[2] : null);
+    }));
+  }
+  // 이 팬의 Claude Code가 쓰는 설정 폴더: 프로세스 환경 → tmux 세션 환경 → ~/.claude.
+  // explicit = CLAUDE_CONFIG_DIR이 정해져 있는지(macOS 키체인 항목 이름이 이것에 따라 달라진다)
+  async function claudeConfig(target, panePid) {
+    for (const pid of await paneProcs(panePid)) { const v = await procEnv(pid, 'CLAUDE_CONFIG_DIR'); if (v !== null && v !== undefined) return { dir: v || DEFAULT_CLAUDE_DIR, explicit: !!v }; }
+    const t = await tmuxEnv(target, 'CLAUDE_CONFIG_DIR');
+    return t ? { dir: t, explicit: true } : { dir: DEFAULT_CLAUDE_DIR, explicit: false };
+  }
   // 팬에서 도는 Claude Code의 sessionId — 팬 프로세스와 그 자식들 중 <설정 폴더>/sessions/<pid>.json 이 있는 것.
   // (셸에서 claude 를 친 팬이면 claude 는 셸의 자식이다. 실행기가 exec 하면 팬 프로세스 자신이다.)
   function childPids(pid) {
@@ -390,7 +411,9 @@ function createAgentLog({ socket = '' } = {}) {
     let size = 0; try { size = fs.statSync(r.file).size; } catch {}
     return { available: true, kind: st.kind, size, loading: !!st.loading, items: st.items.length };
   }
-  return { read, image, resolve, prefetch, update, logs };
+  // 계정을 바꿔 다시 띄운 뒤에는 캐시(5초)를 기다리지 않고 새로 찾는다
+  const forget = (target) => { where.delete(target); };
+  return { read, image, resolve, prefetch, update, logs, forget };
 }
 
 module.exports = { createAgentLog, isClaudeCommand, toolLabel, cleanUser, systemNotice, modelName, claudeSelectedModel, codexModelName, codexLimits, findCodexRollout, pageItems };
