@@ -313,6 +313,10 @@ t('R11 inputBoxReady: Codex 작성줄(구분선 없음)은 ready, 메뉴·모델
   assert.equal(inputBoxReady('› 1. Update now\n  2. Skip\n  Press enter to continue'), false, '번호 메뉴');
   assert.equal(inputBoxReady('› /\n  /model   choose what model\n  /ide     include context'), false, '명령 팝업(상태줄이 밀려남)');
   assert.equal(inputBoxReady('some output\nno prompt here'), false);
+  // Codex 0.17x: 상태줄 아래 단축키 안내 줄, 추론 수준 max
+  assert.equal(inputBoxReady('› Ask Codex to do anything\n\n  GPT-6-Astra max · ~/ana/www · 확인하세요\n  ← for agents · ? for shortcuts\n'), true, '0.17x 안내 줄');
+  assert.equal(inputBoxReady('› 1. Update now\n  2. Skip\n  gpt-6 max · /tmp/p\n  ← for agents · ? for shortcuts'), false, '0.17x 번호 메뉴');
+  assert.equal(inputBoxReady('› /\n  /model   choose what model\n  ← for agents · ? for shortcuts'), false, '0.17x 명령 팝업');
 });
 
 t('R10 stripBottomUI: 입력 박스(❯) 있을 때만 절삭, 본문 수평선은 보존 (2차 NR1)', () => {

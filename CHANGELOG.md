@@ -5,6 +5,12 @@ All notable changes to ANA. Versions follow the Claude Code plugin version in `.
 
 To bring an existing ANA up to date with these changes, use the [`ana-update`](skills/ana-update/SKILL.md) skill. It compares that ANA with this repo feature by feature and ports only what you pick.
 
+## [0.27.12] — 2026-11-25
+
+### Fixed
+
+- **Chat reaches Codex 0.17x again.** Newer Codex draws one more line under its status line (`← for agents · ? for shortcuts`) and has new effort levels (`max`, `ultra`). The runtime read the bottom line as the status line, so it never saw Codex's input line as ready and every chat message was refused with "Agent input line is not ready". The hint line is now skipped and the new effort levels are recognized. (`channel-core.js` — bring it in with `ana-update`.)
+
 ## [0.27.11] — 2026-11-21
 
 ### Fixed

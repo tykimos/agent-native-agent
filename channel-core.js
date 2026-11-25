@@ -177,11 +177,16 @@ function inputBoxReady(screen) {
 // Codex 작성줄(v0.1xx): 구분선 상자 없이 '› …' 한 줄과 바로 아래 '<모델> <effort> · <폴더>' 상태줄로 그린다.
 // 화면 맨 아래 비어 있지 않은 줄이 그 상태줄이고 그 위 줄이 '›'로 시작하면 입력 가능. 메뉴('› 1. …')·모델 선택기(상태줄 대신 안내문)·명령 팝업(상태줄이 밀려남)은 아니다.
 // 이걸 몰라 Codex는 한 번도 ready가 되지 않았고, 보낼 때마다 준비 게이트의 타임아웃(5초)을 꽉 기다렸다.
+// Codex 0.17x 는 상태줄 아래에 단축키 안내 줄('← for agents · ? for shortcuts')을 하나 더 그리고, 추론 수준에 max·ultra 가 생겼다.
+// 안내 줄은 건너뛰고 상태줄을 찾는다 — 이걸 몰라 새 Codex 는 웹 채팅에서 늘 '준비 안 됨'으로 거절됐다.
+const CODEX_HINT_LINE = /^(←\s*for agents|\?\s*for shortcuts)(\s*·\s*(←\s*for agents|\?\s*for shortcuts))*$/;
 function codexPromptReady(lines) {
+  let hints = 0;
   for (let i = lines.length - 1; i >= 0; i--) {
     const t = lines[i].replace(/\u00A0/g, ' ').trim();
     if (!t) continue;
-    if (!/^\S+\s+(minimal|low|medium|high|xhigh)\s+·\s/.test(t)) return false;
+    if (CODEX_HINT_LINE.test(t) && hints++ < 1) continue;
+    if (!/^\S+\s+(none|minimal|low|medium|high|xhigh|max|ultra)\s+·\s/.test(t)) return false;
     for (let j = i - 1; j >= Math.max(0, i - 3); j--) {
       const u = lines[j].replace(/\u00A0/g, ' ').trim();
       if (!u) continue;

@@ -5,6 +5,12 @@ ANA의 주요 변경 사항입니다. 버전은 `.claude-plugin/plugin.json`의 
 
 이미 쓰고 있는 ANA에 이 변경을 반영하려면 [`ana-update`](skills/ana-update/SKILL.md) 스킬을 쓰세요. 그 ANA를 이 저장소와 기능 단위로 비교하고, 고른 것만 이식합니다.
 
+## [0.27.12] — 2026-11-25
+
+### 고침
+
+- **Codex 0.17x 에 다시 채팅이 들어갑니다.** 새 Codex 는 상태줄 아래에 안내 줄(`← for agents · ? for shortcuts`)을 하나 더 그리고, 추론 수준에 `max`·`ultra` 가 생겼습니다. 런타임은 맨 아래 줄을 상태줄로 읽었기 때문에 Codex 입력줄을 한 번도 '준비됨'으로 보지 못했고, 채팅을 보낼 때마다 "Agent input line is not ready" 로 거절했습니다. 이제 안내 줄은 건너뛰고 새 추론 수준도 알아봅니다. (`channel-core.js` — `ana-update` 로 반영)
+
 ## [0.27.11] — 2026-11-21
 
 ### 고침
