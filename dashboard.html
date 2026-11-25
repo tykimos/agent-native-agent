@@ -3085,7 +3085,7 @@ setInterval(() => { if (!document.hidden && health && health.target && !$('acctB
 $('agentPill').addEventListener('click', (e) => { e.stopPropagation(); if (logMode && ['claude', 'codex'].includes(logKind)) openModelSheet(); else $('connPill').click(); });
 const MODELS = [
   ['opus', 'Opus 5.5', 'Best for ambitious work'],
-  ['fable', 'Fable 5.1', 'For the hardest problems'],
+  ['fable', 'Fable 5.2', 'For the hardest problems'],
   ['sonnet', 'Sonnet 5', 'Most efficient for everyday tasks'],
   ['haiku', 'Haiku 4.5', 'Fastest answers'],
 ];
@@ -4315,18 +4315,23 @@ $('drawDone').onclick = async () => {
       // iframe은 따로 찍는다 — 라이브러리는 iframe 자리에 그 문서 전체(<html>)를 붙여서 안쪽 스크롤이 무시되고 맨 위가 나온다.
       // 바깥 캡처에서는 iframe을 빼고 같은 크기의 자리(placeholder)만 남긴 뒤, 각 iframe을 제 스크롤 위치로 찍어 그 자리에 얹는다.
       const R0 = m.getBoundingClientRect();
-      frames = [...m.querySelectorAll('iframe')].filter((f) => vis.has(f)).map((f) => {
+      // 동영상도 같은 방식으로 뺀다 — 라이브러리는 동영상을 복제한 뒤 'loadeddata'·'seeked'를 시간 제한 없이 기다리는데,
+      // 아이폰은 재생 전 동영상을 내려받지 않아 그 이벤트가 오지 않는다 → 'Reading N nodes'에서 40초 멈춤. 지금 보이는 장면은 아래에서 직접 그린다.
+      frames = [...m.querySelectorAll('iframe, video')].filter((f) => vis.has(f)).map((f) => {
         const r = f.getBoundingClientRect(), cs = getComputedStyle(f);
         const ph0 = document.createElement('div'); ph0.setAttribute('data-shot-ph', ''); ph0.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
         f.parentNode.insertBefore(ph0, f);   // 산 DOM에서는 자리를 차지하지 않는다(absolute 0×0) — 복제본에서만 iframe 크기의 상자가 된다
         return { f, ph: ph0, rect: r, box: { display: cs.display === 'inline' ? 'inline-block' : cs.display, width: f.offsetWidth, height: f.offsetHeight, margin: cs.margin, verticalAlign: cs.verticalAlign, borderRadius: cs.borderRadius, border: cs.border } };
       });
+      // 라이브러리는 시작 전에 화면 밖 것까지 모든 img·video가 다 열리길 기다린다(제한 시간까지). 그동안 무엇을 기다리는지 칩에 보인다
+      const unloaded = [...m.querySelectorAll('img, video')].filter((el) => el.tagName === 'VIDEO' ? (el.currentSrc || el.src) && el.readyState < 2 : (el.currentSrc || el.src) && !el.complete).length;
+      if (unloaded) await stage(`Waiting for ${unloaded} image/video${unloaded > 1 ? 's' : ''} to load`, 10);
       ctx = await shotLib.createContext(m, {
         scale: dpr, backgroundColor: bg,
-        timeout: 8000,                                   // 안 열리는 이미지 하나가 30초(기본값)를 잡아먹지 않게
+        timeout: 5000,                                   // 안 열리는 이미지·동영상 하나가 30초(기본값)를 잡아먹지 않게
         features: { restoreScrollPosition: true },       // 기본값이 꺼져 있어 스크롤한 화면을 찍어도 맨 위가 나왔다
         includeStyleProperties: SHOT_PROPS,              // 요소마다 350여 개 속성을 다 비교하지 않고 모양에 쓰이는 것만
-        filter: (n) => (n.nodeType === 3 ? vis.get(n.parentNode) !== 0 : n.nodeType !== 1 || (vis.has(n) && n.tagName !== 'IFRAME') || n.hasAttribute('data-shot-ph')),
+        filter: (n) => (n.nodeType === 3 ? vis.get(n.parentNode) !== 0 : n.nodeType !== 1 || (vis.has(n) && n.tagName !== 'IFRAME' && n.tagName !== 'VIDEO') || n.hasAttribute('data-shot-ph')),
         onCloneNode: (clone) => {
           clone.querySelectorAll('[data-shot-ph]').forEach((el, i) => { const b = frames[i] && frames[i].box; if (!b) return;
             Object.assign(el.style, { position: 'static', display: b.display, width: b.width + 'px', height: b.height + 'px', margin: b.margin, verticalAlign: b.verticalAlign, borderRadius: b.borderRadius, border: b.border, boxSizing: 'border-box', flex: '0 0 auto', background: 'var(--surface-2)' }); });
@@ -4340,6 +4345,7 @@ $('drawDone').onclick = async () => {
       shot = await guard(shotLib.domToCanvas(ctx), stageName);
       // 각 iframe: 같은 출처면 그 문서를 보이는 창 크기로, 스크롤만큼 위로 옮겨 찍어 자리에 얹는다(다른 출처면 빈 상자로 남는다)
       for (const fr of frames) {
+        if (fr.f.tagName === 'VIDEO') { await drawVideoFrame(shot, fr, R0, dpr); continue; }
         let doc = null; try { doc = fr.f.contentDocument; } catch {} if (!doc || !doc.documentElement) continue;
         const w = fr.f.clientWidth, h = fr.f.clientHeight; if (!w || !h) continue;
         const fbg = getComputedStyle(doc.body || doc.documentElement).backgroundColor || '';
@@ -4389,6 +4395,25 @@ $('drawDone').onclick = async () => {
     showErr(`Screen capture failed — ${e.message}`);
   } finally { clearInterval(tick); closeDraw(); }
 };
+
+// 동영상 자리에 지금 보이는 장면(없으면 포스터)을 그린다. 다른 출처라 캔버스를 더럽히면(저장 불가) 빈 상자로 둔다.
+async function drawVideoFrame(shot, fr, R0, dpr) {
+  const v = fr.f, w = v.clientWidth, h = v.clientHeight; if (!w || !h) return;
+  let src = v.readyState >= 2 ? v : null, sw = v.videoWidth, sh = v.videoHeight;
+  if (!src && v.poster) {
+    src = await new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); setTimeout(() => ok(null), 3000); i.src = v.poster; });
+    if (src) { sw = src.naturalWidth; sh = src.naturalHeight; }
+  }
+  if (!src || !sw || !sh) return;
+  try { const t = document.createElement('canvas').getContext('2d'); t.drawImage(src, 0, 0, 1, 1); t.getImageData(0, 0, 1, 1); } catch { return; }   // 더럽혀지는지 먼저 시험
+  const fit = getComputedStyle(v).objectFit, k = fit === 'cover' ? Math.max(w / sw, h / sh) : fit === 'fill' ? 0 : Math.min(w / sw, h / sh);
+  const dw = k ? sw * k : w, dh = k ? sh * k : h, x = fr.rect.left + v.clientLeft - R0.left, y = fr.rect.top + v.clientTop - R0.top;
+  const g = shot.getContext('2d'); g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
+  g.beginPath(); g.rect(Math.round(x * dpr), Math.round(y * dpr), Math.round(w * dpr), Math.round(h * dpr)); g.clip();
+  if (fit !== 'cover' && fit !== 'fill') { g.fillStyle = '#000'; g.fillRect(x * dpr, y * dpr, w * dpr, h * dpr); }
+  try { g.drawImage(src, (x + (w - dw) / 2) * dpr, (y + (h - dh) / 2) * dpr, dw * dpr, dh * dpr); } catch {}
+  g.restore();
+}
 
 const SHOT_MAX_SIDE = 1600, SHOT_MAX_BYTES = 900 * 1024;
 // 캡처에 복사할 스타일 속성 — 모양·자리에 쓰이는 것만. (기본은 요소마다 350여 개를 모두 비교해 몇 배 느리다)
