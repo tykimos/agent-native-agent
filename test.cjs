@@ -32,11 +32,11 @@ module.exports = {
     { id: 'Day', label: 'Day', desc: 'A calendar day (computed from dates)' },
   ],
   relations: [
-    { id: 'SPAWNED', label: 'spawned', from: ['Note'], to: ['Task', 'Event'], made: 'explicit', desc: 'The note is where this task or event came from' },
-    { id: 'SCHEDULED_AS', label: 'scheduled as', from: ['Task'], to: ['Event'], made: 'explicit', desc: 'The task is worked on during this calendar event' },
-    { id: 'REFERS_TO', label: 'refers to', from: ['*'], to: ['*'], made: 'explicit', desc: 'Manual reference between two work items' },
-    { id: 'DUE_ON', label: 'due on', from: ['Task'], to: ['Day'], made: 'derived', field: 'Task.due', desc: 'The task is due on this day' },
-    { id: 'ON', label: 'on', from: ['Event'], to: ['Day'], made: 'derived', field: 'Event.date', desc: 'The event happens on this day' },
+    { id: 'spawned', label: 'spawned', from: ['Note'], to: ['Task', 'Event'], made: 'explicit', desc: 'The note is where this task or event came from' },
+    { id: 'scheduledAs', label: 'scheduled as', from: ['Task'], to: ['Event'], made: 'explicit', desc: 'The task is worked on during this calendar event' },
+    { id: 'refersTo', label: 'refers to', from: ['*'], to: ['*'], made: 'explicit', desc: 'Manual reference between two work items' },
+    { id: 'dueOn', label: 'due on', from: ['Task'], to: ['Day'], made: 'derived', field: 'Task.due', desc: 'The task is due on this day' },
+    { id: 'on', label: 'on', from: ['Event'], to: ['Day'], made: 'derived', field: 'Event.date', desc: 'The event happens on this day' },
   ],
 };
 `);
@@ -547,74 +547,98 @@ t('D11 Codex dialog: selected option stays a button; footer is not an option des
   const gFile = () => { const f = path.join(gdir(), 'work-graph.json'); return () => f; };
   const st = () => ({ items: [{ id: 'a1', title: 'T', due: '2026-10-01', done: false }, { id: 'a2', title: 'T2', done: false }],
     events: [{ id: 'e1', title: 'E', date: '2026-10-01', time: '10:00' }], notes: [{ id: 'n1', title: '', text: 'first line\nsecond' }], links: [] });
-  t('G1 build: 날짜 필드에서 Day 노드·DUE_ON/ON, 같은 날은 Day 하나, 제목 없는 메모는 첫 줄', () => {
+  t('G1 build: 날짜 필드에서 Day 노드·dueOn/on, 같은 날은 Day 하나, 제목 없는 메모는 첫 줄', () => {
     const { nodes, edges } = rg.build(st(), null, null);
     assert.deepEqual([...nodes.values()].filter((n) => n.kind === 'Day').map((n) => n.id), ['day:2026-10-01']);
-    assert.deepEqual(edges.map((e) => `${e.from}-${e.type}-${e.to}`).sort(), ['a1-DUE_ON-day:2026-10-01', 'e1-ON-day:2026-10-01']);
+    assert.deepEqual(edges.map((e) => `${e.from}-${e.type}-${e.to}`).sort(), ['a1-dueOn-day:2026-10-01', 'e1-on-day:2026-10-01']);
     assert.equal(nodes.get('n1').title, 'first line');
   });
   t('G2 addLink 규칙: 방향을 지키고, 새 연결 종류는 받고, 중복은 하나로, 계산되는 연결은 손으로 못 만든다', () => {
     const s = st();
-    assert.equal(rg.addLink(s, { from: 'n1', to: 'a1', type: 'SPAWNED' }), null);
-    assert.equal(rg.addLink(s, { from: 'n1', to: 'a1', type: 'SPAWNED' }), null);
+    assert.equal(rg.addLink(s, { from: 'n1', to: 'a1', type: 'spawned' }), null);
+    assert.equal(rg.addLink(s, { from: 'n1', to: 'a1', type: 'spawned' }), null);
     assert.equal(s.links.length, 1, '같은 연결은 한 번만 저장');
-    assert.match(rg.addLink(s, { from: 'a1', to: 'n1', type: 'SPAWNED' }), /Note → Task\|Event/);
-    assert.equal(rg.addLink(s, { from: 'a1', to: 'e1', type: 'SCHEDULED_AS' }), null);
-    assert.match(rg.addLink(s, { from: 'a1', to: 'a1', type: 'REFERS_TO' }), /itself/);
-    assert.match(rg.addLink(s, { from: 'a1', to: 'day:2026-10-01', type: 'REFERS_TO' }), /not found/, 'Day는 계산되는 노드라 손으로 못 잇는다');
-    assert.match(rg.addLink(s, { from: 'a1', to: 'e1', type: 'DUE_ON' }), /computed from a field/);
-    assert.equal(rg.addLink(s, { from: 'a1', to: 'e1', type: 'BLOCKS' }), null, '선언에 없는 새 연결 종류도 저장된다');
+    assert.match(rg.addLink(s, { from: 'a1', to: 'n1', type: 'spawned' }), /Note → Task\|Event/);
+    assert.equal(rg.addLink(s, { from: 'a1', to: 'e1', type: 'scheduledAs' }), null);
+    assert.match(rg.addLink(s, { from: 'a1', to: 'a1', type: 'refersTo' }), /itself/);
+    assert.match(rg.addLink(s, { from: 'a1', to: 'day:2026-10-01', type: 'refersTo' }), /not found/, 'Day는 계산되는 노드라 손으로 못 잇는다');
+    assert.match(rg.addLink(s, { from: 'a1', to: 'e1', type: 'dueOn' }), /computed from a field/);
+    assert.equal(rg.addLink(s, { from: 'a1', to: 'e1', type: 'blocks' }), null, '선언에 없는 새 연결 종류도 저장된다');
   });
   t('G3 pruneLinks: 끝점이 사라진 연결은 저장 전에 걷힌다', () => {
-    const s = st(); rg.addLink(s, { from: 'n1', to: 'a1', type: 'SPAWNED' }); rg.addLink(s, { from: 'n1', to: 'a2', type: 'SPAWNED' });
+    const s = st(); rg.addLink(s, { from: 'n1', to: 'a1', type: 'spawned' }); rg.addLink(s, { from: 'n1', to: 'a2', type: 'spawned' });
     s.items = s.items.filter((x) => x.id !== 'a1'); rg.pruneLinks(s);
     assert.deepEqual(s.links.map((l) => l.to), ['a2']);
   });
   t('G4 trace · stats: NodeRel 색인은 원천이 바뀌면 다시 만든다 — 연결을 지우면 바로 사라지고, 끊긴 곳을 센다', () => {
-    let s = st(); rg.addLink(s, { from: 'n1', to: 'a1', type: 'SPAWNED' });
+    let s = st(); rg.addLink(s, { from: 'n1', to: 'a1', type: 'spawned' });
     const g = rg.createGraph({ loadData: () => s, dataFileOf: gFile() });
     assert.deepEqual(g.trace('default', { id: 'n1', maxDepth: 2, direction: 'out' }).map((x) => x.id), ['a1', 'day:2026-10-01']);
     s = { ...s, links: [] };
     assert.deepEqual(g.trace('default', { id: 'n1', maxDepth: 2, direction: 'out' }), []);
     assert.ok(fs.existsSync(g.fileOf('default')), 'graph-index.sqlite가 만들어진다');
     const gaps = g.stats('default').gaps;   // 선언된 관계마다, 출발 종류의 항목 중 그 관계가 없는 것
-    assert.deepEqual(gaps.DUE_ON.map((x) => x.id), ['a2']);
-    assert.deepEqual(gaps.SPAWNED.map((x) => x.id), ['n1']);
+    assert.deepEqual(gaps.dueOn.map((x) => x.id), ['a2']);
+    assert.deepEqual(gaps.spawned.map((x) => x.id), ['n1']);
     assert.throws(() => g.trace('default', { id: 'nope' }), /not found/);
   });
-  t('G5 한 그래프: 업무 항목 · 개체 · 문서가 언급(MENTIONED_IN)과 사실로 이어지고, 종류와 연결은 한 목록이다', () => {
+  t('G5 한 그래프: 업무 항목 · 개체 · 문서가 언급(mentionedIn)과 사실로 이어지고, 종류와 연결은 한 목록이다', () => {
     const s = st();
-    const k = { classes: [{ id: 'Client', label: 'Client' }], relations: [{ id: 'ASKED_FOR', label: 'asked for', domain: 'Client', range: 'Task' }],
-      entities: [{ id: 'acme', label: 'Acme', class: 'Client', items: ['n1', 'doc-1'] }], facts: [{ from: 'acme', rel: 'ASKED_FOR', to: 'a1' }] };
+    const k = { classes: [{ id: 'Client', label: 'Client' }], relations: [{ id: 'askedFor', label: 'asked for', domain: 'Client', range: 'Task' }],
+      entities: [{ id: 'acme', label: 'Acme', class: 'Client', items: ['n1', 'doc-1'] }], facts: [{ from: 'acme', rel: 'askedFor', to: 'a1' }] };
     const g = rg.createGraph({ loadData: () => s, loadKnowledge: () => k, loadDocs: () => ({ items: [{ id: 'doc-1', name: 'brief.pdf' }, { id: 'doc-2', name: 'unused.pdf' }] }), dataFileOf: gFile() });
     const tr = g.trace('default', { id: 'n1', maxDepth: 2, direction: 'both' });
     assert.deepEqual(tr.map((x) => `${x.depth}:${x.id}`).sort(), ['1:kg:acme', '2:a1', '2:doc-1'], '메모 → 그 안의 개체 → 개체가 가리키는 할일·문서');
     const nb = g.neighbors('default', 'a1');
-    assert.ok(nb.links.some((l) => l.type === 'ASKED_FOR' && l.direction === 'in' && l.other.id === 'kg:acme'));
+    assert.ok(nb.links.some((l) => l.type === 'askedFor' && l.direction === 'in' && l.other.id === 'kg:acme'));
     assert.ok(!('layer' in nb.node) && !nb.links.some((l) => 'layer' in l), '층으로 나누지 않는다');
     const st2 = g.stats('default');
-    assert.ok(st2.kinds.some((x) => x.kind === 'Client' && x.count === 1) && st2.types.some((x) => x.type === 'MENTIONED_IN' && x.count === 2));
+    assert.ok(st2.kinds.some((x) => x.kind === 'Client' && x.count === 1) && st2.types.some((x) => x.type === 'mentionedIn' && x.count === 2));
     const o = g.ontology('default');
     assert.deepEqual(o.kinds.map((c) => `${c.id}:${c.count}`), ['Note:1', 'Task:2', 'Event:1', 'Day:1', 'Client:1', 'Document:2']);
-    assert.deepEqual(o.relations.filter((r) => r.count).map((r) => `${r.id}:${r.count}`), ['DUE_ON:1', 'ON:1', 'ASKED_FOR:1', 'MENTIONED_IN:2']);
+    assert.deepEqual(o.relations.filter((r) => r.count).map((r) => `${r.id}:${r.count}`), ['dueOn:1', 'on:1', 'askedFor:1', 'mentionedIn:2']);
     assert.ok(o.kinds.find((c) => c.id === 'Client').removable && !o.kinds.find((c) => c.id === 'Task').removable, '지식에서 온 종류만 지울 수 있다');
     assert.ok(!o.nodes.some((n) => n.kind === 'Day' || n.id === 'doc-2'), '그림에는 Day와 이어지지 않은 문서를 넣지 않는다');
-    assert.deepEqual(o.edges.find((e) => e.type === 'ASKED_FOR').fact, { from: 'acme', rel: 'ASKED_FOR', to: 'a1' });
+    assert.deepEqual(o.edges.find((e) => e.type === 'askedFor').fact, { from: 'acme', rel: 'askedFor', to: 'a1' });
     const d = g.describe('default');
-    assert.equal(d.vocabulary.MENTIONED_IN.count, 2); assert.match(d.vocabulary.ASKED_FOR.editWith, /knowledge/); assert.match(d.vocabulary.SPAWNED.editWith, /link/);
+    assert.equal(d.vocabulary.mentionedIn.count, 2); assert.match(d.vocabulary.askedFor.editWith, /knowledge/); assert.match(d.vocabulary.spawned.editWith, /link/);
     assert.ok(d.nodeKinds.some((n) => n.kind === 'Client' && n.count === 1) && d.observed, 'NodeRel이 관찰한 모양도 준다');
   });
   t('G6 새 업무 종류: work-ontology에 선언하면 그 배열이 그래프에 들어오고, id를 가리키는 필드가 연결이 된다', () => {
     rg.useOntology({ classes: [{ id: 'Lead', list: 'leads', title: (x) => x.name }, { id: 'Quote', list: 'quotes' }],
-      relations: [{ id: 'QUOTE_FOR', from: ['Quote'], to: ['Lead'], made: 'derived', field: 'Quote.lead' }, { id: 'REFERS_TO', from: ['*'], to: ['*'], made: 'explicit' }] });
+      relations: [{ id: 'quoteFor', from: ['Quote'], to: ['Lead'], made: 'derived', field: 'Quote.lead' }, { id: 'refersTo', from: ['*'], to: ['*'], made: 'explicit' }] });
     try {
       const s = { leads: [{ id: 'l1', name: 'Nori Labs' }], quotes: [{ id: 'q1', title: '₩5.8M', lead: 'l1' }], links: [] };
       assert.deepEqual(rg.workLists(), ['leads', 'quotes']);
       const { nodes, edges } = rg.build(s, null, null);
       assert.equal(nodes.get('l1').title, 'Nori Labs');
-      assert.deepEqual(edges.map((e) => `${e.from}-${e.type}-${e.to}`), ['q1-QUOTE_FOR-l1']);
-      assert.equal(rg.addLink(s, { from: 'q1', to: 'l1', type: 'REFERS_TO' }), null, '* = 어느 업무 종류든');
-      assert.match(rg.addLink(s, { from: 'q1', to: 'l1', type: 'QUOTE_FOR' }), /computed from a field/);
+      assert.deepEqual(edges.map((e) => `${e.from}-${e.type}-${e.to}`), ['q1-quoteFor-l1']);
+      assert.equal(rg.addLink(s, { from: 'q1', to: 'l1', type: 'refersTo' }), null, '* = 어느 업무 종류든');
+      assert.match(rg.addLink(s, { from: 'q1', to: 'l1', type: 'quoteFor' }), /computed from a field/);
+    } finally { rg.useOntology(null); }
+  });
+  t('G7 옛 UPPER_SNAKE 관계 코드는 camelCase로 읽고, 저장할 때 옮겨 적는다(데이터가 사라지지 않는다)', () => {
+    assert.equal(rg.relCode('DUE_ON'), 'dueOn'); assert.equal(rg.relCode('BELONGS_TO_SERVICE'), 'belongsToService'); assert.equal(rg.relCode('dueOn'), 'dueOn'); assert.equal(rg.relCode('ON'), 'on');
+    rg.useOntology({ classes: [{ id: 'Lead', list: 'leads', title: (x) => x.name }, { id: 'Quote', list: 'quotes' }],
+      relations: [{ id: 'QUOTE_FOR', from: ['Quote'], to: ['Lead'], made: 'derived', field: 'Quote.lead' }, { id: 'REFERS_TO', from: ['*'], to: ['*'], made: 'explicit' }] });
+    try {
+      const s = { leads: [{ id: 'l1', name: 'Nori' }], quotes: [{ id: 'q1', lead: 'l1' }], links: [{ from: 'l1', to: 'q1', type: 'REFERS_TO' }] };
+      assert.deepEqual(rg.build(s, null, null).edges.map((e) => `${e.from}-${e.type}-${e.to}`).sort(), ['l1-refersTo-q1', 'q1-quoteFor-l1']);
+      assert.equal(rg.addLink(s, { from: 'q1', to: 'l1', type: 'REFERS_TO' }), null, '옛 코드로 보내도 받는다');
+      assert.equal(s.links[1].type, 'refersTo');
+      rg.pruneLinks(s); assert.equal(s.links[0].type, 'refersTo', '저장 전에 옛 코드를 옮겨 적는다');
+      assert.ok(rg.removeLink(s, { from: 'l1', to: 'q1', type: 'REFERS_TO' }));
+    } finally { rg.useOntology(null); }
+  });
+  t('G8 온톨로지 meta·description·rules·props를 그대로 넘긴다', () => {
+    const desc = [['Overview', [['A quote is a price we sent.', ['C:Quote', 'R:quoteFor', 'P:Quote.amount', 'RULE:R1']]]]];
+    rg.useOntology({ meta: { version: '1.2.0', modified: '2026-11-23', lang: 'en' }, description: desc,
+      classes: [{ id: 'Lead', list: 'leads' }, { id: 'Quote', list: 'quotes', align: ['prov:Entity'], props: [{ id: 'amount', label: 'Amount', type: 'xsd:integer' }] }],
+      relations: [{ id: 'quoteFor', from: ['Quote'], to: ['Lead'], made: 'derived', field: 'Quote.lead', functional: true }],
+      rules: [{ id: 'R1', label: 'Every quote has a lead', on: ['Quote'] }, { label: 'no id — dropped' }] });
+    try {
+      const W = rg.work();
+      assert.equal(W.meta.version, '1.2.0'); assert.deepEqual(W.description, desc); assert.deepEqual(W.rules.map((r) => r.id), ['R1']);
     } finally { rg.useOntology(null); }
   });
 }
@@ -1063,26 +1087,26 @@ async function integration() {
       const a = await mk('items', { title: 'Do it', due: '2026-10-05' });
       const e = await mk('events', { title: 'Block', date: '2026-10-04', time: '09:00' });
       assert.ok(n && a && e, '만든 항목의 id');
-      let r = await post('/api/link', { action: 'add', from: n, to: a, type: 'SPAWNED' }); assert.equal(r.status, 200);
-      r = await post('/api/link', { action: 'add', from: a, to: e, type: 'SCHEDULED_AS' }); assert.equal(r.status, 200);
-      r = await post('/api/link', { action: 'add', from: e, to: n, type: 'REFERS_TO' }); assert.equal(r.status, 200);
-      r = await post('/api/link', { action: 'add', from: a, to: n, type: 'SPAWNED' }); assert.equal(r.status, 400, '방향이 틀린 관계 거부');
+      let r = await post('/api/link', { action: 'add', from: n, to: a, type: 'spawned' }); assert.equal(r.status, 200);
+      r = await post('/api/link', { action: 'add', from: a, to: e, type: 'scheduledAs' }); assert.equal(r.status, 200);
+      r = await post('/api/link', { action: 'add', from: e, to: n, type: 'refersTo' }); assert.equal(r.status, 200);
+      r = await post('/api/link', { action: 'add', from: a, to: n, type: 'spawned' }); assert.equal(r.status, 400, '방향이 틀린 관계 거부');
       const st2 = await (await fetch(`${api}/api/state`)).json();
       const has = (f, t2, ty) => st2.graph.links.some((l) => l.from === f && l.to === t2 && l.type === ty);
-      assert.ok(has(n, a, 'SPAWNED') && has(a, e, 'SCHEDULED_AS') && has(e, n, 'REFERS_TO') && has(a, 'day:2026-10-05', 'DUE_ON'), '/api/state.graph에 관계가 보인다');
+      assert.ok(has(n, a, 'spawned') && has(a, e, 'scheduledAs') && has(e, n, 'refersTo') && has(a, 'day:2026-10-05', 'dueOn'), '/api/state.graph에 관계가 보인다');
       const nb = await (await fetch(`${api}/api/graph/neighbors?id=${a}`)).json();
-      assert.deepEqual(nb.links.map((l) => `${l.direction}:${l.type}`).sort(), ['in:SPAWNED', 'out:DUE_ON', 'out:SCHEDULED_AS']);
-      const tr = await (await fetch(`${api}/api/graph/trace?id=${n}&depth=2&direction=out&types=SPAWNED,SCHEDULED_AS`)).json();
+      assert.deepEqual(nb.links.map((l) => `${l.direction}:${l.type}`).sort(), ['in:spawned', 'out:dueOn', 'out:scheduledAs']);
+      const tr = await (await fetch(`${api}/api/graph/trace?id=${n}&depth=2&direction=out&types=spawned,scheduledAs`)).json();
       assert.deepEqual(tr.nodes.map((x) => x.id), [a, e]);
       const sc = await (await fetch(`${api}/api/graph/schema`)).json();
-      assert.ok(sc.vocabulary.SPAWNED.editable && !sc.vocabulary.DUE_ON.editable, '스키마에 편집 가능 여부');
+      assert.ok(sc.vocabulary.spawned.editable && !sc.vocabulary.dueOn.editable, '스키마에 편집 가능 여부');
       await post('/api/apply', { diff: { remove: [a] } });
       const st3 = await (await fetch(`${api}/api/state`)).json();
       assert.ok(!st3.links.some((l) => l.from === a || l.to === a), '할일을 지우면 원천 관계도 사라진다');
       assert.ok(!st3.graph.links.some((l) => l.from === a || l.to === a), '그래프에서도 사라진다');
-      r = await post('/api/link', { action: 'remove', from: e, to: n, type: 'REFERS_TO' }); assert.equal(r.status, 200);
+      r = await post('/api/link', { action: 'remove', from: e, to: n, type: 'refersTo' }); assert.equal(r.status, 200);
       const stats = await (await fetch(`${api}/api/stats`)).json();
-      assert.ok(stats.graph.gaps.SPAWNED.some((x) => x.id === n), '출처 관계가 없어진 메모는 끊긴 곳(gaps.SPAWNED)으로 잡힌다');
+      assert.ok(stats.graph.gaps.spawned.some((x) => x.id === n), '출처 관계가 없어진 메모는 끊긴 곳(gaps.spawned)으로 잡힌다');
     });
 
     await ta('C14b System: 상태를 보이고, 재시작은 무엇을 다시 띄울지 확인한다', async () => {

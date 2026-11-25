@@ -301,6 +301,21 @@
       ]
     },
     {
+      "id": "work-ontology",
+      "title": "Work ontology (readable, standard, checked)",
+      "skill": "ontology",
+      "summary": "work-ontology.js declares classes with Datatype Properties (type, allowed values, many, who sees it, fields inside JSON), Object Properties in lowerCamelCase (functional, aligned to standard vocabularies; old UPPER_SNAKE codes are read and links rewritten on save), rules with SHACL placeholders, a version (meta) and a Description whose sentences reference the ontology. Knowledge › Ontology shows the Description with reference popups, a version line, Classes (list + detail), an Object Property diagram (layered auto layout, drag, reset) and table, and Rules with kept / broken / could-not-check from the ANA's work-rules.js. Exports OWL 2 + SHACL with PROV-O / Dublin Core / DCAT / EARL alignment (Download .ttl, View in OntoAir). /api/knowledge is gzipped when large; the page shows a progress bar and a log; the big graph is laid out only when the Graph sub-tab is open.",
+      "anchors": [
+        "function ontologyTurtle",
+        "function kRulesRender",
+        "function kRelDiagram",
+        "function kDescRender",
+        "sendJsonGz",
+        "function ontologyRules",
+        "const relCode"
+      ]
+    },
+    {
       "id": "sketch",
       "title": "Sketch a screen",
       "skill": "context-chips",

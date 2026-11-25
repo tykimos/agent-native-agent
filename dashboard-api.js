@@ -83,6 +83,14 @@ function createDashboardApi(core, opts) {
     return /^\s*approvals_reviewer\s*=\s*"auto_review"/m.test(cfg) ? 'auto' : 'ask';
   }   // Codex: 바꾼 직후 다음 turn_context가 오기 전까지 기억하는 모드
   const { writeJsonAtomic, readJsonStrict, sendJson } = core;
+  // 큰 JSON(그래프가 큰 ANA의 Knowledge는 1MB를 넘는다)은 브라우저가 받으면 gzip으로 — 공용 sendJson(channel-core)은 건드리지 않는다. x-raw-length = 풀린 크기(진행 막대용)
+  const sendJsonGz = (req, res, code, obj) => {
+    const body = Buffer.from(JSON.stringify(obj));
+    if (body.length < 32768 || !/\bgzip\b/.test(String(req.headers['accept-encoding'] || ''))) return sendJson(res, code, obj);
+    const gz = require('zlib').gzipSync(body, { level: 6 });
+    res.writeHead(code, { 'content-type': 'application/json; charset=utf-8', 'content-encoding': 'gzip', vary: 'accept-encoding', 'content-length': gz.length, 'x-raw-length': body.length, 'access-control-expose-headers': 'x-raw-length' });
+    res.end(gz);
+  };
 
   // ---------- 신원 ----------
   // ANA는 스스로 로그인을 처리하지 않는다. 앞단(리버스 프록시·SSO 게이트웨이 등)이 인증을 마치고
@@ -186,6 +194,16 @@ function createDashboardApi(core, opts) {
   const saveData = (s, ws) => { relgraph.pruneLinks(s); writeJsonAtomic(dataFileOf(ws || curWs()), s); };
   // 업무 항목(work-graph.json)·지식(knowledge.json)·문서를 한 그래프로 — NodeRel 색인(graph-index.sqlite), 원천이 바뀌면 다음 읽기에 다시 만든다.
   const graph = relgraph.createGraph({ loadData, dataFileOf, loadKnowledge: () => loadKnowledge(), loadDocs: () => loadDocs() });
+  // 온톨로지 규칙 — work-ontology.js의 rules 선언 그대로. ANA가 work-rules.js(checkRules(lists) → {규칙 id: {checked, bad, unknown, unknownWhy, examples}})를
+  // 두면 지금 데이터로 검사한 결과를 합친다. 검사 코드가 없는 규칙은 noCheck(화면에 '—')
+  const RULES_FILE = process.env.ANA_WORK_RULES || path.join(__dirname, 'work-rules.js');
+  function ontologyRules() {
+    const decl = relgraph.work().rules || [];
+    if (!decl.length) return [];
+    let res = {};
+    if (require('node:fs').existsSync(RULES_FILE)) { delete require.cache[require.resolve(RULES_FILE)]; res = require(RULES_FILE).checkRules(loadData()) || {}; }
+    return decl.map((d) => ({ ...d, ...(res[d.id] || { checked: 0, bad: 0, unknown: 0, unknownWhy: {}, examples: [], noCheck: true }) }));
+  }
 
   function loadProposals() {
     const s = readJsonStrict(PROPOSALS_FILE, () => ({ proposals: [] }));
@@ -1176,7 +1194,7 @@ function createDashboardApi(core, opts) {
     }
     // Knowledge — GET: 온톨로지와 그래프 / POST {classes?, relations?, entities?, facts?}: 더하기(같은 id는 고침)
     //   POST {action:'remove', kind: class|relation|entity|fact, id | from,rel,to}: 지우기(개체를 지우면 그 개체의 사실도)
-    if (p === '/api/knowledge' && req.method === 'GET') { let g = null; try { g = graph.ontology(curWs()); } catch (e) { g = { error: e.message }; } return sendJson(res, 200, { ...loadKnowledge(), graph: g }), true; }
+    if (p === '/api/knowledge' && req.method === 'GET') { let g = null; try { g = graph.ontology(curWs()); } catch (e) { g = { error: e.message }; } let rules = null; try { rules = ontologyRules(); } catch (e) { rules = { error: e.message }; } return sendJsonGz(req, res, 200, { ...loadKnowledge(), graph: g, rules }), true; }
     if (p === '/api/knowledge' && req.method === 'POST') {
       if (!csrfOk(req)) return sendJson(res, 403, { error: 'forbidden (origin/content-type)' }), true;
       const body = await jsonBody(req, res, 2 * 1024 * 1024); if (!body) return true;

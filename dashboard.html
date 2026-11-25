@@ -178,7 +178,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .item .due { font-size: 12px; color: var(--warm-fg); font-weight: 700; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
 .item .due svg { width: 13px; height: 13px; opacity: .75; }
 
-/* 관계 칩 — NodeRel 그래프의 명시적 관계(SPAWNED·SCHEDULED_AS·REFERS_TO). 누르면 그 항목으로 이동 */
+/* 관계 칩 — NodeRel 그래프의 명시적 관계(spawned·scheduledAs·refersTo). 누르면 그 항목으로 이동 */
 .rels { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 .rel { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; min-height: 24px; padding: 2px 9px; border-radius: 999px;
   background: var(--surface-2); color: var(--text-sub); font-size: 11.5px; font-weight: 700; cursor: pointer; transition: background .12s; }
@@ -195,6 +195,16 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 @keyframes relFlash { 0% { box-shadow: 0 0 0 3px var(--blue); } 100% { box-shadow: 0 0 0 3px transparent; } }
 
 .empty { text-align: center; color: var(--text-weak); padding: 40px 0; font-weight: 600; font-size: 13.5px; }
+.k-ptype code { white-space: nowrap; } .k-pvals { margin-top: 3px; display: flex; flex-wrap: wrap; gap: 3px; } .k-pvals code { font-size: 11px; padding: 0 4px; border-radius: 4px; background: rgba(127,127,127,.12); }
+.kl-box { margin: 8px 0 12px; font-size: 13px; color: var(--text-weak); }
+.kl-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-weight: 600; } .kl-top .ib-btn { white-space: nowrap; flex: none; }
+.kl-box.err .kl-top { color: #EF4444; }
+.kl-bar { height: 4px; border-radius: 2px; background: rgba(127,127,127,.18); overflow: hidden; }
+.kl-bar i { display: block; height: 100%; width: 0; background: #3182F6; transition: width .2s; }
+.kl-bar.ind i { width: 30%; animation: klInd 1.1s ease-in-out infinite; }
+@keyframes klInd { 0% { margin-left: -30%; } 100% { margin-left: 100%; } }
+.kl-box details { margin-top: 6px; } .kl-box summary { cursor: pointer; font-size: 12px; }
+.kl-log { margin: 6px 0 0; padding: 8px; max-height: 220px; overflow: auto; white-space: pre-wrap; word-break: break-all; font: 11.5px/1.5 ui-monospace, Menlo, monospace; background: rgba(127,127,127,.08); border-radius: 6px; }
 
 /* 일정 달력 — 3단: 좌(다가오는 일정) / 중앙(달력) / 우(선택일 시간 항목) */
 
@@ -542,7 +552,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
   .toolbar { gap: 6px; } .toolbar .ib-btn { padding: 0 11px; font-size: 12.5px; } .toolbar .stseg { gap: 4px; } .toolbar .stseg button, .toolbar .stseg.two button { padding: 0 9px; gap: 4px; font-size: 12.5px; }
       /* 휴대폰에서는 짧은 이름 */
 }
-.sub-lead { display: block; font-size: 13px; color: var(--text-sub); margin: 0 0 10px; }
+.sub-lead { display: block; font-size: 13px; color: var(--text-sub); margin: 0 0 10px; } .sub-lead[hidden] { display: none; }
 /* PRD: 지금 판(마크다운) · 편집 폼 · 이력 */
 .prd-md { padding: 18px 20px; font-size: 14.5px; line-height: 1.65; overflow-wrap: anywhere; }
 .prd-md h3 { font-size: 21px; margin: 0 0 .5em; } .prd-md h4 { font-size: 17px; margin: 1.3em 0 .4em; }   /* mdHtml: # → h3, ## → h4 */
@@ -604,8 +614,46 @@ body.sketching { overflow: hidden; }
 .doc-drop.over { border-color: var(--acc, var(--blue)); background: var(--acc-weak, var(--blue-weak)); }
 .doc-drop .ok { height: 34px; padding: 0 14px; border-radius: 999px; font-weight: 700; background: var(--acc, var(--blue)); color: #fff; } .doc-status { margin-left: auto; font-weight: 700; color: var(--text); }
 .doc-ic { font-size: 20px; line-height: 1; flex: 0 0 auto; margin-top: 2px; } .doc-name { color: var(--text); text-decoration: none; } .doc-name:hover { text-decoration: underline; }
+/* Ontology › Relations 관계도 + 표 */
+.kr-wrap { overflow-x: auto; padding: 8px 8px 0; } .kr-svg { width: 100%; height: auto; display: block; margin: 0 auto; }
+.kr-n rect { fill: var(--surface); stroke-width: 1.6; } .kr-n { cursor: grab; touch-action: none; } .kr-n.drag { cursor: grabbing; } .kr-labels { pointer-events: none; } .kr-svg { user-select: none; } .kr-n:hover rect, .kr-n:focus rect { stroke-width: 2.6; } .kr-n:focus { outline: none; }
+.kr-t { font-size: 13px; font-weight: 700; fill: var(--text); } .kr-c { font-size: 10.5px; fill: var(--text-weak); }
+.kr-e { fill: none; stroke: var(--text-weak); stroke-width: 1.3; opacity: .75; } .kr-a { fill: var(--text-weak); }
+.kr-l rect { fill: var(--surface); stroke: var(--line); } .kr-l { pointer-events: auto; } .kr-l text { font-size: 11px; fill: var(--text-sub); text-anchor: middle; }
+.kr-focus .kr-e:not(.on), .kr-focus .kr-l:not(.on) { opacity: .12; } .kr-e.on { stroke: var(--acc, #3182F6); stroke-width: 2; opacity: 1; } .kr-l.on rect { stroke: var(--acc, #3182F6); }
+.kr-table { padding: 8px 14px 12px; } .kr-table table { min-width: 900px; } .kr-table td.k-pdesc { min-width: 240px; white-space: normal; } .kr-table td { vertical-align: top; }
+/* Ontology › Classes 목록(왼쪽) + 상세(오른쪽) */
+.k-md { display: grid; grid-template-columns: minmax(200px, 260px) 1fr; min-height: 360px; }
+.k-mlist { border-right: 1px solid var(--line-2); padding: 6px; display: flex; flex-direction: column; gap: 2px; max-height: 720px; overflow-y: auto; }
+.k-li { display: flex; align-items: flex-start; gap: 8px; text-align: left; padding: 8px 10px; border-radius: 10px; border: 0; background: none; cursor: pointer; color: var(--text); font: inherit; }
+.k-li .k-dot { margin-top: 6px; flex: none; } .k-li:hover { background: var(--surface-2); } .k-li.on { background: var(--acc-weak, #E8F0FE); }
+.k-li-t { display: flex; flex-direction: column; min-width: 0; } .k-li-t small { color: var(--text-weak); font-size: 11.5px; } .k-li-t code { font-size: 11px; }
+.k-mdetail { padding: 14px 18px 18px; min-width: 0; } .k-dhead { display: flex; align-items: center; gap: 8px; } .k-dhead h3 { margin: 0; font-size: 17px; } .k-dhead code { font-size: 12px; color: var(--text-weak); }
+@media (max-width: 768px) { .k-md { grid-template-columns: 1fr; } .k-mlist { border-right: 0; border-bottom: 1px solid var(--line-2); flex-direction: row; flex-wrap: wrap; max-height: none; } }
+
+.k-node { align-items: flex-start; } .k-tog { flex: none; white-space: nowrap; align-self: center; }
+.k-treebar { align-items: center; } .k-treebar .ib-btn { margin-left: 6px; }
+.k-detail { margin-left: 30px; padding: 2px 14px 12px; border-top: 1px dashed var(--line-2); } .k-dh { font-size: 12px; font-weight: 700; color: var(--text-sub); margin: 10px 0 4px; }
+.k-ptable { overflow-x: auto; } .k-ptable table { border-collapse: collapse; width: 100%; font-size: 12.5px; min-width: 640px; }
+.k-ptable th { text-align: left; font-weight: 600; color: var(--text-sub); padding: 5px 8px; border-bottom: 1px solid var(--line-2); white-space: nowrap; }
+.k-ptable td { padding: 5px 8px; border-bottom: 1px solid var(--line-2); vertical-align: top; } .k-ptable td:nth-child(-n+4) { white-space: nowrap; }
+.k-ptable code { font-size: 11.5px; color: var(--text-weak); } .k-psub td { background: color-mix(in srgb, var(--line-2) 35%, transparent); } .k-tw { color: var(--text-weak); margin-right: 4px; }
+.k-pdesc { color: var(--text-sub); } .k-weak { color: var(--text-weak); font-size: 12px; }
+/* 좁은 화면에서 [배치 처음대로]가 세로로 눌리지 않게 — 줄을 넘겨 버튼은 한 줄로 */ .k-treebar { flex-wrap: wrap; gap: 6px 10px; } .k-treebar .ib-btn { white-space: nowrap; flex-shrink: 0; margin-left: auto; }
+.k-refs { white-space: nowrap; } .k-ref { display: inline-block; min-width: 16px; padding: 0 4px; margin-left: 2px; font-size: 10.5px; line-height: 15px; vertical-align: super; text-align: center; border-radius: 8px; background: var(--line-2); color: var(--text-sub); cursor: pointer; border: 0; font-weight: 600; }
+.k-ref:hover, .k-ref:focus-visible { background: #DBEAFE; color: #1E40AF; outline: none; } .k-ref.miss { text-decoration: line-through; opacity: .6; }
+.k-refpop { position: fixed; z-index: 60; width: min(440px, calc(100vw - 32px)); max-height: 60vh; overflow: auto; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.18); padding: 12px 14px; font-size: 13px; }
+.k-refpop .rp-h { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; } .k-refpop .rp-h b { font-size: 14px; } .k-refpop .rp-k { font-size: 11px; color: var(--text-sub); margin-left: auto; }
+.k-refpop table { width: 100%; border-collapse: collapse; } .k-refpop td { padding: 3px 6px 3px 0; vertical-align: top; } .k-refpop td:first-child { color: var(--text-sub); white-space: nowrap; width: 1%; }
+.k-refpop .rp-act { margin-top: 8px; text-align: right; }
+.k-prose p { margin: 0 0 8px; line-height: 1.65; } .k-prose p:last-child { margin-bottom: 0; } .k-rules table { width: 100%; } .k-rules td { vertical-align: top; } .k-rules td.k-pdesc { white-space: normal; min-width: 300px; max-width: 560px; } .k-rules td:not(.k-pdesc) { white-space: nowrap; } .k-rules .k-rok { color: #166534; } .k-rules .k-rbad { color: #B91C1C; font-weight: 700; } .k-rules details summary { cursor: pointer; } .k-rules ul { margin: 4px 0 0 16px; padding: 0; font-size: 12px; }
+:root[data-mode="dark"] .k-rules .k-rok { color: #86EFAC; } :root[data-mode="dark"] .k-rules .k-rbad { color: #FCA5A5; }
+.k-who { display: inline-block; font-size: 11.5px; padding: 1px 7px; border-radius: 10px; background: var(--line-2); color: var(--text-sub); }
+.k-who-out { background: #DBEAFE; color: #1E40AF; } .k-who-judge { background: #FEF3C7; color: #92400E; } .k-who-secret { background: #FEE2E2; color: #991B1B; }
+:root[data-mode="dark"] .k-who-out { background: #1E3A5F; color: #BFDBFE; } :root[data-mode="dark"] .k-who-judge { background: #4A3410; color: #FDE68A; } :root[data-mode="dark"] .k-who-secret { background: #4C1D1D; color: #FECACA; }
+.k-arrow-c { color: var(--text-sub); } .k-ptable th.num, .k-ptable td.num { text-align: right; }
 .k-graph { padding: 8px; margin-bottom: 16px; } .k-graph[hidden], .k-list[hidden] { display: none; }
-.k-svg { width: 100%; height: auto; display: block; }
+.k-svg { width: 100%; height: auto; display: block; } .k-svg.k-big .k-node circle { stroke-width: 0; } .k-svg.k-big .k-edge { stroke-width: .35; opacity: .45; }
 .k-edge { stroke: var(--line); stroke-width: 1.5; } .k-elabel { font-size: 10px; fill: var(--text-weak); text-anchor: middle; }
 .k-node text { font-size: 11.5px; font-weight: 700; fill: var(--text); text-anchor: middle; } .k-node circle { stroke: var(--surface); stroke-width: 2; }
 .k-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 4px 8px 6px; font-size: 12px; color: var(--text-sub); }
@@ -1279,12 +1327,23 @@ html.kb-open .chat-dock .composer { margin-bottom: 2px; }
   <section class="view" id="knowledgeView" role="tabpanel"><div class="wrap">
     <nav class="subtabs" data-sub="knowledge" role="tablist" aria-label="Knowledge"></nav>
     <div class="toolbar"><span class="cnt" id="kSum"></span><span class="sp"></span><button class="ib-btn" id="kAsk">Ask the agent</button></div>
+    <!-- Knowledge 불러오기 진행·상세 로그 -->
+    <div class="kl-box" id="kLoad" hidden><div class="kl-top"><span id="kLoadMsg">Loading…</span><span class="sp"></span><button class="ib-btn" id="kLoadRetry" hidden>Try again</button></div><div class="kl-bar"><i id="kLoadBar"></i></div>
+      <details id="kLogBox"><summary>Details</summary><pre class="kl-log" id="kLog"></pre></details></div>
     <div data-subsec="ontology">
-      <div class="sub-lead">One graph holds everything here: the work items this app stores, the things your work is about, and the documents you added. <b>Kinds</b> say what can be in it; <b>relations</b> say how they connect. Both grow — when the agent builds a new kind of work, and when it adds what it learns from your work.</div>
-      <div class="sec-head" id="kClsHead" hidden><h2>Kinds</h2><span class="cnt" id="kClsCnt"></span></div>
+      <!-- K_DESC·kDescRender·kRefPop — 온톨로지가 바뀌면 글도 같이 고친다. 업데이트 때 지킬 것 -->
+      <div class="sub-lead" id="kLead">One graph holds everything here: the work items this app stores, the things your work is about, and the documents you added. <b>Classes</b> say what can be in it; <b>Object Properties</b> say how they connect. Both grow — when the agent builds a new kind of work, and when it adds what it learns from your work.</div>
+      <div class="sec-head" id="kDescHead" hidden><h2>Description</h2></div>
+      <div class="sub-lead k-prose" id="kDesc" hidden></div>
+      <div class="k-refpop" id="kRefPop" role="dialog" aria-label="Ontology entry" hidden></div>
+      <div class="toolbar" id="kOntoAirBar" hidden><span class="cnt" id="kOntoVer"></span><span class="sp"></span><button class="ib-btn" id="kOntoAir" title="Open this ontology (classes and relations) in OntoAir, in 3D">View in OntoAir ↗</button><button class="ib-btn" id="kOntoTtl" title="Download this ontology as an OWL/Turtle file">Download .ttl</button></div>
+      <div class="sec-head" id="kClsHead" hidden><h2>Classes</h2><span class="cnt" id="kClsCnt"></span></div>
       <div class="card k-list" id="kCls" hidden></div>
-      <div class="sec-head" id="kRelHead" hidden><h2>Relations</h2><span class="cnt" id="kRelCnt"></span></div>
+      <div class="sec-head" id="kRelHead" hidden><h2>Object Properties</h2><span class="cnt" id="kRelCnt"></span></div>
       <div class="card k-list" id="kRel" hidden></div>
+      <!-- 온톨로지 규칙 + 지금 데이터 검사 결과 -->
+      <div class="sec-head" id="kRuleHead" hidden><h2>Rules</h2><span class="cnt" id="kRuleCnt"></span></div>
+      <div class="card k-ptable k-rules" id="kRules" hidden></div>
       <div class="empty" id="kOntoEmpty">No knowledge yet — press [Ask the agent] to have it propose kinds and relations from your work</div>
     </div>
     <div data-subsec="graph">
@@ -1850,7 +1909,22 @@ function renderSubtabs(v) {
   if (v === 'knowledge') setTimeout(kGraphFit, 0);   // 그래프 칸이 이제 보이면 그 폭에 맞춰 다시 그린다
 }
 // 그래프는 그릴 자리의 폭에 맞춰 그린다 — 숨긴 채 그렸거나(폭 0 → 760 기준) 폭이 바뀌었으면 다시
-function kGraphFit() { const g = $('kGraph'); if (g && !g.hidden && g.clientWidth && Math.abs(g.clientWidth - (g.dataset.w || 0)) > 40) { g.innerHTML = kGraphSvg(); g.dataset.w = g.clientWidth; } }
+function kGraphFit() { kSumUpdate(); kGraphDraw(); }
+function kSumUpdate() { const el = $('kSum'); if (!el) return; const G = kG(), n = (G.nodes || []).length, e = (G.edges || []).length; el.textContent = curSub('knowledge') === 'graph' && kLoaded ? `${n} ${n === 1 ? 'node' : 'nodes'} · ${e} ${e === 1 ? 'link' : 'links'}` : ''; }
+// 그래프는 Graph 갈래가 보일 때만 배치한다(노드 1천여 개 배치는 휴대폰에서 수 초) — 같은 데이터·폭이면 다시 그리지 않음
+function kGraphDraw() {
+  const g = $('kGraph'), view = $('knowledgeView'); if (!g || !view || !view.classList.contains('on') || curSub('knowledge') !== 'graph') return;
+  const has = ((kG().nodes || []).length > 0); g.hidden = !has; $('kGraphEmpty').style.display = !kLoaded || has ? 'none' : 'block'; if (!has) { g.innerHTML = ''; g.dataset.sig = ''; return; }
+  const sig = kGraphSig(); if (g.dataset.sig === sig) return;
+  const hit = kGraphMemo.sig === sig;
+  if (!hit) { g.innerHTML = '<div class="empty">Laying out the graph…</div>'; kLoadUi('load', `Laying out the graph… ${(kG().nodes || []).length} nodes`, null); }
+  setTimeout(() => {
+    if (kGraphSig() !== sig) return kGraphDraw();
+    const t1 = performance.now(), svg = kGraphSvg();
+    g.innerHTML = svg; g.dataset.sig = sig; g.dataset.w = g.clientWidth;
+    if (!hit) { kLogAdd(t1, `graph layout ${Math.round(performance.now() - t1)}ms (${(kG().nodes || []).length} nodes)`); kLoadUi('done', `Graph drawn · ${((performance.now() - t1) / 1000).toFixed(1)}s`, 100); }
+  }, hit ? 0 : 60);
+}
 function setSubCount(v, k, n) { if (!SUBTABS) return; const c = (subCounts[v] ||= {}); if (c[k] === n) return; c[k] = n; renderSubtabs(v); }
 function openSub(v, k) { subSel[v] = k; try { localStorage.setItem('ana-subtabs', JSON.stringify(subSel)); } catch {} renderSubtabs(v); if (v === lastTab) syncUrl(); }
 // 상태 하위 탭을 바꾸면 그 목록을 다시 그린다
@@ -2135,12 +2209,69 @@ document.addEventListener('click', (e) => {
 /* ---- Knowledge: 온톨로지(종류 · 관계)와 그래프(개체 · 사실) ----
    처음엔 비어 있다. 에이전트가 일(메모 · 할일 · 일정)을 읽고 채우고(Ask the agent · POST /api/knowledge), 사람은 보고 틀린 것을 지운다.
    틀에 없는 종류·관계를 쓴 개체·사실도 버리지 않고 '아직 온톨로지에 없음'으로 보인다. */
-let kCache = { classes: [], relations: [], entities: [], facts: [] };
-async function refreshKnowledge() {
-  try { kCache = await getJSON('/api/knowledge'); } catch { return; }
-  renderKnowledge();
+var kCache = { classes: [], relations: [], entities: [], facts: [] };
+// 진행 막대(받은 KB)와 상세 로그. 8초 제한 대신 60초, 실패는 숨기지 않고 보이며 [다시 시도]
+var kLoaded = false, kSeq = 0, kBusy = false, kAgain = false;   // 받는 중에 또 부르면 새로 시작하지 않고 끝난 뒤 한 번 더
+var kLogLines = [];
+function kLogAdd(t0, msg) {
+  const ms = Math.round(performance.now() - t0), d = new Date();
+  kLogLines.push(`${d.toTimeString().slice(0, 8)} +${String(ms).padStart(5)}ms  ${msg}`); if (kLogLines.length > 200) kLogLines.splice(0, kLogLines.length - 200);
+  const el = $('kLog'); if (el) { el.textContent = kLogLines.join('\n'); el.scrollTop = el.scrollHeight; }
 }
-const K_COLORS = ['#3182F6', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6', '#06B6D4', '#EC4899', '#84CC16'];
+var kLoadHide = 0;
+function kLoadUi(state, msg, pct) {
+  const box = $('kLoad'); if (!box) return; const bar = $('kLoadBar');
+  // 끝나면(done) 막대가 100%를 잠깐 보인 뒤 상자째 숨긴다. 오류면 남긴다
+  clearTimeout(kLoadHide); box.hidden = false;
+  if (state === 'done') kLoadHide = setTimeout(() => { box.hidden = true; }, 500);
+  box.classList.toggle('err', state === 'err'); $('kLoadMsg').textContent = msg; $('kLoadRetry').hidden = state !== 'err';
+  bar.parentElement.classList.toggle('ind', pct == null && state === 'load'); bar.style.width = pct == null ? '' : `${pct}%`;
+  if (state === 'err') $('kLogBox').open = true;
+}
+async function refreshKnowledge() {
+  if (kBusy) { kAgain = true; return; }
+  kBusy = true; try { await kFetch(); } finally { kBusy = false; if (kAgain) { kAgain = false; setTimeout(refreshKnowledge, 300); } }
+}
+async function kFetch() {
+  const seq = ++kSeq, t0 = performance.now(), quiet = kLoaded;   // 이미 한 번 받았으면 다시 받을 땐 막대를 띄우지 않는다(로그만)
+  kLogAdd(t0, `request GET /api/knowledge (${navigator.onLine === false ? 'offline' : 'online'}${navigator.connection && navigator.connection.effectiveType ? ' · ' + navigator.connection.effectiveType : ''})`);
+  if (!quiet) kLoadUi('load', 'Loading… asking the server', null);
+  try {
+    const r = await fetch('/api/knowledge', { cache: 'no-store', signal: AbortSignal.timeout ? AbortSignal.timeout(60000) : undefined });
+    const enc = r.headers.get('content-encoding') || '', raw = +r.headers.get('x-raw-length') || 0, clen = +r.headers.get('content-length') || 0;
+    kLogAdd(t0, `headers HTTP ${r.status}${r.redirected ? ' (redirected ' + r.url + ')' : ''} · ${r.headers.get('content-type') || 'no type'}${enc ? ' · ' + enc : ''}${clen ? ' · sent ' + (clen / 1024).toFixed(0) + 'KB' : ''}${raw ? ' · unpacked ' + (raw / 1024).toFixed(0) + 'KB' : ''}${!clen && !raw ? ' · size unknown' : ''}`);
+    if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText || ''}`.trim());
+    const total = raw || (enc ? 0 : clen), parts = []; let got = 0, lastLog = 0;   // 압축이면 받은 양(풀린 바이트)을 풀린 크기와 견준다
+    if (r.body && r.body.getReader) {
+      const rd = r.body.getReader();
+      for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length;
+        if (seq !== kSeq) return;
+        if (!quiet) kLoadUi('load', `Receiving… ${(got / 1024).toFixed(0)}KB${total ? ' / ' + (total / 1024).toFixed(0) + 'KB' : ''}`, total ? Math.min(99, got / total * 100) : null);
+        if (got - lastLog > 256 * 1024) { lastLog = got; kLogAdd(t0, `receiving ${(got / 1024).toFixed(0)}KB`); } }
+    } else { const b = new Uint8Array(await r.arrayBuffer()); parts.push(b); got = b.length; }
+    kLogAdd(t0, `received ${(got / 1024).toFixed(1)}KB`);
+    const buf = new Uint8Array(got); let o = 0; for (const p of parts) { buf.set(p, o); o += p.length; }
+    const text = new TextDecoder().decode(buf);
+    let j; try { j = JSON.parse(text); } catch (e) { throw new Error(`could not parse JSON: ${e.message} · starts with "${text.slice(0, 120).replace(/\s+/g, ' ')}"`); }
+    if (seq !== kSeq) return;
+    const g = j.graph || {};
+    kLogAdd(t0, `parsed · ${(g.kinds || []).length} classes · ${(g.relations || []).length} relations · ${(g.nodes || []).length} nodes · ${(g.edges || []).length} links${g.error ? ' · graph error: ' + g.error : ''}`);
+    if (!quiet) kLoadUi('load', 'Drawing…', 99);
+    await new Promise((res) => requestAnimationFrame(() => res()));
+    kCache = j; kLoaded = true;
+    const t1 = performance.now(); renderKnowledge();
+    kLogAdd(t0, `rendered ${Math.round(performance.now() - t1)}ms · done`);
+    kLoadUi('done', `Loaded · ${(got / 1024).toFixed(0)}KB · ${((performance.now() - t0) / 1000).toFixed(1)}s`, 100);
+  } catch (e) {
+    if (seq !== kSeq) return;
+    const why = e && e.name === 'TimeoutError' ? 'no full answer within 60 s' : e && e.name === 'AbortError' ? 'the request was cancelled' : (e && e.message) || String(e);
+    kLogAdd(t0, `failed: ${why}${e && e.stack ? '\n' + String(e.stack).split('\n').slice(0, 3).join('\n') : ''}`);
+    kLoadUi('err', `Could not load — ${why}`, null);
+    if (kLoaded) renderKnowledge();
+  }
+}
+$('kLoadRetry').addEventListener('click', () => refreshKnowledge());
+const K_COLORS = ['#3182F6', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6', '#06B6D4', '#EC4899', '#84CC16', '#A16207', '#64748B', '#111827', '#0F766E'];   // Class 12개가 색을 겹쳐 쓰지 않게 12색
 const kLabel = (arr, id) => (arr.find((x) => x.id === id) || {}).label || id;
 const kNew = '<span class="k-new" title="Not in the ontology yet">new</span>';
 const kDel = (attrs) => `<button class="k-del" ${attrs} aria-label="Remove" title="Remove">✕</button>`;
@@ -2150,60 +2281,398 @@ const kItems = (ids) => (ids || []).map((id) => {
   if (d) return `<a class="rel k-Doc" href="/api/documents/${encodeURIComponent(d.id)}/file" target="_blank" rel="noopener"><span class="rk">Doc</span><span class="rt">${escapeHtml(d.name)}</span></a>`;
   const n = nodeOf(id) || (() => { const w = kItemOf(id); return w && { id, kind: w.kind, label: w.label }; })(); return n ? `<span class="rel k-${n.kind}" role="button" tabindex="0" data-go="${escapeHtml(n.id)}"><span class="rk">${n.kind}</span><span class="rt">${escapeHtml(n.label)}</span></span>` : '';
 }).join('');
-const kG = () => (kCache.graph && !kCache.graph.error ? kCache.graph : { kinds: [], relations: [], nodes: [], edges: [] });
+function kG() { return kCache && kCache.graph && !kCache.graph.error ? kCache.graph : { kinds: [], relations: [], nodes: [], edges: [] }; }
 // 그래프의 노드 하나(업무 항목 · 개체 · 문서) — 근거 칩과 그래프가 같이 쓴다
 const kItemOf = (id) => { const n = (kG().nodes || []).find((x) => x.id === id); return n && { kind: n.kind, label: n.title }; };
 const kColor = (kind) => { const i = (kG().kinds || []).findIndex((c) => c.id === kind); return i < 0 ? '#9CA3AF' : K_COLORS[i % K_COLORS.length]; };
+// 지금 온톨로지(종류 = owl:Class, 관계 = owl:ObjectProperty)를 OntoAir로. OntoAir는 URL # 뒤의 주소를 읽어 그리므로
+// data: URL에 Turtle을 통째로 담는다(해시는 서버로 가지 않아 로그인 게이트웨이 뒤에서도 열린다). 끝의 '/이름.ttl'은 OntoAir가 형식을 읽는 자리.
+const ONTOAIR = 'https://poc.aifactory.space/ontoair/';
+function ontologyTurtle() {
+  const G = kG(), kinds = G.kinds || [], rels = G.relations || [];
+  const lit = (v) => '"' + String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r?\n/g, '\\n').replace(/#/g, '＃') + '"';
+  // 사람이 읽는 이름·설명에는 언어 표시(work-ontology.js meta.lang, 예: 'ko') — 코드·값에는 안 붙인다
+  const M = G.meta || {}, lang = /^[a-z]{2,3}(-[A-Za-z0-9]+)*$/.test(M.lang || '') ? M.lang : '', ko = (v) => lit(v) + (lang ? '@' + lang : '');
+  const NS = `${location.origin}/ontology#`, title = ontoName();
+  const names = new Map(), used = new Set();
+  const local = (id) => { if (names.has(id)) return names.get(id); let n = String(id).normalize('NFC').replace(/[^\p{L}\p{N}_-]+/gu, '_').replace(/^[-_]+|[-_]+$/g, '') || 'x'; if (!/^[\p{L}_]/u.test(n)) n = '_' + n; let u = n, i = 2; while (used.has(u)) u = `${n}_${i++}`; used.add(u); names.set(id, 'ana:' + u); return 'ana:' + u; };
+  const ends = (l) => (l || []).filter((x) => x && x !== '*' && kinds.some((c) => c.id === x)).map(local);
+  const side = (pred, l) => { const e = ends(l); return !e.length ? '' : e.length === 1 ? ` ;\n    ${pred} ${e[0]}` : ` ;\n    ${pred} [ rdf:type owl:Class ; owl:unionOf ( ${e.join(' ')} ) ]`; };
+  const out = ['@prefix owl: <http://www.w3.org/2002/07/owl#> .', '@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .', '@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .', '@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .', '@prefix sh: <http://www.w3.org/ns/shacl#> .', '@prefix earl: <http://www.w3.org/ns/earl#> .', '@prefix prov: <http://www.w3.org/ns/prov#> .', '@prefix dcat: <http://www.w3.org/ns/dcat#> .', '@prefix dcterms: <http://purl.org/dc/terms/> .',
+    `@prefix ana: <${NS}> .`, '', (() => `ana:Ontology rdf:type owl:Ontology ;\n    rdfs:label ${ko(title + ' ontology' + (M.version ? ' ' + M.version : ' (' + new Date().toISOString().slice(0, 10) + ')'))}${M.version ? ` ;\n    owl:versionInfo ${lit(M.version)} ;\n    owl:versionIRI <${location.origin}/ontology/${encodeURIComponent(M.version)}>` : ''}${M.creator ? ` ;\n    dcterms:creator ${lit(M.creator)}` : ''}${M.modified ? ` ;\n    dcterms:modified ${lit(M.modified)}^^xsd:date` : ''} .`)(), '', '# Classes'];
+  for (const c of kinds) out.push(`${local(c.id)} rdf:type owl:Class ;\n    rdfs:label ${ko(c.label || c.id)}${c.desc ? ` ;\n    rdfs:comment ${ko(c.desc)}` : ''}${(() => { const sup = [...(c.parent ? [local(c.parent)] : []), ...(c.align || [])]; return sup.length ? ` ;\n    rdfs:subClassOf ${sup.join(' , ')}` : ''; })()} .`);   // 표준 정렬 = subClassOf
+  // 업무 Class(work-ontology.js)는 서로 겹치지 않는다 — owl:AllDisjointClasses
+  { const wk = kinds.filter((c) => /^work-graph\.json/.test(c.where || '')); if (wk.length > 1) out.push(`[] rdf:type owl:AllDisjointClasses ;\n    owl:members ( ${wk.map((c) => local(c.id)).join(' ')} ) .`); }
+  // 종류의 속성(props) = owl:DatatypeProperty (JSON 안의 칸은 '부모 › 칸'으로)
+  // '누가 보나'는 주석 속성 ana:visibility로 따로(all·sentToTarget·judgeOnly·serverSecret)
+  const usedWho = [...new Set(kinds.flatMap((c) => (c.props || []).flatMap(function w(x) { return [kWho(x.who), ...(x.sub || []).flatMap(w)]; })))];
+  const K_VIS = { all: 'all' }; for (const v of usedWho) K_VIS[v] = v;
+  out.push('', '# Annotation Properties', `ana:visibility rdf:type owl:AnnotationProperty ;\n    rdfs:label "who sees it" ;\n    rdfs:comment ${lit('Who receives the value: ' + usedWho.join(' · '))} .`);
+  out.push('', '# Properties');
+  // 표준 데이터 형식 = rdfs:range, 고를 수 있는 값 = owl:oneOf, 값 여러 개는 rdfs:comment에
+  // 같은 코드·형식·'누가 보나'·여러 값 여부인 칸은 ana:<camelCase> 하나(rdfs:domain에 Class 모두).
+  // 고를 수 있는 값이 Class마다 다르면 rdfs:range는 기본 형식, 값은 Class마다 owl:Restriction(allValuesFrom). 형식 등이 다른 칸은 ana:<class><Code>로 따로.
+  // JSON 안의 칸은 아직 ana:prop_<Class>_<부모>_<칸>(④에서 다룸). {P:Class.칸} 자리표는 names에 미리 넣은 이 이름으로 바뀐다
+  const pcamel = (id) => String(id).replace(/_([a-z0-9])/g, (m, c) => c.toUpperCase());
+  const relNames = new Set(rels.map((r) => (/_/.test(r.id) || r.id === String(r.id).toUpperCase() ? String(r.id).toLowerCase().replace(/_([a-z0-9])/g, (m, c) => c.toUpperCase()) : String(r.id))));
+  const pgroups = new Map();
+  for (const c of kinds) for (const x of c.props || []) { if (x.id === '…') continue; const g = pgroups.get(x.id) || new Map(); const sig = [x.type, kWho(x.who), x.many ? 1 : 0].join('|'); (g.get(sig) || g.set(sig, []).get(sig)).push({ c, x }); pgroups.set(x.id, g); }
+  const rangeOf = (x) => (/^(xsd|rdf|rdfs):/.test(x.type || '') ? (x.values ? `[ rdf:type rdfs:Datatype ; owl:oneOf ( ${x.values.map((v) => `${lit(v)}^^${x.type}`).join(' ')} ) ]` : x.type) : '');
+  const restrict = [];
+  for (const [id, g] of pgroups) {
+    const subs = [...g.values()], big = subs.filter((m) => m.length > 1).sort((a, b) => b.length - a.length)[0] || (subs.length === 1 ? subs[0] : null);
+    for (const m of subs) {
+      const base = pcamel(id), bare = m === big && !relNames.has(base), n0 = bare ? base : m[0].c.id.charAt(0).toLowerCase() + m[0].c.id.slice(1) + base.charAt(0).toUpperCase() + base.slice(1);
+      let n = n0, k = 2; while (used.has(n)) n = `${n0}_${k++}`; used.add(n); for (const { c } of m) names.set('prop:' + c.id + '.' + id, 'ana:' + n);
+      const x0 = m[0].x, merged = m.length > 1, labels = [...new Set(m.map((e) => e.x.label || id))];
+      const label = merged ? ((x0.common && x0.common.label) || labels[0]) : (x0.label || id);
+      const cm = merged ? [x0.many ? 'many values' : '', m.map((e) => `${e.c.label || e.c.id}: ${e.x.label || id}${e.x.desc ? ' — ' + e.x.desc : ''}`).join(' / ')].filter(Boolean).join(' · ') : [x0.many ? 'many values' : '', x0.desc].filter(Boolean).join(' · ');
+      const vals = m.map((e) => JSON.stringify(e.x.values || null)), same = vals.every((v) => v === vals[0]);
+      const range = same ? rangeOf(x0) : (/^(xsd|rdf|rdfs):/.test(x0.type || '') ? x0.type : '');
+      if (!same) for (const e of m) if (e.x.values) restrict.push(`${local(e.c.id)} rdfs:subClassOf [ rdf:type owl:Restriction ; owl:onProperty ana:${n} ; owl:allValuesFrom ${rangeOf(e.x)} ] .`);
+      const al = [...new Set(m.flatMap((e) => (e.x.common && e.x.common.align) || []))];
+      out.push(`ana:${n} rdf:type owl:DatatypeProperty ;\n    rdfs:label ${ko(label)}${cm ? ` ;\n    rdfs:comment ${ko(cm)}` : ''}${K_VIS[kWho(x0.who)] ? ` ;\n    ana:visibility ${lit(K_VIS[kWho(x0.who)])}` : ''}${side('rdfs:domain', m.map((e) => e.c.id))}${range ? ` ;\n    rdfs:range ${range}` : ''}${al.length ? ` ;\n    rdfs:subPropertyOf ${al.join(' , ')}` : ''} .`);
+    }
+  }
+  if (restrict.length) out.push('', '# Value restrictions (allowed values per Class)', ...restrict);
+  // JSON 안의 칸
+  const dsub = (c, x, pre) => { out.push(`${local('prop:' + c.id + '.' + pre + x.id)} rdf:type owl:DatatypeProperty ;\n    rdfs:label ${ko(pre.replace(/\./g, ' › ') + (x.label || x.id))}${(() => { const cm = [x.many ? 'many values' : '', x.desc].filter(Boolean).join(' · '); return cm ? ` ;\n    rdfs:comment ${ko(cm)}` : ''; })()}${K_VIS[kWho(x.who)] ? ` ;\n    ana:visibility ${lit(K_VIS[kWho(x.who)])}` : ''} ;\n    rdfs:domain ${local(c.id)}${rangeOf(x) ? ` ;\n    rdfs:range ${rangeOf(x)}` : ''} .`); for (const y of x.sub || []) if (y.id !== '…') dsub(c, y, pre + x.id + '.'); };
+  if (kinds.some((c) => (c.props || []).some((x) => (x.sub || []).length))) out.push('', '# Properties inside JSON');
+  for (const c of kinds) for (const x of c.props || []) for (const y of x.sub || []) if (y.id !== '…') dsub(c, y, x.id + '.');
+  out.push('', '# Relations');
+  // Object Property 코드는 OWL 관례 lowerCamelCase(옛 UPPER_SNAKE가 오면 belongsToService처럼 바꾼다)
+  const camel = (id) => /_/.test(id) || id === String(id).toUpperCase() ? String(id).toLowerCase().replace(/_([a-z0-9])/g, (m, c) => c.toUpperCase()) : String(id);
+  for (const r of rels) out.push(`${local(camel(r.id))} rdf:type owl:ObjectProperty${r.functional === true ? ' , owl:FunctionalProperty' : ''} ;\n    rdfs:label ${ko(r.label || r.id)}${r.desc ? ` ;\n    rdfs:comment ${ko(r.desc)}` : ''}${side('rdfs:domain', r.from)}${side('rdfs:range', r.to)}${(r.align || []).length ? ` ;\n    rdfs:subPropertyOf ${r.align.join(' , ')}` : ''} .`);
+  // 온톨로지 규칙 = SHACL 모양(sh:NodeShape). {C:..}{P:..}{R:..}를 위의 .ttl 이름으로 바꾼다. SHACL이 없는 규칙(서버 동작)은 주석으로만
+  const rules = Array.isArray(kCache.rules) ? kCache.rules : [];
+  if (rules.length) {
+    out.push('', '# Rules (SHACL)', `ana:Ontology sh:declare [ sh:prefix "ana" ; sh:namespace "${NS}"^^xsd:anyURI ] .`);
+    const sub = (t) => String(t).replace(/\{([CPR]):([^}]+)\}/g, (m, k, v) => (k === 'C' ? local(v) : k === 'P' ? local('prop:' + v) : local(camel(v))));
+    for (const r of rules) {
+      if (!r.shacl) { out.push(`# ${r.id}: ${String(r.label).replace(/\n/g, ' ')}${r.desc ? ' — ' + String(r.desc).replace(/\n/g, ' ') : ''}`); continue; }
+      out.push(`${local('rule:' + r.id)} rdf:type sh:NodeShape ;\n    rdfs:label ${ko(r.id + ' ' + r.label)}${r.desc ? ` ;\n    rdfs:comment ${ko(r.desc)}` : ''} ;\n    sh:message ${ko(r.label)} ;\n    ${sub(r.shacl)} .`);
+    }
+  }
+  return out.join('\n') + '\n';
+}
+$('kOntoAir').onclick = () => {
+  const data = 'data:text/turtle;charset=utf-8,' + encodeURIComponent(ontologyTurtle() + '\n# ') + `/${ontoFile()}.ttl`;
+  window.open(ONTOAIR + '#' + encodeURIComponent(data), '_blank', 'noopener');
+};
+$('kOntoTtl').onclick = () => {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ontologyTurtle()], { type: 'text/turtle' }));
+  a.download = `${ontoFile()}-${new Date().toISOString().slice(0, 10)}.ttl`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+// Ontology › Classes — 왼쪽 목록, 누르면 오른쪽에 상세(Datatype Properties · Object Properties). 위계로 묶지 않는다(온톨로지는 위계만이 아니다)
+let kSel = '';
+// 관계 개수 — 하나만(owl:FunctionalProperty) / 여러 개
+const kCard = (r) => `<span style="white-space:nowrap"${r.functional === true ? ' title="owl:FunctionalProperty"' : ''}>${r.functional === true ? 'one' : r.functional === false ? 'many' : '—'}</span>`;
+// 누가 보나(props[].who) — 짧은 코드(all · serverSecret · internal …). 없으면 all. 예전 한글 값도 코드로 읽는다
+const K_WHO_OLD = { '모두': 'all', '평가 대상에 보냄': 'sentToTarget', '채점기만': 'judgeOnly', '서버만(비밀)': 'serverSecret' };
+const kWho = (w) => K_WHO_OLD[w] || (w ? String(w) : 'all');
+const kWhoClass = (w) => (/secret|server|private/i.test(w) ? 'k-who-secret' : /judge|internal|staff|admin/i.test(w) ? 'k-who-judge' : 'k-who-out');
+const kWhoBadge = (w) => `<span class="k-who ${kWhoClass(kWho(w))}">${escapeHtml(kWho(w))}</span>`;
+// .ttl 이름: 이 ANA의 이름(없으면 주소의 첫 칸)
+const ontoName = () => String((typeof health !== 'undefined' && health && health.name) || location.hostname.split('.')[0] || 'ana');
+const ontoFile = () => ontoName().replace(/[^\w-]+/g, '-') + '-ontology';
+function kPropRows(props, depth) {
+  return (props || []).map((x) => `<tr class="${depth ? 'k-psub' : ''}"><td style="padding-left:${8 + depth * 18}px">${depth ? '<span class="k-tw">└</span>' : ''}<b>${escapeHtml(x.label || x.id)}</b></td><td><code>${escapeHtml(x.id)}</code></td><td class="k-ptype"><code>${escapeHtml(x.type || '')}</code>${x.many ? ' <span class="k-weak" title="This field holds several values">[many]</span>' : ''}${x.values ? `<div class="k-pvals" title="Allowed values (owl:oneOf)">${x.values.map((v) => `<code>${escapeHtml(v)}</code>`).join(' ')}</div>` : ''}</td>`
+    + `<td>${kWho(x.who) !== 'all' ? kWhoBadge(x.who) : (depth ? '' : '<span class="k-weak">all</span>')}</td><td class="k-pdesc">${escapeHtml(x.desc || '')}</td></tr>` + kPropRows(x.sub, depth + 1)).join('');
+}
+function kOntoTree(kinds, rels, { nOf, kindLabel }) {
+  if (!kinds.length) return '';
+  const relOf = (id) => rels.filter((r) => (r.from || []).includes(id) || (r.to || []).includes(id));
+  const relRow = (r, id) => { const out = (r.from || []).includes(id), self = out && (r.to || []).includes(id); const other = (out ? r.to : r.from).map(kindLabel).join(' · ') || 'anything';
+    return `<tr><td class="k-arrow-c">${self ? '↺ itself' : out ? '→ out' : '← in'}</td><td><b>${escapeHtml(other)}</b></td><td>${escapeHtml(r.label)}</td><td><code>${escapeHtml(r.id)}</code></td><td>${kCard(r)}</td><td>${r.made === 'derived' ? `field <code>${escapeHtml(r.field)}</code>` : 'linked by hand'}</td><td class="k-pdesc">${escapeHtml(r.desc || '')}</td></tr>`; };
+  if (!kinds.some((c) => c.id === kSel)) kSel = kinds[0].id;
+  const list = kinds.map((c) => { const np = (c.props || []).length, nr = relOf(c.id).length, on = c.id === kSel;
+    return `<button type="button" class="k-li${on ? ' on' : ''}" data-ksel="${escapeHtml(c.id)}" aria-current="${on}"><span class="k-dot" style="background:${kColor(c.id)}"></span><span class="k-li-t"><b>${escapeHtml(c.label)}</b>${c.newType ? ' ' + kNew : ''}<small><code>${escapeHtml(c.id)}</code>${np ? ` · DP ${np}` : ''}${nr ? ` · OP ${nr}` : ''}</small></span></button>`; }).join('');
+  const c = kinds.find((x) => x.id === kSel), props = c.props || [], rs = relOf(c.id);
+  const detail = `<div class="k-dhead"><span class="k-dot" style="background:${kColor(c.id)}"></span><h3>${escapeHtml(c.label)}</h3><code>${escapeHtml(c.id)}</code>${c.newType ? kNew : ''}<span class="sp" style="flex:1"></span>${c.removable ? kDel(`data-kind="class" data-id="${escapeHtml(c.id)}"`) : ''}</div>
+    <div class="k-sub">${c.parent ? `subClassOf ${escapeHtml(kindLabel(c.parent))} · ` : ''}${escapeHtml(c.where)}</div>${(c.align || []).length ? `<div class="k-sub" title="Standard vocabulary it is aligned to (rdfs:subClassOf)">Aligned to: ${c.align.map((x) => `<code>${escapeHtml(x)}</code>`).join(' ')}</div>` : ''}${c.desc ? `<div class="k-desc" style="margin-top:6px">${escapeHtml(c.desc)}</div>` : ''}
+    <div class="k-dh">Datatype Properties <span class="k-weak">${props.length}</span></div>${props.length ? `<div class="k-ptable"><table><thead><tr><th>Name</th><th>Code</th><th>Type</th><th>Who sees it</th><th>Description</th></tr></thead><tbody>${kPropRows(props, 0)}</tbody></table></div>` : '<div class="k-weak">None</div>'}
+    <div class="k-dh">Object Properties <span class="k-weak">${rs.length}</span></div>${rs.length ? `<div class="k-ptable"><table><thead><tr><th>Direction</th><th>Other Class</th><th>Name</th><th>Code</th><th title="How many of this relation one Domain item can have">How many</th><th>Made by</th><th>Description</th></tr></thead><tbody>${rs.map((r) => relRow(r, c.id)).join('')}</tbody></table></div>` : '<div class="k-weak">None</div>'}`;
+  return `<div class="k-md"><nav class="k-mlist" aria-label="Classes">${list}</nav><section class="k-mdetail" aria-live="polite">${detail}</section></div>`;
+}
+// Ontology › Relations — 관계도(종류 = 상자, 관계 = 화살표) + 같은 내용의 표. 위계로 묶는 게 아니라 화살표 방향으로 줄을 나눠 겹침만 줄인다
+// 상자 위치: 처음엔 화살표 방향으로 줄을 나눠 자동 배치, 끌어 옮긴 자리는 이 브라우저에 기억한다([배치 처음대로]로 되돌림)
+const KR_W = 132, KR_H = 46;
+let krCtx = null;
+const krSaved = () => { try { return JSON.parse(localStorage.getItem('ana-onto-pos') || '{}') || {}; } catch { return {}; } };
+const krSave = (o) => { try { localStorage.setItem('ana-onto-pos', JSON.stringify(o)); } catch {} };
+function kRelDiagram(kinds, rels, { nOf, kindLabel }) {
+  const ids = kinds.map((c) => c.id), has = new Set(ids);
+  const E = []; for (const r of rels) for (const f of r.from || []) for (const t of r.to || []) if (has.has(f) && has.has(t)) E.push({ r, f, t });
+  // 자동 배치: 화살표가 가리키는 쪽을 위로(가장 긴 경로). 순환은 방문 중 표시로 끊는다
+  const rank = new Map(), busy = new Set();
+  const rk = (id) => { if (rank.has(id)) return rank.get(id); if (busy.has(id)) return 0; busy.add(id); let v = 0; for (const e of E) if (e.f === id && e.t !== id) v = Math.max(v, rk(e.t) + 1); busy.delete(id); rank.set(id, v); return v; };
+  ids.forEach(rk);
+  // 층 배치 — 두 층 넘게 걸치는 화살표는 사이 층마다 빈 자리(경유점)를 두어 상자를 피해 가게 하고,
+  //   위아래로 번갈아 순서를 맞춰(무게중심) 선 교차를 줄인 뒤, 이웃 가운데로 끌어당겨 x를 정한다
+  const layers = []; for (const id of ids) (layers[rank.get(id)] ||= []).push(id);
+  for (let i = 0; i < layers.length; i++) layers[i] ||= [];
+  const DW = 26, wOf = (id) => (id.startsWith('~') ? DW : KR_W), segs = [], via = new Map();
+  E.forEach((e, k) => { const rf = rank.get(e.f), rt = rank.get(e.t); if (e.f === e.t || rf === rt) return;
+    const [lo, hi, a, b] = rf > rt ? [rt, rf, e.t, e.f] : [rf, rt, e.f, e.t]; let prev = a; const ds = [];
+    for (let r = lo + 1; r < hi; r++) { const d = `~${k}~${r}`; rank.set(d, r); layers[r].push(d); ds.push(d); segs.push([prev, d]); prev = d; }
+    segs.push([prev, b]); if (ds.length) via.set(k, rf > rt ? ds.slice().reverse() : ds); });
+  const nbr = new Map(); for (const [u, v] of segs) { (nbr.get(u) || nbr.set(u, []).get(u)).push(v); (nbr.get(v) || nbr.set(v, []).get(v)).push(u); }
+  const pos = new Map(); layers.forEach((L) => L.forEach((id, i) => pos.set(id, i)));
+  const bary = (id, r) => { const ns = (nbr.get(id) || []).filter((x) => rank.get(x) === r); return ns.length ? ns.reduce((a, x) => a + pos.get(x), 0) / ns.length : pos.get(id); };
+  for (let pass = 0; pass < 12; pass++) {
+    const down = pass % 2 === 0, order = down ? layers.map((_, i) => i).slice(1) : layers.map((_, i) => i).reverse().slice(1);
+    for (const r of order) { const ref = down ? r - 1 : r + 1, L = layers[r]; const bc = new Map(L.map((id) => [id, bary(id, ref)])); L.sort((x, y) => bc.get(x) - bc.get(y)); L.forEach((id, i) => pos.set(id, i)); }
+  }
+  const GX = 44, GY = 92, TOP = 70, lw = (L) => L.reduce((n, id) => n + wOf(id) + GX, -GX), VW = Math.max(...layers.map(lw), KR_W) + GX * 2;
+  const cx = new Map(); layers.forEach((L) => { let x = (VW - lw(L)) / 2; for (const id of L) { cx.set(id, x + wOf(id) / 2); x += wOf(id) + GX; } });
+  for (let it = 0; it < 8; it++) layers.forEach((L) => {
+    const want = L.map((id) => { const ns = nbr.get(id) || []; return ns.length ? ns.reduce((a, x) => a + cx.get(x), 0) / ns.length : cx.get(id); });
+    const x = L.map((id, i) => (cx.get(id) + want[i]) / 2), gap = (i) => (wOf(L[i - 1]) + wOf(L[i])) / 2 + GX;
+    for (let i = 1; i < L.length; i++) x[i] = Math.max(x[i], x[i - 1] + gap(i));
+    for (let i = L.length - 2; i >= 0; i--) x[i] = Math.min(x[i], x[i + 1] - gap(i + 1));
+    L.forEach((id, i) => cx.set(id, x[i]));
+  });
+  const minX = Math.min(...[...cx].map(([id, x]) => x - wOf(id) / 2)); for (const [id, x] of cx) cx.set(id, x - minX + GX);
+  const saved = krSaved(), xy = new Map(), auto = new Map(), wp = new Map();
+  layers.forEach((L, y) => L.forEach((id) => { const p = { x: Math.round(cx.get(id) - wOf(id) / 2), y: TOP + y * (KR_H + GY) };
+    if (id.startsWith('~')) { wp.set(id, { x: cx.get(id), y: p.y + KR_H / 2 }); return; }
+    auto.set(id, p); const sv = saved[id]; xy.set(id, sv && Number.isFinite(sv.x) && Number.isFinite(sv.y) ? { x: sv.x, y: sv.y } : p); }));
+  const viaPts = new Map(); for (const [k, ds] of via) viaPts.set(k, ds.map((d) => wp.get(d)));
+  krCtx = { E, xy, auto, viaPts, kinds, kindLabel, moved: Object.keys(saved).some((k) => has.has(k)) };
+  const boxes = ids.map((id) => { const c = kinds.find((k) => k.id === id) || {};
+    return `<g class="kr-n" data-kr="${escapeHtml(id)}" tabindex="0" role="button" aria-label="${escapeHtml(c.label || id)} — drag to move, press to open"><rect width="${KR_W}" height="${KR_H}" rx="10" style="stroke:${kColor(id)}"/><circle cx="14" cy="17" r="4.5" fill="${kColor(id)}"/><text class="kr-t" x="24" y="21">${escapeHtml(c.label || id)}</text><text class="kr-c" x="24" y="36">${escapeHtml(id)}</text></g>`; }).join('');
+  const svg = E.length ? `<div class="kr-wrap"><svg class="kr-svg" role="img" aria-label="Classes and Object Properties"><defs><marker id="krArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="kr-a"/></marker></defs><g class="kr-edges"></g><g class="kr-boxes">${boxes}</g><g class="kr-labels"></g></svg></div>
+    <div class="k-row k-treebar"><span class="k-sub">Box = Class · arrow = Object Property (domain → range) · drag a box to move it, hover to highlight its Object Properties, press to open it in Classes above</span><span class="sp" style="flex:1"></span><button class="ib-btn" data-kr-reset>Reset layout</button></div>` : '';
+  const end = (l) => (l || []).map(kindLabel).join(' · ') || 'anything';
+  const table = `<div class="k-ptable kr-table"><table><thead><tr><th>Domain</th><th>Object Property</th><th>Range</th><th>Code</th><th title="How many of this relation one Domain item can have — one = owl:FunctionalProperty">How many</th><th title="Standard vocabulary it is aligned to (rdfs:subPropertyOf)">Aligned to</th><th>Made by</th><th>Description</th><th></th></tr></thead><tbody>${rels.map((r) => `<tr><td><b>${(r.from || []).length ? r.from.map((x) => escapeHtml(kindLabel(x))).join('<br>') : 'anything'}</b></td><td>→ ${escapeHtml(r.label)} →${r.newType ? ' ' + kNew : ''}</td><td><b>${escapeHtml(end(r.to))}</b></td><td><code>${escapeHtml(r.id)}</code></td><td>${kCard(r)}</td><td>${(r.align || []).map((x) => `<code>${escapeHtml(x)}</code>`).join('<br>') || '<span class="k-weak">—</span>'}</td><td>${r.made === 'derived' ? `field ${r.field.split(', ').map((f) => `<code>${escapeHtml(f)}</code>`).join('<br>')}` : 'linked by hand'}</td><td class="k-pdesc">${escapeHtml(r.desc || '')}</td><td>${r.removable ? kDel(`data-kind="relation" data-id="${escapeHtml(r.id)}"`) : ''}</td></tr>`).join('')}</tbody></table></div>`;
+  return svg + table;
+}
+// 지금 위치로 상자·선·글자표를 다시 그린다(끄는 동안 계속 부른다). 글자표는 상자·다른 글자표와 겹치지 않는 자리를 선 위에서 찾고 맨 위에 그린다
+function krDraw() {
+  const svg = $('kRel').querySelector('.kr-svg'); if (!svg || !krCtx) return;
+  const { E, xy, kindLabel } = krCtx, W = KR_W, H = KR_H;
+  svg.querySelectorAll('.kr-n').forEach((g) => { const p = xy.get(g.dataset.kr); if (p) g.setAttribute('transform', `translate(${p.x} ${p.y})`); });
+  const placed = [...xy.values()].map(({ x, y }) => ({ x: x - 4, y: y - 4, w: W + 8, h: H + 8 }));
+  const hit = (r) => placed.some((q) => r.x < q.x + q.w && q.x < r.x + r.w && r.y < q.y + q.h && q.y < r.y + r.h);
+  const bez = (P, t) => { const u = 1 - t; return [u * u * u * P[0] + 3 * u * u * t * P[2] + 3 * u * t * t * P[4] + t * t * t * P[6], u * u * u * P[1] + 3 * u * u * t * P[3] + 3 * u * t * t * P[5] + t * t * t * P[7]]; };
+  const pairN = new Map(), pairI = new Map(); for (const e of E) { const k = [e.f, e.t].sort().join('|'); pairN.set(k, (pairN.get(k) || 0) + 1); }
+  let edges = '', labels = '';
+  const same = (id) => { const p = xy.get(id), q = krCtx.auto && krCtx.auto.get(id); return p && q && p.x === q.x && p.y === q.y; };
+  E.forEach((e, ei) => {
+    const a = xy.get(e.f), b = xy.get(e.t), k = [e.f, e.t].sort().join('|'), i = pairI.get(k) || 0; pairI.set(k, i + 1);
+    const sp = (i - (pairN.get(k) - 1) / 2) * 26, tip = escapeHtml(`${kindLabel(e.f)} → ${e.r.label} → ${kindLabel(e.t)}${e.r.desc ? ' — ' + e.r.desc : ''}`);
+    let d, P = null, cand;
+    if (e.f === e.t) { const x = a.x + W / 2 + 20, y = a.y; d = `M${x - 14} ${y} C${x - 30} ${y - 46} ${x + 30} ${y - 46} ${x + 14} ${y}`; cand = [[x, y - 44], [x, y - 62], [x + 60, y - 40], [x - 60, y - 40]]; }
+    else if (b.y + H < a.y - 8 || a.y + H < b.y - 8) { const up = b.y < a.y, x1 = a.x + W / 2 + sp, y1 = up ? a.y : a.y + H, x2 = b.x + W / 2 + sp, y2 = up ? b.y + H : b.y, my = (y1 + y2) / 2; P = [x1, y1, x1, my, x2, my, x2, y2]; }
+    else { const l = a.x < b.x, x1 = l ? a.x + W : a.x, x2 = l ? b.x : b.x + W, y1 = a.y + H / 2 + sp / 3, y2 = b.y + H / 2 + sp / 3, mx = (x1 + x2) / 2; P = [x1, y1, mx, y1, mx, y2, x2, y2]; }
+    if (P) d = `M${P[0]} ${P[1]} C${P[2]} ${P[3]} ${P[4]} ${P[5]} ${P[6]} ${P[7]}`;
+    const vp = krCtx.viaPts && krCtx.viaPts.get(ei);
+    if (vp && P && same(e.f) && same(e.t)) {   // 경유점을 지나는 부드러운 선(Catmull-Rom → 베지어)
+      const pts = [[P[0], P[1]], ...vp.map((q) => [q.x, q.y]), [P[6], P[7]]];
+      d = `M${pts[0][0]} ${pts[0][1]}`;
+      for (let j = 0; j < pts.length - 1; j++) { const p0 = pts[j - 1] || pts[j], p1 = pts[j], p2 = pts[j + 1], p3 = pts[j + 2] || p2;
+        d += ` C${p1[0] + (p2[0] - p0[0]) / 6} ${p1[1] + (p2[1] - p0[1]) / 6} ${p2[0] - (p3[0] - p1[0]) / 6} ${p2[1] - (p3[1] - p1[1]) / 6} ${p2[0]} ${p2[1]}`; }
+      cand = [];
+      for (let j = 0; j < pts.length - 1; j++) for (const t of [0.5, 0.35, 0.65, 0.2, 0.8]) cand.push([pts[j][0] + (pts[j + 1][0] - pts[j][0]) * t, pts[j][1] + (pts[j + 1][1] - pts[j][1]) * t]);
+      cand.sort((u, v) => Math.abs(u[1] - (pts[0][1] + pts[pts.length - 1][1]) / 2) - Math.abs(v[1] - (pts[0][1] + pts[pts.length - 1][1]) / 2));
+    }
+    const f = escapeHtml(e.f), t = escapeHtml(e.t);
+    edges += `<path class="kr-e" data-f="${f}" data-t="${t}" d="${d}" marker-end="url(#krArrow)"><title>${tip}</title></path>`;
+    const tw = Math.max(28, [...e.r.label].reduce((n, ch) => n + (ch.charCodeAt(0) > 255 ? 11.5 : 6.5), 0) + 12), th = 18;
+    if (!cand) cand = [0.5, 0.4, 0.6, 0.3, 0.7, 0.22, 0.78, 0.15, 0.85].map((x) => bez(P, x));
+    let [lx, ly] = cand[0];
+    for (const [cx, cy] of cand) if (!hit({ x: cx - tw / 2 - 2, y: cy - th / 2 - 2, w: tw + 4, h: th + 4 })) { lx = cx; ly = cy; break; }
+    placed.push({ x: lx - tw / 2 - 2, y: ly - th / 2 - 2, w: tw + 4, h: th + 4 });
+    labels += `<g class="kr-l" data-f="${f}" data-t="${t}"><rect x="${lx - tw / 2}" y="${ly - th / 2}" width="${tw}" height="${th}" rx="9"/><text x="${lx}" y="${ly + 4}">${escapeHtml(e.r.label)}</text><title>${tip}</title></g>`;
+  });
+  svg.querySelector('.kr-edges').innerHTML = edges; svg.querySelector('.kr-labels').innerHTML = labels;
+  // 보이는 범위: 상자와 글자표를 모두 담게(끌어서 밖으로 옮겨도 잘리지 않게)
+  const wps = krCtx.viaPts ? [...krCtx.viaPts.values()].flat() : [];
+  const xs = [...placed.flatMap((q) => [q.x, q.x + q.w]), ...wps.map((q) => q.x)], ys = [...placed.flatMap((q) => [q.y, q.y + q.h]), ...wps.map((q) => q.y)];
+  const x0 = Math.min(...xs) - 70, y0 = Math.min(...ys) - 70, x1 = Math.max(...xs) + 70, y1 = Math.max(...ys) + 30;
+  if (!krCtx.drag) { svg.setAttribute('viewBox', `${x0} ${y0} ${x1 - x0} ${y1 - y0}`); svg.style.maxWidth = `${x1 - x0}px`; }
+  krFocus(krCtx.focus || '');
+}
+function krFocus(id) {
+  const svg = $('kRel').querySelector('.kr-svg'); if (!svg) return; if (krCtx) krCtx.focus = id;
+  svg.classList.toggle('kr-focus', !!id); svg.querySelectorAll('.kr-e, .kr-l').forEach((x) => x.classList.toggle('on', !!id && (x.dataset.f === id || x.dataset.t === id)));
+}
+function krOpen(id) { kSel = id; renderKnowledge(); const h = $('kClsHead'); if (h) h.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+// 끌기: 4px 넘게 움직이면 옮기기, 아니면 누르기(펼치기)
+$('kRel').addEventListener('pointerdown', (e) => {
+  const g = e.target.closest('.kr-n'), svg = $('kRel').querySelector('.kr-svg'); if (!g || !svg || !krCtx || e.button !== 0) return;
+  const id = g.dataset.kr, p0 = krCtx.xy.get(id), m = svg.getScreenCTM(); if (!p0 || !m) return;
+  const inv = m.inverse(), pt = (ev) => { const q = new DOMPoint(ev.clientX, ev.clientY).matrixTransform(inv); return { x: q.x, y: q.y }; };
+  const s0 = pt(e), c0 = { x: e.clientX, y: e.clientY }; let moved = false;
+  g.setPointerCapture(e.pointerId); e.preventDefault();
+  const move = (ev) => { if (!moved && Math.hypot(ev.clientX - c0.x, ev.clientY - c0.y) < 4) return; moved = true; krCtx.drag = true; g.classList.add('drag'); const s1 = pt(ev); krCtx.xy.set(id, { x: Math.round(p0.x + s1.x - s0.x), y: Math.round(p0.y + s1.y - s0.y) }); krDraw(); };
+  const up = () => { g.removeEventListener('pointermove', move); g.removeEventListener('pointerup', up); g.removeEventListener('pointercancel', up); g.classList.remove('drag'); krCtx.drag = false;
+    if (moved) { const o = krSaved(); for (const [k, v] of krCtx.xy) o[k] = v; krSave(o); krDraw(); } else krOpen(id); };
+  g.addEventListener('pointermove', move); g.addEventListener('pointerup', up); g.addEventListener('pointercancel', up);
+});
+$('kRel').addEventListener('click', (e) => { if (e.target.closest('[data-kr-reset]')) { krSave({}); renderKnowledge(); } });
+$('kRel').addEventListener('keydown', (e) => { const g = e.target.closest('[data-kr]'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); krOpen(g.dataset.kr); } });
+$('kRel').addEventListener('mouseover', (e) => { if (krCtx && krCtx.drag) return; const n = e.target.closest('[data-kr]'); krFocus(n ? n.dataset.kr : ''); });
+$('kCls').addEventListener('click', (e) => { const t = e.target.closest('[data-ksel]'); if (!t || t.dataset.ksel === kSel) return; kSel = t.dataset.ksel; renderKnowledge(); });
 function renderKnowledge() {
   const G = kG(), kinds = G.kinds || [], rels = G.relations || [], nodes = G.nodes || [], edges = G.edges || [];
   const nOf = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-  $('kSum').textContent = `${nOf(nodes.length, 'node', 'nodes')} · ${nOf(edges.length, 'link', 'links')}`;
+  kSumUpdate();   // 노드·연결 수는 Graph 갈래에서만 — 온톨로지(스키마)엔 인스턴스 개수를 두지 않는다
   setSubCount('knowledge', 'ontology', 0); setSubCount('knowledge', 'graph', 0);
   const kindLabel = (id) => (id === '*' ? 'anything' : kLabel(kinds, id));
   const ends = (l) => (l || []).map(kindLabel).join(' · ') || 'anything';
   // 온톨로지 — 종류 하나, 관계 하나(선언한 곳은 작은 글씨로만)
-  $('kCls').innerHTML = kinds.map((c) => `<div class="k-row"><div class="k-main"><span class="k-dot" style="background:${kColor(c.id)}"></span><b class="k-t">${escapeHtml(c.label)}</b><code>${escapeHtml(c.id)}</code>${c.newType ? kNew : ''}${c.parent ? `<span class="k-sub">a kind of ${escapeHtml(kindLabel(c.parent))}</span>` : ''}<span class="k-sub">${nOf(c.count, 'node', 'nodes')} · ${escapeHtml(c.where)}</span>${c.desc ? `<div class="k-desc">${escapeHtml(c.desc)}</div>` : ''}</div>${c.removable ? kDel(`data-kind="class" data-id="${escapeHtml(c.id)}"`) : ''}</div>`).join('');
-  $('kRel').innerHTML = rels.map((r) => `<div class="k-row"><div class="k-main"><b class="k-t">${escapeHtml(r.label)}</b><code>${escapeHtml(r.id)}</code>${r.newType ? kNew : ''}<span class="k-sub">${r.from.length ? `${escapeHtml(ends(r.from))} → ${escapeHtml(ends(r.to))} · ` : ''}${r.made === 'derived' ? `from ${escapeHtml(r.field)} · ` : ''}${nOf(r.count, 'link', 'links')}</span>${r.desc ? `<div class="k-desc">${escapeHtml(r.desc)}</div>` : ''}</div>${r.removable ? kDel(`data-kind="relation" data-id="${escapeHtml(r.id)}"`) : ''}</div>`).join('');
+  // 종류 목록(위계로 묶지 않음) — 누르면 속성 표(props)와 그 종류의 관계가 펼쳐진다
+  $('kCls').innerHTML = kOntoTree(kinds, rels, { nOf, kindLabel });
+  // 종류는 상자, 관계는 이름 붙은 화살표. 상자를 누르면 위 Kinds에서 그 종류의 속성이 펼쳐진다
+  $('kRel').innerHTML = kRelDiagram(kinds, rels, { nOf, kindLabel });
+  krDraw();
   $('kClsHead').hidden = $('kCls').hidden = !kinds.length; $('kClsCnt').textContent = kinds.length || '';
   $('kRelHead').hidden = $('kRel').hidden = !rels.length; $('kRelCnt').textContent = rels.length || '';
-  $('kOntoEmpty').style.display = kinds.length || rels.length ? 'none' : 'block';
+  $('kOntoEmpty').style.display = !kLoaded || kinds.length || rels.length ? 'none' : 'block';   // 받기 전엔 '없음'을 보이지 않는다
+  $('kOntoAirBar').hidden = !kinds.length;
+  { const M = kG().meta || {}, el = $('kOntoVer'); if (el) el.textContent = M.version ? `Version ${M.version}${M.modified ? ' · ' + M.modified : ''}` : ''; }   // 온톨로지 버전
+  kRulesRender(kinds);
+  kDescRender();
   // 그래프 — 사람·에이전트가 만든 연결은 목록으로도(지울 수 있게). 필드·언급에서 계산한 것은 그림에만
   const byId = new Map(nodes.map((n) => [n.id, n])), name = (id) => (byId.get(id) || {}).title || id;
   const made = edges.filter((e) => e.made === 'explicit'), relLabel = (t) => kLabel(rels, t) || t.replace(/_/g, ' ');
   $('kFacts').innerHTML = made.map((e) => `<div class="k-row"><div class="k-main"><span class="k-t">${escapeHtml(name(e.from))} <span class="k-rel">${escapeHtml(relLabel(e.type))}</span> ${escapeHtml(name(e.to))}</span>${e.newType ? kNew : ''}${(e.items || []).length ? `<div class="rels">${kItems(e.items)}</div>` : ''}</div>${e.fact ? kDel(`data-kind="fact" data-from="${escapeHtml(e.fact.from)}" data-rel="${escapeHtml(e.fact.rel)}" data-to="${escapeHtml(e.fact.to)}"`) : kDel(`data-kind="link" data-from="${escapeHtml(e.from)}" data-rel="${escapeHtml(e.type)}" data-to="${escapeHtml(e.to)}"`)}</div>`).join('');
   $('kFactHead').hidden = $('kFacts').hidden = !made.length; $('kFactCnt').textContent = made.length || '';
-  const svg = kGraphSvg();
-  $('kGraph').hidden = !svg; $('kGraph').innerHTML = svg; $('kGraph').dataset.w = $('kGraph').clientWidth;
-  $('kGraphEmpty').style.display = svg ? 'none' : 'block';
+  kGraphDraw();   // 그래프는 Graph 갈래가 보일 때만(kGraphDraw) — 온톨로지는 기다리지 않는다
 }
+// 온톨로지 설명 — 문장마다 참조(C:Class · R:Object Property · P:Class.속성 · RULE:규칙). 번호를 누르면 그 행이 팝업으로
+// 설명 글은 work-ontology.js의 description(같은 모양)에서 온다 — 없으면 Description을 숨기고 안내 문단을 보인다
+function kDescList() { const d = kG().description; return Array.isArray(d) ? d : null; }
+function kRefFind(ref) {
+  const G = kG(), kinds = G.kinds || [], rels = G.relations || [], rules = Array.isArray(kCache.rules) ? kCache.rules : [];
+  const [t, v] = [ref.slice(0, ref.indexOf(':')), ref.slice(ref.indexOf(':') + 1)];
+  if (t === 'C') { const c = kinds.find((x) => x.id === v); return c && { t, c }; }
+  if (t === 'R') { const r = rels.find((x) => x.id === v); return r && { t, r }; }
+  if (t === 'P') { const [cid, pid] = v.split('.'); const c = kinds.find((x) => x.id === cid); const p = c && (c.props || []).find((x) => x.id === pid); return p && { t, c, p }; }
+  if (t === 'RULE') { const r = rules.find((x) => x.id === v); return r && { t, rule: r }; }
+  return null;
+}
+function kRefLabel(ref) { const f = kRefFind(ref); if (!f) return ref; return f.t === 'C' ? `${f.c.label} (Class)` : f.t === 'R' ? `${f.r.label} · ${f.r.id} (Object Property)` : f.t === 'P' ? `${f.c.label} › ${f.p.label || f.p.id} (Datatype Property)` : `${f.rule.id} ${f.rule.label} (Rule)`; }
+function kDescRender() {
+  const box = $('kDesc'), D = kDescList(); if (!box) return;
+  $('kDescHead').hidden = box.hidden = !D; $('kLead').hidden = !!D; if (!D) { box.innerHTML = ''; return; }
+  box.innerHTML = D.map(([h, ss]) => `<p><b>${escapeHtml(h)}.</b> ${ss.map(([t, refs]) => `${escapeHtml(t)}<span class="k-refs">${refs.map((r, i) => `<button type="button" class="k-ref${kLoaded && !kRefFind(r) ? ' miss' : ''}" data-kref="${escapeHtml(r)}" title="${escapeHtml(kRefLabel(r))}" aria-label="Reference ${i + 1}: ${escapeHtml(kRefLabel(r))}">${i + 1}</button>`).join('')}</span>`).join(' ')}</p>`).join('');
+}
+function kRefOpen(btn) {
+  const pop = $('kRefPop'), ref = btn.dataset.kref, f = kRefFind(ref);
+  const kindLabel = (id) => (id === '*' ? 'anything' : kLabel(kG().kinds || [], id));
+  const row = (k, v) => `<tr><td>${k}</td><td>${v}</td></tr>`;
+  let html;
+  if (!f) html = `<div class="rp-h"><b>${escapeHtml(ref)}</b></div><div class="k-weak">Not in the ontology any more — the description needs fixing.</div>`;
+  else if (f.t === 'C') { const c = f.c, rs = (kG().relations || []).filter((r) => (r.from || []).includes(c.id) || (r.to || []).includes(c.id));
+    html = `<div class="rp-h"><span class="k-dot" style="background:${kColor(c.id)}"></span><b>${escapeHtml(c.label)}</b><code>${escapeHtml(c.id)}</code><span class="rp-k">Class</span></div><table>${row('Description', escapeHtml(c.desc || '—'))}${(c.align || []).length ? row('Aligned to', c.align.map((x) => `<code>${escapeHtml(x)}</code>`).join(' ')) : ''}${row('Datatype Properties', `${(c.props || []).length} — ${(c.props || []).map((x) => escapeHtml(x.label || x.id)).join(' · ')}`)}${row('Object Properties', `${rs.length} — ${[...new Set(rs.map((r) => r.label))].map(escapeHtml).join(' · ')}`)}</table><div class="rp-act"><button class="ib-btn" data-kref-open="${escapeHtml(c.id)}">Open in Classes</button></div>`; }
+  else if (f.t === 'R') { const r = f.r;
+    html = `<div class="rp-h"><b>${escapeHtml(r.label)}</b><code>${escapeHtml(r.id)}</code><span class="rp-k">Object Property</span></div><table>${row('Domain', escapeHtml((r.from || []).map(kindLabel).join(' · ')))}${row('Range', escapeHtml((r.to || []).map(kindLabel).join(' · ')))}${row('How many', kCard(r))}${(r.align || []).length ? row('Aligned to', r.align.map((x) => `<code>${escapeHtml(x)}</code>`).join(' ')) : ''}${row('Made by', r.made === 'derived' ? `field <code>${escapeHtml(r.field || '')}</code>` : 'linked by hand')}${row('Description', escapeHtml(r.desc || '—'))}</table>`; }
+  else if (f.t === 'P') { const c = f.c, x = f.p;
+    html = `<div class="rp-h"><span class="k-dot" style="background:${kColor(c.id)}"></span><b>${escapeHtml(c.label)} › ${escapeHtml(x.label || x.id)}</b><code>${escapeHtml(x.id)}</code><span class="rp-k">Datatype Property</span></div><table>${row('Type', `<code>${escapeHtml(x.type || '')}</code>${x.many ? ' [many]' : ''}${x.values ? ' — ' + x.values.map((v) => `<code>${escapeHtml(v)}</code>`).join(' ') : ''}`)}${row('Who sees it', kWho(x.who) !== 'all' ? kWhoBadge(x.who) : 'all')}${row('Description', escapeHtml(x.desc || '—'))}</table><div class="rp-act"><button class="ib-btn" data-kref-open="${escapeHtml(c.id)}">Open in Classes</button></div>`; }
+  else { const r = f.rule, ok = Math.max(0, (r.checked || 0) - (r.bad || 0));
+    html = `<div class="rp-h"><b>${escapeHtml(r.id)}</b><span class="rp-k">Rule</span></div><div style="margin-bottom:6px"><b>${escapeHtml(r.label)}</b></div><table>${r.desc ? row('Description', escapeHtml(r.desc)) : ''}${row('Applies to', escapeHtml((r.on || []).map(kindLabel).join(' · ')))}${row('Check', `kept ${ok} · broken <b>${r.bad || 0}</b> · could not check ${r.unknown || 0}`)}${row('.ttl', r.shacl ? 'SHACL' : 'comment only')}</table>`; }
+  pop.innerHTML = html; pop.hidden = false;
+  const b = btn.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+  const x = Math.max(16, Math.min(window.innerWidth - w - 16, b.left + b.width / 2 - w / 2));
+  const y = b.bottom + 8 + h > window.innerHeight - 8 ? Math.max(8, b.top - 8 - h) : b.bottom + 8;
+  pop.style.left = `${x}px`; pop.style.top = `${y}px`;
+  const ob = pop.querySelector('[data-kref-open]');
+  if (ob) ob.onclick = () => { kSel = ob.dataset.krefOpen; pop.hidden = true; renderKnowledge(); const el = $('kCls'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+}
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest && e.target.closest('[data-kref]');
+  if (btn) { e.preventDefault(); kRefOpen(btn); return; }
+  const pop = $('kRefPop'); if (pop && !pop.hidden && !pop.contains(e.target)) pop.hidden = true;
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { const pop = $('kRefPop'); if (pop) pop.hidden = true; } });
+window.addEventListener('scroll', (e) => { const pop = $('kRefPop'); if (pop && !pop.hidden && !pop.contains(e.target)) pop.hidden = true; }, { passive: true, capture: true });
+// 온톨로지 규칙 표 — 선언(work-ontology.js rules)과 지금 데이터 검사(evaluate/rules.js) 결과
+function kRulesRender(kinds) {
+  const R = Array.isArray(kCache.rules) ? kCache.rules : [], box = $('kRules');
+  $('kRuleHead').hidden = box.hidden = !R.length && !(kCache.rules && kCache.rules.error);
+  if (kCache.rules && kCache.rules.error) { box.innerHTML = `<div class="k-weak" style="padding:10px">Rule check failed: ${escapeHtml(kCache.rules.error)}</div>`; return; }
+  const nBad = R.reduce((a, r) => a + (r.bad || 0), 0);
+  $('kRuleCnt').textContent = R.length ? `${R.length}${nBad ? ` · ${nBad} broken` : ''}` : '';
+  const lab = (id) => kLabel(kinds, id);
+  box.innerHTML = `<table><thead><tr><th>#</th><th>Rule</th><th>Applies to</th><th>Kept</th><th>Broken</th><th>Could not check</th><th>.ttl</th></tr></thead><tbody>${R.map((r) => {
+    const ok = Math.max(0, (r.checked || 0) - (r.bad || 0)), why = Object.entries(r.unknownWhy || {}).map(([k, v]) => `${k} ${v}`).join(' · ');
+    const ex = (r.examples || []).length ? `<details><summary>Broken by ${r.bad}${r.bad > r.examples.length ? ` (first ${r.examples.length})` : ''}</summary><ul>${r.examples.map((e) => `<li><b>${escapeHtml(e.name)}</b> <code>${escapeHtml(e.id)}</code> — ${escapeHtml(e.why)}</li>`).join('')}</ul></details>` : '';
+    return `<tr><td><code>${escapeHtml(r.id)}</code></td><td class="k-pdesc"><b>${escapeHtml(r.label)}</b>${r.desc ? `<div class="k-weak">${escapeHtml(r.desc)}</div>` : ''}${ex}</td><td>${(r.on || []).map((c) => escapeHtml(lab(c))).join(' · ')}</td>`
+      + `<td class="k-rok">${r.noCheck ? '—' : ok}</td><td class="${r.bad ? 'k-rbad' : ''}">${r.noCheck ? '—' : r.bad || 0}</td><td><span class="k-weak" title="${escapeHtml(why)}">${r.unknown || 0}${why ? `<div style="font-size:11px">${escapeHtml(why)}</div>` : ''}</span></td><td>${r.shacl ? '<span title="Exported as a SHACL shape">SHACL</span>' : '<span class="k-weak" title="Exported as a comment only">comment only</span>'}</td></tr>`; }).join('')}</tbody></table>`;
+}
+var kGraphMemo = { sig: '', html: '' };   // var·function: 부팅 중 renderSubtabs가 먼저 불러도 안전
+function kGraphSig() { const G = kG(), box = $('kGraph'); return `${kCache.version || ''}|${(G.nodes || []).length}|${(G.edges || []).length}|${Math.round(Math.max(300, Math.min(760, (box && box.clientWidth) || 760)) / 40)}`; }
 // 힘 배치(결정적): 이어진 것은 당기고 모든 노드는 서로 밀어낸다. 노드는 종류마다 색, 모양은 하나
 function kGraphSvg() {
-  const G = kG(), nodes = (G.nodes || []).slice().sort((a, b) => String(a.kind).localeCompare(String(b.kind)) || String(a.title).localeCompare(String(b.title)));
+  const sig = kGraphSig(); if (kGraphMemo.sig === sig) return kGraphMemo.html;
+  const html = kGraphSvgCalc(); kGraphMemo = { sig, html }; return html;
+}
+function kGraphSvgCalc() {
+  const G = kG(), co = new Intl.Collator(), nodes = (G.nodes || []).slice().sort((a, b) => co.compare(String(a.kind), String(b.kind)) || co.compare(String(a.title), String(b.title)));   // 비교기 하나를 같이 쓴다(localeCompare는 노드 3천여 개에서 2.7초)
   if (!nodes.length) return '';
   const idx = new Map(nodes.map((n, i) => [n.id, i])), edges = (G.edges || []).filter((e) => idx.has(e.from) && idx.has(e.to));
   // 폭은 그릴 자리에 맞춘다(휴대폰 ~340px) — 760 고정이면 축소돼 글자가 5px로 보인다. 높이는 폭이 좁을수록 조금 더
   const box = $('kGraph'), W0 = Math.max(300, Math.min(760, (box && box.clientWidth) || 760));
   const N = nodes.length, H = Math.max(W0 < 500 ? 420 : 360, Math.min(760, 260 + N * 12)), K = Math.sqrt((W0 * H) / N) * 0.55;
-  const P = nodes.map((n, i) => { const a = (i / N) * Math.PI * 2; return [Math.cos(a) * 200, Math.sin(a) * 200]; });
-  for (let it = 0, t = 40; it < 400; it++, t *= 0.988) {
+  const P = nodes.map((n, i) => { if (N > 300) { const r = K * 1.2 * Math.sqrt(i + 0.5), a = i * 2.39996; return [Math.cos(a) * r, Math.sin(a) * r]; } const a = (i / N) * Math.PI * 2; return [Math.cos(a) * 200, Math.sin(a) * 200]; });   // 많으면 해바라기 배치로 시작(한 칸에 몰리지 않게)
+  if (N > 300) kLayoutBig(P, edges.map((e) => [idx.get(e.from), idx.get(e.to)]), K, N > 1500 ? 120 : 200);   // 많으면 격자·숫자 배열 배치(휴대폰에서도 몇 초 안)
+  else for (let it = 0, t = 40; it < 400; it++, t *= 0.988) {
     const D = P.map(() => [0, 0]);
     for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
-      let dx = P[i][0] - P[j][0], dy = P[i][1] - P[j][1], d = Math.hypot(dx, dy) || 0.01; const f = (K * K) / d / d;
+      const dx = P[i][0] - P[j][0], dy = P[i][1] - P[j][1], d = Math.sqrt(dx * dx + dy * dy) || 0.01, f = (K * K) / d / d;
       D[i][0] += dx * f; D[i][1] += dy * f; D[j][0] -= dx * f; D[j][1] -= dy * f;
     }
-    for (const e of edges) { const i = idx.get(e.from), j = idx.get(e.to); const dx = P[i][0] - P[j][0], dy = P[i][1] - P[j][1], d = Math.hypot(dx, dy) || 0.01, f = d / K;
+    for (const e of edges) { const i = idx.get(e.from), j = idx.get(e.to); const dx = P[i][0] - P[j][0], dy = P[i][1] - P[j][1], d = Math.sqrt(dx * dx + dy * dy) || 0.01, f = d / K;
       D[i][0] -= dx * f; D[i][1] -= dy * f; D[j][0] += dx * f; D[j][1] += dy * f; }
-    for (let i = 0; i < N; i++) { D[i][0] -= P[i][0] * 0.35; D[i][1] -= P[i][1] * 0.35; const d = Math.hypot(D[i][0], D[i][1]) || 1, m = Math.min(d, t); P[i][0] += (D[i][0] / d) * m; P[i][1] += (D[i][1] / d) * m; }
+    for (let i = 0; i < N; i++) { D[i][0] -= P[i][0] * 0.35; D[i][1] -= P[i][1] * 0.35; const d = Math.sqrt(D[i][0] * D[i][0] + D[i][1] * D[i][1]) || 1, m = Math.min(d, t); P[i][0] += (D[i][0] / d) * m; P[i][1] += (D[i][1] / d) * m; }
   }
   const xs = P.map((p) => p[0]), ys = P.map((p) => p[1]), mx = Math.min(...xs), Mx = Math.max(...xs), my = Math.min(...ys), My = Math.max(...ys);
   const fit = (v, lo, hi, a, b) => (hi - lo < 1 ? (a + b) / 2 : a + ((v - lo) / (hi - lo)) * (b - a));
   const pad = W0 < 500 ? 60 : 90, pos = P.map(([x, y]) => [fit(x, mx, Mx, pad, W0 - pad), fit(y, my, My, 40, H - 50)]);
-  const lines = edges.map((e) => { const [x1, y1] = pos[idx.get(e.from)], [x2, y2] = pos[idx.get(e.to)];
-    return `<line class="k-edge" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>${edges.length <= 24 && e.type !== 'MENTIONED_IN' ? `<text class="k-elabel" x="${(x1 + x2) / 2}" y="${(y1 + y2) / 2 - 4}">${escapeHtml(e.type.toLowerCase().replace(/_/g, ' '))}</text>` : ''}`; }).join('');
+  const lines = edges.map((e) => { const [x1, y1] = pos[idx.get(e.from)].map((v) => Math.round(v * 10) / 10), [x2, y2] = pos[idx.get(e.to)].map((v) => Math.round(v * 10) / 10);
+    return `<line class="k-edge" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>${edges.length <= 24 && e.type !== 'mentionedIn' ? `<text class="k-elabel" x="${(x1 + x2) / 2}" y="${(y1 + y2) / 2 - 4}">${escapeHtml(e.type.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase().replace(/_/g, ' '))}</text>` : ''}`; }).join('');
+  const big = N > 300, cmap = new Map(), colorOf = (k) => (cmap.has(k) ? cmap.get(k) : (cmap.set(k, kColor(k)), cmap.get(k)));
   const dots = nodes.map((n, i) => { const [x, y] = pos[i];
-    return `<g class="k-node" data-nid="${escapeHtml(n.id)}"><title>${escapeHtml(n.title)} (${escapeHtml(n.kind)})</title><circle cx="${x}" cy="${y}" r="9" fill="${kColor(n.kind)}"/><text x="${x}" y="${y + 24}">${escapeHtml(String(n.title).slice(0, 22))}</text></g>`; }).join('');
+    // 노드가 많으면(>300) 작은 점만 — 이름은 마우스를 올리면(title)
+    return big ? `<g class="k-node"><title>${escapeHtml(n.title)} (${escapeHtml(kLabel(G.kinds || [], n.kind))})</title><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="${colorOf(n.kind)}"/></g>`
+      : `<g class="k-node" data-nid="${escapeHtml(n.id)}"><title>${escapeHtml(n.title)} (${escapeHtml(n.kind)})</title><circle cx="${x}" cy="${y}" r="9" fill="${kColor(n.kind)}"/><text x="${x}" y="${y + 24}">${escapeHtml(String(n.title).slice(0, 22))}</text></g>`; }).join('');
   const legend = [...new Set(nodes.map((n) => n.kind))].map((kind) => `<span><i style="background:${kColor(kind)}"></i>${escapeHtml(kLabel(G.kinds || [], kind))}</span>`).join('');
-  return `<svg class="k-svg" viewBox="0 0 ${W0} ${H}" role="img" aria-label="Graph">${lines}${dots}</svg><div class="k-legend">${legend}</div>`;
+  return `<svg class="k-svg${big ? ' k-big' : ''}" viewBox="0 0 ${W0} ${H}" role="img" aria-label="Graph">${lines}${dots}</svg><div class="k-legend">${legend}</div>`;
+}
+// 노드가 많을 때의 힘 배치: 가까운 격자 칸끼리만 밀어내고(촘촘하면 이웃을 골고루 최대 M개만 보고 힘을 키움), 이어진 것은 당기고, 가운데로 약하게 모은다
+function kLayoutBig(P, E, K, IT) {
+  const N = P.length, X = new Float64Array(N), Y = new Float64Array(N), DX = new Float64Array(N), DY = new Float64Array(N);
+  for (let i = 0; i < N; i++) { const r = K * 1.2 * Math.sqrt(i + 0.5), a = i * 2.39996; X[i] = Math.cos(a) * r; Y[i] = Math.sin(a) * r; }
+  const EA = new Int32Array(E.length * 2); E.forEach(([a, b], k) => { EA[2 * k] = a; EA[2 * k + 1] = b; });
+  const KK = K * K, M = 24, cx = new Int32Array(N), cy = new Int32Array(N), order = new Int32Array(N);
+  let t = K * 6;
+  for (let it = 0; it < IT; it++, t *= 0.97) {
+    DX.fill(0); DY.fill(0);
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (let i = 0; i < N; i++) { if (X[i] < x0) x0 = X[i]; if (X[i] > x1) x1 = X[i]; if (Y[i] < y0) y0 = Y[i]; if (Y[i] > y1) y1 = Y[i]; }
+    const C = Math.max(K * 2, (x1 - x0) / 300, (y1 - y0) / 300), GW = Math.floor((x1 - x0) / C) + 1, GH = Math.floor((y1 - y0) / C) + 1;
+    const start = new Int32Array(GW * GH + 1);
+    for (let i = 0; i < N; i++) { cx[i] = Math.floor((X[i] - x0) / C); cy[i] = Math.floor((Y[i] - y0) / C); start[cy[i] * GW + cx[i] + 1]++; }
+    for (let c = 0; c < GW * GH; c++) start[c + 1] += start[c];
+    const fillp = start.slice(0, GW * GH); for (let i = 0; i < N; i++) order[fillp[cy[i] * GW + cx[i]]++] = i;
+    for (let i = 0; i < N; i++) {
+      let tot = 0;
+      for (let oy = -1; oy <= 1; oy++) { const yy = cy[i] + oy; if (yy < 0 || yy >= GH) continue; for (let ox = -1; ox <= 1; ox++) { const xx = cx[i] + ox; if (xx < 0 || xx >= GW) continue; const c = yy * GW + xx; tot += start[c + 1] - start[c]; } }
+      const step = tot > M ? tot / M : 1;
+      let q = (i * 7) % step, base = 0;
+      for (let oy = -1; oy <= 1; oy++) { const yy = cy[i] + oy; if (yy < 0 || yy >= GH) continue; for (let ox = -1; ox <= 1; ox++) { const xx = cx[i] + ox; if (xx < 0 || xx >= GW) continue;
+        const c = yy * GW + xx, s0 = start[c], n = start[c + 1] - s0;
+        for (; q < base + n; q += step) { const j = order[s0 + Math.floor(q - base)]; if (j === i) continue;
+          const dx = X[i] - X[j], dy = Y[i] - Y[j], d2 = dx * dx + dy * dy || 0.0001, f = step * KK / d2; DX[i] += dx * f; DY[i] += dy * f; }
+        base += n; } }
+    }
+    for (let k = 0; k < EA.length; k += 2) { const i = EA[k], j = EA[k + 1]; const dx = X[i] - X[j], dy = Y[i] - Y[j], d = Math.sqrt(dx * dx + dy * dy) || 0.01, f = d / K;
+      DX[i] -= dx * f; DY[i] -= dy * f; DX[j] += dx * f; DY[j] += dy * f; }
+    for (let i = 0; i < N; i++) { DX[i] -= X[i] * 0.05; DY[i] -= Y[i] * 0.05; const d = Math.sqrt(DX[i] * DX[i] + DY[i] * DY[i]) || 1, m = Math.min(d, t); X[i] += DX[i] / d * m; Y[i] += DY[i] / d * m; }
+  }
+  for (let i = 0; i < N; i++) { P[i][0] = X[i]; P[i][1] = Y[i]; }
 }
 $('knowledgeView').addEventListener('click', async (e) => {
   const b = e.target.closest('.k-del[data-kind]'); if (!b) return;   // 문서의 ✕(data-doc-del)는 문서 쪽이 맡는다
