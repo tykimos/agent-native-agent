@@ -24,7 +24,8 @@ const MAX_RESULT = 4000;          // 도구 결과 본문 상한(화면용)
 // Claude Code의 설정 폴더 — 기본은 ~/.claude. 세션마다 다른 계정을 쓰면 CLAUDE_CONFIG_DIR로 바뀐다(채팅 위 계정 버튼 · docs/multi-account.md).
 // 대화 기록(projects/), 실행 중 세션(sessions/<pid>.json), 로그인은 모두 그 폴더 안에 있다.
 const DEFAULT_CLAUDE_DIR = path.join(os.homedir(), '.claude');
-const CODEX_SESSIONS = path.join(process.env.CODEX_HOME || path.join(os.homedir(), '.codex'), 'sessions');
+// Codex의 홈 폴더 — 기본은 ~/.codex. 세션마다 다른 계정을 쓰면 CODEX_HOME으로 바뀐다(채팅 위 계정 버튼)
+const DEFAULT_CODEX_HOME = process.env.CODEX_HOME || path.join(os.homedir(), '.codex');
 
 const VERB = {
   Bash: ['Ran', 'command', 'commands'], Read: ['Read', 'file', 'files'], Edit: ['Edited', 'file', 'files'], MultiEdit: ['Edited', 'file', 'files'],
@@ -98,8 +99,8 @@ function codexLimits(rl) {
 // 이 경로(cwd)에서 가장 최근에 쓰인 Codex rollout.
 // Codex는 세션을 '시작한 날짜' 폴더(YYYY/MM/DD)에 파일을 만들고 그 뒤로도 같은 파일에 이어 쓴다. 그래서 날짜 폴더가
 // 아니라 파일 수정 시각으로 찾는다(예전엔 최근 7일 폴더만 봐서, 일주일 넘게 켜 둔 세션의 대화·모델·사용량이 사라졌다).
-function codexRolloutFiles() {
-  const files = [];
+function codexRolloutFiles(home = DEFAULT_CODEX_HOME) {
+  const files = [], CODEX_SESSIONS = path.join(home, 'sessions');
   const ls = (d) => { try { return fs.readdirSync(d, { withFileTypes: true }); } catch { return []; } };
   for (const y of ls(CODEX_SESSIONS)) if (y.isDirectory()) for (const m of ls(path.join(CODEX_SESSIONS, y.name))) if (m.isDirectory())
     for (const d of ls(path.join(CODEX_SESSIONS, y.name, m.name))) if (d.isDirectory()) {
@@ -120,8 +121,8 @@ function rolloutCwd(f) {
     finally { fs.closeSync(fd); }
   } catch { return null; }
 }
-function findCodexRollout(cwd) {
-  for (const { f } of codexRolloutFiles()) if (rolloutCwd(f) === cwd) return f;
+function findCodexRollout(cwd, home) {
+  for (const { f } of codexRolloutFiles(home)) if (rolloutCwd(f) === cwd) return f;
   return null;
 }
 // 대화 항목 나누어 주기 — since(rev)면 바뀐 것만, 아니면 before 위치 앞의 limit개(없으면 맨 끝 limit개)
@@ -180,6 +181,12 @@ function createAgentLog({ socket = '' } = {}) {
   }
   // 이 팬의 Claude Code가 쓰는 설정 폴더: 프로세스 환경 → tmux 세션 환경 → ~/.claude.
   // explicit = CLAUDE_CONFIG_DIR이 정해져 있는지(macOS 키체인 항목 이름이 이것에 따라 달라진다)
+  // 이 팬의 Codex가 쓰는 홈 폴더: 프로세스 환경 → tmux 세션 환경 → ~/.codex
+  async function codexHome(target, panePid) {
+    for (const pid of await paneProcs(panePid)) { const v = await procEnv(pid, 'CODEX_HOME'); if (v) return { dir: v, explicit: true }; }
+    const t = await tmuxEnv(target, 'CODEX_HOME');
+    return t ? { dir: t, explicit: true } : { dir: DEFAULT_CODEX_HOME, explicit: false };
+  }
   async function claudeConfig(target, panePid) {
     for (const pid of await paneProcs(panePid)) { const v = await procEnv(pid, 'CLAUDE_CONFIG_DIR'); if (v !== null && v !== undefined) return { dir: v || DEFAULT_CLAUDE_DIR, explicit: !!v }; }
     const t = await tmuxEnv(target, 'CLAUDE_CONFIG_DIR');
@@ -206,7 +213,7 @@ function createAgentLog({ socket = '' } = {}) {
     const info = await tmuxInfo(target);
     let file = null, kind = '', config = null;
     if (info && info.cwd && !isClaudeCommand(info.cmd, info.start) && /codex/i.test(`${info.cmd} ${info.start} ${target}`)) {
-      kind = 'codex'; file = findCodexRollout(info.cwd);
+      kind = 'codex'; config = await codexHome(target, info.pid); file = findCodexRollout(info.cwd, config.dir);
     } else if (info && isClaudeCommand(info.cmd, info.start) && info.cwd) {
       kind = 'claude';
       config = await claudeConfig(target, info.pid);

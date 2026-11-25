@@ -289,15 +289,16 @@
     },
     {
       "id": "session-accounts",
-      "title": "A Claude account per session (account button in the chat)",
+      "title": "An agent account per session — Claude and Codex (account button in the chat)",
       "skill": "chat-window",
-      "summary": "A round button right of the session picker at the top of the chat shows the Claude Code account of that session (first letter of its email; orange = not the default account, dashed = not signed in). It lists the accounts on this computer (~/.claude and ~/.claude-<name>) with email and sign-in state; picking one sets CLAUDE_CONFIG_DIR in the tmux session environment and respawns the pane with its start command (--resume <id> dropped); a new name creates ~/.claude-<name> (settings.json copied, not the login) and the chat shows Claude's sign-in. ANA reads each session's config folder (process env → tmux env → ~/.claude) for its conversation, usage limits and login. GET/POST /api/claude-account. docs/multi-account.md.",
+      "summary": "A round button right of the session picker at the top of the chat shows the Claude Code account of that session (first letter of its email; orange = not the default account, dashed = not signed in). It lists the accounts on this computer (~/.claude and ~/.claude-<name>) with email and sign-in state; picking one sets CLAUDE_CONFIG_DIR in the tmux session environment and respawns the pane with its start command (--resume <id> dropped); a new name creates ~/.claude-<name> (settings.json copied, not the login) and the chat shows Claude's sign-in. ANA reads each session's config folder (process env → tmux env → ~/.claude) for its conversation, usage limits and login. Codex sessions work the same with CODEX_HOME and ~/.codex-<name> (config.toml copied); an account that is not signed in runs `codex login --device-auth` on the server and the popover shows the link and one-time code, then Codex restarts under it once signed in. GET/POST /api/agent-account (/api/claude-account kept). docs/multi-account.md.",
       "anchors": [
         "/api/claude-account",
         "acctBtn",
         "function switchAcct",
         "function procEnv",
-        "async function claudeConfigOf(target)"
+        "async function claudeConfigOf(target)",
+        "function startCodexLogin"
       ]
     },
     {

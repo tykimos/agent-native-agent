@@ -20,7 +20,11 @@ ANA 채팅 맨 위, 세션 이름 오른쪽의 동그란 버튼이 **그 세션�
 1. 누르면 이 컴퓨터의 계정(`~/.claude`와 모든 `~/.claude-<이름>`)이 이메일·로그인 여부와 함께 보입니다.
 2. 하나를 고르면 이 세션의 Claude가 그 계정으로 다시 뜹니다. **+ Sign in with another account**를 누르고 짧은 이름(예: `alice`)을 주면, ANA가 `~/.claude-alice`를 만들고(`settings.json`은 가져오고 로그인은 가져오지 않음) 거기서 Claude를 다시 띄웁니다. 채팅에 Claude의 로그인 화면이 뜨면 따라 하면 됩니다.
 
-버튼 뒤에서 ANA는 아래 수동 절차와 같은 일을 합니다. tmux 세션 환경에 `CLAUDE_CONFIG_DIR`을 넣고, 팬을 처음 띄운 명령으로 다시 띄웁니다(다른 계정엔 없는 대화를 가리키는 `--resume <id>`는 뺍니다). API: `GET /api/claude-account`, `POST /api/claude-account {target, account, create?}`.
+버튼 뒤에서 ANA는 아래 수동 절차와 같은 일을 합니다. tmux 세션 환경에 `CLAUDE_CONFIG_DIR`을 넣고, 팬을 처음 띄운 명령으로 다시 띄웁니다(다른 계정엔 없는 대화를 가리키는 `--resume <id>`는 뺍니다). API: `GET /api/agent-account`, `POST /api/agent-account {target, account, create?}` (`{action:'cancel'}` stops a Codex sign-in).
+
+## Codex 세션
+
+Codex 세션에서도 같은 버튼을 씁니다. 계정은 `~/.codex`와 `~/.codex-<이름>`입니다(`CODEX_HOME` — ANA는 `config.toml`은 가져오고 `auth.json`은 가져오지 않습니다). Codex의 로그인은 Codex가 도는 컴퓨터에서 브라우저를 열기 때문에 원격 ANA에서는 안 됩니다. 그래서 로그인 전인 계정이면 ANA가 `codex login --device-auth`를 직접 돌리고, 팝오버에 **링크와 한 번 쓰는 코드**를 보입니다. 아무 기기(휴대폰도 됨)에서 링크를 열어 로그인하고 코드를 넣으면, 그 세션의 Codex가 새 계정으로 다시 뜹니다. *Cancel*을 누르면 로그인을 멈추고 세션은 그대로 둡니다. ANA가 보이는 대화·모델·한도는 그 세션의 `CODEX_HOME`에서 읽습니다.
 
 ## ANA가 세션마다 따라가는 것
 
