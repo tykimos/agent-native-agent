@@ -121,7 +121,7 @@ body.modal-open :is(.mode-toggle, .draw-btn) { position: relative; z-index: 72; 
 .draw-bar { position: absolute; left: 50%; bottom: calc(18px + var(--safe-b)); transform: translateX(-50%); display: flex; align-items: center; gap: 6px;
   padding: 6px; border-radius: 999px; background: var(--surface); box-shadow: var(--sh-sheet); cursor: default; white-space: nowrap; }
 .draw-bar .dhint { font-size: 12.5px; font-weight: 700; color: var(--text-sub); padding: 0 8px 0 10px; }
-.draw-bar button { height: 34px; padding: 0 13px; border-radius: 999px; font-size: 13px; font-weight: 700; color: var(--text-sub); background: var(--surface-2); }
+.draw-bar button { height: 34px; padding: 0 13px; border-radius: var(--r-sm); font-size: 13px; font-weight: 700; color: var(--text-sub); background: var(--surface-2); }
 .draw-bar button:disabled { opacity: .4; cursor: default; }
 .draw-bar .dsw { width: 26px; height: 26px; padding: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px var(--surface), 0 0 0 1px var(--line); }
 .draw-bar .dsw.on { box-shadow: inset 0 0 0 2px var(--surface), 0 0 0 2.5px var(--text); }
@@ -318,7 +318,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .req-t { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 700; overflow-wrap: anywhere; }
 .req-when { flex: 0 0 auto; font-size: 11.5px; font-weight: 700; color: var(--text-weak); }
 .req-opts { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
-.req-opts button { min-height: 34px; padding: 4px 14px; border-radius: 999px; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); color: var(--text); font-size: 13px; font-weight: 700; }
+.req-opts button { min-height: 34px; padding: 4px 14px; border-radius: var(--r-sm); background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); color: var(--text); font-size: 13px; font-weight: 700; }
 .req-opts button:hover { box-shadow: 0 0 0 1.5px var(--blue); }
 .req-reply { display: flex; gap: 7px; margin-top: 10px; align-items: flex-end; }
 .req-reply textarea { flex: 1; min-width: 0; min-height: 38px; max-height: 140px; resize: vertical; border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 8px 12px;
@@ -515,7 +515,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 
 }
 .ib-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 2px 0 10px; } .ib-head .sp { flex: 1; } .ib-head .stseg { margin: 0; }
-.ib-btn { height: 34px; padding: 0 13px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--line); }
+.ib-btn { height: 34px; padding: 0 13px; border-radius: var(--r-sm); font-size: 13px; font-weight: 700; background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--line); }
 .ib-btn:disabled { opacity: .5; }
 .ib-sec { display: flex; align-items: center; gap: 8px; margin: 18px 0 8px; font-size: 11.5px; font-weight: 700; color: var(--text-weak); letter-spacing: .05em; text-transform: uppercase; }
 .ib-mini { margin-left: auto; height: 28px; padding: 0 11px; border-radius: 999px; font-size: 12px; font-weight: 700; text-transform: none; letter-spacing: 0; color: var(--text); background: var(--surface); box-shadow: 0 0 0 1px var(--line); }
@@ -575,7 +575,7 @@ body.chat-collapsed .chat-open-btn { display: inline-flex; }
 .start-card { padding: 28px 26px; text-align: center; } .start-card h2 { font-size: 20px; font-weight: 700; margin: 0 0 8px; }
 .start-card p { color: var(--text-sub); max-width: 560px; margin: 0 auto 16px; line-height: 1.6; }
 .starters { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0 0 18px; }
-.starters button { padding: 8px 14px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--text); }
+.starters button { padding: 8px 14px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--text); }
 .starters button:hover { border-color: var(--acc, var(--blue)); }
 .prd-what { max-width: 560px; margin: 0 auto 18px; text-align: left; font-size: 13px; line-height: 1.6; color: var(--text-sub); } .prd-what > b { color: var(--text); }
 .prd-ex { margin-top: 8px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line-2); } .prd-ex span { display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-weak); margin-right: 8px; } .prd-ex b { color: var(--text); }
@@ -601,7 +601,7 @@ body.sketching { overflow: hidden; }
 .work-empty { padding: 28px 26px; text-align: center; margin-top: 8px; } .work-empty[hidden] { display: none; }
 .work-empty h2 { font-size: 19px; font-weight: 700; margin: 0 0 8px; } .work-empty p { color: var(--text-sub); max-width: 520px; margin: 0 auto 18px; line-height: 1.6; }
 .work-acts { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
-.work-acts .ok { height: 36px; padding: 0 16px; border-radius: 999px; font-weight: 700; background: var(--acc, var(--blue)); color: #fff; }
+.work-acts .ok { height: 36px; padding: 0 16px; border-radius: var(--r-sm); font-weight: 700; background: var(--acc, var(--blue)); color: #fff; }
 /* Knowledge: 온톨로지 목록 · 그래프 */
 .k-list { padding: 4px 0; margin-bottom: 16px; }
 .k-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-top: 1px solid var(--line-2); } .k-row:first-child { border-top: none; }
@@ -616,7 +616,7 @@ body.sketching { overflow: hidden; }
 @media (max-width: 430px) { .toolbar:has(.cnt:not(:empty)) { flex-wrap: wrap; row-gap: 6px; } .toolbar .cnt:not(:empty) { flex: 1 1 100%; white-space: normal; } }
 .doc-drop { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 14px 16px; margin-bottom: 12px; border: 1.5px dashed var(--line); border-radius: 12px; color: var(--text-sub); font-size: 13px; }
 .doc-drop.over { border-color: var(--acc, var(--blue)); background: var(--acc-weak, var(--blue-weak)); }
-.doc-drop .ok { height: 34px; padding: 0 14px; border-radius: 999px; font-weight: 700; background: var(--acc, var(--blue)); color: #fff; } .doc-status { margin-left: auto; font-weight: 700; color: var(--text); }
+.doc-drop .ok { height: 34px; padding: 0 14px; border-radius: var(--r-sm); font-weight: 700; background: var(--acc, var(--blue)); color: #fff; } .doc-status { margin-left: auto; font-weight: 700; color: var(--text); }
 .doc-ic { font-size: 20px; line-height: 1; flex: 0 0 auto; margin-top: 2px; } .doc-name { color: var(--text); text-decoration: none; } .doc-name:hover { text-decoration: underline; }
 /* Ontology › Relations 관계도 + 표 */
 .kr-wrap { overflow-x: auto; padding: 8px 8px 0; } .kr-svg { width: 100%; height: auto; display: block; margin: 0 auto; }
@@ -815,7 +815,7 @@ body.chat-loading #connPill .dot { background: transparent !important; box-shado
 .tmux-cfg-list .who { display: block; margin-top: 2px; font-size: 11px; color: var(--text-weak); }
 .tmux-cfg-list .who b { color: var(--blue-700); font-weight: 700; }
 .keys { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 8px; }
-.keys button { min-height: 34px; padding: 4px 11px; border-radius: 999px; background: var(--surface-2); box-shadow: var(--sh-card); color: var(--text-sub); font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.keys button { min-height: 34px; padding: 4px 11px; border-radius: var(--r-sm); background: var(--surface-2); box-shadow: var(--sh-card); color: var(--text-sub); font-size: 12px; font-weight: 700; flex-shrink: 0; }
 .keys .sp { flex: 1; box-shadow: none; background: none; min-height: 0; }
 .keys button.danger { color: var(--danger); background: var(--danger-bg); }
 .keys button:disabled { opacity: .4; cursor: default; }
@@ -1031,7 +1031,7 @@ body.drawing .fab { display: none !important; }   /* 그리는 동안은 툴바�
 .conn .cbtn .label { flex: 1; text-align: left; }
 .conn .conn-pop { left: 0; right: 0; width: auto; transform: none; }   /* 콤보 폭 그대로 — 화면 밖으로 삐져나가지 않게 */
 .log-more { align-self: center; display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 4px 0; font-size: 12.5px; color: var(--text-weak); font-weight: 600; }
-.log-more button { height: 30px; padding: 0 14px; border-radius: 999px; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); color: var(--text-sub); font-size: 12.5px; font-weight: 700; }
+.log-more button { height: 30px; padding: 0 14px; border-radius: var(--r-sm); background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); color: var(--text-sub); font-size: 12.5px; font-weight: 700; }
 .log-more.end { opacity: .7; }
 .lm-spin { width: 13px; height: 13px; border-radius: 99px; border: 2px solid currentColor; border-right-color: transparent; animation: sparkspin .9s linear infinite; }
 /* 기록 모드 항목 */
